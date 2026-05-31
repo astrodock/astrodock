@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1",
+  "slug": "starter",
+  "name": "Starter App",
+  "description": "Minimal Toolstead app: React frontend + Express server, platform login.",
+  "subdomain": "starter",
+  "source": {
+    "branch": "main",
+    "repoPath": ""
+  },
+  "runtime": {
+    "type": "node",
+    "buildCommand": "npm run build"
+  },
+  "auth": { "mode": "platform" },
+  "database": { "mode": "none" },
+  "storage": { "mode": "none" },
+  "env": [
+    {
+      "key": "WELCOME_MESSAGE",
+      "secret": false,
+      "required": false,
+      "default": "Welcome to your Toolstead app",
+      "description": "Greeting shown on the home page"
+    }
+  ]
+}
