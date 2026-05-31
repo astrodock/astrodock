@@ -116,8 +116,11 @@ config.internalAuthUrl = process.env.ASTRODOCK_INTERNAL_AUTH_URL || `http://api:
 // CORS allowed-origin matcher, config-driven (no hardcoded org domain).
 config.isAllowedOrigin = function isAllowedOrigin(origin) {
   if (!origin) return true; // server-to-server / curl
-  if (/^http:\/\/localhost(:\d+)?$/.test(origin)) return true;
-  if (/^http:\/\/127\.0\.0\.1(:\d+)?$/.test(origin)) return true;
+  // localhost is allowed only outside production (the Vite dev server) — not in prod
+  if (config.env !== 'production') {
+    if (/^http:\/\/localhost(:\d+)?$/.test(origin)) return true;
+    if (/^http:\/\/127\.0\.0\.1(:\d+)?$/.test(origin)) return true;
+  }
   if (config.allowedOriginPattern) {
     try { return new RegExp(config.allowedOriginPattern).test(origin); } catch { /* fall through */ }
   }

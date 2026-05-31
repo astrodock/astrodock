@@ -32,8 +32,14 @@ async function run() {
   let commitHash = deployment.commitHash || '';
   let commitMessage = deployment.commitMessage || '';
 
+  // Never let the GitHub token (embedded in the clone URL) reach the stored log.
+  function redact(s) {
+    let out = String(s);
+    if (config.github.pat) out = out.split(config.github.pat).join('***');
+    return out.replace(/x-access-token:[^@\s]*@/g, 'x-access-token:***@');
+  }
   async function appendLog(msg) {
-    log += `[${new Date().toISOString()}] ${msg}\n`;
+    log += `[${new Date().toISOString()}] ${redact(msg)}\n`;
     await db.update(schema.deployments).set({ log }).where(eq(schema.deployments.id, deploymentId));
   }
   async function setStatus(status) {
@@ -102,7 +108,7 @@ async function run() {
     if (err.stderr) await appendLog(String(err.stderr));
     if (err.stdout) await appendLog(String(err.stdout));
     await db.update(schema.deployments).set({
-      status: 'failed', error: err.message, log, finishedAt: new Date()
+      status: 'failed', error: redact(err.message), log, finishedAt: new Date()
     }).where(eq(schema.deployments.id, deploymentId));
   } finally {
     await close().catch(() => {});

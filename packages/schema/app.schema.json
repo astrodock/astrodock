@@ -16,9 +16,9 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "branch":   { "type": "string", "default": "main" },
-        "repoPath": { "type": "string", "default": "" },
-        "githubRepo": { "type": "string", "description": "owner/repo — optional; can also be set via the CLI/admin UI." }
+        "branch":   { "type": "string", "default": "main", "pattern": "^[A-Za-z0-9._/-]+$", "maxLength": 200 },
+        "repoPath": { "type": "string", "default": "", "pattern": "^(?!.*\\.\\.)[A-Za-z0-9._/-]*$", "maxLength": 200 },
+        "githubRepo": { "type": "string", "pattern": "^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$", "description": "owner/repo — optional; can also be set via the CLI/admin UI." }
       }
     },
     "runtime": {
@@ -27,8 +27,8 @@
       "required": ["type"],
       "properties": {
         "type":         { "enum": ["node", "docker"] },
-        "buildCommand": { "type": "string" },
-        "dockerfile":   { "type": "string" }
+        "buildCommand": { "type": "string", "maxLength": 500 },
+        "dockerfile":   { "type": "string", "pattern": "^(?!.*\\.\\.)[A-Za-z0-9._/-]+$", "maxLength": 200 }
       }
     },
     "auth":     { "type": "object", "additionalProperties": false,
