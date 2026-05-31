@@ -1,0 +1,32 @@
+# ── Dependencies ───────────────────────────────
+node_modules/
+
+# ── Build output ───────────────────────────────
+dist/
+build/
+.vite/
+
+# ── Secrets / local config — NEVER COMMIT ──────
+.env
+.env.*
+!.env.example
+setup.conf
+!setup.conf.example
+*.pem
+*.key
+
+# ── Logs ───────────────────────────────────────
+*.log
+npm-debug.log*
+yarn-error.log*
+.pm2/
+
+# ── OS / editor cruft ──────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# ── Local tooling ──────────────────────────────
+.claude/settings.local.json

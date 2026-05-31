@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Platform Design Spec — App Manifest, Environment Model & App Runner</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --panel-2: #1d212b;
+    --ink: #e6e9ef;
+    --muted: #9aa3b2;
+    --line: #2a2f3a;
+    --accent: #6ea8fe;
+    --accent-2: #7ee0b8;
+    --warn: #ffcc66;
+    --danger: #ff8a8a;
+    --code-bg: #0b0d11;
+    --radius: 10px;
+    --maxw: 880px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 15px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code, pre, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+  code { background: var(--code-bg); padding: 1px 6px; border-radius: 5px; font-size: 0.86em; color: #d8dee9; border: 1px solid var(--line); }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; overflow-x: auto; font-size: 13px; line-height: 1.55; }
+  pre code { background: none; border: none; padding: 0; font-size: inherit; color: #d8dee9; }
+
+  .layout { display: grid; grid-template-columns: 270px 1fr; gap: 0; min-height: 100vh; }
+  nav.toc {
+    position: sticky; top: 0; align-self: start; height: 100vh; overflow-y: auto;
+    background: var(--panel); border-right: 1px solid var(--line); padding: 26px 20px;
+  }
+  nav.toc h2 { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin: 22px 0 8px; }
+  nav.toc h2:first-child { margin-top: 0; }
+  nav.toc a { display: block; color: var(--muted); padding: 4px 0; font-size: 13.5px; }
+  nav.toc a:hover { color: var(--ink); text-decoration: none; }
+  .brand { font-weight: 700; font-size: 15px; color: var(--ink); letter-spacing: .02em; }
+  .brand small { display:block; font-weight: 400; color: var(--muted); font-size: 12px; letter-spacing:.06em; margin-top:2px; }
+
+  main { padding: 48px 40px 120px; }
+  .wrap { max-width: var(--maxw); margin: 0 auto; }
+  h1 { font-size: 30px; line-height: 1.2; margin: 0 0 6px; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); font-size: 15px; margin: 0 0 28px; }
+  h2.section { font-size: 22px; margin: 56px 0 14px; padding-top: 14px; border-top: 1px solid var(--line); letter-spacing: -0.01em; }
+  h3 { font-size: 17px; margin: 30px 0 10px; }
+  h4 { font-size: 14px; margin: 22px 0 8px; color: var(--accent-2); text-transform: uppercase; letter-spacing: .08em; }
+  p { margin: 12px 0; }
+  ul, ol { padding-left: 22px; }
+  li { margin: 5px 0; }
+
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 13.5px; }
+  th, td { text-align: left; padding: 8px 11px; border: 1px solid var(--line); vertical-align: top; }
+  th { background: var(--panel-2); color: var(--ink); font-weight: 600; }
+  td code { white-space: nowrap; }
+  tbody tr:nth-child(even) { background: rgba(255,255,255,0.018); }
+
+  .callout { border-radius: var(--radius); padding: 13px 16px; margin: 18px 0; border: 1px solid var(--line); background: var(--panel); }
+  .callout .tag { display:inline-block; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; margin-right: 8px; }
+  .callout.decided { border-left: 3px solid var(--accent-2); }
+  .callout.decided .tag { color: var(--accent-2); }
+  .callout.note { border-left: 3px solid var(--accent); }
+  .callout.note .tag { color: var(--accent); }
+  .callout.warn { border-left: 3px solid var(--warn); }
+  .callout.warn .tag { color: var(--warn); }
+  .callout.open { border-left: 3px solid var(--danger); }
+  .callout.open .tag { color: var(--danger); }
+
+  .pill { display:inline-block; font-size: 11px; padding: 2px 9px; border-radius: 999px; border:1px solid var(--line); color: var(--muted); background: var(--panel-2); }
+  .meta-row { display:flex; gap:10px; flex-wrap:wrap; margin: 0 0 30px; }
+
+  .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 980px) {
+    .layout { grid-template-columns: 1fr; }
+    nav.toc { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--line); }
+    .grid2 { grid-template-columns: 1fr; }
+    main { padding: 32px 20px 80px; }
+  }
+  .fade { color: var(--muted); }
+  hr { border: none; border-top: 1px solid var(--line); margin: 34px 0; }
+  .kbd { font-size: 12px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="toc">
+    <div class="brand">Platform Design Spec <small>app manifest · env · runner</small></div>
+    <h2>Foundations</h2>
+    <a href="#overview">1. Overview &amp; goals</a>
+    <a href="#topology">2. Architecture topology</a>
+    <h2>Configuration</h2>
+    <a href="#manifest">3. The app.json manifest</a>
+    <a href="#fields">3.1 Field reference</a>
+    <a href="#apply">3.2 Apply semantics</a>
+    <a href="#changes">3.3 Change &amp; immutability</a>
+    <a href="#schema">3.4 JSON Schema</a>
+    <h2>Runtime</h2>
+    <a href="#env">4. Environment model</a>
+    <a href="#reserved">4.1 Reserved variables</a>
+    <a href="#declared">4.2 App-declared variables</a>
+    <a href="#rules">4.3 Rules &amp; enforcement</a>
+    <a href="#provisioning">5. Resource provisioning</a>
+    <a href="#runner">6. App runner</a>
+    <a href="#flows">6.1 Deploy flows</a>
+    <a href="#worker-diff">6.2 What changes</a>
+    <h2>Validation</h2>
+    <a href="#samples">7. Sample apps</a>
+    <a href="#open">8. Open items</a>
+  </nav>
+
+  <main>
+  <div class="wrap">
+    <h1>Platform Design Spec</h1>
+    <p class="sub">App manifest (<code>app.json</code>), environment-variable model, and the app-runner architecture for the open-source app platform.</p>
+    <div class="meta-row">
+      <span class="pill">Status: Draft v0.1</span>
+      <span class="pill">Audience: implementers &amp; AI agents</span>
+      <span class="pill">Working prefix: <code>PLATFORM_</code></span>
+    </div>
+
+    <div class="callout note">
+      <span class="tag">Naming</span>
+      The project is not yet named. Everywhere this spec writes <code>PLATFORM_</code> (env prefix) or
+      <code>platform</code> (CLI name, package scope), substitute the chosen project name once decided —
+      the convention is <code>&lt;NAME&gt;_</code> for env vars, mirroring Railway (<code>RAILWAY_</code>) and Fly (<code>FLY_</code>).
+    </div>
+
+    <!-- ───────────────────────────── 1 ───────────────────────────── -->
+    <h2 class="section" id="overview">1. Overview &amp; goals</h2>
+    <p>
+      The platform is a self-hosted control plane that <strong>deploys, hosts, authenticates, and monitors</strong>
+      small apps on a single host. Its north star is <em>"deploy once and don't worry about it"</em>: it runs with
+      <strong>zero external dependencies</strong> by bundling its own database and object storage, and it is built so an
+      AI coding agent can build an app and launch it on the open internet through a documented contract.
+    </p>
+
+    <h4>Design principles</h4>
+    <ul>
+      <li><strong>Opinionated box, pluggable slots.</strong> The control plane, routing, auth, and deploy orchestration are fixed. Database and object storage are per-app choices.</li>
+      <li><strong>The platform brokers connection strings; it never touches app data.</strong> This is why adding an "external" option is nearly free and why "internal" is just a provisioner.</li>
+      <li><strong>One artifact, three deployment modes:</strong> (1) local on your own box, (2) self-managed cloud VPS, (3) future managed SaaS as orchestrated <em>single-tenant</em> instances — never multi-tenancy inside the control plane.</li>
+      <li><strong>Apps read configuration from injected environment variables.</strong> Internal vs external is pure configuration; app code is identical either way.</li>
+    </ul>
+
+    <h4>Per-app resource choices</h4>
+    <table>
+      <thead><tr><th>Resource</th><th>Internal (managed — easiest)</th><th>External (BYO)</th><th>None</th></tr></thead>
+      <tbody>
+        <tr><td>Database</td><td>A database on the bundled <strong>Postgres</strong>, auto-provisioned + injected</td><td>User-supplied connection string (Neon / Supabase / Atlas / RDS …)</td><td>App has no database</td></tr>
+        <tr><td>Object storage</td><td>A bucket/prefix on the bundled S3-compatible store</td><td>User-supplied S3 / R2 / Spaces credentials</td><td>App stores nothing</td></tr>
+        <tr><td>Auth</td><td><strong>platform</strong> — login backed by the control plane</td><td><em>(n/a)</em></td><td><strong>public</strong> / app handles its own</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout decided">
+      <span class="tag">Decided</span>
+      Bundled engine = <strong>Postgres</strong> (control plane + internal app DBs). Bundled object store = an S3-compatible
+      service (leaning <strong>SeaweedFS</strong>, Apache-2.0). Compute = <strong>Hybrid</strong>: Node buildpack default + optional Dockerfile.
+    </div>
+
+    <!-- ───────────────────────────── 2 ───────────────────────────── -->
+    <h2 class="section" id="topology">2. Architecture topology</h2>
+    <p>The platform ships as a <code>docker compose</code> stack. The same stack runs in all three deployment modes.</p>
+<pre><code>                          ┌──────────────── host / VPS ────────────────┐
+   *.&lt;base-domain&gt; ─TLS──▶ │  caddy        reverse proxy + auto-HTTPS      │
+                          │    │           serves static frontends (vol)  │
+                          │    │           proxies /api/* and Docker apps  │
+                          │    ▼                                          │
+                          │  api          control plane (Express)         │
+                          │    │           admin API · /verify · webhooks  │
+                          │    │           health monitor · orchestration  │
+                          │    ▼                                          │
+                          │  runner       clones, builds, runs apps        │
+                          │   ├─ PM2 ───▶ node app  &lt;slug&gt;  (buildpack)    │
+                          │   └─ docker ▶ app-&lt;slug&gt; container (Dockerfile) │
+                          │                                               │
+                          │  postgres     bundled DB (CP + internal apps)  │
+                          │  objectstore  bundled S3-compatible storage    │
+                          └───────────────────────────────────────────────┘
+   volumes:  pgdata · objectdata · static (builds) · apps (server code) · repos (clone cache)
+   network:  one bridge net; Caddy resolves app containers by name; runner reachable as "runner"</code></pre>
+
+    <h4>Services</h4>
+    <table>
+      <thead><tr><th>Service</th><th>Role</th></tr></thead>
+      <tbody>
+        <tr><td><code>caddy</code></td><td>Reverse proxy, automatic HTTPS, serves static frontends from the <code>static</code> volume, proxies <code>/api/*</code> and Docker-app subdomains.</td></tr>
+        <tr><td><code>api</code></td><td>Control plane: admin API, <code>/verify</code>, GitHub webhooks, health monitor, deploy orchestration. Talks to <code>postgres</code>.</td></tr>
+        <tr><td><code>runner</code></td><td>Has Node + PM2 + git + the Docker CLI. Runs Node buildpack apps as PM2 processes inside itself; builds &amp; runs Dockerfile apps as sibling containers via the mounted Docker socket. <span class="fade">(May be merged into <code>api</code> for a minimal deployment; kept separate to isolate the build/exec surface.)</span></td></tr>
+        <tr><td><code>postgres</code></td><td>Bundled database — the control-plane store <em>and</em> the internal per-app database option.</td></tr>
+        <tr><td><code>objectstore</code></td><td>Bundled S3-compatible object storage — the internal per-app storage option.</td></tr>
+      </tbody>
+    </table>
+    <div class="callout decided">
+      <span class="tag">Decided</span>
+      Node apps run as <strong>PM2 processes inside the runner</strong>; Dockerfile apps run as <strong>sibling containers</strong> built and started
+      via a mounted <code>/var/run/docker.sock</code>. Socket access ≈ root on the host — accepted under the trusted-single-operator
+      threat model, and documented as a known privilege.
+    </div>
+
+    <!-- ───────────────────────────── 3 ───────────────────────────── -->
+    <h2 class="section" id="manifest">3. The <code>app.json</code> manifest</h2>
+    <p>
+      <code>app.json</code> lives at the root of an app's repo (or at <code>repoPath</code>). It is the single declared
+      source of truth shared by the AI agent (writes it), the CLI (<code>platform apply</code> reads it), the control-plane
+      API (provisions from it), the admin UI (displays/edits it), and the runner (build &amp; runtime config).
+    </p>
+    <p>Format is plain <strong>JSON</strong> (no comments) so any tool can read/write it unambiguously. It carries declared
+      configuration and environment-variable <em>names</em> only — <strong>never secret values</strong>.</p>
+
+    <h4>Complete example</h4>
+<pre><code>{
+  "schemaVersion": "1",
+
+  "slug": "invoice-tool",
+  "name": "Invoice Tool",
+  "description": "Generate and store client invoices",
+  "subdomain": "invoices",
+
+  "source": {
+    "branch": "main",
+    "repoPath": ""
+  },
+
+  "runtime": {
+    "type": "node",
+    "buildCommand": "npm run build"
+  },
+
+  "auth":    { "mode": "platform" },
+  "database":{ "mode": "internal" },
+  "storage": { "mode": "internal" },
+
+  "env": [
+    { "key": "OPENAI_API_KEY", "secret": true,  "required": true,
+      "description": "Used to draft line items" },
+    { "key": "INVOICE_PREFIX", "secret": false, "required": false,
+      "default": "INV-", "description": "Prefix for invoice numbers" }
+  ]
+}</code></pre>
+
+    <h3 id="fields">3.1 Field reference</h3>
+
+    <h4>Top level</h4>
+    <table>
+      <thead><tr><th>Field</th><th>Type</th><th>Req</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td><code>schemaVersion</code></td><td>string</td><td>yes</td><td>Manifest schema version. Currently <code>"1"</code>.</td></tr>
+        <tr><td><code>slug</code></td><td>string</td><td>yes</td><td>Immutable identity key. Pattern <code>^[a-z0-9-]+$</code>. Names the PM2 process / container, the internal DB, the storage prefix.</td></tr>
+        <tr><td><code>name</code></td><td>string</td><td>yes</td><td>Human display name.</td></tr>
+        <tr><td><code>description</code></td><td>string</td><td>no</td><td>Short description shown in the admin UI.</td></tr>
+        <tr><td><code>subdomain</code></td><td>string</td><td>yes</td><td>Pattern <code>^[a-z0-9-]+$</code>. App is served at <code>https://&lt;subdomain&gt;.&lt;base-domain&gt;</code>.</td></tr>
+        <tr><td><code>source</code></td><td>object</td><td>yes</td><td>Where code comes from. See below.</td></tr>
+        <tr><td><code>runtime</code></td><td>object</td><td>yes</td><td>How the app is built and run. See below.</td></tr>
+        <tr><td><code>auth</code></td><td>object</td><td>yes</td><td>Auth mode. See below.</td></tr>
+        <tr><td><code>database</code></td><td>object</td><td>yes</td><td>Database mode. See below.</td></tr>
+        <tr><td><code>storage</code></td><td>object</td><td>yes</td><td>Object-storage mode. See below.</td></tr>
+        <tr><td><code>env</code></td><td>array</td><td>no</td><td>App-declared environment variables (names + metadata only). See §4.2.</td></tr>
+      </tbody>
+    </table>
+
+    <h4><code>source</code></h4>
+    <table>
+      <thead><tr><th>Field</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td><code>branch</code></td><td>string</td><td><code>"main"</code></td><td>Branch deployed and watched for webhook pushes.</td></tr>
+        <tr><td><code>repoPath</code></td><td>string</td><td><code>""</code></td><td>Subdirectory in the repo to deploy from. <code>""</code> = repo root.</td></tr>
+      </tbody>
+    </table>
+
+    <h4><code>runtime</code></h4>
+    <table>
+      <thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td><code>type</code></td><td>enum</td><td><code>"node"</code> (buildpack — PM2 in runner) or <code>"docker"</code> (Dockerfile — sibling container).</td></tr>
+        <tr><td><code>buildCommand</code></td><td>string</td><td><em>node only.</em> Frontend build command. Default <code>"npm run build"</code>.</td></tr>
+        <tr><td><code>dockerfile</code></td><td>string</td><td><em>docker only.</em> Path to the Dockerfile relative to <code>repoPath</code>. Default <code>"Dockerfile"</code>.</td></tr>
+      </tbody>
+    </table>
+    <p class="fade"><strong>Node layout:</strong> <code>app/</code> (frontend, builds to <code>app/dist/</code>) and/or <code>server/</code> (Express, entry <code>server.js</code>, routes under <code>/api/*</code>). A standalone <code>server.js</code> = server-only; a standalone <code>package.json</code> with no server = frontend-only. <strong>Docker layout:</strong> the container serves the whole subdomain itself on <code>PLATFORM_PORT</code>.</p>
+
+    <h4><code>auth</code> / <code>database</code> / <code>storage</code></h4>
+    <table>
+      <thead><tr><th>Block</th><th><code>mode</code> values</th><th>Effect</th></tr></thead>
+      <tbody>
+        <tr><td><code>auth</code></td><td><code>platform</code> · <code>public</code></td><td><code>platform</code> injects <code>PLATFORM_AUTH_URL</code>/<code>APP_ID</code>/<code>APP_SECRET</code>/<code>APP_JWT_SECRET</code> and registers an app secret for <code>/verify</code>. <code>public</code> injects none.</td></tr>
+        <tr><td><code>database</code></td><td><code>internal</code> · <code>external</code> · <code>none</code></td><td><code>internal</code>: platform provisions a Postgres DB and generates <code>PLATFORM_DATABASE_URL</code>. <code>external</code>: <code>PLATFORM_DATABASE_URL</code> becomes a <strong>required user-supplied secret</strong>. <code>none</code>: nothing injected.</td></tr>
+        <tr><td><code>storage</code></td><td><code>internal</code> · <code>external</code> · <code>none</code></td><td><code>internal</code>: platform provisions a bucket/prefix + scoped key, injects <code>PLATFORM_STORAGE_*</code>. <code>external</code>: the <code>PLATFORM_STORAGE_*</code> credentials become <strong>required user-supplied secrets</strong>. <code>none</code>: nothing injected.</td></tr>
+      </tbody>
+    </table>
+
+    <h3 id="apply">3.2 Apply semantics</h3>
+    <p><code>platform apply</code> reconciles the platform to match the manifest. It is <strong>additive and non-destructive</strong>:</p>
+    <ul>
+      <li><strong>Creates</strong> the app if the <code>slug</code> is new; <strong>updates</strong> declared structural fields otherwise.</li>
+      <li><strong>Never</strong> overwrites or prints secret <em>values</em> (those are set out-of-band via <code>platform set-secret</code> / the admin UI).</li>
+      <li><strong>Never</strong> deletes user-added env vars or platform state that the manifest doesn't mention, unless run with an explicit <code>--prune</code> flag.</li>
+      <li>After reconciling app config, it <strong>connects the repo</strong> (creating the webhook) and <strong>provisions</strong> (DB/storage/Caddy) in one pass — no admin clicks.</li>
+    </ul>
+    <div class="callout note">
+      <span class="tag">Precedence</span>
+      The manifest is the source of truth for <em>declared structural fields</em> (routing, runtime, resource modes, env var <em>declarations</em>).
+      The admin UI / CLI own <em>secret values</em> and ad-hoc, non-manifest overrides. On conflict for a declared field, the manifest wins on the next <code>apply</code>.
+    </div>
+
+    <h3 id="changes">3.3 Change &amp; immutability rules</h3>
+    <table>
+      <thead><tr><th>Field</th><th>Change behavior</th></tr></thead>
+      <tbody>
+        <tr><td><code>slug</code></td><td><strong>Immutable.</strong> It is the identity key; changing it means a new app.</td></tr>
+        <tr><td><code>subdomain</code></td><td>Mutable — triggers a Caddy re-provision + new TLS cert.</td></tr>
+        <tr><td><code>runtime.type</code></td><td>Mutable — next deploy switches execution path (PM2 ⇄ container). Old process/container is torn down.</td></tr>
+        <tr><td><code>database.mode</code> / <code>storage.mode</code></td><td>Mutable but <strong>non-migrating</strong>: switching points the app at a different (or empty) store. <span class="fade">No data is copied. Documented as destructive-by-omission.</span></td></tr>
+      </tbody>
+    </table>
+
+    <h3 id="schema">3.4 JSON Schema</h3>
+    <p>Validation schema (Draft 2020-12). The CLI and API validate against this; ship it so editors can too.</p>
+<pre><code>{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "app.json",
+  "type": "object",
+  "required": ["schemaVersion","slug","name","subdomain","source","runtime","auth","database","storage"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": "1" },
+    "slug":      { "type": "string", "pattern": "^[a-z0-9-]+$", "maxLength": 40 },
+    "name":      { "type": "string", "minLength": 1 },
+    "description": { "type": "string" },
+    "subdomain": { "type": "string", "pattern": "^[a-z0-9-]+$", "maxLength": 40 },
+    "source": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "branch":   { "type": "string", "default": "main" },
+        "repoPath": { "type": "string", "default": "" }
+      }
+    },
+    "runtime": {
+      "type": "object", "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type":         { "enum": ["node","docker"] },
+        "buildCommand": { "type": "string" },
+        "dockerfile":   { "type": "string" }
+      }
+    },
+    "auth":     { "type": "object", "additionalProperties": false,
+                  "properties": { "mode": { "enum": ["platform","public"] } } },
+    "database": { "type": "object", "additionalProperties": false,
+                  "properties": { "mode": { "enum": ["internal","external","none"] } } },
+    "storage":  { "type": "object", "additionalProperties": false,
+                  "properties": { "mode": { "enum": ["internal","external","none"] } } },
+    "env": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["key"],
+        "properties": {
+          "key":        { "type": "string", "pattern": "^(?!PLATFORM_)[A-Z][A-Z0-9_]*$" },
+          "secret":     { "type": "boolean", "default": false },
+          "required":   { "type": "boolean", "default": false },
+          "default":    { "type": "string" },
+          "description":{ "type": "string" }
+        }
+      }
+    }
+  }
+}</code></pre>
+    <p class="fade">Note the <code>env[].key</code> pattern <code>^(?!PLATFORM_)…</code> — the schema itself rejects any app-declared variable that uses the reserved prefix.</p>
+
+    <!-- ───────────────────────────── 4 ───────────────────────────── -->
+    <h2 class="section" id="env">4. Environment-variable model</h2>
+    <p>There are exactly two categories of environment variable. Keeping them strictly separate is what makes the contract unambiguous for an AI agent.</p>
+    <ol>
+      <li><strong>Reserved (<code>PLATFORM_*</code>)</strong> — managed by the platform, injected at deploy. The app <em>reads</em> these. Apps may never declare them.</li>
+      <li><strong>App-declared</strong> — declared in <code>app.json</code> <code>env[]</code>, values supplied out-of-band. The app's own config.</li>
+    </ol>
+
+    <h3 id="reserved">4.1 Reserved variables (<code>PLATFORM_*</code>)</h3>
+    <p>Which reserved vars are injected depends on the resource modes. "auto" = generated by the platform; "user-required" = a value the operator must set before deploy.</p>
+    <table>
+      <thead><tr><th>Variable</th><th>Present when</th><th>Source</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><code>PLATFORM_APP_SLUG</code></td><td>always</td><td>auto</td><td>App slug / identity.</td></tr>
+        <tr><td><code>PLATFORM_APP_NAME</code></td><td>always</td><td>auto</td><td>Display name.</td></tr>
+        <tr><td><code>PLATFORM_APP_URL</code></td><td>always</td><td>auto</td><td>Public URL <code>https://&lt;sub&gt;.&lt;domain&gt;</code>.</td></tr>
+        <tr><td><code>PLATFORM_BASE_DOMAIN</code></td><td>always</td><td>auto</td><td>Platform base domain.</td></tr>
+        <tr><td><code>PLATFORM_PORT</code></td><td>always</td><td>auto</td><td><strong>The port the server MUST bind.</strong></td></tr>
+        <tr><td><code>PLATFORM_ENV</code></td><td>always</td><td>auto</td><td>Deploy environment, e.g. <code>production</code>.</td></tr>
+        <tr><td><code>PLATFORM_DATABASE_URL</code></td><td>database ≠ none</td><td>auto (internal) / user-required (external)</td><td>Full connection string. Same name in both modes.</td></tr>
+        <tr><td><code>PLATFORM_DATABASE_ENGINE</code></td><td>database ≠ none</td><td>auto</td><td>e.g. <code>postgres</code>.</td></tr>
+        <tr><td><code>PLATFORM_STORAGE_ENDPOINT</code></td><td>storage ≠ none</td><td>auto / user-required</td><td>S3 endpoint URL.</td></tr>
+        <tr><td><code>PLATFORM_STORAGE_REGION</code></td><td>storage ≠ none</td><td>auto / user-required</td><td>S3 region.</td></tr>
+        <tr><td><code>PLATFORM_STORAGE_BUCKET</code></td><td>storage ≠ none</td><td>auto / user-required</td><td>Bucket name.</td></tr>
+        <tr><td><code>PLATFORM_STORAGE_PREFIX</code></td><td>storage = internal</td><td>auto</td><td>App's key prefix in the shared bucket.</td></tr>
+        <tr><td><code>PLATFORM_STORAGE_ACCESS_KEY</code></td><td>storage ≠ none</td><td>auto / user-required</td><td>S3 access key.</td></tr>
+        <tr><td><code>PLATFORM_STORAGE_SECRET_KEY</code></td><td>storage ≠ none</td><td>auto / user-required</td><td>S3 secret key (secret).</td></tr>
+        <tr><td><code>PLATFORM_AUTH_URL</code></td><td>auth = platform</td><td>auto</td><td>Control-plane <code>/verify</code> base URL (internal service address).</td></tr>
+        <tr><td><code>PLATFORM_APP_ID</code></td><td>auth = platform</td><td>auto</td><td>= slug, for <code>/verify</code>.</td></tr>
+        <tr><td><code>PLATFORM_APP_SECRET</code></td><td>auth = platform</td><td>auto</td><td>App secret for <code>/verify</code> (secret).</td></tr>
+        <tr><td><code>PLATFORM_APP_JWT_SECRET</code></td><td>auth = platform</td><td>auto</td><td>Secret the app uses to sign its own sessions (secret).</td></tr>
+      </tbody>
+    </table>
+    <div class="callout note">
+      <span class="tag">Convenience alias</span>
+      Because <code>process.env.PORT</code> is near-universal in Node hosting, the runner also exports <code>PORT = PLATFORM_PORT</code>.
+      This is the single documented unprefixed exception. App code should still prefer <code>PLATFORM_PORT</code>.
+    </div>
+    <div class="callout decided">
+      <span class="tag">Why one name for internal &amp; external</span>
+      <code>PLATFORM_DATABASE_URL</code> (and the <code>PLATFORM_STORAGE_*</code> set) are identical names whether the resource is internal or
+      external. The app reads one variable and never knows the difference; the platform decides what it points at. Graduating
+      internal → external is a value change, not a code change.
+    </div>
+
+    <h3 id="declared">4.2 App-declared variables</h3>
+    <p>Declared in <code>app.json</code> <code>env[]</code>. Each entry:</p>
+    <table>
+      <thead><tr><th>Property</th><th>Type</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><code>key</code></td><td>string</td><td>Variable name. Must match <code>^[A-Z][A-Z0-9_]*$</code> and must <strong>not</strong> start with <code>PLATFORM_</code>.</td></tr>
+        <tr><td><code>secret</code></td><td>boolean</td><td>If true, the value is write-only — masked in the UI/API, set via <code>set-secret</code>, never stored in the manifest.</td></tr>
+        <tr><td><code>required</code></td><td>boolean</td><td>If true, a deploy is <strong>blocked</strong> until a value exists (see §4.3).</td></tr>
+        <tr><td><code>default</code></td><td>string</td><td>Non-secret default value, applied if the operator sets nothing. Not allowed when <code>secret: true</code>.</td></tr>
+        <tr><td><code>description</code></td><td>string</td><td>Shown in the admin UI and to the agent.</td></tr>
+      </tbody>
+    </table>
+
+    <h3 id="rules">4.3 Rules &amp; enforcement</h3>
+    <ul>
+      <li><strong>Reserved-prefix protection.</strong> Any app-declared key starting with <code>PLATFORM_</code> is rejected at manifest validation and at the API. Apps cannot spoof or shadow platform variables.</li>
+      <li><strong>Required-variable gate (deploy-blocking).</strong> Before a deploy starts, the platform computes the set of required variables = <em>(a)</em> every <code>env[]</code> entry with <code>required: true</code> and no value/default, plus <em>(b)</em> every reserved variable that is <em>user-required</em> because a resource is in <code>external</code> mode (<code>PLATFORM_DATABASE_URL</code> for external DB; the <code>PLATFORM_STORAGE_*</code> credentials for external storage). If that set is non-empty, the deploy is rejected with a clear list of what's missing, and no clone/build/run happens.</li>
+      <li><strong>Injection order.</strong> At deploy, the app's process/container env = reserved vars (computed from modes) + declared vars (defaults then operator-set values) + the <code>PORT</code> alias. Auth/admin secrets of the <em>platform itself</em> are never injected into app processes.</li>
+      <li><strong>Secrets never in the repo.</strong> The manifest declares secret <em>names</em>; values live only in the platform store and are written to the app's runtime env at deploy.</li>
+    </ul>
+
+    <!-- ───────────────────────────── 5 ───────────────────────────── -->
+    <h2 class="section" id="provisioning">5. Resource provisioning (internal vs external)</h2>
+    <div class="grid2">
+      <div>
+        <h4>Database</h4>
+        <p><strong>internal</strong> → create a database + scoped role on the bundled Postgres, compose a connection string, inject as <code>PLATFORM_DATABASE_URL</code>.<br>
+        <strong>external</strong> → mark <code>PLATFORM_DATABASE_URL</code> user-required; inject the operator-set value; do nothing else.<br>
+        <strong>none</strong> → inject nothing.</p>
+      </div>
+      <div>
+        <h4>Object storage</h4>
+        <p><strong>internal</strong> → create/ensure a bucket + a per-app prefix + a scoped access key on the bundled store; inject <code>PLATFORM_STORAGE_*</code>.<br>
+        <strong>external</strong> → mark <code>PLATFORM_STORAGE_*</code> user-required; inject operator-set values.<br>
+        <strong>none</strong> → inject nothing.</p>
+      </div>
+    </div>
+    <p class="fade">This replaces the legacy connection-string-rewrite hack with a real provisioner per mode. Because apps speak the same S3 SDK and the same SQL connection string regardless of mode, no app code branches on internal vs external.</p>
+
+    <!-- ───────────────────────────── 6 ───────────────────────────── -->
+    <h2 class="section" id="runner">6. App runner</h2>
+    <p>The runner owns clone → build → run for both compute paths, and reports progress to a <code>Deployment</code> record (status + streamed log) so deploys are observable by the admin UI and the agent CLI's <code>deploy:watch</code>.</p>
+    <table>
+      <thead><tr><th>Concern</th><th>Node buildpack</th><th>Dockerfile</th></tr></thead>
+      <tbody>
+        <tr><td>Build</td><td><code>npm ci</code> + <code>buildCommand</code> (frontend), <code>npm ci --production</code> (server)</td><td><code>docker build</code> the image, tagged <code>app-&lt;slug&gt;:&lt;commit&gt;</code></td></tr>
+        <tr><td>Run</td><td>PM2 process <code>&lt;slug&gt;</code> inside the runner</td><td><code>docker run</code> sibling container <code>app-&lt;slug&gt;</code> on the compose network</td></tr>
+        <tr><td>Static assets</td><td>frontend <code>dist/</code> rsynced to the <code>static</code> volume, served by Caddy</td><td>container serves its own assets</td></tr>
+        <tr><td>Routing</td><td>Caddy: static + <code>/api/*</code> → <code>runner:PLATFORM_PORT</code></td><td>Caddy: whole subdomain → <code>app-&lt;slug&gt;:PLATFORM_PORT</code></td></tr>
+        <tr><td>Supervision</td><td>PM2 (restart on crash) + <code>pm2 jlist</code> status</td><td>Docker restart policy <code>unless-stopped</code> + <code>docker inspect</code> status</td></tr>
+        <tr><td>Health</td><td colspan="2">HTTP probe to <code>PLATFORM_PORT</code> (any response = alive; <code>/health</code> 200 = healthy). Unified across both paths.</td></tr>
+      </tbody>
+    </table>
+
+    <h3 id="flows">6.1 Deploy flows</h3>
+    <h4>Node buildpack</h4>
+<pre><code>1. trigger (webhook push to source.branch, or `platform deploy`) → Deployment(pending)
+2. clone/pull repo @ branch into repos volume; resolve deployRoot = repoPath || root
+3. required-variable gate — abort if anything missing
+4. detect app/ , server/ , or standalone layout
+5. app/    → npm ci → buildCommand → rsync app/dist/ → static volume (/<slug>)
+6. server/ → npm ci --production → copy to apps volume (/<slug>) → write env file
+7. (re)start PM2 process "<slug>" bound to PLATFORM_PORT
+8. Caddy already routes <subdomain> → static + /api/* → runner:PLATFORM_PORT
+9. health probe → Deployment(success|failed) with full streamed log</code></pre>
+      <h4>Dockerfile</h4>
+<pre><code>1. trigger → Deployment(pending)
+2. clone/pull repo @ branch; resolve deployRoot
+3. required-variable gate — abort if anything missing
+4. docker build -f <dockerfile> -t app-<slug>:<commit> deployRoot   (via mounted socket)
+5. docker rm -f old app-<slug>; docker run -d --name app-<slug> \
+      --network <stack-net> --restart unless-stopped \
+      --env-file <reserved+declared> app-<slug>:<commit>
+6. Caddy routes <subdomain> → app-<slug>:PLATFORM_PORT
+7. health probe → Deployment(success|failed) with build + run log</code></pre>
+
+    <h3 id="worker-diff">6.2 What changes vs today's deploy worker</h3>
+    <ul>
+      <li><strong>Reused:</strong> the clone/pull, layout detection, frontend build + static sync, server install, env-file write, PM2 start, deploy-record progress logging.</li>
+      <li><strong>Changed:</strong> the "start" step branches on <code>runtime.type</code> (PM2 vs <code>docker run</code>); env injection uses the new reserved <code>PLATFORM_*</code> set computed from resource modes; the required-variable gate runs before any work.</li>
+      <li><strong>Added:</strong> a Docker build/run path via the socket; a container-aware branch in the health monitor (<code>docker inspect</code> alongside <code>pm2 jlist</code>); resource provisioners for internal DB + storage.</li>
+    </ul>
+
+    <!-- ───────────────────────────── 7 ───────────────────────────── -->
+    <h2 class="section" id="samples">7. Sample apps (validation set)</h2>
+    <p>The schema is "settled" when these four express cleanly and map onto the platform's app model.</p>
+
+    <h4>A. Internal everything (the easy path)</h4>
+<pre><code>{ "schemaVersion":"1", "slug":"notes", "name":"Notes", "subdomain":"notes",
+  "source":{"branch":"main"}, "runtime":{"type":"node"},
+  "auth":{"mode":"platform"}, "database":{"mode":"internal"}, "storage":{"mode":"internal"} }</code></pre>
+
+    <h4>B. External database + external storage (the heavier path)</h4>
+<pre><code>{ "schemaVersion":"1", "slug":"crm", "name":"CRM", "subdomain":"crm",
+  "source":{"branch":"main"}, "runtime":{"type":"node","buildCommand":"npm run build"},
+  "auth":{"mode":"platform"}, "database":{"mode":"external"}, "storage":{"mode":"external"} }
+// deploy blocked until PLATFORM_DATABASE_URL + PLATFORM_STORAGE_* are set via set-secret</code></pre>
+
+    <h4>C. Static-only, public (no server, no auth)</h4>
+<pre><code>{ "schemaVersion":"1", "slug":"landing", "name":"Landing", "subdomain":"hello",
+  "source":{"branch":"main"}, "runtime":{"type":"node","buildCommand":"npm run build"},
+  "auth":{"mode":"public"}, "database":{"mode":"none"}, "storage":{"mode":"none"} }</code></pre>
+
+    <h4>D. Dockerfile app (any runtime)</h4>
+<pre><code>{ "schemaVersion":"1", "slug":"py-tool", "name":"Python Tool", "subdomain":"pytool",
+  "source":{"branch":"main","repoPath":"service"},
+  "runtime":{"type":"docker","dockerfile":"Dockerfile"},
+  "auth":{"mode":"platform"}, "database":{"mode":"internal"}, "storage":{"mode":"none"},
+  "env":[{"key":"WORKERS","secret":false,"required":false,"default":"2"}] }</code></pre>
+
+    <!-- ───────────────────────────── 8 ───────────────────────────── -->
+    <h2 class="section" id="open">8. Open items</h2>
+    <ul>
+      <li><strong>Project name</strong> → fixes the env prefix (<code>PLATFORM_</code> → <code>&lt;NAME&gt;_</code>), CLI name, package scope.</li>
+      <li><strong>Internal backups</strong> → local-only vs optional off-box to an external object store.</li>
+      <li><strong>Custom domains</strong> per app (Caddy on-demand TLS) — additive to <code>subdomain</code>.</li>
+      <li><strong>Non-GitHub deploy</strong> — CLI push of a local build, no repo required.</li>
+      <li><strong>Resource limits</strong> per app (memory/CPU) — trivial for Docker apps, harder for PM2-in-runner.</li>
+      <li><strong>License</strong> for bundled components (Postgres permissive; object store — prefer Apache-2.0 SeaweedFS over AGPL MinIO).</li>
+    </ul>
+
+    <hr>
+    <p class="fade kbd">Draft v0.1 — companion to <code>OPEN_SOURCE.md</code> (Phases 3 &amp; 5). Decisions recorded here are settled unless listed in §8.</p>
+  </div>
+  </main>
+</div>
+</body>
+</html>
