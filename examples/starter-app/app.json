@@ -2,7 +2,7 @@
   "schemaVersion": "1",
   "slug": "starter",
   "name": "Starter App",
-  "description": "Minimal Toolstead app: React frontend + Express server, platform login.",
+  "description": "Minimal Astrodock app: React frontend + Express server, platform login.",
   "subdomain": "starter",
   "source": {
     "branch": "main",
@@ -20,7 +20,7 @@
       "key": "WELCOME_MESSAGE",
       "secret": false,
       "required": false,
-      "default": "Welcome to your Toolstead app",
+      "default": "Welcome to your Astrodock app",
       "description": "Greeting shown on the home page"
     }
   ]

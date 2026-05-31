@@ -1,4 +1,4 @@
--- Toolstead control-plane initial schema.
+-- Astrodock control-plane initial schema.
 -- Applied by src/db/migrate.js (which tracks applied files in schema_migrations).
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;  -- gen_random_uuid()

@@ -11,6 +11,6 @@
 }
 
 :80 {
-	respond /healthz "toolstead: caddy up\n" 200
-	respond "toolstead: waiting for control plane to publish routes\n" 200
+	respond /healthz "astrodock: caddy up\n" 200
+	respond "astrodock: waiting for control plane to publish routes\n" 200
 }

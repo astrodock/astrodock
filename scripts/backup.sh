@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Toolstead local backup: pg_dump of the control-plane DB + every internal app DB,
+# Astrodock local backup: pg_dump of the control-plane DB + every internal app DB,
 # plus a snapshot of the bundled object store, into a timestamped tarball.
 #
 # Usage (from the repo root, with the stack running):
@@ -14,7 +14,7 @@ set -euo pipefail
 OUT_DIR="${1:-./backups}"
 TS="$(date -u +%Y%m%dT%H%M%SZ)"
 WORK="$(mktemp -d)"
-PG_USER="${TOOLSTEAD_PG_USER:-toolstead}"
+PG_USER="${ASTRODOCK_PG_USER:-astrodock}"
 
 mkdir -p "$OUT_DIR"
 echo "[backup] dumping all databases via the postgres container…"
@@ -27,7 +27,7 @@ echo "[backup] snapshotting the object store volume…"
 docker compose exec -T objectstore sh -c 'cd /data && tar cf - .' > "$WORK/objectdata.tar" 2>/dev/null || \
   echo "[backup] (object store snapshot skipped — container not running?)"
 
-TARBALL="$OUT_DIR/toolstead-backup-$TS.tar.gz"
+TARBALL="$OUT_DIR/astrodock-backup-$TS.tar.gz"
 tar -czf "$TARBALL" -C "$WORK" .
 rm -rf "$WORK"
 echo "[backup] wrote $TARBALL"

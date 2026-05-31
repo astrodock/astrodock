@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://toolstead.dev/app.schema.json",
+  "$id": "https://astrodock.dev/app.schema.json",
   "title": "app.json",
-  "description": "Toolstead app manifest. Declared configuration and environment-variable NAMES only — never secret values.",
+  "description": "Astrodock app manifest. Declared configuration and environment-variable NAMES only — never secret values.",
   "type": "object",
   "required": ["schemaVersion", "slug", "name", "subdomain", "source", "runtime", "auth", "database", "storage"],
   "additionalProperties": false,
@@ -44,7 +44,7 @@
         "additionalProperties": false,
         "required": ["key"],
         "properties": {
-          "key":         { "type": "string", "pattern": "^(?!TOOLSTEAD_)[A-Z][A-Z0-9_]*$" },
+          "key":         { "type": "string", "pattern": "^(?!ASTRODOCK_)[A-Z][A-Z0-9_]*$" },
           "secret":      { "type": "boolean", "default": false },
           "required":    { "type": "boolean", "default": false },
           "default":     { "type": "string" },

@@ -1,30 +1,30 @@
 'use strict';
 
 /**
- * Toolstead starter — Express server.
+ * Astrodock starter — Express server.
  *
  * The platform injects everything this needs as environment variables (see
  * AGENTS.md). The contract that matters here:
- *   - BIND to process.env.TOOLSTEAD_PORT (Caddy proxies /api/* here).
+ *   - BIND to process.env.ASTRODOCK_PORT (Caddy proxies /api/* here).
  *   - Namespace every route under /api (the frontend is served at the same origin).
  *   - To log a user in, ask the control plane "are these credentials valid for me?"
- *     by POSTing to TOOLSTEAD_AUTH_URL/verify with TOOLSTEAD_APP_ID + TOOLSTEAD_APP_SECRET,
- *     then mint your OWN session (here: a JWT signed with TOOLSTEAD_APP_JWT_SECRET).
+ *     by POSTing to ASTRODOCK_AUTH_URL/verify with ASTRODOCK_APP_ID + ASTRODOCK_APP_SECRET,
+ *     then mint your OWN session (here: a JWT signed with ASTRODOCK_APP_JWT_SECRET).
  *
  * This file calls /verify directly via fetch so the starter has zero extra
- * dependencies. The `@toolstead/auth-client` package wraps exactly this call.
+ * dependencies. The `@astrodock/auth-client` package wraps exactly this call.
  */
 
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const jwt = require('jsonwebtoken');
 
-const PORT = process.env.TOOLSTEAD_PORT || process.env.PORT || 3000;
-const AUTH_URL = (process.env.TOOLSTEAD_AUTH_URL || '').replace(/\/$/, '');
-const APP_ID = process.env.TOOLSTEAD_APP_ID;
-const APP_SECRET = process.env.TOOLSTEAD_APP_SECRET;
-const APP_JWT_SECRET = process.env.TOOLSTEAD_APP_JWT_SECRET || 'dev-secret';
-const WELCOME = process.env.WELCOME_MESSAGE || 'Welcome to your Toolstead app';
+const PORT = process.env.ASTRODOCK_PORT || process.env.PORT || 3000;
+const AUTH_URL = (process.env.ASTRODOCK_AUTH_URL || '').replace(/\/$/, '');
+const APP_ID = process.env.ASTRODOCK_APP_ID;
+const APP_SECRET = process.env.ASTRODOCK_APP_SECRET;
+const APP_JWT_SECRET = process.env.ASTRODOCK_APP_JWT_SECRET || 'dev-secret';
+const WELCOME = process.env.WELCOME_MESSAGE || 'Welcome to your Astrodock app';
 
 const app = express();
 app.use(express.json());
@@ -76,7 +76,7 @@ app.get('/api/me', (req, res) => {
 app.post('/api/logout', (req, res) => { res.clearCookie('session'); res.json({ ok: true }); });
 
 // A trivial authenticated demo endpoint. In a real app this is where you'd read
-// TOOLSTEAD_DATABASE_URL (database.mode=internal|external) or the TOOLSTEAD_STORAGE_*
+// ASTRODOCK_DATABASE_URL (database.mode=internal|external) or the ASTRODOCK_STORAGE_*
 // vars (storage.mode) — same code for internal vs external; only the values differ.
 const notes = [];
 app.get('/api/notes', (req, res) => {

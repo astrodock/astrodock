@@ -1,16 +1,16 @@
 'use strict';
 
 /**
- * @toolstead/auth-client
+ * @astrodock/auth-client
  *
- * Tiny server-side client for the Toolstead platform auth service. An app calls
+ * Tiny server-side client for the Astrodock platform auth service. An app calls
  * `verify(email, password)` to check an end-user's credentials against the control
  * plane's `/verify` endpoint, then mints its OWN session (e.g. a JWT signed with
- * TOOLSTEAD_APP_JWT_SECRET). The platform never issues app sessions — it only
+ * ASTRODOCK_APP_JWT_SECRET). The platform never issues app sessions — it only
  * answers "are these credentials valid for this app?".
  *
  * Reads its config from the platform-injected environment by default:
- *   TOOLSTEAD_AUTH_URL, TOOLSTEAD_APP_ID, TOOLSTEAD_APP_SECRET
+ *   ASTRODOCK_AUTH_URL, ASTRODOCK_APP_ID, ASTRODOCK_APP_SECRET
  */
 
 class AuthError extends Error {
@@ -21,20 +21,20 @@ class AuthError extends Error {
   }
 }
 
-class ToolsteadAuth {
+class AstrodockAuth {
   /**
    * @param {object} [opts]
-   * @param {string} [opts.authUrl]   Defaults to process.env.TOOLSTEAD_AUTH_URL
-   * @param {string} [opts.appId]     Defaults to process.env.TOOLSTEAD_APP_ID
-   * @param {string} [opts.appSecret] Defaults to process.env.TOOLSTEAD_APP_SECRET
+   * @param {string} [opts.authUrl]   Defaults to process.env.ASTRODOCK_AUTH_URL
+   * @param {string} [opts.appId]     Defaults to process.env.ASTRODOCK_APP_ID
+   * @param {string} [opts.appSecret] Defaults to process.env.ASTRODOCK_APP_SECRET
    */
   constructor(opts = {}) {
-    const authUrl = opts.authUrl || process.env.TOOLSTEAD_AUTH_URL || 'http://localhost:3100';
-    const appId = opts.appId || process.env.TOOLSTEAD_APP_ID;
-    const appSecret = opts.appSecret || process.env.TOOLSTEAD_APP_SECRET;
+    const authUrl = opts.authUrl || process.env.ASTRODOCK_AUTH_URL || 'http://localhost:3100';
+    const appId = opts.appId || process.env.ASTRODOCK_APP_ID;
+    const appSecret = opts.appSecret || process.env.ASTRODOCK_APP_SECRET;
 
-    if (!appId) throw new Error('appId is required (set TOOLSTEAD_APP_ID or pass appId)');
-    if (!appSecret) throw new Error('appSecret is required (set TOOLSTEAD_APP_SECRET or pass appSecret)');
+    if (!appId) throw new Error('appId is required (set ASTRODOCK_APP_ID or pass appId)');
+    if (!appSecret) throw new Error('appSecret is required (set ASTRODOCK_APP_SECRET or pass appSecret)');
 
     this.authUrl = authUrl.replace(/\/$/, '');
     this.appId = appId;
@@ -73,4 +73,4 @@ class ToolsteadAuth {
 }
 
 // Backwards/clarity alias
-module.exports = { ToolsteadAuth, AuthError };
+module.exports = { AstrodockAuth, AuthError };

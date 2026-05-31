@@ -1,7 +1,7 @@
 'use strict';
 
 const config = require('../config');
-const { userRequiredReservedKeys } = require('@toolstead/schema');
+const { userRequiredReservedKeys } = require('@astrodock/schema');
 const { decryptSecret } = require('./crypto');
 
 function scheme() {
@@ -23,7 +23,7 @@ function valueMap(envVars) {
 }
 
 /**
- * Compute the full runtime environment for an app: reserved TOOLSTEAD_* vars
+ * Compute the full runtime environment for an app: reserved ASTRODOCK_* vars
  * (from resource modes + stack config + the app's provisioned state) + declared
  * vars (value or default) + the documented PORT alias.
  *
@@ -36,54 +36,54 @@ function computeEnv(app, envVars) {
   const vals = valueMap(envVars);
 
   // ── always-on reserved ──
-  env.TOOLSTEAD_APP_SLUG = app.slug;
-  env.TOOLSTEAD_APP_NAME = app.name;
-  env.TOOLSTEAD_APP_URL = appUrl(app);
-  env.TOOLSTEAD_BASE_DOMAIN = config.baseDomain;
-  env.TOOLSTEAD_PORT = String(app.port);
-  env.TOOLSTEAD_ENV = config.env;
+  env.ASTRODOCK_APP_SLUG = app.slug;
+  env.ASTRODOCK_APP_NAME = app.name;
+  env.ASTRODOCK_APP_URL = appUrl(app);
+  env.ASTRODOCK_BASE_DOMAIN = config.baseDomain;
+  env.ASTRODOCK_PORT = String(app.port);
+  env.ASTRODOCK_ENV = config.env;
 
   // ── database ──
   if (app.databaseMode === 'internal') {
     const u = encodeURIComponent(app.dbUser || '');
     const p = encodeURIComponent(decryptSecret(app.dbPassword) || '');
-    env.TOOLSTEAD_DATABASE_URL = `postgresql://${u}:${p}@${config.pg.appHost}:${config.pg.appPort}/${app.dbName}`;
-    env.TOOLSTEAD_DATABASE_ENGINE = 'postgres';
+    env.ASTRODOCK_DATABASE_URL = `postgresql://${u}:${p}@${config.pg.appHost}:${config.pg.appPort}/${app.dbName}`;
+    env.ASTRODOCK_DATABASE_ENGINE = 'postgres';
   } else if (app.databaseMode === 'external') {
-    const v = vals.get('TOOLSTEAD_DATABASE_URL');
-    if (v) env.TOOLSTEAD_DATABASE_URL = decryptSecret(v);
-    env.TOOLSTEAD_DATABASE_ENGINE = 'postgres';
+    const v = vals.get('ASTRODOCK_DATABASE_URL');
+    if (v) env.ASTRODOCK_DATABASE_URL = decryptSecret(v);
+    env.ASTRODOCK_DATABASE_ENGINE = 'postgres';
   }
 
   // ── storage ──
   if (app.storageMode === 'internal') {
-    env.TOOLSTEAD_STORAGE_ENDPOINT = config.objectstore.appEndpoint;
-    env.TOOLSTEAD_STORAGE_REGION = config.objectstore.region;
+    env.ASTRODOCK_STORAGE_ENDPOINT = config.objectstore.appEndpoint;
+    env.ASTRODOCK_STORAGE_REGION = config.objectstore.region;
     if (app.storageAccessKey) {
       // scoped per-app key + own bucket
-      env.TOOLSTEAD_STORAGE_BUCKET = app.storageBucket;
-      env.TOOLSTEAD_STORAGE_PREFIX = app.storagePrefix || '';
-      env.TOOLSTEAD_STORAGE_ACCESS_KEY = app.storageAccessKey;
-      env.TOOLSTEAD_STORAGE_SECRET_KEY = decryptSecret(app.storageSecretKey);
+      env.ASTRODOCK_STORAGE_BUCKET = app.storageBucket;
+      env.ASTRODOCK_STORAGE_PREFIX = app.storagePrefix || '';
+      env.ASTRODOCK_STORAGE_ACCESS_KEY = app.storageAccessKey;
+      env.ASTRODOCK_STORAGE_SECRET_KEY = decryptSecret(app.storageSecretKey);
     } else {
       // shared-key fallback + per-app prefix
-      env.TOOLSTEAD_STORAGE_BUCKET = config.objectstore.bucket;
-      env.TOOLSTEAD_STORAGE_PREFIX = app.storagePrefix || `${app.slug}/`;
-      env.TOOLSTEAD_STORAGE_ACCESS_KEY = config.objectstore.accessKey;
-      env.TOOLSTEAD_STORAGE_SECRET_KEY = config.objectstore.secretKey;
+      env.ASTRODOCK_STORAGE_BUCKET = config.objectstore.bucket;
+      env.ASTRODOCK_STORAGE_PREFIX = app.storagePrefix || `${app.slug}/`;
+      env.ASTRODOCK_STORAGE_ACCESS_KEY = config.objectstore.accessKey;
+      env.ASTRODOCK_STORAGE_SECRET_KEY = config.objectstore.secretKey;
     }
   } else if (app.storageMode === 'external') {
-    for (const k of ['TOOLSTEAD_STORAGE_ENDPOINT', 'TOOLSTEAD_STORAGE_REGION', 'TOOLSTEAD_STORAGE_BUCKET', 'TOOLSTEAD_STORAGE_ACCESS_KEY', 'TOOLSTEAD_STORAGE_SECRET_KEY']) {
+    for (const k of ['ASTRODOCK_STORAGE_ENDPOINT', 'ASTRODOCK_STORAGE_REGION', 'ASTRODOCK_STORAGE_BUCKET', 'ASTRODOCK_STORAGE_ACCESS_KEY', 'ASTRODOCK_STORAGE_SECRET_KEY']) {
       if (vals.get(k)) env[k] = decryptSecret(vals.get(k));
     }
   }
 
   // ── auth ──
   if (app.authMode === 'platform') {
-    env.TOOLSTEAD_AUTH_URL = config.internalAuthUrl;
-    env.TOOLSTEAD_APP_ID = app.slug;
-    env.TOOLSTEAD_APP_SECRET = decryptSecret(app.appSecret);
-    env.TOOLSTEAD_APP_JWT_SECRET = decryptSecret(app.appJwtSecret);
+    env.ASTRODOCK_AUTH_URL = config.internalAuthUrl;
+    env.ASTRODOCK_APP_ID = app.slug;
+    env.ASTRODOCK_APP_SECRET = decryptSecret(app.appSecret);
+    env.ASTRODOCK_APP_JWT_SECRET = decryptSecret(app.appJwtSecret);
   }
 
   // ── app-declared (value or default; secrets never have defaults) ──
@@ -94,7 +94,7 @@ function computeEnv(app, envVars) {
   }
 
   // ── documented unprefixed alias ──
-  env.PORT = env.TOOLSTEAD_PORT;
+  env.PORT = env.ASTRODOCK_PORT;
 
   return env;
 }

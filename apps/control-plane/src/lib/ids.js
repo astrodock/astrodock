@@ -2,7 +2,7 @@
 
 const crypto = require('crypto');
 
-// App secret used by /verify (shown to the app via TOOLSTEAD_APP_SECRET).
+// App secret used by /verify (shown to the app via ASTRODOCK_APP_SECRET).
 function generateAppSecret() {
   return 'sk_' + crypto.randomBytes(32).toString('hex');
 }

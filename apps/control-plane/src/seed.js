@@ -12,7 +12,7 @@ async function seedAdmin({ log = console.log } = {}) {
   const password = config.adminPassword;
 
   if (!email || !password) {
-    log('[seed] TOOLSTEAD_ADMIN_EMAIL / TOOLSTEAD_ADMIN_PASSWORD not set — skipping admin seed.');
+    log('[seed] ASTRODOCK_ADMIN_EMAIL / ASTRODOCK_ADMIN_PASSWORD not set — skipping admin seed.');
     return { seeded: false };
   }
 

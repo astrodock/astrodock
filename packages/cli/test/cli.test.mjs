@@ -1,5 +1,5 @@
 // CLI integration test: boots the real control plane in-process, then drives
-// the `toolstead` CLI as real subprocesses against it.
+// the `astrodock` CLI as real subprocesses against it.
 // Run from repo root with the test Postgres env loaded by the control plane's .env:
 //   node --env-file=apps/control-plane/.env packages/cli/test/cli.test.mjs
 // (or just `node packages/cli/test/cli.test.mjs` — it requires the control plane,
@@ -29,7 +29,7 @@ const { migrate } = require(path.join(cpDir, 'src/db/migrate.js'));
 const { seedAdmin } = require(path.join(cpDir, 'src/seed.js'));
 const { db, schema, close } = require(path.join(cpDir, 'src/db/index.js'));
 
-const BIN = path.join(repoRoot, 'packages/cli/bin/toolstead.js');
+const BIN = path.join(repoRoot, 'packages/cli/bin/astrodock.js');
 
 let passed = 0, failed = 0;
 async function test(name, fn) {
@@ -62,7 +62,7 @@ const mk = await api('POST', '/admin/tokens', { name: 'cli', scopes: ['deploy'] 
 const scoped = mk.token;
 
 // temp app dir with app.json
-const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'toolstead-cli-'));
+const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'astrodock-cli-'));
 fs.writeFileSync(path.join(dir, 'app.json'), JSON.stringify({
   schemaVersion: '1', slug: 'cliapp', name: 'CLI App', subdomain: 'cliapp',
   source: { branch: 'main' }, runtime: { type: 'node' },
@@ -74,7 +74,7 @@ async function cli(args, { expectFail = false, cwd = dir } = {}) {
   try {
     const { stdout, stderr } = await pexec('node', [BIN, ...args], {
       cwd, encoding: 'utf8',
-      env: { ...process.env, TOOLSTEAD_URL: url, TOOLSTEAD_TOKEN: scoped }
+      env: { ...process.env, ASTRODOCK_URL: url, ASTRODOCK_TOKEN: scoped }
     });
     if (expectFail) throw new Error(`expected non-zero exit but got success:\n${stdout}`);
     return { code: 0, out: stdout + stderr };
@@ -85,11 +85,11 @@ async function cli(args, { expectFail = false, cwd = dir } = {}) {
 }
 
 try {
-  console.log('toolstead CLI integration');
+  console.log('astrodock CLI integration');
 
   await test('help works with no token/url', async () => {
-    const { stdout } = await pexec('node', [BIN, 'help'], { encoding: 'utf8', env: { ...process.env, TOOLSTEAD_URL: '', TOOLSTEAD_TOKEN: '' } });
-    assert.ok(stdout.includes('toolstead — drive a Toolstead platform'));
+    const { stdout } = await pexec('node', [BIN, 'help'], { encoding: 'utf8', env: { ...process.env, ASTRODOCK_URL: '', ASTRODOCK_TOKEN: '' } });
+    assert.ok(stdout.includes('astrodock — drive an Astrodock platform'));
   });
 
   await test('apply creates the app from app.json + provisions', async () => {
@@ -125,7 +125,7 @@ try {
   });
 
   await test('invalid app.json is rejected before any API call', async () => {
-    const baddir = fs.mkdtempSync(path.join(os.tmpdir(), 'toolstead-bad-'));
+    const baddir = fs.mkdtempSync(path.join(os.tmpdir(), 'astrodock-bad-'));
     fs.writeFileSync(path.join(baddir, 'app.json'), JSON.stringify({ schemaVersion: '1', slug: 'Bad Slug' }));
     const { code, out } = await cli(['apply'], { expectFail: true, cwd: baddir });
     assert.notStrictEqual(code, 0);

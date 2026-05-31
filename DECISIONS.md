@@ -1,6 +1,6 @@
 # Decisions log — autonomous build
 
-This file records the decisions I (Claude) made while building Toolstead end-to-end in one
+This file records the decisions I (Claude) made while building Astrodock end-to-end in one
 unattended pass, per the request to "make major decisions on your own, but document what they
 were along with the options and the path you chose." Everything here is **revisitable** — none
 of it is locked. Each entry lists the options, the path chosen, and the rationale.
@@ -44,22 +44,22 @@ implementation-level decisions I had to make to get a working build follow.
   structured so a `customDomain` field can be added later without reshaping it.
 
 ### A5. Non-GitHub deploy (CLI push of a local build) → **deferred (post-v1)**
-- v1 deploys clone from a connected GitHub repo (webhook or `toolstead deploy`). A future
-  `toolstead deploy --local` that tars the working dir and pushes it to the runner is sketched
+- v1 deploys clone from a connected GitHub repo (webhook or `astrodock deploy`). A future
+  `astrodock deploy --local` that tars the working dir and pushes it to the runner is sketched
   in the CLI's help but not implemented. The deploy worker is written so a "local tarball"
   source could be added beside the "git clone" source.
 
-### A6. Terminal endpoint → **gated behind `TOOLSTEAD_ENABLE_TERMINAL` (default OFF)**
+### A6. Terminal endpoint → **gated behind `ASTRODOCK_ENABLE_TERMINAL` (default OFF)**
 - **Options:** keep always-on vs gate behind an env flag.
 - **Chosen:** The `/exec` SSE terminal is ported but registered only when
-  `TOOLSTEAD_ENABLE_TERMINAL=true`. Default off. Documented as arbitrary-RCE-by-design in
+  `ASTRODOCK_ENABLE_TERMINAL=true`. Default off. Documented as arbitrary-RCE-by-design in
   `SECURITY.md`.
 - **Why:** It's the single sharpest edge. Off-by-default is the responsible publishing posture;
   the trusted single operator can opt in.
 
-### A7. Name → **keep Toolstead** (working name, unchanged)
-- No reason surfaced to revisit during the build. Env prefix `TOOLSTEAD_`, CLI `toolstead`
-  (alias `stead`), npm scope `@toolstead`, as locked.
+### A7. Name → **keep Astrodock** (working name, unchanged)
+- No reason surfaced to revisit during the build. Env prefix `ASTRODOCK_`, CLI `astrodock`
+  (alias `adock`), npm scope `@astrodock`, as locked.
 
 ### A8. Agent doc conventions → **`AGENTS.md` as source of truth + thin `CLAUDE.md` pointer**
 - Both are emitted into every new app by the starter template. The root repo also carries an
@@ -67,15 +67,19 @@ implementation-level decisions I had to make to get a working build follow.
 - **Why:** `AGENTS.md` is the emerging cross-agent convention; a 3-line `CLAUDE.md` that points
   at it avoids drift while still being picked up by Claude Code specifically.
 
-### A9. npm scope → **`@toolstead/*`, unpublished/vendored for now**
-- Packages are named `@toolstead/*` with `"private": true` (workspace-internal). Nothing is
+### A9. npm scope → **`@astrodock/*`, unpublished/vendored for now**
+- Packages are named `@astrodock/*` with `"private": true` (workspace-internal). Nothing is
   published to npm during this build (not authorized, and not needed to run the stack).
 
 ---
 
 ## B. Implementation decisions (made to reach a working build)
 
-### B1. Runner topology → **merged into the `api` container for v1**, structured as a separable module
+> **Update (hardening pass):** B1 and B3 below were revisited and fully resolved — the runner is
+> now its own container, and internal storage now mints per-app scoped keys. See the "Hardening
+> pass" section in `BUILD_NOTES.md` for the full list of flaw fixes and live verification.
+
+### B1. Runner topology → ~~merged into `api` for v1~~ → **SPLIT into its own container (resolved)**
 - **Options:** (a) separate `runner` container from day one; (b) merge runner into `api`,
   split later.
 - **Chosen:** (b). The spec explicitly allows this ("May be merged into `api` for a minimal
@@ -98,12 +102,18 @@ implementation-level decisions I had to make to get a working build follow.
   old code; reload is atomic and zero-downtime. The admin API is bound to the internal network
   only (documented as a trusted-network surface).
 
-### B3. Internal object-storage isolation → **shared bucket + per-app prefix + shared platform key (v1)**
+### B3. Internal object-storage isolation → ~~shared key + prefix (v1)~~ → **per-app scoped keys (resolved)**
+> Resolved in the hardening pass: each internal-storage app now gets its own bucket + an S3
+> identity scoped to that bucket (minted in SeaweedFS via the runner). Cross-bucket access is
+> denied (verified). Falls back to the original shared-key + prefix only if a scoped identity
+> can't be minted. The original v1 rationale is kept below for context.
+
+#### (original B3 — shared bucket + per-app prefix + shared platform key)
 - **Options:** (a) provision a truly scoped S3 access key per app in SeaweedFS (faithful to the
   spec's "scoped key"); (b) one shared bucket, per-app key *prefix*, single platform-managed
   access key injected to every internal-storage app.
 - **Chosen:** (b) for v1. The injected env var set is identical either way
-  (`TOOLSTEAD_STORAGE_ACCESS_KEY/SECRET_KEY/BUCKET/PREFIX/ENDPOINT/REGION`), so **app code never
+  (`ASTRODOCK_STORAGE_ACCESS_KEY/SECRET_KEY/BUCKET/PREFIX/ENDPOINT/REGION`), so **app code never
   changes** when this is upgraded. The provisioner is an interface (`provisionStorage(app)`)
   with the per-app-key implementation droppable in later.
 - **Why:** Dynamically minting scoped SeaweedFS identities at runtime from the Node control plane
@@ -112,18 +122,18 @@ implementation-level decisions I had to make to get a working build follow.
   the documented reason to choose **external** storage or a future enhancement. **This is the
   most significant fidelity gap vs. the spec — flagged for review.** See `SECURITY.md`.
 
-### B4. `TOOLSTEAD_DATABASE_ENGINE` for external DB → **assume `postgres`**
+### B4. `ASTRODOCK_DATABASE_ENGINE` for external DB → **assume `postgres`**
 - The spec says the engine var is "auto" and present whenever `database ≠ none`. For internal
   it's unambiguously `postgres`. For external I inject `postgres` too, since the documented
   graduation path is internal Postgres → Neon/Supabase/RDS (all Postgres). Apps that point at a
-  non-Postgres external DB have the full `TOOLSTEAD_DATABASE_URL` anyway and rarely read the
+  non-Postgres external DB have the full `ASTRODOCK_DATABASE_URL` anyway and rarely read the
   engine var. Cheap to make this a per-app override later.
 
 ### B5. Env-var storage model → **one `app_env_vars` table for both declared vars and external-required reserved vars**
 - App-declared vars (from `app.json` `env[]`) are stored as rows with their declaration metadata
   (`secret`, `required`, `default`, `description`) and an optional set value.
-- External-mode reserved vars that need an operator value (`TOOLSTEAD_DATABASE_URL`,
-  `TOOLSTEAD_STORAGE_*`) are stored as rows too, marked `kind = 'reserved'`, so the
+- External-mode reserved vars that need an operator value (`ASTRODOCK_DATABASE_URL`,
+  `ASTRODOCK_STORAGE_*`) are stored as rows too, marked `kind = 'reserved'`, so the
   required-variable gate and the admin "set secret" UI treat them uniformly.
 - Platform-*generated* secrets (`app_secret`, `app_jwt_secret`, internal DB password, internal
   storage key) live as columns on the `apps` row — they're never operator-edited.
@@ -132,11 +142,11 @@ implementation-level decisions I had to make to get a working build follow.
   `isSystem` flag.
 
 ### B6. Reserved env injection is computed at deploy, not stored
-- The "auto" reserved vars (`TOOLSTEAD_APP_SLUG/NAME/URL/BASE_DOMAIN/PORT/ENV`, internal
+- The "auto" reserved vars (`ASTRODOCK_APP_SLUG/NAME/URL/BASE_DOMAIN/PORT/ENV`, internal
   `DATABASE_URL`, internal `STORAGE_*`) are recomputed from the app's modes + stack config on
   every deploy and written to the app's runtime env file / container `--env-file`. They are
   never persisted as editable rows, so they can't drift. The single documented unprefixed alias
-  `PORT = TOOLSTEAD_PORT` is added last.
+  `PORT = ASTRODOCK_PORT` is added last.
 
 ### B7. Password hashing & admin auth → **unchanged from SV** (bcryptjs, 12 rounds; single `ADMIN_JWT_SECRET`, 8h bearer)
 - Ported as-is; documented in the threat model. Not worth re-architecting for v1.
@@ -149,11 +159,11 @@ implementation-level decisions I had to make to get a working build follow.
 - Format `tk_<base62>`; verified by hashing the presented token and looking up the hash.
 
 ### B9. Port assignment → **auto-assigned from 3101+, stored on the app**
-- Control plane is 3100. Apps get the next free port ≥ 3101 (max existing + 1). `TOOLSTEAD_PORT`
+- Control plane is 3100. Apps get the next free port ≥ 3101 (max existing + 1). `ASTRODOCK_PORT`
   is injected from this. Same scheme as SV; works for both PM2 (bind locally) and Docker
   (container listens, Caddy proxies `app-<slug>:<port>`).
 
-### B10. TLS modes → **`TOOLSTEAD_TLS_MODE = auto | internal | off`**
+### B10. TLS modes → **`ASTRODOCK_TLS_MODE = auto | internal | off`**
 - `auto` (default): Caddy gets real Let's Encrypt certs for `*.<base-domain>` (prod).
 - `internal`: Caddy's internal CA (local dev / private network, no public DNS).
 - `off`: serve plain HTTP (bare-metal behind another proxy / quick local poke).

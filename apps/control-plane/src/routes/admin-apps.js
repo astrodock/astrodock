@@ -33,7 +33,7 @@ const scheme = () => (config.tlsMode === 'off' ? 'http' : 'https');
 
 // ── must come before /:slug ───────────────────────────────────────────────────
 router.get('/github/repos', async (req, res) => {
-  if (!config.github.pat) return res.status(422).json({ error: 'GitHub PAT not configured (TOOLSTEAD_GITHUB_PAT)' });
+  if (!config.github.pat) return res.status(422).json({ error: 'GitHub PAT not configured (ASTRODOCK_GITHUB_PAT)' });
   try { res.json({ repos: await listRepos() }); }
   catch (err) { res.status(500).json({ error: `Failed to list repos: ${err.message}` }); }
 });
@@ -198,7 +198,7 @@ async function connectRepoInternal(app, githubRepo, branch, repoPath) {
 router.post('/:slug/connect-repo', async (req, res) => {
   const { githubRepo, branch, repoPath } = req.body || {};
   if (!githubRepo) return res.status(400).json({ error: 'githubRepo is required (e.g. "owner/repo")' });
-  if (!config.github.pat) return res.status(422).json({ error: 'GitHub PAT not configured (TOOLSTEAD_GITHUB_PAT)' });
+  if (!config.github.pat) return res.status(422).json({ error: 'GitHub PAT not configured (ASTRODOCK_GITHUB_PAT)' });
   const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
   try {
@@ -267,12 +267,12 @@ router.get('/:slug/env', async (req, res) => {
 router.put('/:slug/env/:key', async (req, res) => {
   const { value } = req.body || {};
   if (value === undefined) return res.status(400).json({ error: 'value is required' });
-  if (/^TOOLSTEAD_/.test(req.params.key)) {
+  if (/^ASTRODOCK_/.test(req.params.key)) {
     // only reserved rows the platform created (external mode) are settable
     const app = await getAppBySlug(req.params.slug);
     if (!app) return res.status(404).json({ error: 'App not found' });
     const rows = await db.select().from(schema.appEnvVars).where(and(eq(schema.appEnvVars.appId, app.id), eq(schema.appEnvVars.key, req.params.key))).limit(1);
-    if (!rows[0]) return res.status(400).json({ error: 'Reserved TOOLSTEAD_* variables cannot be declared by apps' });
+    if (!rows[0]) return res.status(400).json({ error: 'Reserved ASTRODOCK_* variables cannot be declared by apps' });
     const stored = rows[0].isSecret ? encryptSecret(value) : value;
     await db.update(schema.appEnvVars).set({ value: stored, updatedAt: new Date() }).where(eq(schema.appEnvVars.id, rows[0].id));
     return res.json({ ok: true });
@@ -306,7 +306,7 @@ router.post('/:slug/env/bulk', async (req, res) => {
     if (i === -1) continue;
     const key = t.slice(0, i).trim();
     const value = t.slice(i + 1).trim();
-    if (!key || /^TOOLSTEAD_/.test(key) || !/^[A-Z][A-Z0-9_]*$/.test(key)) { skipped++; continue; }
+    if (!key || /^ASTRODOCK_/.test(key) || !/^[A-Z][A-Z0-9_]*$/.test(key)) { skipped++; continue; }
     if (byKey.has(key)) await db.update(schema.appEnvVars).set({ value, updatedAt: new Date() }).where(eq(schema.appEnvVars.id, byKey.get(key).id));
     else await db.insert(schema.appEnvVars).values({ appId: app.id, key, value, kind: 'declared' });
     added++;
@@ -353,7 +353,7 @@ router.get('/:slug/logs', async (req, res) => {
   res.json(r.body || { logs: '' });
 });
 
-// ── terminal (gated behind TOOLSTEAD_ENABLE_TERMINAL; arbitrary RCE by design) ──
+// ── terminal (gated behind ASTRODOCK_ENABLE_TERMINAL; arbitrary RCE by design) ──
 if (config.enableTerminal) {
   router.get('/:slug/exec', async (req, res) => {
     const command = req.query.command;

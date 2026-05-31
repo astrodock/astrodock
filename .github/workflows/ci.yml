@@ -13,30 +13,32 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: toolstead
-          POSTGRES_PASSWORD: toolstead
-          POSTGRES_DB: toolstead
+          POSTGRES_USER: astrodock
+          POSTGRES_PASSWORD: astrodock
+          POSTGRES_DB: astrodock
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U toolstead"
+          --health-cmd "pg_isready -U astrodock"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
 
     env:
       PORT: "3100"
-      TOOLSTEAD_ENV: test
-      TOOLSTEAD_BASE_DOMAIN: localhost
-      TOOLSTEAD_TLS_MODE: "off"
-      TOOLSTEAD_ADMIN_JWT_SECRET: ci-secret
-      TOOLSTEAD_ADMIN_EMAIL: admin@example.com
-      TOOLSTEAD_ADMIN_PASSWORD: ci-password
-      TOOLSTEAD_PG_HOST: localhost
-      TOOLSTEAD_PG_PORT: "5432"
-      TOOLSTEAD_PG_USER: toolstead
-      TOOLSTEAD_PG_PASSWORD: toolstead
-      TOOLSTEAD_PG_DATABASE: toolstead
+      ASTRODOCK_ENV: test
+      ASTRODOCK_BASE_DOMAIN: localhost
+      ASTRODOCK_TLS_MODE: "off"
+      ASTRODOCK_ADMIN_JWT_SECRET: ci-secret
+      ASTRODOCK_SECRET_KEY: ci-secret-key
+      ASTRODOCK_RUNNER_TOKEN: ci-runner-token
+      ASTRODOCK_ADMIN_EMAIL: admin@example.com
+      ASTRODOCK_ADMIN_PASSWORD: ci-password
+      ASTRODOCK_PG_HOST: localhost
+      ASTRODOCK_PG_PORT: "5432"
+      ASTRODOCK_PG_USER: astrodock
+      ASTRODOCK_PG_PASSWORD: astrodock
+      ASTRODOCK_PG_DATABASE: astrodock
 
     steps:
       - uses: actions/checkout@v4
@@ -46,12 +48,12 @@ jobs:
           cache: npm
       - run: npm ci
       - name: schema tests
-        run: npm test -w @toolstead/schema
+        run: npm test -w @astrodock/schema
       - name: migrate
-        run: npm run migrate -w @toolstead/control-plane
+        run: npm run migrate -w @astrodock/control-plane
       - name: control-plane tests (unit + integration)
-        run: npm test -w @toolstead/control-plane
+        run: npm test -w @astrodock/control-plane
       - name: CLI integration tests
         run: node packages/cli/test/cli.test.mjs
       - name: admin build
-        run: npm run build -w @toolstead/admin
+        run: npm run build -w @astrodock/admin

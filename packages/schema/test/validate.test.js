@@ -42,7 +42,7 @@ test('accepts the docker sample with declared env', () => {
 });
 
 test('rejects a reserved-prefixed env key', () => {
-  const r = validate({ ...valid, env: [{ key: 'TOOLSTEAD_PORT' }] });
+  const r = validate({ ...valid, env: [{ key: 'ASTRODOCK_PORT' }] });
   assert.strictEqual(r.valid, false);
 });
 
@@ -71,19 +71,19 @@ console.log('\nreserved env catalog');
 
 test('internal everything: db url is auto, not user-required', () => {
   const cat = reservedCatalog({ auth: 'platform', database: 'internal', storage: 'internal' });
-  const dbUrl = cat.find((v) => v.key === 'TOOLSTEAD_DATABASE_URL');
+  const dbUrl = cat.find((v) => v.key === 'ASTRODOCK_DATABASE_URL');
   assert.strictEqual(dbUrl.source, 'auto');
   assert.deepStrictEqual(userRequiredReservedKeys({ database: 'internal', storage: 'internal' }), []);
 });
 
 test('external db + external storage: the right vars are user-required', () => {
   const req = userRequiredReservedKeys({ database: 'external', storage: 'external' });
-  assert.ok(req.includes('TOOLSTEAD_DATABASE_URL'));
-  assert.ok(req.includes('TOOLSTEAD_STORAGE_ACCESS_KEY'));
-  assert.ok(req.includes('TOOLSTEAD_STORAGE_SECRET_KEY'));
-  assert.ok(req.includes('TOOLSTEAD_STORAGE_ENDPOINT'));
-  assert.ok(req.includes('TOOLSTEAD_STORAGE_BUCKET'));
-  assert.ok(req.includes('TOOLSTEAD_STORAGE_REGION'));
+  assert.ok(req.includes('ASTRODOCK_DATABASE_URL'));
+  assert.ok(req.includes('ASTRODOCK_STORAGE_ACCESS_KEY'));
+  assert.ok(req.includes('ASTRODOCK_STORAGE_SECRET_KEY'));
+  assert.ok(req.includes('ASTRODOCK_STORAGE_ENDPOINT'));
+  assert.ok(req.includes('ASTRODOCK_STORAGE_BUCKET'));
+  assert.ok(req.includes('ASTRODOCK_STORAGE_REGION'));
 });
 
 test('public + none: only the six always-on vars', () => {
@@ -94,8 +94,8 @@ test('public + none: only the six always-on vars', () => {
 test('storage internal injects a prefix; external does not', () => {
   const internal = reservedCatalog({ storage: 'internal' }).map((v) => v.key);
   const external = reservedCatalog({ storage: 'external' }).map((v) => v.key);
-  assert.ok(internal.includes('TOOLSTEAD_STORAGE_PREFIX'));
-  assert.ok(!external.includes('TOOLSTEAD_STORAGE_PREFIX'));
+  assert.ok(internal.includes('ASTRODOCK_STORAGE_PREFIX'));
+  assert.ok(!external.includes('ASTRODOCK_STORAGE_PREFIX'));
 });
 
 console.log(`\n${passed} passed, ${failed} failed`);

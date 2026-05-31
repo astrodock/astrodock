@@ -1,10 +1,10 @@
 'use strict';
 
-// Tiny HTTP client for the Toolstead admin API. Reads base URL + token from the
-// environment (TOOLSTEAD_URL, TOOLSTEAD_TOKEN) unless overridden.
+// Tiny HTTP client for the Astrodock admin API. Reads base URL + token from the
+// environment (ASTRODOCK_URL, ASTRODOCK_TOKEN) unless overridden.
 
-function makeClient({ url = process.env.TOOLSTEAD_URL, token = process.env.TOOLSTEAD_TOKEN } = {}) {
-  if (!url) throw new Error('TOOLSTEAD_URL is not set (e.g. https://admin.example.com)');
+function makeClient({ url = process.env.ASTRODOCK_URL, token = process.env.ASTRODOCK_TOKEN } = {}) {
+  if (!url) throw new Error('ASTRODOCK_URL is not set (e.g. https://admin.example.com)');
   const base = url.replace(/\/$/, '');
 
   async function request(method, path, body) {

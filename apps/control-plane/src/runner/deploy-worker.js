@@ -159,11 +159,11 @@ async function deployNode(app, deployRoot, env, { appendLog, setStatus }) {
     await appendLog('Installing server deps…');
     await appendLog(exec(`cd "${apiPath}" && ${installCmd(apiPath, true)} 2>&1`) || 'server deps installed');
 
-    // PM2 ecosystem with the computed env. Blank any platform-only TOOLSTEAD_*
+    // PM2 ecosystem with the computed env. Blank any platform-only ASTRODOCK_*
     // that isn't part of this app's env so the runner's own secrets never leak.
     const ecosystemEnv = { ...env, NODE_ENV: config.env };
     for (const key of Object.keys(process.env)) {
-      if (key.startsWith('TOOLSTEAD_') && !(key in ecosystemEnv)) ecosystemEnv[key] = '';
+      if (key.startsWith('ASTRODOCK_') && !(key in ecosystemEnv)) ecosystemEnv[key] = '';
     }
 
     // #1: run each Node app as its own non-root OS user so apps can't read each

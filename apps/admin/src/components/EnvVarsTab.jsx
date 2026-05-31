@@ -193,7 +193,7 @@ export default function EnvVarsTab({ app, onRefresh }) {
         <div className="modal-overlay" onClick={() => setShowBulk(false)}>
           <form className="modal bulk-modal" onClick={e => e.stopPropagation()} onSubmit={handleBulkImport}>
             <h2>Import Environment Variables</h2>
-            <p className="hint">Paste the contents of a .env file. Lines starting with # are ignored. Reserved (TOOLSTEAD_) variables will be skipped.</p>
+            <p className="hint">Paste the contents of a .env file. Lines starting with # are ignored. Reserved (ASTRODOCK_) variables will be skipped.</p>
             {bulkResult && (
               <div className="provision-banner">
                 <strong>{bulkResult.added} variable{bulkResult.added !== 1 ? 's' : ''} imported{bulkResult.skipped > 0 ? `, ${bulkResult.skipped} skipped` : ''}</strong>

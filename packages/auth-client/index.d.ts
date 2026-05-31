@@ -1,4 +1,4 @@
-export interface ToolsteadAuthOptions {
+export interface AstrodockAuthOptions {
   authUrl?: string;
   appId?: string;
   appSecret?: string;
@@ -19,10 +19,10 @@ export class AuthError extends Error {
   constructor(message: string, statusCode: number);
 }
 
-export class ToolsteadAuth {
+export class AstrodockAuth {
   authUrl: string;
   appId: string;
   appSecret: string;
-  constructor(opts?: ToolsteadAuthOptions);
+  constructor(opts?: AstrodockAuthOptions);
   verify(email: string, password: string, opts?: VerifyOptions): Promise<VerifyResult>;
 }

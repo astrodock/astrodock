@@ -24,22 +24,22 @@ console.log('env computation');
 
 test('internal app injects DB url, storage set, auth set, PORT alias', () => {
   const env = computeEnv(internalApp, []);
-  assert.ok(env.TOOLSTEAD_DATABASE_URL.includes('app_notes'));
-  assert.strictEqual(env.TOOLSTEAD_DATABASE_ENGINE, 'postgres');
-  assert.strictEqual(env.TOOLSTEAD_STORAGE_PREFIX, 'notes/');
-  assert.ok(env.TOOLSTEAD_STORAGE_ACCESS_KEY !== undefined);
-  assert.strictEqual(env.TOOLSTEAD_APP_ID, 'notes');
-  assert.strictEqual(env.TOOLSTEAD_APP_SECRET, 'sk_abc');
-  assert.strictEqual(env.PORT, env.TOOLSTEAD_PORT);
-  assert.strictEqual(env.TOOLSTEAD_PORT, '3101');
+  assert.ok(env.ASTRODOCK_DATABASE_URL.includes('app_notes'));
+  assert.strictEqual(env.ASTRODOCK_DATABASE_ENGINE, 'postgres');
+  assert.strictEqual(env.ASTRODOCK_STORAGE_PREFIX, 'notes/');
+  assert.ok(env.ASTRODOCK_STORAGE_ACCESS_KEY !== undefined);
+  assert.strictEqual(env.ASTRODOCK_APP_ID, 'notes');
+  assert.strictEqual(env.ASTRODOCK_APP_SECRET, 'sk_abc');
+  assert.strictEqual(env.PORT, env.ASTRODOCK_PORT);
+  assert.strictEqual(env.ASTRODOCK_PORT, '3101');
 });
 
 test('public/none app injects no db/storage/auth vars', () => {
   const env = computeEnv({ ...internalApp, authMode: 'public', databaseMode: 'none', storageMode: 'none' }, []);
-  assert.ok(!('TOOLSTEAD_DATABASE_URL' in env));
-  assert.ok(!('TOOLSTEAD_STORAGE_ENDPOINT' in env));
-  assert.ok(!('TOOLSTEAD_APP_SECRET' in env));
-  assert.strictEqual(env.TOOLSTEAD_APP_SLUG, 'notes');
+  assert.ok(!('ASTRODOCK_DATABASE_URL' in env));
+  assert.ok(!('ASTRODOCK_STORAGE_ENDPOINT' in env));
+  assert.ok(!('ASTRODOCK_APP_SECRET' in env));
+  assert.strictEqual(env.ASTRODOCK_APP_SLUG, 'notes');
 });
 
 test('declared var uses default when unset; value when set', () => {
@@ -54,8 +54,8 @@ test('declared var uses default when unset; value when set', () => {
 test('gate: external storage requires the 5 storage vars', () => {
   const app = { ...internalApp, databaseMode: 'none', storageMode: 'external' };
   const missing = computeMissingRequired(app, []).map((m) => m.key);
-  assert.ok(missing.includes('TOOLSTEAD_STORAGE_ACCESS_KEY'));
-  assert.ok(missing.includes('TOOLSTEAD_STORAGE_SECRET_KEY'));
+  assert.ok(missing.includes('ASTRODOCK_STORAGE_ACCESS_KEY'));
+  assert.ok(missing.includes('ASTRODOCK_STORAGE_SECRET_KEY'));
   assert.strictEqual(missing.length, 5);
 });
 

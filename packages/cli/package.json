@@ -1,17 +1,17 @@
 {
-  "name": "@toolstead/cli",
+  "name": "@astrodock/cli",
   "version": "0.1.0",
-  "description": "Thin CLI for driving a Toolstead platform: apply, deploy, status, logs, deploy:watch, set-secret.",
+  "description": "Thin CLI for driving an Astrodock platform: apply, deploy, status, logs, deploy:watch, set-secret.",
   "license": "MIT",
   "bin": {
-    "toolstead": "bin/toolstead.js",
-    "stead": "bin/toolstead.js"
+    "astrodock": "bin/astrodock.js",
+    "adock": "bin/astrodock.js"
   },
   "files": ["bin/", "src/"],
   "scripts": {
     "test": "node test/cli.test.mjs"
   },
   "dependencies": {
-    "@toolstead/schema": "*"
+    "@astrodock/schema": "*"
   }
 }

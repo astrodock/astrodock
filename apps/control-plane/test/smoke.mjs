@@ -1,6 +1,6 @@
 // Integration smoke test against a real (local) Postgres. Boots the express app
 // on an ephemeral port and exercises the core control-plane flows end to end.
-// Run: node test/smoke.mjs   (requires TOOLSTEAD_PG_* pointing at a live PG)
+// Run: node test/smoke.mjs   (requires ASTRODOCK_PG_* pointing at a live PG)
 
 import assert from 'node:assert';
 import { createRequire } from 'node:module';
@@ -134,7 +134,7 @@ try {
     config.github.pat = 'fake-pat-for-gate-test'; // config is read once at load; set on the singleton
     const d = await api('POST', '/admin/apps/crm/deploy', { token: adminToken });
     assert.strictEqual(d.status, 422, JSON.stringify(d.json));
-    assert.ok(d.json.missing.some((m) => m.key === 'TOOLSTEAD_DATABASE_URL'), 'DB url flagged missing');
+    assert.ok(d.json.missing.some((m) => m.key === 'ASTRODOCK_DATABASE_URL'), 'DB url flagged missing');
     config.github.pat = '';
   });
 

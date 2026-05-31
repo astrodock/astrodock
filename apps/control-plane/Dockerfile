@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-# Toolstead control plane + runner (merged for v1; see DECISIONS.md B1).
+# Astrodock control plane + runner (merged for v1; see DECISIONS.md B1).
 # Multi-stage: build the admin SPA, then assemble the Node runtime that also has
 # git + Docker CLI + PM2 so it can clone, build, and run apps.
 
@@ -36,7 +36,7 @@ COPY packages/schema/package.json packages/schema/package.json
 COPY packages/auth-client/package.json packages/auth-client/package.json
 COPY packages/cli/package.json packages/cli/package.json
 # Runtime deps only; skip the admin workspace (built in stage 1) to keep the image lean.
-RUN npm ci --omit=dev --workspace @toolstead/control-plane --include-workspace-root
+RUN npm ci --omit=dev --workspace @astrodock/control-plane --include-workspace-root
 
 # App source
 COPY apps/control-plane apps/control-plane
@@ -49,9 +49,9 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 
 ENV NODE_ENV=production \
     PM2_HOME=/data/pm2 \
-    TOOLSTEAD_STATIC_DIR=/data/static \
-    TOOLSTEAD_APPS_DIR=/data/apps \
-    TOOLSTEAD_REPOS_DIR=/data/repos
+    ASTRODOCK_STATIC_DIR=/data/static \
+    ASTRODOCK_APPS_DIR=/data/apps \
+    ASTRODOCK_REPOS_DIR=/data/repos
 
 WORKDIR /app/apps/control-plane
 EXPOSE 3100

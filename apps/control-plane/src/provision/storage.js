@@ -18,7 +18,7 @@ const config = require('../config');
 const { generateSecretHex } = require('../lib/ids');
 const { encryptSecret, decryptSecret } = require('../lib/crypto');
 
-const CONTAINER = process.env.TOOLSTEAD_OBJECTSTORE_CONTAINER || 'toolstead-objectstore-1';
+const CONTAINER = process.env.ASTRODOCK_OBJECTSTORE_CONTAINER || 'astrodock-objectstore-1';
 
 function s3(creds) {
   return new S3Client({

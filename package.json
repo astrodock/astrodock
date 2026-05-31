@@ -1,5 +1,5 @@
 {
-  "name": "toolstead",
+  "name": "astrodock",
   "version": "0.1.0",
   "private": true,
   "description": "Self-hostable, AI-native app platform: deploy, auth, host, route and monitor small apps on your own box.",
@@ -9,13 +9,13 @@
     "packages/*"
   ],
   "scripts": {
-    "dev:api": "npm run dev -w @toolstead/control-plane",
-    "dev:admin": "npm run dev -w @toolstead/admin",
-    "build": "npm run build -w @toolstead/admin",
-    "migrate": "npm run migrate -w @toolstead/control-plane",
-    "seed": "npm run seed -w @toolstead/control-plane",
+    "dev:api": "npm run dev -w @astrodock/control-plane",
+    "dev:admin": "npm run dev -w @astrodock/admin",
+    "build": "npm run build -w @astrodock/admin",
+    "migrate": "npm run migrate -w @astrodock/control-plane",
+    "seed": "npm run seed -w @astrodock/control-plane",
     "test": "npm test --workspaces --if-present",
-    "cli": "node packages/cli/bin/toolstead.js"
+    "cli": "node packages/cli/bin/astrodock.js"
   },
   "engines": {
     "node": ">=20"

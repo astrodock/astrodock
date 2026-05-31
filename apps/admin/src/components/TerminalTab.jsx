@@ -57,7 +57,7 @@ export default function TerminalTab({ app }) {
         setDisabled(true);
         setLines(prev => [...prev, {
           type: 'stderr',
-          text: 'Terminal is disabled on this server. Set TOOLSTEAD_ENABLE_TERMINAL=true to enable it.'
+          text: 'Terminal is disabled on this server. Set ASTRODOCK_ENABLE_TERMINAL=true to enable it.'
         }]);
         setRunning(false);
         return;

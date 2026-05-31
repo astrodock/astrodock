@@ -1,7 +1,7 @@
 'use strict';
 
 // Central configuration for the control plane. Everything is read from the
-// environment with the reserved TOOLSTEAD_ prefix. No org-specific defaults —
+// environment with the reserved ASTRODOCK_ prefix. No org-specific defaults —
 // the only baked-in fallbacks are safe local-dev values.
 
 require('dotenv').config();
@@ -15,11 +15,11 @@ function int(v, def) {
   return Number.isFinite(n) ? n : def;
 }
 
-const PG_HOST = process.env.TOOLSTEAD_PG_HOST || 'localhost';
-const PG_PORT = int(process.env.TOOLSTEAD_PG_PORT, 5432);
-const PG_USER = process.env.TOOLSTEAD_PG_USER || 'toolstead';
-const PG_PASSWORD = process.env.TOOLSTEAD_PG_PASSWORD || 'toolstead';
-const PG_DATABASE = process.env.TOOLSTEAD_PG_DATABASE || 'toolstead';
+const PG_HOST = process.env.ASTRODOCK_PG_HOST || 'localhost';
+const PG_PORT = int(process.env.ASTRODOCK_PG_PORT, 5432);
+const PG_USER = process.env.ASTRODOCK_PG_USER || 'astrodock';
+const PG_PASSWORD = process.env.ASTRODOCK_PG_PASSWORD || 'astrodock';
+const PG_DATABASE = process.env.ASTRODOCK_PG_DATABASE || 'astrodock';
 
 function pgUrl(database) {
   const u = encodeURIComponent(PG_USER);
@@ -30,88 +30,88 @@ function pgUrl(database) {
 const config = {
   // ── HTTP ──
   port: int(process.env.PORT, 3100),
-  env: process.env.TOOLSTEAD_ENV || process.env.NODE_ENV || 'production',
+  env: process.env.ASTRODOCK_ENV || process.env.NODE_ENV || 'production',
 
   // ── Domain / routing ──
-  baseDomain: process.env.TOOLSTEAD_BASE_DOMAIN || 'localhost',
-  adminSubdomain: process.env.TOOLSTEAD_ADMIN_SUBDOMAIN || 'admin',
-  tlsMode: (process.env.TOOLSTEAD_TLS_MODE || 'internal').toLowerCase(), // auto | internal | off
-  acmeEmail: process.env.TOOLSTEAD_ACME_EMAIL || '',
+  baseDomain: process.env.ASTRODOCK_BASE_DOMAIN || 'localhost',
+  adminSubdomain: process.env.ASTRODOCK_ADMIN_SUBDOMAIN || 'admin',
+  tlsMode: (process.env.ASTRODOCK_TLS_MODE || 'internal').toLowerCase(), // auto | internal | off
+  acmeEmail: process.env.ASTRODOCK_ACME_EMAIL || '',
   // Override the CORS allowed-origin regex; otherwise derived from baseDomain.
-  allowedOriginPattern: process.env.TOOLSTEAD_ALLOWED_ORIGIN_PATTERN || '',
+  allowedOriginPattern: process.env.ASTRODOCK_ALLOWED_ORIGIN_PATTERN || '',
 
   // ── Admin auth ──
-  adminJwtSecret: process.env.TOOLSTEAD_ADMIN_JWT_SECRET || '',
+  adminJwtSecret: process.env.ASTRODOCK_ADMIN_JWT_SECRET || '',
   // Master key for encrypting stored secrets at rest (AES-256-GCM). If unset,
   // secrets are stored in plaintext (back-compat) and a warning is logged at boot.
-  secretKey: process.env.TOOLSTEAD_SECRET_KEY || '',
-  adminEmail: process.env.TOOLSTEAD_ADMIN_EMAIL || '',
-  adminPassword: process.env.TOOLSTEAD_ADMIN_PASSWORD || '',
+  secretKey: process.env.ASTRODOCK_SECRET_KEY || '',
+  adminEmail: process.env.ASTRODOCK_ADMIN_EMAIL || '',
+  adminPassword: process.env.ASTRODOCK_ADMIN_PASSWORD || '',
 
   // ── Bundled Postgres (control-plane store + internal app DBs) ──
   pg: {
     host: PG_HOST, port: PG_PORT, user: PG_USER, password: PG_PASSWORD, database: PG_DATABASE,
     url: pgUrl(PG_DATABASE),
     // host:port apps use to reach the bundled DB (on the compose network this is "postgres")
-    appHost: process.env.TOOLSTEAD_PG_APP_HOST || PG_HOST,
-    appPort: int(process.env.TOOLSTEAD_PG_APP_PORT, PG_PORT)
+    appHost: process.env.ASTRODOCK_PG_APP_HOST || PG_HOST,
+    appPort: int(process.env.ASTRODOCK_PG_APP_PORT, PG_PORT)
   },
   pgUrl,
 
   // ── Bundled object store (SeaweedFS S3) ──
   objectstore: {
-    endpoint: process.env.TOOLSTEAD_OBJECTSTORE_ENDPOINT || 'http://localhost:8333',
+    endpoint: process.env.ASTRODOCK_OBJECTSTORE_ENDPOINT || 'http://localhost:8333',
     // endpoint apps should use (compose-network address); falls back to endpoint
-    appEndpoint: process.env.TOOLSTEAD_OBJECTSTORE_APP_ENDPOINT || process.env.TOOLSTEAD_OBJECTSTORE_ENDPOINT || 'http://objectstore:8333',
-    region: process.env.TOOLSTEAD_OBJECTSTORE_REGION || 'us-east-1',
-    accessKey: process.env.TOOLSTEAD_OBJECTSTORE_ACCESS_KEY || '',
-    secretKey: process.env.TOOLSTEAD_OBJECTSTORE_SECRET_KEY || '',
-    bucket: process.env.TOOLSTEAD_OBJECTSTORE_BUCKET || 'toolstead'
+    appEndpoint: process.env.ASTRODOCK_OBJECTSTORE_APP_ENDPOINT || process.env.ASTRODOCK_OBJECTSTORE_ENDPOINT || 'http://objectstore:8333',
+    region: process.env.ASTRODOCK_OBJECTSTORE_REGION || 'us-east-1',
+    accessKey: process.env.ASTRODOCK_OBJECTSTORE_ACCESS_KEY || '',
+    secretKey: process.env.ASTRODOCK_OBJECTSTORE_SECRET_KEY || '',
+    bucket: process.env.ASTRODOCK_OBJECTSTORE_BUCKET || 'astrodock'
   },
 
   // ── GitHub ──
   github: {
-    pat: process.env.TOOLSTEAD_GITHUB_PAT || '',
-    owner: process.env.TOOLSTEAD_GITHUB_OWNER || ''
+    pat: process.env.ASTRODOCK_GITHUB_PAT || '',
+    owner: process.env.ASTRODOCK_GITHUB_OWNER || ''
   },
 
   // ── Runner / filesystem (paths inside the runner container) ──
   paths: {
-    static: process.env.TOOLSTEAD_STATIC_DIR || '/data/static',
-    apps: process.env.TOOLSTEAD_APPS_DIR || '/data/apps',
-    repos: process.env.TOOLSTEAD_REPOS_DIR || '/data/repos',
+    static: process.env.ASTRODOCK_STATIC_DIR || '/data/static',
+    apps: process.env.ASTRODOCK_APPS_DIR || '/data/apps',
+    repos: process.env.ASTRODOCK_REPOS_DIR || '/data/repos',
     // the SAME static volume as seen from inside the Caddy container
-    caddyStatic: process.env.TOOLSTEAD_CADDY_STATIC_DIR || '/srv/static'
+    caddyStatic: process.env.ASTRODOCK_CADDY_STATIC_DIR || '/srv/static'
   },
 
   // ── Caddy ──
-  caddyAdmin: process.env.TOOLSTEAD_CADDY_ADMIN || 'http://localhost:2019',
+  caddyAdmin: process.env.ASTRODOCK_CADDY_ADMIN || 'http://localhost:2019',
 
   // ── Docker (sibling containers for Dockerfile apps) ──
-  dockerNetwork: process.env.TOOLSTEAD_DOCKER_NETWORK || 'toolstead_default',
+  dockerNetwork: process.env.ASTRODOCK_DOCKER_NETWORK || 'astrodock_default',
 
   // ── Email / alerts ──
   email: {
-    from: process.env.TOOLSTEAD_EMAIL_FROM || 'Toolstead <noreply@example.com>',
-    alertTo: process.env.TOOLSTEAD_ALERT_EMAIL || '',
-    resendApiKey: process.env.TOOLSTEAD_RESEND_API_KEY || ''
+    from: process.env.ASTRODOCK_EMAIL_FROM || 'Astrodock <noreply@example.com>',
+    alertTo: process.env.ASTRODOCK_ALERT_EMAIL || '',
+    resendApiKey: process.env.ASTRODOCK_RESEND_API_KEY || ''
   },
 
   // ── Feature flags ──
-  enableTerminal: bool(process.env.TOOLSTEAD_ENABLE_TERMINAL, false),
+  enableTerminal: bool(process.env.ASTRODOCK_ENABLE_TERMINAL, false),
 
   // base port for app processes (control plane is on `port`)
-  basePort: int(process.env.TOOLSTEAD_BASE_PORT, 3101),
+  basePort: int(process.env.ASTRODOCK_BASE_PORT, 3101),
 
   // ── runner (separate container; holds the Docker socket + PAT + PM2) ──
-  role: process.env.TOOLSTEAD_ROLE || 'control-plane', // 'control-plane' | 'runner'
-  runnerPort: int(process.env.TOOLSTEAD_RUNNER_PORT, 3200),
-  runnerUrl: process.env.TOOLSTEAD_RUNNER_URL || 'http://runner:3200',
-  runnerToken: process.env.TOOLSTEAD_RUNNER_TOKEN || ''
+  role: process.env.ASTRODOCK_ROLE || 'control-plane', // 'control-plane' | 'runner'
+  runnerPort: int(process.env.ASTRODOCK_RUNNER_PORT, 3200),
+  runnerUrl: process.env.ASTRODOCK_RUNNER_URL || 'http://runner:3200',
+  runnerToken: process.env.ASTRODOCK_RUNNER_TOKEN || ''
 };
 
 // The internal /verify address apps use (compose-network address of this service).
-config.internalAuthUrl = process.env.TOOLSTEAD_INTERNAL_AUTH_URL || `http://api:${config.port}`;
+config.internalAuthUrl = process.env.ASTRODOCK_INTERNAL_AUTH_URL || `http://api:${config.port}`;
 
 // CORS allowed-origin matcher, config-driven (no hardcoded org domain).
 config.isAllowedOrigin = function isAllowedOrigin(origin) {

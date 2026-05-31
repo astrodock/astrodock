@@ -22,7 +22,7 @@ export default function App() {
 function Shell({ children }) {
   return (
     <div style={{ fontFamily: 'system-ui, sans-serif', maxWidth: 560, margin: '64px auto', padding: '0 20px', color: '#1a1a1a' }}>
-      <h1 style={{ fontSize: 22, marginBottom: 4 }}>Toolstead Starter</h1>
+      <h1 style={{ fontSize: 22, marginBottom: 4 }}>Astrodock Starter</h1>
       <p style={{ color: '#666', marginTop: 0 }}>A minimal app using platform login.</p>
       <div style={{ marginTop: 24 }}>{children}</div>
     </div>

@@ -46,7 +46,7 @@ export default function App() {
       <nav className="sidebar">
         <div className="sidebar-header">
           <div className="logo-mark">TS</div>
-          <span className="logo-text">Toolstead</span>
+          <span className="logo-text">Astrodock</span>
         </div>
         <ul className="nav-links">
           <li>

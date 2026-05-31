@@ -28,7 +28,7 @@ export default function LoginPage({ onLogin }) {
       <form className="login-form" onSubmit={handleSubmit}>
         <div className="login-logo">
           <div className="logo-mark">TS</div>
-          <span className="logo-text-lg">Toolstead</span>
+          <span className="logo-text-lg">Astrodock</span>
         </div>
         <p className="login-subtitle">Admin Control Plane</p>
         {error && <div className="error">{error}</div>}

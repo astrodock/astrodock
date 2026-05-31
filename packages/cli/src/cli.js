@@ -4,13 +4,13 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
-const { validate } = require('@toolstead/schema');
+const { validate } = require('@astrodock/schema');
 const { makeClient } = require('./client');
 
-const USAGE = `toolstead — drive a Toolstead platform from an app repo
+const USAGE = `astrodock — drive an Astrodock platform from an app repo
 
 Usage:
-  toolstead <command> [options]
+  astrodock <command> [options]
 
 Commands:
   apply [--file app.json] [--prune]   Create/update the app from app.json, connect repo, provision
@@ -23,8 +23,8 @@ Commands:
   help                                 Show this help
 
 Environment:
-  TOOLSTEAD_URL     Base URL of the admin host, e.g. https://admin.example.com
-  TOOLSTEAD_TOKEN   A scoped API token (tk_...) or an admin JWT
+  ASTRODOCK_URL     Base URL of the admin host, e.g. https://admin.example.com
+  ASTRODOCK_TOKEN   A scoped API token (tk_...) or an admin JWT
 
 app.json is read from the current directory (or --file). Secret VALUES never go in app.json.`;
 
@@ -88,7 +88,7 @@ async function cmdApply(client, flags) {
 // Tar the working dir (minus heavy/secret bits) and upload it for a non-GitHub deploy.
 async function localDeploy(client, slug) {
   const cwd = process.cwd();
-  const tmp = path.join(os.tmpdir(), `toolstead-${slug}-${process.pid}.tgz`);
+  const tmp = path.join(os.tmpdir(), `astrodock-${slug}-${process.pid}.tgz`);
   const excludes = ['node_modules', '.git', 'dist', '.env', '.env.local', '.DS_Store']
     .flatMap((e) => [`--exclude=${e}`, `--exclude=*/${e}`]);
   try {
@@ -101,7 +101,7 @@ async function localDeploy(client, slug) {
   console.log(`Uploading ${(buf.length / 1024).toFixed(0)} KB for "${slug}"…`);
   const { status, json } = await client.uploadRaw(`/admin/apps/${slug}/deploy-local`, buf);
   if (status === 422 && json?.missing) {
-    console.error('Deploy blocked — set these first (toolstead set-secret KEY):');
+    console.error('Deploy blocked — set these first (astrodock set-secret KEY):');
     for (const m of json.missing) console.error(`  - ${m.key} (${m.reason})`);
     process.exit(2);
   }
@@ -116,7 +116,7 @@ async function cmdDeploy(client, positional, flags) {
   if (flags.local) return localDeploy(client, slug);
   const { status, json } = await client.request('POST', `/admin/apps/${slug}/deploy`);
   if (status === 422 && json?.missing) {
-    console.error(`Deploy blocked — set these first (toolstead set-secret KEY):`);
+    console.error(`Deploy blocked — set these first (astrodock set-secret KEY):`);
     for (const m of json.missing) console.error(`  - ${m.key} (${m.reason})`);
     process.exit(2);
   }
@@ -169,7 +169,7 @@ async function cmdLogs(client, positional, flags) {
 
 async function cmdSetSecret(client, positional) {
   const key = positional[0];
-  if (!key) die('usage: toolstead set-secret <KEY> [value] [slug]');
+  if (!key) die('usage: astrodock set-secret <KEY> [value] [slug]');
   let value = positional[1];
   let slug = positional[2];
   if (value === undefined) value = await readStdin();
@@ -208,7 +208,7 @@ async function main(argv) {
       case 'logs': return await cmdLogs(client, positional, flags);
       case 'set-secret': return await cmdSetSecret(client, positional);
       case 'apps': return await cmdApps(client);
-      default: die(`unknown command "${command}" (try: toolstead help)`);
+      default: die(`unknown command "${command}" (try: astrodock help)`);
     }
   } catch (e) {
     die(e.message);

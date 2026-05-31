@@ -3,7 +3,7 @@
 const Ajv = require('ajv/dist/2020');
 const schema = require('./app.schema.json');
 
-const RESERVED_PREFIX = 'TOOLSTEAD_';
+const RESERVED_PREFIX = 'ASTRODOCK_';
 
 const ajv = new Ajv({ allErrors: true, strict: false, useDefaults: false });
 const _validate = ajv.compile(schema);
@@ -37,7 +37,7 @@ function formatError(err) {
 }
 
 /**
- * The reserved TOOLSTEAD_* environment variables that should be injected for the
+ * The reserved ASTRODOCK_* environment variables that should be injected for the
  * given resource modes. This is the catalog (which vars exist + their metadata),
  * not their values — value computation lives in the control plane because it needs
  * runtime state (the internal DB password, the storage key, the base domain, ...).
@@ -51,38 +51,38 @@ function reservedCatalog(modes = {}) {
   const storage = modes.storage || 'none';
 
   const out = [
-    { key: 'TOOLSTEAD_APP_SLUG', secret: false, source: 'auto' },
-    { key: 'TOOLSTEAD_APP_NAME', secret: false, source: 'auto' },
-    { key: 'TOOLSTEAD_APP_URL', secret: false, source: 'auto' },
-    { key: 'TOOLSTEAD_BASE_DOMAIN', secret: false, source: 'auto' },
-    { key: 'TOOLSTEAD_PORT', secret: false, source: 'auto' },
-    { key: 'TOOLSTEAD_ENV', secret: false, source: 'auto' }
+    { key: 'ASTRODOCK_APP_SLUG', secret: false, source: 'auto' },
+    { key: 'ASTRODOCK_APP_NAME', secret: false, source: 'auto' },
+    { key: 'ASTRODOCK_APP_URL', secret: false, source: 'auto' },
+    { key: 'ASTRODOCK_BASE_DOMAIN', secret: false, source: 'auto' },
+    { key: 'ASTRODOCK_PORT', secret: false, source: 'auto' },
+    { key: 'ASTRODOCK_ENV', secret: false, source: 'auto' }
   ];
 
   if (database !== 'none') {
     const ext = database === 'external';
-    out.push({ key: 'TOOLSTEAD_DATABASE_URL', secret: true, source: ext ? 'user-required' : 'auto' });
-    out.push({ key: 'TOOLSTEAD_DATABASE_ENGINE', secret: false, source: 'auto' });
+    out.push({ key: 'ASTRODOCK_DATABASE_URL', secret: true, source: ext ? 'user-required' : 'auto' });
+    out.push({ key: 'ASTRODOCK_DATABASE_ENGINE', secret: false, source: 'auto' });
   }
 
   if (storage !== 'none') {
     const ext = storage === 'external';
     const src = ext ? 'user-required' : 'auto';
-    out.push({ key: 'TOOLSTEAD_STORAGE_ENDPOINT', secret: false, source: src });
-    out.push({ key: 'TOOLSTEAD_STORAGE_REGION', secret: false, source: src });
-    out.push({ key: 'TOOLSTEAD_STORAGE_BUCKET', secret: false, source: src });
-    out.push({ key: 'TOOLSTEAD_STORAGE_ACCESS_KEY', secret: false, source: src });
-    out.push({ key: 'TOOLSTEAD_STORAGE_SECRET_KEY', secret: true, source: src });
+    out.push({ key: 'ASTRODOCK_STORAGE_ENDPOINT', secret: false, source: src });
+    out.push({ key: 'ASTRODOCK_STORAGE_REGION', secret: false, source: src });
+    out.push({ key: 'ASTRODOCK_STORAGE_BUCKET', secret: false, source: src });
+    out.push({ key: 'ASTRODOCK_STORAGE_ACCESS_KEY', secret: false, source: src });
+    out.push({ key: 'ASTRODOCK_STORAGE_SECRET_KEY', secret: true, source: src });
     if (storage === 'internal') {
-      out.push({ key: 'TOOLSTEAD_STORAGE_PREFIX', secret: false, source: 'auto' });
+      out.push({ key: 'ASTRODOCK_STORAGE_PREFIX', secret: false, source: 'auto' });
     }
   }
 
   if (auth === 'platform') {
-    out.push({ key: 'TOOLSTEAD_AUTH_URL', secret: false, source: 'auto' });
-    out.push({ key: 'TOOLSTEAD_APP_ID', secret: false, source: 'auto' });
-    out.push({ key: 'TOOLSTEAD_APP_SECRET', secret: true, source: 'auto' });
-    out.push({ key: 'TOOLSTEAD_APP_JWT_SECRET', secret: true, source: 'auto' });
+    out.push({ key: 'ASTRODOCK_AUTH_URL', secret: false, source: 'auto' });
+    out.push({ key: 'ASTRODOCK_APP_ID', secret: false, source: 'auto' });
+    out.push({ key: 'ASTRODOCK_APP_SECRET', secret: true, source: 'auto' });
+    out.push({ key: 'ASTRODOCK_APP_JWT_SECRET', secret: true, source: 'auto' });
   }
 
   return out;

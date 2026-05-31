@@ -5,7 +5,7 @@
 // vars unless { prune: true }. Mirrors spec §3.2 "apply semantics".
 
 const { eq, and, sql } = require('drizzle-orm');
-const { validate, reservedCatalog } = require('@toolstead/schema');
+const { validate, reservedCatalog } = require('@astrodock/schema');
 const { db, schema } = require('../db');
 const config = require('../config');
 const { generateAppSecret, generateSecretHex } = require('./ids');

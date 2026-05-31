@@ -27,7 +27,7 @@ app.use('/webhooks', require('./src/routes/webhooks'));
 app.use(express.json({ limit: '1mb' }));
 
 // Control-plane liveness (distinct from /admin/health monitor data).
-app.get('/health', (req, res) => res.json({ status: 'ok', service: 'toolstead-control-plane' }));
+app.get('/health', (req, res) => res.json({ status: 'ok', service: 'astrodock-control-plane' }));
 
 // Hosted end-user account page.
 app.get('/account', (req, res) => res.sendFile(path.join(__dirname, 'public', 'account.html')));
@@ -50,12 +50,12 @@ app.use((err, req, res, next) => {
 
 async function start() {
   if (!config.adminJwtSecret) {
-    console.error('FATAL: TOOLSTEAD_ADMIN_JWT_SECRET is required.');
+    console.error('FATAL: ASTRODOCK_ADMIN_JWT_SECRET is required.');
     process.exit(1);
   }
 
   if (!secretEncryptionEnabled()) {
-    console.warn('WARNING: TOOLSTEAD_SECRET_KEY is not set — secrets are stored in PLAINTEXT. Set it to encrypt secrets at rest (see SECURITY.md).');
+    console.warn('WARNING: ASTRODOCK_SECRET_KEY is not set — secrets are stored in PLAINTEXT. Set it to encrypt secrets at rest (see SECURITY.md).');
   }
 
   await migrate();          // bring the schema up to date
@@ -69,7 +69,7 @@ async function start() {
   // (app health monitoring runs in the runner container; this api reads app_health from the DB)
 
   app.listen(config.port, () => {
-    console.log(`Toolstead control plane listening on :${config.port} (env=${config.env}, base=${config.baseDomain})`);
+    console.log(`Astrodock control plane listening on :${config.port} (env=${config.env}, base=${config.baseDomain})`);
   });
 }
 

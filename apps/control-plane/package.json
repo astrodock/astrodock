@@ -1,8 +1,8 @@
 {
-  "name": "@toolstead/control-plane",
+  "name": "@astrodock/control-plane",
   "version": "0.1.0",
   "private": true,
-  "description": "Toolstead control plane — Express API, /verify auth gate, deploy orchestration, runner, health monitor.",
+  "description": "Astrodock control plane — Express API, /verify auth gate, deploy orchestration, runner, health monitor.",
   "license": "MIT",
   "main": "server.js",
   "scripts": {
@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.700.0",
-    "@toolstead/schema": "*",
+    "@astrodock/schema": "*",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",

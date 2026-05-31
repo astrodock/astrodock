@@ -1,5 +1,5 @@
 const API_BASE = '/admin';
-export const TOKEN_KEY = 'toolstead_token';
+export const TOKEN_KEY = 'astrodock_token';
 
 let token = sessionStorage.getItem(TOKEN_KEY);
 

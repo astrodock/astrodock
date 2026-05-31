@@ -53,16 +53,16 @@ on a single VPS.
   multi-tenancy inside the control plane.
 - **Real refactor accepted:** this is a different product than the internal SV tool;
   re-architecting storage, the control-plane store, and the runtime is in scope.
-- **Name = Toolstead (working name):** env prefix `TOOLSTEAD_`, CLI `toolstead` (short alias
-  `stead`), npm scope `@toolstead`. Verified free on npm + GitHub + web (chosen over "Plinth",
+- **Name = Astrodock (working name):** env prefix `ASTRODOCK_`, CLI `astrodock` (short alias
+  `adock`), npm scope `@astrodock`. Verified free on npm + GitHub + web (chosen over "Plinth",
   which collided with an identical-concept product at plinth.run). Acknowledged placeholder —
-  may revisit. Project forked to `/Users/paulstaff/Unsynced Docs/Toolstead`; `SV - Sandbox` left intact.
+  may revisit. Project forked to `/Users/paulstaff/Unsynced Docs/Astrodock`; `SV - Sandbox` left intact.
 - **This doc** is the plan; nothing gets published until Phase 0 is clean.
 
 ## Decisions still open
 
 - [ ] **License** — MIT (simplest, most permissive) vs Apache-2.0 (adds patent grant). Recommend MIT unless there's a reason.
-- [ ] **npm scope** — `@sv/*` → `@toolstead/*`, publish unscoped, or keep vendored/unpublished.
+- [ ] **npm scope** — `@sv/*` → `@astrodock/*`, publish unscoped, or keep vendored/unpublished.
 - [ ] **Terminal endpoint**: keep always-on, or gate behind an `ENABLE_TERMINAL` env flag (recommended).
 - [ ] **Internal backups**: stay local-only (single box), or optionally ship off-box to an
       external object store for durability? (The one place an external dep earns its keep.)
@@ -161,7 +161,7 @@ refactor" — the current code is `mongoose`-coupled.
 
 Done as a **fork**, not a scrub-in-place: the original `SV - Sandbox` is left fully intact
 (still deployable to the live droplet), and a clean copy was made at
-`/Users/paulstaff/Unsynced Docs/Toolstead` that never received the live secrets.
+`/Users/paulstaff/Unsynced Docs/Astrodock` that never received the live secrets.
 
 - [x] **`.gitignore` added** — covers `.env` / `.env.*` (keeps `.env.example`), `setup.conf`
       (keeps `setup.conf.example`), `node_modules/`, `dist/`, `build/`, `.DS_Store`, logs,
@@ -175,7 +175,7 @@ Done as a **fork**, not a scrub-in-place: the original `SV - Sandbox` is left fu
 - [x] **Proprietary assets excluded** — `seniorverse-logo.svg` not copied.
 - [x] **SV-internal docs excluded** — `help-center-conversion-plan.md` not copied.
 - [x] **Build/junk excluded** — `node_modules/`, `auth-admin/dist/`, `.DS_Store` not copied.
-- [ ] **`git init`** in the Toolstead folder (do once we're ready to track history — safe now
+- [ ] **`git init`** in the Astrodock folder (do once we're ready to track history — safe now
       that `.gitignore` is in place and no secrets are present).
 
 ---

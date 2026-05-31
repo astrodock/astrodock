@@ -2,7 +2,7 @@
   "name": "starter-app-server",
   "version": "0.1.0",
   "private": true,
-  "description": "Express server for the Toolstead starter app.",
+  "description": "Express server for the Astrodock starter app.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

@@ -8,7 +8,7 @@ const config = require('../config');
 function sendEmail({ to, subject, html }) {
   const apiKey = config.email.resendApiKey;
   if (!apiKey) {
-    console.warn('[email] TOOLSTEAD_RESEND_API_KEY not set — skipping email:', subject);
+    console.warn('[email] ASTRODOCK_RESEND_API_KEY not set — skipping email:', subject);
     return Promise.resolve();
   }
   if (!to) return Promise.resolve();

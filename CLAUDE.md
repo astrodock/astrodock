@@ -1,6 +1,6 @@
-# Toolstead — project context for Claude
+# Astrodock — project context for Claude
 
-**Toolstead** is an open-source, self-hostable, **AI-native app platform**: stand it up once,
+**Astrodock** is an open-source, self-hostable, **AI-native app platform**: stand it up once,
 then point an AI agent (Claude Code or similar) at it to build, authenticate, and **launch**
 small apps/tools on your own box. It bundles its own database + object storage (zero external
 dependencies) and deploys, hosts, auths, routes, and monitors the apps you point it at.
@@ -14,7 +14,7 @@ these before doing substantial work — they are the source of truth:
   runner topology, and deploy flows. Authoritative for those details.
 
 ## Locked decisions (do not re-litigate)
-- **Name:** Toolstead (working name). Env prefix `TOOLSTEAD_`, CLI `toolstead` (alias `stead`), npm scope `@toolstead`.
+- **Name:** Astrodock (working name). Env prefix `ASTRODOCK_`, CLI `astrodock` (alias `adock`), npm scope `@astrodock`.
 - **Zero external deps:** control plane + internal app DBs on **Postgres**; internal object
   storage on an S3-compatible store (**SeaweedFS**, Apache-2.0). Ships as a `docker compose` stack.
 - **Per-app resources:** each app chooses **internal / external / none** for database and for
@@ -24,7 +24,7 @@ these before doing substantial work — they are the source of truth:
   (sibling container via a mounted Docker socket).
 - **Agent surface:** a scoped API token (separate from admin JWT) + a thin CLI (`apply` / `deploy` / `status` / `logs` / `deploy:watch`).
 - **Manifest:** each app repo carries `app.json` — declared config + env-var *names* only, never secret values.
-- **Env model:** all platform-managed vars use the reserved `TOOLSTEAD_` prefix; app-declared
+- **Env model:** all platform-managed vars use the reserved `ASTRODOCK_` prefix; app-declared
   vars may not. Deploys are blocked until every required var is set.
 - **Routing:** Caddy serves static it can see (Node buildpack apps) and whole-proxies opaque apps (Docker). Intentional; keep it.
 

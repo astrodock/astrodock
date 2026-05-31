@@ -73,7 +73,7 @@ const apps = pgTable('apps', {
 
 // ── app_env_vars ─────────────────────────────────────────────────────────────
 // Holds both app-declared vars (from app.json env[]) and external-mode reserved
-// vars that need an operator value (TOOLSTEAD_DATABASE_URL / TOOLSTEAD_STORAGE_*).
+// vars that need an operator value (ASTRODOCK_DATABASE_URL / ASTRODOCK_STORAGE_*).
 const appEnvVars = pgTable('app_env_vars', {
   id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
   appId: uuid('app_id').notNull().references(() => apps.id, { onDelete: 'cascade' }),

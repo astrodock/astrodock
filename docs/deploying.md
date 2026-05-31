@@ -1,6 +1,6 @@
-# Deploying the Toolstead platform
+# Deploying the Astrodock platform
 
-Toolstead ships as a single `docker compose` stack with no external dependencies. The same
+Astrodock ships as a single `docker compose` stack with no external dependencies. The same
 artifact runs locally, on any VPS, or (future) as a managed single-tenant instance. Nothing here
 is DigitalOcean-specific — any box with Docker works.
 
@@ -14,13 +14,13 @@ is DigitalOcean-specific — any box with Docker works.
 cp .env.example .env
 ```
 Set at least:
-- `TOOLSTEAD_BASE_DOMAIN` — your domain (apps live at `<subdomain>.<base-domain>`).
-- `TOOLSTEAD_TLS_MODE` — `auto` (Let's Encrypt; needs public DNS) · `internal` (Caddy's own CA;
+- `ASTRODOCK_BASE_DOMAIN` — your domain (apps live at `<subdomain>.<base-domain>`).
+- `ASTRODOCK_TLS_MODE` — `auto` (Let's Encrypt; needs public DNS) · `internal` (Caddy's own CA;
   LAN/dev) · `off` (plain HTTP behind another proxy).
-- `TOOLSTEAD_ACME_EMAIL` — for `auto` TLS.
-- `TOOLSTEAD_ADMIN_JWT_SECRET`, `TOOLSTEAD_ADMIN_EMAIL`, `TOOLSTEAD_ADMIN_PASSWORD` — admin login + seed.
-- `TOOLSTEAD_PG_PASSWORD`, `TOOLSTEAD_OBJECTSTORE_SECRET_KEY` — bundled-resource secrets.
-- `TOOLSTEAD_GITHUB_PAT` (+ `TOOLSTEAD_GITHUB_OWNER`) — a fine-grained PAT with `contents:read`
+- `ASTRODOCK_ACME_EMAIL` — for `auto` TLS.
+- `ASTRODOCK_ADMIN_JWT_SECRET`, `ASTRODOCK_ADMIN_EMAIL`, `ASTRODOCK_ADMIN_PASSWORD` — admin login + seed.
+- `ASTRODOCK_PG_PASSWORD`, `ASTRODOCK_OBJECTSTORE_SECRET_KEY` — bundled-resource secrets.
+- `ASTRODOCK_GITHUB_PAT` (+ `ASTRODOCK_GITHUB_OWNER`) — a fine-grained PAT with `contents:read`
   and repo webhook read/write, so the platform can clone and auto-deploy on push.
 
 Generate secrets with `openssl rand -hex 32`. **Never commit `.env`.**
@@ -38,18 +38,18 @@ in with the seeded admin.
 ## 3. Mint a token for the CLI / your agent
 Admin UI → **Tokens** → create a scoped token. Then on your workstation:
 ```bash
-export TOOLSTEAD_URL=https://admin.<base-domain>
-export TOOLSTEAD_TOKEN=tk_...
+export ASTRODOCK_URL=https://admin.<base-domain>
+export ASTRODOCK_TOKEN=tk_...
 ```
 
 ## 4. Deploy an app
 See `AGENTS.md` and `docs/building-apps.md`. In short: from an app repo with an `app.json`,
-`toolstead apply && toolstead deploy:watch`.
+`astrodock apply && astrodock deploy:watch`.
 
 ## Local / LAN (no public domain)
 ```
-TOOLSTEAD_BASE_DOMAIN=localhost
-TOOLSTEAD_TLS_MODE=internal     # or off
+ASTRODOCK_BASE_DOMAIN=localhost
+ASTRODOCK_TLS_MODE=internal     # or off
 ```
 With `internal`, Caddy issues certs from its own CA (your browser will warn unless you trust it).
 With `off`, everything is plain HTTP — fine for a quick local poke, not for the internet.
@@ -73,7 +73,7 @@ Migrations run automatically on api start. App data in internal Postgres DBs is 
 
 ## Operations
 - Logs: `docker compose logs -f <service>` (`api`, `caddy`, `postgres`, `objectstore`).
-- Per-app status/logs: the admin UI, or `toolstead status` / `toolstead logs`.
-- Health monitoring + optional down/recovery emails: configure `TOOLSTEAD_RESEND_API_KEY` +
-  `TOOLSTEAD_ALERT_EMAIL`.
+- Per-app status/logs: the admin UI, or `astrodock status` / `astrodock logs`.
+- Health monitoring + optional down/recovery emails: configure `ASTRODOCK_RESEND_API_KEY` +
+  `ASTRODOCK_ALERT_EMAIL`.
 - See `SECURITY.md` before exposing the box.

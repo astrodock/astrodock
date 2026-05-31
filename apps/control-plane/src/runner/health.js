@@ -69,16 +69,16 @@ function probe(app) {
 function downEmail(app, state) {
   return {
     to: config.email.alertTo,
-    subject: `[Toolstead] ${app.name} is DOWN`,
-    html: `<h2 style="color:#dc2626">App Down</h2><p><strong>${app.name}</strong> (${app.slug}) failed ${state.consecutiveFailures} consecutive health checks.</p><p>URL: ${appUrl(app)}<br>Port: ${app.port}<br>Down since: ${state.downSince ? new Date(state.downSince).toUTCString() : '—'}</p><hr><p style="color:#888;font-size:12px">Toolstead Health Monitor</p>`
+    subject: `[Astrodock] ${app.name} is DOWN`,
+    html: `<h2 style="color:#dc2626">App Down</h2><p><strong>${app.name}</strong> (${app.slug}) failed ${state.consecutiveFailures} consecutive health checks.</p><p>URL: ${appUrl(app)}<br>Port: ${app.port}<br>Down since: ${state.downSince ? new Date(state.downSince).toUTCString() : '—'}</p><hr><p style="color:#888;font-size:12px">Astrodock Health Monitor</p>`
   };
 }
 function recoveryEmail(app, state) {
   const mins = state.downSince ? Math.round((Date.now() - new Date(state.downSince).getTime()) / 60000) : '?';
   return {
     to: config.email.alertTo,
-    subject: `[Toolstead] ${app.name} has RECOVERED`,
-    html: `<h2 style="color:#0d9668">App Recovered</h2><p><strong>${app.name}</strong> (${app.slug}) is back online after ~${mins} min.</p><p>URL: ${appUrl(app)}</p><hr><p style="color:#888;font-size:12px">Toolstead Health Monitor</p>`
+    subject: `[Astrodock] ${app.name} has RECOVERED`,
+    html: `<h2 style="color:#0d9668">App Recovered</h2><p><strong>${app.name}</strong> (${app.slug}) is back online after ~${mins} min.</p><p>URL: ${appUrl(app)}</p><hr><p style="color:#888;font-size:12px">Astrodock Health Monitor</p>`
   };
 }
 

@@ -1,6 +1,6 @@
-# Toolstead — Build Plan
+# Astrodock — Build Plan
 
-Instructions for a fresh Claude Code session picking up Toolstead cold. This combines the
+Instructions for a fresh Claude Code session picking up Astrodock cold. This combines the
 **de-brand** (Phase 1) and the **scaffold/rebuild** (Phases 3 & 5) into one ordered build.
 
 > **Before you start:** read `CLAUDE.md`, then `OPEN_SOURCE.md` (roadmap + decisions +
@@ -19,7 +19,7 @@ Instructions for a fresh Claude Code session picking up Toolstead cold. This com
 ---
 
 ## Stage 0 — Initialize the repo  ⬅ START HERE
-1. Confirm cwd is the Toolstead folder and `.gitignore` exists (it does).
+1. Confirm cwd is the Astrodock folder and `.gitignore` exists (it does).
 2. `git init` and set the default branch to `main` (`git branch -m main`).
 3. **Secret sanity check before the first commit:** run `git status` and confirm NO `.env`,
    `setup.conf`, `node_modules/`, or `dist/` appear as tracked/untracked-to-be-added. Only
@@ -44,8 +44,8 @@ Establish the monorepo and strip all SV branding in one pass, since files move a
      control-plane/        ← was auth-api  (Express API + provisioners + deploy orchestration)
      admin/                ← was auth-admin (React admin UI)
    packages/
-     auth-client/          ← @toolstead/auth-client (keep; rename scope)
-     cli/                  ← new: @toolstead/cli   (Stage 6)
+     auth-client/          ← @astrodock/auth-client (keep; rename scope)
+     cli/                  ← new: @astrodock/cli   (Stage 6)
      schema/               ← new: shared app.json JSON Schema (Stage 4)
    examples/starter-app/   ← Stage 8
    docs/                   ← platform-spec.html (here) + building-apps.md (Stage 8)
@@ -53,17 +53,17 @@ Establish the monorepo and strip all SV branding in one pass, since files move a
    ```
 2. **De-brand pass** — use `OPEN_SOURCE.md` "Phase 1" as the checklist (it has file:line refs,
    though paths shift after the rename — apply against the moved files). Replace:
-   - `@sv/*` package names → `@toolstead/*`.
+   - `@sv/*` package names → `@astrodock/*`.
    - `seniorverse.dev` / `seniorverse.com` hardcoded defaults → config-driven (`BASE_DOMAIN`, etc.); no SV fallback.
    - The CORS regex in the control-plane server (was `*.seniorverse.dev`) → config-driven allowed-origin.
    - Email "from", alert address, seed admin email, Spaces bucket default → env-driven.
-   - "SV Platform" / "SV" branding in the admin UI + email subjects → "Toolstead".
+   - "SV Platform" / "SV" branding in the admin UI + email subjects → "Astrodock".
    - Remove the stale SV doc files (`sv-platform-architecture.md`, and rewrite `deployment-guide.md` /
      `app-auth-guide.md` later in Stage 9) — or move under `docs/legacy/` for reference.
-3. Establish the **`TOOLSTEAD_` env prefix** convention (full catalog in the spec, §4).
+3. Establish the **`ASTRODOCK_` env prefix** convention (full catalog in the spec, §4).
 
 **Done when:** no `seniorverse`/`@sv`/`SV Platform` strings remain in code/config (grep clean),
-packages are `@toolstead/*`, and the workspace root builds.
+packages are `@astrodock/*`, and the workspace root builds.
 
 ---
 
@@ -100,9 +100,9 @@ migrations; Prisma is fine too. Confirm choice with the user if unsure.)
 Implement to spec §3 (manifest), §4 (env model), §5 (provisioning).
 
 1. `app.json` JSON Schema in `packages/schema`; validate in the API + CLI.
-2. Reserved `TOOLSTEAD_*` env catalog + injection logic computed from the resource modes.
-3. **Provisioners:** internal DB (create Postgres db/role → `TOOLSTEAD_DATABASE_URL`); internal
-   storage (SeaweedFS bucket/prefix + scoped key → `TOOLSTEAD_STORAGE_*`); external passthrough; none.
+2. Reserved `ASTRODOCK_*` env catalog + injection logic computed from the resource modes.
+3. **Provisioners:** internal DB (create Postgres db/role → `ASTRODOCK_DATABASE_URL`); internal
+   storage (SeaweedFS bucket/prefix + scoped key → `ASTRODOCK_STORAGE_*`); external passthrough; none.
 4. **Required-variable deploy gate** (block deploy until all required vars + external-resource creds are set).
 
 **Done when:** creating an app provisions its resources and computes the injected env set;
@@ -114,7 +114,7 @@ a missing required var blocks deploy with a clear message.
 Port the forked deploy-worker; branch on `runtime.type` (spec §6).
 
 1. **Node buildpack:** clone/pull → detect `app/`+`server/` → build → static to `static` vol →
-   PM2 process bound to `TOOLSTEAD_PORT`. Caddy: static + `/api/*` → runner.
+   PM2 process bound to `ASTRODOCK_PORT`. Caddy: static + `/api/*` → runner.
 2. **Dockerfile:** `docker build` → run sibling container on the stack network → Caddy whole-proxies the subdomain.
 3. Deploy records + streamed logs; health probe unified across both paths.
 
@@ -123,11 +123,11 @@ Port the forked deploy-worker; branch on `runtime.type` (spec §6).
 ---
 
 ## Stage 6 — CLI + scoped tokens (the agent surface)
-1. `packages/cli` (`toolstead`, alias `stead`): `apply` (manifest-driven create/connect/provision),
-   `deploy`, `status`, `logs`, `deploy:watch`, `set-secret`. Reads `TOOLSTEAD_URL` + `TOOLSTEAD_TOKEN`.
+1. `packages/cli` (`astrodock`, alias `adock`): `apply` (manifest-driven create/connect/provision),
+   `deploy`, `status`, `logs`, `deploy:watch`, `set-secret`. Reads `ASTRODOCK_URL` + `ASTRODOCK_TOKEN`.
 2. `api_tokens` auth path in the control plane (accept admin JWT **or** a scoped token; tokens exclude user management).
 
-**Done when:** from an app repo, `toolstead apply && toolstead deploy && toolstead deploy:watch` runs the full loop.
+**Done when:** from an app repo, `astrodock apply && astrodock deploy && astrodock deploy:watch` runs the full loop.
 
 ---
 
@@ -140,10 +140,10 @@ env/secret management, and token management.
 ---
 
 ## Stage 8 — Starter template + agent docs (the AI deploy story)
-1. `examples/starter-app`: Node `app/` + `server/`, wired to `@toolstead/auth-client`, with a
+1. `examples/starter-app`: Node `app/` + `server/`, wired to `@astrodock/auth-client`, with a
    ready `app.json`, that **emits `AGENTS.md` + `CLAUDE.md` into new apps**.
 2. Root **`AGENTS.md`** + `docs/building-apps.md`: the precise agent contract derived from the
-   spec (layout, routing, the `TOOLSTEAD_*` env vars to read, auth flow, deploy lifecycle).
+   spec (layout, routing, the `ASTRODOCK_*` env vars to read, auth flow, deploy lifecycle).
    This is the "plenty of documentation for the AI on how to deploy" deliverable.
 
 **Done when:** following `AGENTS.md` alone, an agent can scaffold from the starter and deploy via the CLI.
@@ -167,4 +167,4 @@ env/secret management, and token management.
 - **Custom domains** per app (Caddy on-demand TLS) — additive, likely post-v1.
 - **Non-GitHub deploy** (CLI push of a local build) — post-v1.
 - **Terminal endpoint:** keep, but gate behind an `ENABLE_TERMINAL` env flag (recommended).
-- Whether to revisit the **name** (Toolstead is a working placeholder).
+- Whether to revisit the **name** (Astrodock is a working placeholder).

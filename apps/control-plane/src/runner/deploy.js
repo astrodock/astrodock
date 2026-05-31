@@ -14,7 +14,7 @@ async function runDeploy(app, { trigger = 'manual', commitHash = '', commitMessa
   // A local tarball deploy (CLI `deploy --local`) needs neither a PAT nor a connected repo.
   if (!localTarball) {
     if (!config.github.pat) {
-      const e = new Error('GitHub PAT not configured. Set TOOLSTEAD_GITHUB_PAT, or use a local deploy.');
+      const e = new Error('GitHub PAT not configured. Set ASTRODOCK_GITHUB_PAT, or use a local deploy.');
       e.status = 422; throw e;
     }
     if (!app.githubRepo) {

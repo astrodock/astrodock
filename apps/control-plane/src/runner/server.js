@@ -24,7 +24,7 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get('/health', (req, res) => res.json({ status: 'ok', service: 'toolstead-runner' }));
+app.get('/health', (req, res) => res.json({ status: 'ok', service: 'astrodock-runner' }));
 
 async function loadApp(slug) {
   const rows = await db.select().from(schema.apps).where(eq(schema.apps.slug, slug)).limit(1);
@@ -107,7 +107,7 @@ app.get('/apps/status-all', async (req, res) => {
 
 function start() {
   startHealthChecker(); // the runner owns app health (it can probe + read pm2/docker)
-  app.listen(config.runnerPort, () => console.log(`Toolstead runner listening on :${config.runnerPort}`));
+  app.listen(config.runnerPort, () => console.log(`Astrodock runner listening on :${config.runnerPort}`));
 }
 
 module.exports = { app, start };

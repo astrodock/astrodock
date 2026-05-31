@@ -77,8 +77,8 @@ export default function TokensPage() {
       </div>
 
       <p className="hint">
-        Scoped tokens let the <code>toolstead</code> CLI and AI agents deploy on your behalf.
-        Pass a token to the CLI via the <code>TOOLSTEAD_TOKEN</code> environment variable.
+        Scoped tokens let the <code>astrodock</code> CLI and AI agents deploy on your behalf.
+        Pass a token to the CLI via the <code>ASTRODOCK_TOKEN</code> environment variable.
         Tokens are scoped to deploy actions and <strong>cannot manage users</strong>.
       </p>
 

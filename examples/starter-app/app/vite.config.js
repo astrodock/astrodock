@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5174,
-    // local dev: proxy /api to the Express server (set to your TOOLSTEAD_PORT locally)
+    // local dev: proxy /api to the Express server (set to your ASTRODOCK_PORT locally)
     proxy: { '/api': 'http://localhost:3000' }
   }
 });
