@@ -60,9 +60,11 @@ async function provisionStorage(app) {
 
   try {
     ensureAdminIdentity();
-    // scope this identity to ONLY this app's bucket
+    // create the bucket with the ADMIN key (the per-app key is scoped to Read/Write
+    // within the bucket and can't create it)…
+    await ensureBucket(bucket);
+    // …then mint a per-app identity scoped to ONLY this app's bucket
     weedShell(`s3.configure -user ${app.slug} -access_key ${accessKey} -secret_key ${secretKey} -buckets ${bucket} -actions Read,Write,List,Tagging -apply`);
-    await ensureBucket(bucket, { accessKeyId: accessKey, secretAccessKey: secretKey });
     return {
       storageBucket: bucket,
       storagePrefix: '',

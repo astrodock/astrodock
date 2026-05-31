@@ -235,6 +235,25 @@ router.post('/:slug/deploy', async (req, res) => {
   }
 });
 
+// Local (non-GitHub) deploy: receive a gzipped tarball of the working dir and
+// deploy it directly. Body is raw octet-stream (express.json skips non-JSON).
+router.post('/:slug/deploy-local', express.raw({ type: () => true, limit: '256mb' }), async (req, res) => {
+  const app = await getAppBySlug(req.params.slug);
+  if (!app) return res.status(404).json({ error: 'App not found' });
+  if (!req.body || !req.body.length) return res.status(400).json({ error: 'empty upload (send a gzipped tarball)' });
+  const fs = require('fs');
+  fs.mkdirSync(config.paths.repos, { recursive: true });
+  const tarPath = path.join(config.paths.repos, `${app.slug}.upload.tgz`);
+  fs.writeFileSync(tarPath, req.body);
+  try {
+    const deployment = await runDeploy(app, { trigger: 'cli', localTarball: tarPath });
+    res.json({ message: 'Local deploy triggered', deploymentId: deployment.id });
+  } catch (err) {
+    if (err.status === 422 && err.missing) return res.status(422).json({ error: err.message, missing: err.missing, deploymentId: err.deployment?.id });
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
 router.get('/:slug/deployments', async (req, res) => {
   const rows = await db.select({
     id: schema.deployments.id, appSlug: schema.deployments.appSlug, status: schema.deployments.status,

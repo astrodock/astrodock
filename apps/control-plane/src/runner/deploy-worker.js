@@ -18,7 +18,7 @@ function exec(cmd, opts = {}) {
 }
 
 async function run() {
-  const { deploymentId, appSlug } = JSON.parse(process.argv[2]);
+  const { deploymentId, appSlug, localTarball } = JSON.parse(process.argv[2]);
 
   const depRows = await db.select().from(schema.deployments).where(eq(schema.deployments.id, deploymentId)).limit(1);
   const appRows = await db.select().from(schema.apps).where(eq(schema.apps.slug, appSlug)).limit(1);
@@ -46,22 +46,32 @@ async function run() {
     if (missing.length) throw new Error(`Missing required variables: ${missing.map((m) => m.key).join(', ')}`);
 
     const repoDir = path.join(config.paths.repos, app.slug);
-    const repoUrl = `https://x-access-token:${config.github.pat}@github.com/${app.githubRepo}.git`;
-
-    // 1. clone / pull
-    await setStatus('cloning');
     fs.mkdirSync(config.paths.repos, { recursive: true });
-    if (fs.existsSync(path.join(repoDir, '.git'))) {
-      await appendLog(`Pulling ${app.githubRepo} (${app.branch})`);
-      exec(`git -C "${repoDir}" fetch origin`);
-      exec(`git -C "${repoDir}" reset --hard origin/${app.branch}`);
-    } else {
-      await appendLog(`Cloning ${app.githubRepo} (${app.branch})`);
-      exec(`git clone --branch ${app.branch} --single-branch "${repoUrl}" "${repoDir}"`);
-    }
 
-    if (!commitHash) commitHash = exec(`git -C "${repoDir}" rev-parse --short HEAD`);
-    if (!commitMessage) commitMessage = exec(`git -C "${repoDir}" log -1 --pretty=%s`);
+    // 1. source: extract a local upload, or clone/pull from GitHub
+    await setStatus('cloning');
+    if (localTarball) {
+      await appendLog('Extracting local upload');
+      fs.rmSync(repoDir, { recursive: true, force: true });
+      fs.mkdirSync(repoDir, { recursive: true });
+      exec(`tar xzf "${localTarball}" -C "${repoDir}"`);
+      try { fs.rmSync(localTarball, { force: true }); } catch { /* ignore */ }
+      commitHash = commitHash || 'local';
+      commitMessage = commitMessage || 'local upload';
+    } else {
+      const repoUrl = `https://x-access-token:${config.github.pat}@github.com/${app.githubRepo}.git`;
+      if (fs.existsSync(path.join(repoDir, '.git'))) {
+        await appendLog(`Pulling ${app.githubRepo} (${app.branch})`);
+        exec(`git -C "${repoDir}" fetch origin`);
+        exec(`git -C "${repoDir}" reset --hard origin/${app.branch}`);
+      } else {
+        await appendLog(`Cloning ${app.githubRepo} (${app.branch})`);
+        fs.rmSync(repoDir, { recursive: true, force: true });
+        exec(`git clone --branch ${app.branch} --single-branch "${repoUrl}" "${repoDir}"`);
+      }
+      if (!commitHash) commitHash = exec(`git -C "${repoDir}" rev-parse --short HEAD`);
+      if (!commitMessage) commitMessage = exec(`git -C "${repoDir}" log -1 --pretty=%s`);
+    }
     await db.update(schema.deployments).set({ commitHash, commitMessage }).where(eq(schema.deployments.id, deploymentId));
     await appendLog(`Commit ${commitHash} — ${commitMessage}`);
 
@@ -115,10 +125,16 @@ async function deployNode(app, deployRoot, env, { appendLog, setStatus }) {
     await appendLog('WARNING: no app/ or server/ (or standalone server.js/package.json) found');
   }
 
+  // npm ci needs a lockfile; fall back to npm install when there isn't one
+  const installCmd = (dir, prod) => {
+    const ci = fs.existsSync(path.join(dir, 'package-lock.json'));
+    return ci ? `npm ci${prod ? ' --omit=dev' : ''}` : `npm install${prod ? ' --omit=dev' : ''}`;
+  };
+
   // frontend
   if (appSrc) {
-    await appendLog('Installing frontend deps (npm ci)…');
-    await appendLog(exec(`cd "${appSrc}" && npm ci 2>&1`) || 'deps installed');
+    await appendLog('Installing frontend deps…');
+    await appendLog(exec(`cd "${appSrc}" && ${installCmd(appSrc, false)} 2>&1`) || 'deps installed');
     await appendLog(`Building frontend (${app.buildCommand})…`);
     await appendLog(exec(`cd "${appSrc}" && ${app.buildCommand} 2>&1`) || 'build complete');
 
@@ -140,8 +156,8 @@ async function deployNode(app, deployRoot, env, { appendLog, setStatus }) {
     fs.mkdirSync(apiPath, { recursive: true });
     await appendLog(`Copying server → ${apiPath}`);
     exec(`rsync -a --delete --exclude='.env' --exclude='node_modules' "${serverSrc}/" "${apiPath}/"`);
-    await appendLog('Installing server deps (npm ci --production)…');
-    await appendLog(exec(`cd "${apiPath}" && npm ci --omit=dev 2>&1`) || 'server deps installed');
+    await appendLog('Installing server deps…');
+    await appendLog(exec(`cd "${apiPath}" && ${installCmd(apiPath, true)} 2>&1`) || 'server deps installed');
 
     // PM2 ecosystem with the computed env. Blank any platform-only TOOLSTEAD_*
     // that isn't part of this app's env so the runner's own secrets never leak.

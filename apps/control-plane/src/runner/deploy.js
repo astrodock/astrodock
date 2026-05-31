@@ -10,14 +10,17 @@ const { computeMissingRequired } = require('../lib/env-compute');
 // Kick off a deploy: validate preconditions + required-variable gate, create a
 // Deployment record, then fork the worker (so the API event loop stays free).
 // Throws errors with a .status for the route to surface; webhook path logs.
-async function runDeploy(app, { trigger = 'manual', commitHash = '', commitMessage = '' } = {}) {
-  if (!config.github.pat) {
-    const e = new Error('GitHub PAT not configured. Set TOOLSTEAD_GITHUB_PAT to enable deploys.');
-    e.status = 422; throw e;
-  }
-  if (!app.githubRepo) {
-    const e = new Error('No GitHub repo connected.');
-    e.status = 400; throw e;
+async function runDeploy(app, { trigger = 'manual', commitHash = '', commitMessage = '', localTarball = null } = {}) {
+  // A local tarball deploy (CLI `deploy --local`) needs neither a PAT nor a connected repo.
+  if (!localTarball) {
+    if (!config.github.pat) {
+      const e = new Error('GitHub PAT not configured. Set TOOLSTEAD_GITHUB_PAT, or use a local deploy.');
+      e.status = 422; throw e;
+    }
+    if (!app.githubRepo) {
+      const e = new Error('No GitHub repo connected (or use a local deploy).');
+      e.status = 400; throw e;
+    }
   }
   if (!app.provisioned) {
     const e = new Error('App must be provisioned before deploying.');
@@ -57,7 +60,7 @@ async function runDeploy(app, { trigger = 'manual', commitHash = '', commitMessa
   }
 
   const workerPath = path.join(__dirname, 'deploy-worker.js');
-  const child = fork(workerPath, [JSON.stringify({ deploymentId: deployment.id, appSlug: app.slug })], {
+  const child = fork(workerPath, [JSON.stringify({ deploymentId: deployment.id, appSlug: app.slug, localTarball })], {
     detached: true, stdio: 'ignore'
   });
   child.unref();

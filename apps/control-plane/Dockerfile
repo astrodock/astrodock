@@ -13,9 +13,18 @@ RUN npm run build   # → /admin/dist
 
 # ── Stage 2: runtime ──
 FROM node:22-bookworm-slim AS runtime
+ARG TARGETARCH
+# git + rsync for the buildpack; a CURRENT static Docker CLI (Debian's docker.io is
+# too old for modern daemons) to drive sibling containers + the object store via the socket.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends git rsync ca-certificates curl docker.io \
+ && apt-get install -y --no-install-recommends git rsync ca-certificates curl \
  && rm -rf /var/lib/apt/lists/* \
+ && case "${TARGETARCH:-amd64}" in arm64) DARCH=aarch64;; *) DARCH=x86_64;; esac \
+ && curl -fsSL "https://download.docker.com/linux/static/stable/${DARCH}/docker-27.3.1.tgz" \
+    | tar xz -C /tmp \
+ && mv /tmp/docker/docker /usr/local/bin/docker \
+ && rm -rf /tmp/docker \
+ && docker --version \
  && npm install -g pm2
 
 WORKDIR /app

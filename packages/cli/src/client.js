@@ -27,7 +27,19 @@ function makeClient({ url = process.env.TOOLSTEAD_URL, token = process.env.TOOLS
     return { status: res.status, json };
   }
 
-  return { base, hasToken: !!token, request };
+  async function uploadRaw(path, buffer) {
+    const res = await fetch(`${base}${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/octet-stream', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: buffer
+    });
+    let json = null;
+    const text = await res.text();
+    if (text) { try { json = JSON.parse(text); } catch { json = { raw: text }; } }
+    return { status: res.status, json };
+  }
+
+  return { base, hasToken: !!token, request, uploadRaw };
 }
 
 module.exports = { makeClient };

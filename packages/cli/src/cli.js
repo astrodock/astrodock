@@ -1,7 +1,9 @@
 'use strict';
 
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
+const { execFileSync } = require('child_process');
 const { validate } = require('@toolstead/schema');
 const { makeClient } = require('./client');
 
@@ -12,8 +14,8 @@ Usage:
 
 Commands:
   apply [--file app.json] [--prune]   Create/update the app from app.json, connect repo, provision
-  deploy [slug]                        Trigger a deploy (slug defaults to app.json's slug)
-  deploy:watch [slug] [--id <id>]      Trigger (or attach to) a deploy and stream its log until done
+  deploy [slug] [--local]              Trigger a deploy (--local uploads the working dir, no GitHub)
+  deploy:watch [slug] [--local] [--id <id>]  Trigger (or attach to) a deploy and stream its log until done
   status [slug]                        Show the app's process status
   logs [slug] [--lines N]              Print recent app logs
   set-secret <KEY> [value] [slug]      Set an env var value (value read from stdin if omitted)
@@ -83,9 +85,35 @@ async function cmdApply(client, flags) {
   for (const r of json.provision || []) console.log(`  · ${r}`);
 }
 
+// Tar the working dir (minus heavy/secret bits) and upload it for a non-GitHub deploy.
+async function localDeploy(client, slug) {
+  const cwd = process.cwd();
+  const tmp = path.join(os.tmpdir(), `toolstead-${slug}-${process.pid}.tgz`);
+  const excludes = ['node_modules', '.git', 'dist', '.env', '.env.local', '.DS_Store']
+    .flatMap((e) => [`--exclude=${e}`, `--exclude=*/${e}`]);
+  try {
+    execFileSync('tar', ['czf', tmp, ...excludes, '-C', cwd, '.'], { stdio: ['ignore', 'ignore', 'inherit'] });
+  } catch (e) {
+    die(`could not create upload archive (is tar installed?): ${e.message}`);
+  }
+  const buf = fs.readFileSync(tmp);
+  fs.rmSync(tmp, { force: true });
+  console.log(`Uploading ${(buf.length / 1024).toFixed(0)} KB for "${slug}"…`);
+  const { status, json } = await client.uploadRaw(`/admin/apps/${slug}/deploy-local`, buf);
+  if (status === 422 && json?.missing) {
+    console.error('Deploy blocked — set these first (toolstead set-secret KEY):');
+    for (const m of json.missing) console.error(`  - ${m.key} (${m.reason})`);
+    process.exit(2);
+  }
+  if (status >= 400) die(json?.error || `local deploy failed (${status})`);
+  console.log(`Local deploy triggered for "${slug}" (deployment ${json.deploymentId})`);
+  return json.deploymentId;
+}
+
 async function cmdDeploy(client, positional, flags) {
   const slug = slugFromArgsOrManifest(positional, flags);
   if (!slug) die('no slug (pass one or run from an app.json directory)');
+  if (flags.local) return localDeploy(client, slug);
   const { status, json } = await client.request('POST', `/admin/apps/${slug}/deploy`);
   if (status === 422 && json?.missing) {
     console.error(`Deploy blocked — set these first (toolstead set-secret KEY):`);
