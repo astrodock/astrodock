@@ -1,0 +1,111 @@
+# Toolstead
+
+**A self-hostable, AI-native app platform.** Stand it up once on your own box, then point an AI
+coding agent at it to **build, authenticate, and launch** small apps and tools on the open
+internet — with **end-user auth and user management included**, and **zero external dependencies**
+to boot.
+
+> The wedge: deploy-PaaS tools host your apps but have no built-in end-user auth; bundled
+> backends (BaaS) give you auth/db/storage but don't deploy your apps; AI-native deployers mostly
+> skip bundled auth. Toolstead is the intersection — **self-hosted + zero-dep + AI-driven**:
+> it deploys your apps, includes identity/auth for them, and lets each app pick internal-or-external
+> database and storage.
+
+```
+                       ┌──────────────── your box / VPS ────────────────┐
+  *.your-domain ─TLS──▶ │  caddy      reverse proxy + auto-HTTPS           │
+                        │  api        control plane · /verify · webhooks   │
+                        │  runner     clones, builds, runs your apps       │
+                        │   ├─ PM2 ──▶ node app  (buildpack)               │
+                        │   └─ docker▶ app-<slug> container (Dockerfile)   │
+                        │  postgres   bundled DB (control plane + apps)    │
+                        │  objectstore bundled S3-compatible storage       │
+                        └─────────────────────────────────────────────────┘
+```
+
+## Why
+- **Auth + users included.** Platform-managed end-user login (the `/verify` model) is first-class —
+  apps verify credentials against the control plane and mint their own sessions.
+- **Zero external dependencies.** Bundles its own Postgres and S3-compatible object storage and
+  uses them for its own control-plane data. External managed services are an *upgrade*, never a
+  prerequisite.
+- **AI builds & launches it.** An `app.json` manifest + a thin CLI (`toolstead`) + agent-readable
+  docs (`AGENTS.md`) give a coding agent a precise, drivable contract: scaffold → provision →
+  deploy → observe.
+- **Per-app resource choice.** Database and object storage are each `internal` (managed),
+  `external` (bring your own), or `none` — and app code is identical either way, because apps
+  read a connection string from injected env.
+- **Hybrid compute.** Node buildpack by default (PM2), or ship a `Dockerfile` for any runtime.
+
+## Quickstart
+```bash
+cp .env.example .env
+# edit .env — set a base domain, admin creds, a Postgres password, an object-store secret,
+# and (for deploys) a GitHub PAT.  Generate secrets with:  openssl rand -hex 32
+docker compose up -d
+```
+That's the whole platform: control plane + admin UI + auto-HTTPS routing + bundled Postgres +
+bundled object storage. The admin UI is at `https://admin.<your-base-domain>` (log in with the
+seeded admin). For local/LAN use without public DNS, set `TOOLSTEAD_TLS_MODE=internal`.
+
+## Launch your first app
+From an app repo (start from [`examples/starter-app`](examples/starter-app)):
+```bash
+export TOOLSTEAD_URL=https://admin.your-domain     # your admin host
+export TOOLSTEAD_TOKEN=tk_...                       # create one in the admin UI → Tokens
+
+toolstead apply              # create the app from app.json, connect the repo, provision
+toolstead deploy:watch       # deploy and stream the log until it's live
+```
+Then grant a user access in the admin UI and visit `https://<subdomain>.your-domain`.
+
+**Building an app (for humans and agents):** read [`AGENTS.md`](AGENTS.md) and
+[`docs/building-apps.md`](docs/building-apps.md). The `app.json` schema lives in
+[`packages/schema`](packages/schema).
+
+## Repository layout
+```
+apps/control-plane/   Express API · /verify · deploy orchestration · runner · health
+apps/admin/           React admin UI (apps · users · tokens · activity · health)
+packages/auth-client/ @toolstead/auth-client — server-side /verify client
+packages/cli/         @toolstead/cli — toolstead / stead (apply, deploy, status, logs, set-secret)
+packages/schema/      @toolstead/schema — app.json JSON Schema + validator + env catalog
+examples/starter-app/ a real app to copy from
+docs/                 platform-spec.html · building-apps.md · deploying.md
+docker-compose.yml    the whole stack
+```
+
+## How it works
+- **Manifest.** Each app repo carries an `app.json` declaring routing, runtime, resource modes,
+  and env-var *names* (never secret values). `toolstead apply` reconciles the platform to it.
+- **Environment model.** Platform-managed vars use the reserved `TOOLSTEAD_` prefix and are
+  injected at deploy; app-declared vars come from `app.json`. A deploy is **blocked** until every
+  required value is set.
+- **Provisioning.** `internal` database → a Postgres DB + role; `internal` storage → a bucket
+  prefix on the bundled store; `external` → you supply the connection string / S3 creds; `none` →
+  nothing. Routing is reconfigured in Caddy automatically.
+- **Deploy.** Webhook on `git push` (or `toolstead deploy`) → clone → build → run (PM2 or a
+  sibling Docker container) → health probe → observable deploy record + streamed log.
+
+Full technical contract: [`docs/platform-spec.html`](docs/platform-spec.html).
+
+## Deployment modes
+One artifact, three ways to run it: (1) local on your own box, (2) self-managed cloud VPS,
+(3) a future managed SaaS as orchestrated single-tenant instances. See
+[`docs/deploying.md`](docs/deploying.md) — host-agnostic, any VPS or box.
+
+## Security model — read this
+Toolstead is designed for a **single trusted operator on a single-tenant box**, not multi-tenant
+SaaS. It has powerful, intentional sharp edges (the runner builds and executes code from your
+repos; the optional terminal is arbitrary RCE; the Docker socket is mounted). These are fine for
+the intended model and dangerous if deployed naively. **Read [`SECURITY.md`](SECURITY.md) before
+exposing this to untrusted users or networks.**
+
+## Status
+Working name **Toolstead** (may be revisited). This is an active rebuild forked from an internal
+tool — see [`OPEN_SOURCE.md`](OPEN_SOURCE.md) for the roadmap, [`DECISIONS.md`](DECISIONS.md) for
+the choices made, and [`BUILD_NOTES.md`](BUILD_NOTES.md) for what's verified vs. needs a real
+Docker host to exercise.
+
+## License
+[MIT](LICENSE).

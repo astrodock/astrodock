@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: toolstead
+          POSTGRES_PASSWORD: toolstead
+          POSTGRES_DB: toolstead
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U toolstead"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      PORT: "3100"
+      TOOLSTEAD_ENV: test
+      TOOLSTEAD_BASE_DOMAIN: localhost
+      TOOLSTEAD_TLS_MODE: "off"
+      TOOLSTEAD_ADMIN_JWT_SECRET: ci-secret
+      TOOLSTEAD_ADMIN_EMAIL: admin@example.com
+      TOOLSTEAD_ADMIN_PASSWORD: ci-password
+      TOOLSTEAD_PG_HOST: localhost
+      TOOLSTEAD_PG_PORT: "5432"
+      TOOLSTEAD_PG_USER: toolstead
+      TOOLSTEAD_PG_PASSWORD: toolstead
+      TOOLSTEAD_PG_DATABASE: toolstead
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: schema tests
+        run: npm test -w @toolstead/schema
+      - name: migrate
+        run: npm run migrate -w @toolstead/control-plane
+      - name: control-plane tests (unit + integration)
+        run: npm test -w @toolstead/control-plane
+      - name: CLI integration tests
+        run: node packages/cli/test/cli.test.mjs
+      - name: admin build
+        run: npm run build -w @toolstead/admin

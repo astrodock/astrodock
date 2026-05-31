@@ -31,4 +31,53 @@ Postgres 16 (local, via Homebrew — used as the live test DB).
   (3 and 7) since those files are being rewritten anyway. Final tree is grep-clean of
   `seniorverse` / `@sv` / "SV Platform".
 
-(further stages appended below as they complete)
+### Stage 3 — Mongo → Postgres (Drizzle) ✅
+- Drizzle schema + plain-SQL migration + minimal migration runner (verified against local PG 16).
+- All routes ported off mongoose; new auth middleware (admin JWT OR scoped token).
+- **12 integration tests pass** (health, admin login/authz, /verify success+failures, manifest
+  apply incl. real internal-DB provisioning, rotate-secret, user CRUD+access, deploy gate, token authz).
+
+### Stage 4 — env model + app.json + provisioning ✅
+- Reserved `TOOLSTEAD_*` computation + required-var gate (6 unit tests). Internal Postgres
+  provisioner verified end-to-end (creates role+db). Internal storage provisioner + Caddy
+  generator written; Caddy generation unit-tested.
+
+### Stage 5 — runner (hybrid compute) ⚠️ partially verified
+- Deploy trigger + gate verified (integration). Node-buildpack (PM2) deploy path and Docker
+  (sibling-container) deploy path are 📦 **unverified-in-sandbox** — they need git + PM2 + the
+  Docker socket inside the running stack. Code complete + read-reviewed.
+
+### Stage 6 — CLI + scoped tokens ✅
+- `@toolstead/cli` drives the live control plane. **7 CLI integration tests pass** (apply with
+  real provisioning, apps, set-secret, status, deploy gate, app.json validation).
+
+### Stage 2 — docker compose stack ⚠️ config verified, image build pending
+- `docker compose config` validates. Multi-stage Dockerfile, Caddy bootstrap, entrypoint, root
+  `.env.example` written. 📦 Full `docker compose build` + `up` (Caddy routing, SeaweedFS, the
+  runner deploy paths) **unverified-in-sandbox** — needs a real Docker host. This is the #1 thing
+  to smoke-test on a box.
+
+### Stage 7 — admin UI ✅/⚠️ (delegated to a subagent)
+- De-brand + adapt to the new API contract + a new Tokens page, delegated to a subagent with the
+  exact endpoint/shape spec; gated on a clean `vite build`. (See the Stage 7 commit for the
+  verified build result.) Browser behavior not exercised here.
+
+### Stage 8 — starter template + agent docs ✅
+- `examples/starter-app` (frontend+server, platform login, emits AGENTS.md+CLAUDE.md), root
+  `AGENTS.md`, `docs/building-apps.md`. Starter server syntax-checked; frontend is a standard
+  Vite/React build (low risk).
+
+### Stage 9 — repo essentials ✅
+- `README.md`, `LICENSE` (MIT), `SECURITY.md` (threat model + v1 gaps), `CONTRIBUTING.md`,
+  `docs/deploying.md` (host-agnostic), `scripts/backup.sh`, `.github/workflows/ci.yml`.
+- Removed obsolete SV legacy guides (`docs/legacy/`) and the old VPS bootstrap script.
+- Code/config grep-clean of `seniorverse` / `@sv` / `SV Platform` / `sv_token` (the planning
+  docs `OPEN_SOURCE.md`/`BUILD_PLAN.md`/`CLAUDE.md` retain SV references narrating the fork — intentional).
+
+## What to verify on a real Docker host (the remaining unknowns)
+1. `cp .env.example .env`, fill secrets, `docker compose up -d` → all 4 services healthy.
+2. Admin UI loads at `admin.<domain>`; login works; create a token.
+3. `toolstead apply` + `deploy:watch` a real Node app from GitHub → PM2 process + Caddy routing + HTTPS.
+4. A `runtime:docker` app → sibling container + whole-subdomain proxy.
+5. Internal storage: confirm SeaweedFS bucket creation + an app reading `TOOLSTEAD_STORAGE_*`.
+6. GitHub webhook auto-deploy on push.
