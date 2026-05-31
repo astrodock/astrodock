@@ -1,16 +1,20 @@
+'use strict';
+
 const https = require('https');
+const config = require('../config');
 
-const FROM = 'SV Platform <noreply@seniorverse.dev>';
-
+// Optional transactional email via Resend. If no API key is configured, this is
+// a no-op (logged once) — email alerts are a nice-to-have, never required to boot.
 function sendEmail({ to, subject, html }) {
-  const apiKey = process.env.RESEND_API_KEY;
+  const apiKey = config.email.resendApiKey;
   if (!apiKey) {
-    console.warn('[email] RESEND_API_KEY not set, skipping email');
+    console.warn('[email] TOOLSTEAD_RESEND_API_KEY not set — skipping email:', subject);
     return Promise.resolve();
   }
+  if (!to) return Promise.resolve();
 
   const payload = JSON.stringify({
-    from: FROM,
+    from: config.email.from,
     to: Array.isArray(to) ? to : [to],
     subject,
     html
@@ -22,26 +26,19 @@ function sendEmail({ to, subject, html }) {
       path: '/emails',
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
         'Content-Length': Buffer.byteLength(payload)
       }
     }, (res) => {
       let body = '';
-      res.on('data', chunk => body += chunk);
+      res.on('data', (c) => { body += c; });
       res.on('end', () => {
-        if (res.statusCode >= 200 && res.statusCode < 300) {
-          resolve(body);
-        } else {
-          console.error(`[email] Resend API error ${res.statusCode}: ${body}`);
-          reject(new Error(`Resend API error ${res.statusCode}: ${body}`));
-        }
+        if (res.statusCode >= 200 && res.statusCode < 300) resolve(body);
+        else { console.error(`[email] Resend error ${res.statusCode}: ${body}`); reject(new Error(`Resend ${res.statusCode}`)); }
       });
     });
-    req.on('error', (err) => {
-      console.error('[email] Request failed:', err.message);
-      reject(err);
-    });
+    req.on('error', (err) => { console.error('[email] request failed:', err.message); reject(err); });
     req.write(payload);
     req.end();
   });

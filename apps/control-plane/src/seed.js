@@ -1,43 +1,41 @@
-require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
+'use strict';
 
-const bcrypt = require('bcryptjs');
-const { connectDB } = require('./lib/db');
-const User = require('./models/User');
+const { eq } = require('drizzle-orm');
+const config = require('./config');
+const { db, schema, close } = require('./db');
+const { hashPassword } = require('./lib/passwords');
 
-const BCRYPT_ROUNDS = 12;
+// Seed the initial admin from env. Idempotent: if the admin email already
+// exists, does nothing. Safe to call on every boot.
+async function seedAdmin({ log = console.log } = {}) {
+  const email = (config.adminEmail || '').toLowerCase().trim();
+  const password = config.adminPassword;
 
-async function seed() {
-  await connectDB();
-
-  const email = process.env.ADMIN_EMAIL || 'admin@seniorverse.dev';
-  const password = process.env.ADMIN_PASSWORD;
-
-  if (!password) {
-    console.error('Set ADMIN_PASSWORD environment variable before seeding.');
-    process.exit(1);
+  if (!email || !password) {
+    log('[seed] TOOLSTEAD_ADMIN_EMAIL / TOOLSTEAD_ADMIN_PASSWORD not set — skipping admin seed.');
+    return { seeded: false };
   }
 
-  const existing = await User.findOne({ email });
-  if (existing) {
-    console.log(`Admin user ${email} already exists — skipping.`);
-    process.exit(0);
+  const existing = await db.select().from(schema.users).where(eq(schema.users.email, email)).limit(1);
+  if (existing[0]) {
+    log(`[seed] admin ${email} already exists — skipping.`);
+    return { seeded: false };
   }
 
-  const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
-  await User.create({
-    email,
-    name: 'Admin',
-    passwordHash,
-    isActive: true,
-    isAdmin: true,
-    appAccess: []
+  const passwordHash = await hashPassword(password);
+  await db.insert(schema.users).values({
+    email, name: 'Admin', passwordHash, isActive: true, isAdmin: true, appAccess: []
   });
-
-  console.log(`Admin user created: ${email}`);
-  process.exit(0);
+  log(`[seed] admin user created: ${email}`);
+  return { seeded: true };
 }
 
-seed().catch(err => {
-  console.error('Seed failed:', err);
-  process.exit(1);
-});
+module.exports = { seedAdmin };
+
+// Run directly: `node src/seed.js`
+if (require.main === module) {
+  seedAdmin()
+    .then(() => close())
+    .then(() => process.exit(0))
+    .catch((err) => { console.error('[seed] failed:', err.message); process.exit(1); });
+}

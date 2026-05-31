@@ -1,580 +1,340 @@
+'use strict';
+
 const express = require('express');
-const { execSync, spawn } = require('child_process');
-const App = require('../models/App');
-const Deployment = require('../models/Deployment');
-const { requireAdmin } = require('../middleware/requireAdmin');
-const { generateAppSecret } = require('../lib/generateSecret');
-const { provisionApp, unprovisionApp } = require('../lib/provision');
-const { listRepos, createWebhook, deleteWebhook, generateWebhookSecret } = require('../lib/github');
-const { runDeploy } = require('../lib/deploy');
+const { spawn } = require('child_process');
+const path = require('path');
+const { eq, and, desc } = require('drizzle-orm');
+const config = require('../config');
+const { db, schema } = require('../db');
+const { requireScope } = require('../middleware/auth');
+const { getAppBySlug, getAppEnvVars, serializeApp, serializeEnvVar } = require('../lib/apps');
+const { applyManifest } = require('../lib/apply');
+const { computeEnv, computeMissingRequired } = require('../lib/env-compute');
+const { provisionApp, reloadCaddyFromDb } = require('../provision');
+const { runDeploy } = require('../runner/deploy');
+const pc = require('../runner/process-control');
+const { generateAppSecret, generateWebhookSecret } = require('../lib/ids');
+const { listRepos, createWebhook, deleteWebhook } = require('../lib/github');
 
 const router = express.Router();
-const BASE_DOMAIN = process.env.BASE_DOMAIN || 'seniorverse.dev';
-const BASE_PORT = 3101; // auth is 3100, apps start at 3101
+router.use(requireScope('deploy'));
 
-// All routes require admin
-router.use(requireAdmin);
+const scheme = () => (config.tlsMode === 'off' ? 'http' : 'https');
 
-// ── GitHub Integration (must be before /:slug routes) ─────
-
-// List repos available to connect
+// ── must come before /:slug ───────────────────────────────────────────────────
 router.get('/github/repos', async (req, res) => {
-  try {
-    const repos = await listRepos();
-    res.json({ repos });
-  } catch (err) {
-    res.status(500).json({ error: `Failed to list repos: ${err.message}` });
-  }
+  if (!config.github.pat) return res.status(422).json({ error: 'GitHub PAT not configured (TOOLSTEAD_GITHUB_PAT)' });
+  try { res.json({ repos: await listRepos() }); }
+  catch (err) { res.status(500).json({ error: `Failed to list repos: ${err.message}` }); }
 });
 
-// PM2 status for all apps (must be before /:slug routes)
 router.get('/status/all', async (req, res) => {
+  const apps = await db.select().from(schema.apps);
+  res.json({ statuses: pc.statusAll(apps) });
+});
+
+// ── apply a manifest (CLI `apply`) ──────────────────────────────────────────────
+router.post('/apply', async (req, res) => {
+  const manifest = req.body?.manifest || req.body;
+  const prune = !!(req.body?.prune || req.query.prune);
   try {
-    const output = execSync('pm2 jlist 2>/dev/null', { encoding: 'utf8', timeout: 5000 });
-    const processes = JSON.parse(output);
-    const statuses = {};
-    for (const proc of processes) {
-      statuses[proc.name] = proc.pm2_env.status;
+    const { app, created } = await applyManifest(manifest, { prune });
+
+    // Optionally connect repo (githubRepo may come from manifest.source).
+    const githubRepo = manifest?.source?.githubRepo;
+    let repoConnected = false;
+    if (githubRepo && config.github.pat && githubRepo !== app.githubRepo) {
+      try { await connectRepoInternal(app, githubRepo, app.branch, app.repoPath); repoConnected = true; }
+      catch (e) { /* surfaced in response */ res.locals.repoError = e.message; }
     }
-    res.json({ statuses });
-  } catch {
-    res.json({ statuses: {} });
-  }
-});
 
-// ── App CRUD ──────────────────────────────────────────────
+    // Provision (DB/storage/Caddy).
+    const { app: provisioned, results } = await provisionApp(await getAppBySlug(app.slug));
 
-// List all apps (secrets are excluded by toJSON)
-router.get('/', async (req, res) => {
-  const apps = await App.find().sort({ name: 1 });
-  res.json({ apps });
-});
-
-// Get single app
-router.get('/:slug', async (req, res) => {
-  const app = await App.findOne({ slug: req.params.slug });
-  if (!app) return res.status(404).json({ error: 'App not found' });
-  res.json({ app });
-});
-
-// Register a new app — returns the secret once
-router.post('/', async (req, res) => {
-  const { slug, name, description, subdomain, usePlatformAuth = true, usePlatformDb = true } = req.body;
-
-  if (!slug || !name || !subdomain) {
-    return res.status(400).json({ error: 'slug, name, and subdomain are required' });
-  }
-
-  if (!/^[a-z0-9-]+$/.test(slug)) {
-    return res.status(400).json({ error: 'slug must be lowercase alphanumeric with hyphens only' });
-  }
-
-  if (!/^[a-z0-9-]+$/.test(subdomain)) {
-    return res.status(400).json({ error: 'subdomain must be lowercase alphanumeric with hyphens only' });
-  }
-
-  const existing = await App.findOne({ $or: [{ slug }, { subdomain }] });
-  if (existing) {
-    if (existing.slug === slug) {
-      return res.status(409).json({ error: 'An app with this slug already exists' });
-    }
-    return res.status(409).json({ error: 'An app with this subdomain already exists' });
-  }
-
-  // Auto-assign the next available port
-  const highestPortDoc = await App.findOne({ port: { $exists: true } }).sort({ port: -1 }).select('port');
-  const port = highestPortDoc && highestPortDoc.port ? highestPortDoc.port + 1 : BASE_PORT;
-
-  const appSecret = generateAppSecret();
-
-  // Pre-populate system env vars
-  const crypto = require('crypto');
-  const envVars = [
-    { key: 'PORT', value: String(port), isSystem: true },
-    { key: 'SPACES_PREFIX', value: slug, isSystem: true },
-  ];
-
-  if (usePlatformDb) {
-    // Build a per-app MONGODB_URI with the app's database in the path
-    // e.g., .../auth?params → .../inventory-tracker?params
-    const appMongoUri = process.env.MONGODB_URI.replace(/\/[^/?]+(\?|$)/, '/' + slug + '$1');
-    envVars.push({ key: 'MONGODB_URI', value: appMongoUri, isSystem: true });
-    envVars.push({ key: 'DB_NAME', value: slug, isSystem: true });
-  }
-
-  if (usePlatformAuth) {
-    envVars.push({ key: 'AUTH_URL', value: `http://localhost:${process.env.PORT || 3100}`, isSystem: true });
-    envVars.push({ key: 'APP_ID', value: slug, isSystem: true });
-    envVars.push({ key: 'APP_SECRET', value: appSecret, isSystem: true });
-    envVars.push({ key: 'APP_JWT_SECRET', value: crypto.randomBytes(32).toString('hex'), isSystem: true });
-  }
-
-  try {
-    const app = await App.create({ slug, name, description, subdomain, port, appSecret, usePlatformAuth, usePlatformDb, envVars });
-
-    res.status(201).json({
-      app: app.toJSON(),
-      appSecret
+    res.status(created ? 201 : 200).json({
+      created,
+      app: serializeApp(provisioned),
+      appSecret: created ? app.appSecret : undefined,
+      repoConnected,
+      repoError: res.locals.repoError,
+      provision: results
     });
   } catch (err) {
-    console.error('App creation failed:', err.message);
-    res.status(500).json({ error: err.message });
+    if (err.status === 400 && err.errors) return res.status(400).json({ error: err.message, errors: err.errors });
+    res.status(err.status || 500).json({ error: err.message });
   }
 });
 
-// Update app settings
-router.patch('/:slug', async (req, res) => {
-  const app = await App.findOne({ slug: req.params.slug });
-  if (!app) return res.status(404).json({ error: 'App not found' });
-
-  const { usePlatformAuth, usePlatformDb } = req.body;
-
-  if (typeof usePlatformAuth === 'boolean') app.usePlatformAuth = usePlatformAuth;
-  if (typeof usePlatformDb === 'boolean') app.usePlatformDb = usePlatformDb;
-
-  await app.save();
-  res.json({ app });
+// ── CRUD ──────────────────────────────────────────────────────────────────────
+router.get('/', async (req, res) => {
+  const apps = await db.select().from(schema.apps).orderBy(schema.apps.name);
+  res.json({ apps: apps.map(serializeApp) });
 });
 
-// Delete app
-router.delete('/:slug', async (req, res) => {
-  const app = await App.findOne({ slug: req.params.slug });
+router.get('/:slug', async (req, res) => {
+  const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
-
-  // Clean up webhook
-  if (app.githubRepo && app.webhookId) {
-    try { await deleteWebhook(app.githubRepo, app.webhookId); } catch { /* best effort */ }
-  }
-
-  if (app.isProvisioned) {
-    await unprovisionApp(app);
-  }
-
-  await Deployment.deleteMany({ appSlug: app.slug });
-  await App.deleteOne({ slug: req.params.slug });
-  res.status(204).end();
-});
-
-// Rotate secret — returns the new secret once
-router.post('/:slug/rotate-secret', async (req, res) => {
-  const appSecret = generateAppSecret();
-  const app = await App.findOne({ slug: req.params.slug });
-  if (!app) return res.status(404).json({ error: 'App not found' });
-
-  app.appSecret = appSecret;
-  // Update the system env var too
-  const envVar = app.envVars.find(v => v.key === 'APP_SECRET');
-  if (envVar) envVar.value = appSecret;
-  await app.save();
-
+  const envVars = await getAppEnvVars(app.id);
   res.json({
-    app: app.toJSON(),
-    appSecret
+    app: serializeApp(app),
+    envVars: envVars.map(serializeEnvVar),
+    missingRequired: computeMissingRequired(app, envVars)
   });
 });
 
-// ── Provisioning ──────────────────────────────────────────
-
-router.post('/:slug/provision', async (req, res) => {
-  const app = await App.findOne({ slug: req.params.slug });
-  if (!app) return res.status(404).json({ error: 'App not found' });
-
+// Manual create (admin UI) — builds a manifest from the body and applies it.
+router.post('/', async (req, res) => {
+  const b = req.body || {};
+  const manifest = {
+    schemaVersion: '1',
+    slug: b.slug, name: b.name, subdomain: b.subdomain, description: b.description || '',
+    source: { branch: b.branch || 'main', repoPath: b.repoPath || '' },
+    runtime: { type: b.runtimeType || b.runtime?.type || 'node' },
+    auth: { mode: b.authMode || b.auth?.mode || 'platform' },
+    database: { mode: b.databaseMode || b.database?.mode || 'none' },
+    storage: { mode: b.storageMode || b.storage?.mode || 'none' },
+    env: []
+  };
   try {
-    const results = await provisionApp(app);
-    if (!app.isProvisioned) {
-      app.isProvisioned = true;
-      await app.save();
-    }
-    res.json({ message: app.isProvisioned ? 'App re-provisioned successfully' : 'App provisioned successfully', details: results });
+    const { app, created } = await applyManifest(manifest);
+    if (!created) return res.status(409).json({ error: 'An app with this slug already exists' });
+    res.status(201).json({ app: serializeApp(app), appSecret: app.appSecret });
   } catch (err) {
-    const isEnvError = err.message.includes('not available in this environment');
-    const status = isEnvError ? 422 : 500;
-    res.status(status).json({ error: `Provisioning failed: ${err.message}` });
+    if (err.errors) return res.status(err.status || 400).json({ error: err.message, errors: err.errors });
+    res.status(err.status || 500).json({ error: err.message });
   }
 });
 
-// ── GitHub Integration ────────────────────────────────────
-
-// Connect a GitHub repo to an app
-router.post('/:slug/connect-repo', async (req, res) => {
-  const { githubRepo, branch, repoPath } = req.body;
-
-  if (!githubRepo) {
-    return res.status(400).json({ error: 'githubRepo is required (e.g., "your-org/repo-name")' });
-  }
-
-  const app = await App.findOne({ slug: req.params.slug });
+// Update structural fields / modes.
+router.patch('/:slug', async (req, res) => {
+  const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
+  const b = req.body || {};
+  const update = { updatedAt: new Date() };
+  const map = {
+    name: 'name', description: 'description',
+    authMode: 'authMode', databaseMode: 'databaseMode', storageMode: 'storageMode',
+    runtimeType: 'runtimeType', buildCommand: 'buildCommand', dockerfile: 'dockerfile',
+    branch: 'branch', repoPath: 'repoPath', subdomain: 'subdomain'
+  };
+  for (const [k, col] of Object.entries(map)) if (b[k] !== undefined) update[col] = b[k];
+  const rows = await db.update(schema.apps).set(update).where(eq(schema.apps.id, app.id)).returning();
+  res.json({ app: serializeApp(rows[0]) });
+});
 
-  // Remove old webhook if switching repos
-  if (app.githubRepo && app.webhookId) {
-    try { await deleteWebhook(app.githubRepo, app.webhookId); } catch { /* best effort */ }
-  }
+router.delete('/:slug', async (req, res) => {
+  const app = await getAppBySlug(req.params.slug);
+  if (!app) return res.status(404).json({ error: 'App not found' });
+  if (app.githubRepo && app.webhookId) { try { await deleteWebhook(app.githubRepo, app.webhookId); } catch { /* best effort */ } }
+  try { pc.stop(app); } catch { /* best effort */ }
+  await db.delete(schema.deployments).where(eq(schema.deployments.appSlug, app.slug));
+  await db.delete(schema.apps).where(eq(schema.apps.id, app.id)); // env vars cascade
+  await reloadCaddyFromDb();
+  res.status(204).end();
+});
 
-  // Create webhook
-  const webhookSecret = generateWebhookSecret();
-  const callbackUrl = `https://auth.${BASE_DOMAIN}/webhooks/github`;
+router.post('/:slug/rotate-secret', async (req, res) => {
+  const app = await getAppBySlug(req.params.slug);
+  if (!app) return res.status(404).json({ error: 'App not found' });
+  const appSecret = generateAppSecret();
+  await db.update(schema.apps).set({ appSecret, updatedAt: new Date() }).where(eq(schema.apps.id, app.id));
+  res.json({ appSecret, note: 'Redeploy the app for the new secret to take effect.' });
+});
 
+// ── provisioning ────────────────────────────────────────────────────────────────
+router.post('/:slug/provision', async (req, res) => {
+  const app = await getAppBySlug(req.params.slug);
+  if (!app) return res.status(404).json({ error: 'App not found' });
   try {
-    const webhookId = await createWebhook(githubRepo, callbackUrl, webhookSecret);
-    app.githubRepo = githubRepo;
-    app.branch = branch || 'main';
-    app.repoPath = repoPath || '';
-    app.webhookId = webhookId;
-    app.webhookSecret = webhookSecret;
-    await app.save();
+    const { app: updated, results } = await provisionApp(app);
+    res.json({ message: 'Provisioned', app: serializeApp(updated), details: results });
+  } catch (err) {
+    res.status(500).json({ error: `Provisioning failed: ${err.message}` });
+  }
+});
 
-    res.json({ message: `Connected to ${githubRepo}`, app: app.toJSON() });
+// ── GitHub repo connect / disconnect ──────────────────────────────────────────────
+async function connectRepoInternal(app, githubRepo, branch, repoPath) {
+  if (app.githubRepo && app.webhookId) { try { await deleteWebhook(app.githubRepo, app.webhookId); } catch { /* best effort */ } }
+  const webhookSecret = generateWebhookSecret();
+  const callbackUrl = `${scheme()}://${config.adminSubdomain}.${config.baseDomain}/webhooks/github`;
+  const webhookId = await createWebhook(githubRepo, callbackUrl, webhookSecret);
+  await db.update(schema.apps).set({
+    githubRepo, branch: branch || 'main', repoPath: repoPath || '', webhookId, webhookSecret, updatedAt: new Date()
+  }).where(eq(schema.apps.id, app.id));
+}
+
+router.post('/:slug/connect-repo', async (req, res) => {
+  const { githubRepo, branch, repoPath } = req.body || {};
+  if (!githubRepo) return res.status(400).json({ error: 'githubRepo is required (e.g. "owner/repo")' });
+  if (!config.github.pat) return res.status(422).json({ error: 'GitHub PAT not configured (TOOLSTEAD_GITHUB_PAT)' });
+  const app = await getAppBySlug(req.params.slug);
+  if (!app) return res.status(404).json({ error: 'App not found' });
+  try {
+    await connectRepoInternal(app, githubRepo, branch, repoPath);
+    res.json({ message: `Connected to ${githubRepo}`, app: serializeApp(await getAppBySlug(app.slug)) });
   } catch (err) {
     res.status(500).json({ error: `Failed to set up webhook: ${err.message}` });
   }
 });
 
-// Disconnect GitHub repo
 router.post('/:slug/disconnect-repo', async (req, res) => {
-  const app = await App.findOne({ slug: req.params.slug });
+  const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
-
-  if (app.githubRepo && app.webhookId) {
-    try { await deleteWebhook(app.githubRepo, app.webhookId); } catch { /* best effort */ }
-  }
-
-  app.githubRepo = '';
-  app.branch = 'main';
-  app.webhookId = null;
-  app.webhookSecret = '';
-  await app.save();
-
-  res.json({ message: 'Repository disconnected', app: app.toJSON() });
+  if (app.githubRepo && app.webhookId) { try { await deleteWebhook(app.githubRepo, app.webhookId); } catch { /* best effort */ } }
+  await db.update(schema.apps).set({ githubRepo: '', webhookId: null, webhookSecret: '', updatedAt: new Date() }).where(eq(schema.apps.id, app.id));
+  res.json({ message: 'Repository disconnected', app: serializeApp(await getAppBySlug(app.slug)) });
 });
 
-// ── Deploys ───────────────────────────────────────────────
-
-// Manual deploy trigger
+// ── deploys ───────────────────────────────────────────────────────────────────
 router.post('/:slug/deploy', async (req, res) => {
-  const app = await App.findOne({ slug: req.params.slug });
+  const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
-
-  if (!app.githubRepo) {
-    return res.status(400).json({ error: 'No GitHub repo connected' });
+  try {
+    const deployment = await runDeploy(app, { trigger: req.auth?.type === 'token' ? 'cli' : 'manual' });
+    res.json({ message: 'Deploy triggered', deploymentId: deployment.id });
+  } catch (err) {
+    if (err.status === 422 && err.missing) {
+      return res.status(422).json({ error: err.message, missing: err.missing, deploymentId: err.deployment?.id });
+    }
+    res.status(err.status || 500).json({ error: err.message });
   }
-
-  if (!app.isProvisioned) {
-    return res.status(400).json({ error: 'App must be provisioned before deploying' });
-  }
-
-  // Guardrail: check GITHUB_PAT before kicking off async deploy
-  if (!process.env.GITHUB_PAT) {
-    return res.status(422).json({ error: 'GitHub PAT not configured. Set the GITHUB_PAT environment variable to enable deployments.' });
-  }
-
-  // Run deploy async — return immediately
-  runDeploy(app, { trigger: 'manual' }).catch(err => {
-    console.error(`Manual deploy failed for ${app.slug}:`, err);
-  });
-
-  res.json({ message: 'Deploy triggered' });
 });
 
-// List deployments for an app
 router.get('/:slug/deployments', async (req, res) => {
-  const deployments = await Deployment.find({ appSlug: req.params.slug })
-    .sort({ createdAt: -1 })
-    .limit(20)
-    .select('-log'); // Exclude full log from list view
-  res.json({ deployments });
+  const rows = await db.select({
+    id: schema.deployments.id, appSlug: schema.deployments.appSlug, status: schema.deployments.status,
+    trigger: schema.deployments.trigger, commitHash: schema.deployments.commitHash,
+    commitMessage: schema.deployments.commitMessage, error: schema.deployments.error,
+    startedAt: schema.deployments.startedAt, finishedAt: schema.deployments.finishedAt, createdAt: schema.deployments.createdAt
+  }).from(schema.deployments).where(eq(schema.deployments.appSlug, req.params.slug)).orderBy(desc(schema.deployments.createdAt)).limit(20);
+  res.json({ deployments: rows });
 });
 
-// Get a single deployment with full log
 router.get('/:slug/deployments/:id', async (req, res) => {
-  const deployment = await Deployment.findById(req.params.id);
-  if (!deployment || deployment.appSlug !== req.params.slug) {
-    return res.status(404).json({ error: 'Deployment not found' });
-  }
-  res.json({ deployment });
+  const rows = await db.select().from(schema.deployments).where(eq(schema.deployments.id, req.params.id)).limit(1);
+  const d = rows[0];
+  if (!d || d.appSlug !== req.params.slug) return res.status(404).json({ error: 'Deployment not found' });
+  res.json({ deployment: d });
 });
 
-// ── Environment Variables ─────────────────────────────────
-
-// Get env vars for an app (values masked for system vars via toJSON)
+// ── env vars ──────────────────────────────────────────────────────────────────
 router.get('/:slug/env', async (req, res) => {
-  const app = await App.findOne({ slug: req.params.slug });
+  const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
-  res.json({ envVars: app.toJSON().envVars });
+  const envVars = await getAppEnvVars(app.id);
+  res.json({ envVars: envVars.map(serializeEnvVar), missingRequired: computeMissingRequired(app, envVars) });
 });
 
-// Set/update an env var
+// Set a value (works for declared + reserved rows; creates an ad-hoc declared row if new).
 router.put('/:slug/env/:key', async (req, res) => {
-  const { value } = req.body;
-  if (value === undefined) {
-    return res.status(400).json({ error: 'value is required' });
+  const { value } = req.body || {};
+  if (value === undefined) return res.status(400).json({ error: 'value is required' });
+  if (/^TOOLSTEAD_/.test(req.params.key)) {
+    // only reserved rows the platform created (external mode) are settable
+    const app = await getAppBySlug(req.params.slug);
+    if (!app) return res.status(404).json({ error: 'App not found' });
+    const rows = await db.select().from(schema.appEnvVars).where(and(eq(schema.appEnvVars.appId, app.id), eq(schema.appEnvVars.key, req.params.key))).limit(1);
+    if (!rows[0]) return res.status(400).json({ error: 'Reserved TOOLSTEAD_* variables cannot be declared by apps' });
+    await db.update(schema.appEnvVars).set({ value, updatedAt: new Date() }).where(eq(schema.appEnvVars.id, rows[0].id));
+    return res.json({ ok: true });
   }
+  if (!/^[A-Z][A-Z0-9_]*$/.test(req.params.key)) return res.status(400).json({ error: 'key must be UPPER_SNAKE_CASE' });
 
-  const app = await App.findOne({ slug: req.params.slug });
+  const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
-
-  const existing = app.envVars.find(v => v.key === req.params.key);
-  if (existing) {
-    if (existing.isSystem) {
-      return res.status(400).json({ error: 'Cannot modify system env var' });
-    }
-    existing.value = value;
-  } else {
-    app.envVars.push({ key: req.params.key, value, isSystem: false });
-  }
-
-  await app.save();
-  res.json({ envVars: app.toJSON().envVars });
+  const rows = await db.select().from(schema.appEnvVars).where(and(eq(schema.appEnvVars.appId, app.id), eq(schema.appEnvVars.key, req.params.key))).limit(1);
+  if (rows[0]) await db.update(schema.appEnvVars).set({ value, updatedAt: new Date() }).where(eq(schema.appEnvVars.id, rows[0].id));
+  else await db.insert(schema.appEnvVars).values({ appId: app.id, key: req.params.key, value, kind: 'declared' });
+  res.json({ ok: true });
 });
 
-// Bulk import env vars from .env format
 router.post('/:slug/env/bulk', async (req, res) => {
-  const { raw } = req.body;
-  if (!raw || typeof raw !== 'string') {
-    return res.status(400).json({ error: 'raw string is required' });
-  }
-
-  const app = await App.findOne({ slug: req.params.slug });
+  const { raw } = req.body || {};
+  if (!raw || typeof raw !== 'string') return res.status(400).json({ error: 'raw string is required' });
+  const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
-
-  const lines = raw.split('\n');
-  let added = 0;
-  let skipped = 0;
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-    // Skip empty lines and comments
-    if (!trimmed || trimmed.startsWith('#')) continue;
-
-    const eqIndex = trimmed.indexOf('=');
-    if (eqIndex === -1) continue;
-
-    const key = trimmed.substring(0, eqIndex).trim();
-    const value = trimmed.substring(eqIndex + 1).trim();
-
-    if (!key) continue;
-
-    // Don't overwrite system vars
-    const existing = app.envVars.find(v => v.key === key);
-    if (existing && existing.isSystem) {
-      skipped++;
-      continue;
-    }
-
-    if (existing) {
-      existing.value = value;
-    } else {
-      app.envVars.push({ key, value, isSystem: false });
-    }
+  const existing = await getAppEnvVars(app.id);
+  const byKey = new Map(existing.map((r) => [r.key, r]));
+  let added = 0; let skipped = 0;
+  for (const line of raw.split('\n')) {
+    const t = line.trim();
+    if (!t || t.startsWith('#')) continue;
+    const i = t.indexOf('=');
+    if (i === -1) continue;
+    const key = t.slice(0, i).trim();
+    const value = t.slice(i + 1).trim();
+    if (!key || /^TOOLSTEAD_/.test(key) || !/^[A-Z][A-Z0-9_]*$/.test(key)) { skipped++; continue; }
+    if (byKey.has(key)) await db.update(schema.appEnvVars).set({ value, updatedAt: new Date() }).where(eq(schema.appEnvVars.id, byKey.get(key).id));
+    else await db.insert(schema.appEnvVars).values({ appId: app.id, key, value, kind: 'declared' });
     added++;
   }
-
-  await app.save();
-  res.json({ added, skipped, envVars: app.toJSON().envVars });
+  res.json({ added, skipped });
 });
 
-// Delete an env var
 router.delete('/:slug/env/:key', async (req, res) => {
-  const app = await App.findOne({ slug: req.params.slug });
+  const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
-
-  const existing = app.envVars.find(v => v.key === req.params.key);
-  if (!existing) return res.status(404).json({ error: 'Env var not found' });
-  if (existing.isSystem) {
-    return res.status(400).json({ error: 'Cannot delete system env var' });
-  }
-
-  app.envVars = app.envVars.filter(v => v.key !== req.params.key);
-  await app.save();
-  res.json({ envVars: app.toJSON().envVars });
+  const rows = await db.select().from(schema.appEnvVars).where(and(eq(schema.appEnvVars.appId, app.id), eq(schema.appEnvVars.key, req.params.key))).limit(1);
+  if (!rows[0]) return res.status(404).json({ error: 'Env var not found' });
+  if (rows[0].kind === 'reserved') return res.status(400).json({ error: 'Cannot delete a platform-required variable; change the resource mode instead' });
+  await db.delete(schema.appEnvVars).where(eq(schema.appEnvVars.id, rows[0].id));
+  res.status(204).end();
 });
 
-// ── PM2 Process Management ────────────────────────────────
-
-// Get PM2 status for an app
+// ── process control ──────────────────────────────────────────────────────────────
 router.get('/:slug/status', async (req, res) => {
-  const app = await App.findOne({ slug: req.params.slug });
+  const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
-
-  const pmName = `${app.slug}-api`;
-  try {
-    const output = execSync(`pm2 jlist 2>/dev/null`, { encoding: 'utf8', timeout: 5000 });
-    const processes = JSON.parse(output);
-    const proc = processes.find(p => p.name === pmName);
-    if (!proc) {
-      return res.json({ status: 'stopped', pid: null, uptime: null, restarts: 0, memory: 0 });
-    }
-    res.json({
-      status: proc.pm2_env.status,
-      pid: proc.pid,
-      uptime: proc.pm2_env.pm_uptime,
-      restarts: proc.pm2_env.restart_time,
-      memory: proc.monit?.memory || 0,
-      cpu: proc.monit?.cpu || 0
-    });
-  } catch {
-    res.json({ status: 'unavailable', pid: null, uptime: null, restarts: 0, memory: 0 });
-  }
+  res.json(pc.appStatus(app));
 });
 
-// Write a marker to the app's PM2 log file
-function writeLogMarker(pmName, message) {
-  const fs = require('fs');
-  const homeDir = process.env.HOME || '/home/deploy';
-  const logFile = `${homeDir}/.pm2/logs/${pmName}-out.log`;
-  const marker = `\n════ ${message} at ${new Date().toISOString()} ════\n`;
-  try { fs.appendFileSync(logFile, marker); } catch { /* best effort */ }
-}
-
-// Restart PM2 process
 router.post('/:slug/restart', async (req, res) => {
-  const app = await App.findOne({ slug: req.params.slug });
+  const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
-
-  const pmName = `${app.slug}-api`;
-  try {
-    writeLogMarker(pmName, 'Manual restart');
-    execSync(`pm2 restart ${pmName} 2>&1`, { encoding: 'utf8', timeout: 10000 });
-    res.json({ message: 'Process restarted' });
-  } catch (err) {
-    res.status(500).json({ error: `Restart failed: ${err.message}` });
-  }
+  try { pc.restart(app); res.json({ message: 'Process restarted' }); }
+  catch (err) { res.status(500).json({ error: `Restart failed: ${err.message}` }); }
 });
 
-// Stop PM2 process
 router.post('/:slug/stop', async (req, res) => {
-  const app = await App.findOne({ slug: req.params.slug });
+  const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
-
-  const pmName = `${app.slug}-api`;
-  try {
-    writeLogMarker(pmName, 'Process stopped');
-    execSync(`pm2 stop ${pmName} 2>&1`, { encoding: 'utf8', timeout: 10000 });
-    res.json({ message: 'Process stopped' });
-  } catch (err) {
-    res.status(500).json({ error: `Stop failed: ${err.message}` });
-  }
+  try { pc.stop(app); res.json({ message: 'Process stopped' }); }
+  catch (err) { res.status(500).json({ error: `Stop failed: ${err.message}` }); }
 });
-
-// ── App Logs ──────────────────────────────────────────────
 
 router.get('/:slug/logs', async (req, res) => {
-  const app = await App.findOne({ slug: req.params.slug });
+  const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
-
-  const lines = parseInt(req.query.lines) || 100;
-  const pmName = `${app.slug}-api`;
-  const homeDir = process.env.HOME || '/home/deploy';
-  const outLog = `${homeDir}/.pm2/logs/${pmName}-out.log`;
-  const errLog = `${homeDir}/.pm2/logs/${pmName}-error.log`;
-
-  function stripAnsi(str) {
-    return str.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '');
-  }
-
-  try {
-    // Read both log files, merge, and sort by timestamp
-    const allLines = [];
-
-    for (const logFile of [outLog, errLog]) {
-      try {
-        const content = execSync(`tail -n ${lines} "${logFile}" 2>/dev/null`, { encoding: 'utf8', timeout: 5000 });
-        const cleaned = stripAnsi(content);
-        for (const line of cleaned.split('\n')) {
-          if (line.trim()) allLines.push(line);
-        }
-      } catch { /* file may not exist */ }
-    }
-
-    // Sort by timestamp prefix (YYYY-MM-DD HH:mm:ss)
-    allLines.sort((a, b) => {
-      const tsA = a.match(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})/);
-      const tsB = b.match(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})/);
-      if (tsA && tsB) return tsA[1].localeCompare(tsB[1]);
-      if (tsA) return -1;
-      if (tsB) return 1;
-      return 0;
-    });
-
-    // Keep the last N lines after merge
-    const merged = allLines.slice(-lines).join('\n');
-
-    res.json({ logs: merged || 'No logs available' });
-  } catch (err) {
-    const msg = (err.message || '').toLowerCase();
-    if (msg.includes('not found') || msg.includes('enoent')) {
-      res.json({ logs: 'Logs are not available in this environment.' });
-    } else {
-      res.json({ logs: 'No logs available' });
-    }
-  }
+  const lines = parseInt(req.query.lines, 10) || 100;
+  res.json({ logs: pc.readLogs(app, lines) });
 });
 
-// ── Terminal (streaming command execution) ───────────────
+// ── terminal (gated behind TOOLSTEAD_ENABLE_TERMINAL; arbitrary RCE by design) ──
+if (config.enableTerminal) {
+  router.get('/:slug/exec', async (req, res) => {
+    const command = req.query.command;
+    if (!command || !command.trim()) return res.status(400).json({ error: 'command query parameter is required' });
+    const app = await getAppBySlug(req.params.slug);
+    if (!app) return res.status(404).json({ error: 'App not found' });
 
-const APPS_DIR = process.env.APPS_DIR || '/opt/apps';
-const MAX_EXEC_TIMEOUT = 5 * 60 * 1000; // 5 minutes
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders();
 
-router.get('/:slug/exec', async (req, res) => {
-  const command = req.query.command;
-  if (!command || !command.trim()) {
-    return res.status(400).json({ error: 'command query parameter is required' });
-  }
-
-  const app = await App.findOne({ slug: req.params.slug });
-  if (!app) return res.status(404).json({ error: 'App not found' });
-
-  const cwd = `${APPS_DIR}/${app.slug}-api`;
-
-  // Set up SSE headers
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Connection', 'keep-alive');
-  res.setHeader('X-Accel-Buffering', 'no'); // disable nginx/caddy buffering
-  res.flushHeaders();
-
-  // Build env from the app's own vars only — don't leak auth-api secrets
-  const env = { PATH: process.env.PATH, HOME: process.env.HOME, NODE_ENV: process.env.NODE_ENV || 'production' };
-  if (app.getRawEnvVars) {
-    for (const v of app.getRawEnvVars()) {
-      env[v.key] = v.value;
-    }
-  }
-
-  const child = spawn('sh', ['-c', command], {
-    cwd,
-    env,
-    timeout: MAX_EXEC_TIMEOUT
+    const envVars = await getAppEnvVars(app.id);
+    const env = { PATH: process.env.PATH, HOME: process.env.HOME, NODE_ENV: config.env, ...computeEnv(app, envVars) };
+    const cwd = path.join(config.paths.apps, app.slug);
+    const child = spawn('sh', ['-c', command], { cwd, env, timeout: 5 * 60 * 1000 });
+    const send = (event, data) => res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    child.stdout.on('data', (c) => send('stdout', c.toString()));
+    child.stderr.on('data', (c) => send('stderr', c.toString()));
+    child.on('close', (code) => { send('exit', { code }); res.end(); });
+    child.on('error', (err) => { send('error', err.message); res.end(); });
+    req.on('close', () => { if (!child.killed) child.kill('SIGTERM'); });
   });
-
-  function send(event, data) {
-    res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
-  }
-
-  child.stdout.on('data', (chunk) => {
-    send('stdout', chunk.toString());
-  });
-
-  child.stderr.on('data', (chunk) => {
-    send('stderr', chunk.toString());
-  });
-
-  child.on('close', (code) => {
-    send('exit', { code });
-    res.end();
-  });
-
-  child.on('error', (err) => {
-    send('error', err.message);
-    res.end();
-  });
-
-  // If the client disconnects, kill the process
-  req.on('close', () => {
-    if (!child.killed) {
-      child.kill('SIGTERM');
-    }
-  });
-});
+}
 
 module.exports = router;

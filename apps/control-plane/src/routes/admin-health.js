@@ -1,40 +1,31 @@
+'use strict';
+
 const express = require('express');
-const App = require('../models/App');
-const { requireAdmin } = require('../middleware/requireAdmin');
-const { getHealthData, getServerMetrics } = require('../lib/health-checker');
+const { eq } = require('drizzle-orm');
+const { db, schema } = require('../db');
+const { requireScope } = require('../middleware/auth');
+const { getHealthData, getServerMetrics } = require('../runner/health');
 
 const router = express.Router();
-
-router.use(requireAdmin);
+router.use(requireScope('deploy'));
 
 router.get('/', async (req, res) => {
-  const serverMetrics = getServerMetrics();
+  const server = getServerMetrics();
   const appHealth = getHealthData();
+  const apps = await db.select({ slug: schema.apps.slug, name: schema.apps.name, subdomain: schema.apps.subdomain, port: schema.apps.port })
+    .from(schema.apps).where(eq(schema.apps.provisioned, true));
+  const byslug = new Map(apps.map((a) => [a.slug, a]));
 
-  // Enrich health data with app details from DB
-  const apps = await App.find({ isProvisioned: true }).select('slug name subdomain port');
-  const appMap = new Map(apps.map(a => [a.slug, a]));
-
-  const enriched = appHealth.map(entry => {
-    const app = appMap.get(entry.slug);
+  const enriched = appHealth.map((e) => {
+    const a = byslug.get(e.slug);
     return {
-      slug: entry.slug,
-      name: app?.name || entry.slug,
-      subdomain: app?.subdomain || '',
-      port: app?.port || 0,
-      health: entry.lastStatus,
-      responseTime: entry.responseTime,
-      consecutiveFailures: entry.consecutiveFailures,
-      lastCheck: entry.lastCheck,
-      pm2: entry.pm2
+      slug: e.slug, name: a?.name || e.slug, subdomain: a?.subdomain || '', port: a?.port || 0,
+      health: e.lastStatus, responseTime: e.responseTime, consecutiveFailures: e.consecutiveFailures,
+      lastCheck: e.lastCheck, proc: e.proc
     };
   });
 
-  res.json({
-    server: serverMetrics,
-    apps: enriched,
-    checkedAt: new Date().toISOString()
-  });
+  res.json({ server, apps: enriched, checkedAt: new Date().toISOString() });
 });
 
 module.exports = router;

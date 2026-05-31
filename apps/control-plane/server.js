@@ -1,74 +1,77 @@
-require('dotenv').config();
+'use strict';
 
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
-const { connectDB } = require('./src/lib/db');
-
-const verifyRoutes = require('./src/routes/verify');
-const adminAuthRoutes = require('./src/routes/admin-auth');
-const adminUsersRoutes = require('./src/routes/admin-users');
-const adminAppsRoutes = require('./src/routes/admin-apps');
-const adminActivityRoutes = require('./src/routes/admin-activity');
-const adminHealthRoutes = require('./src/routes/admin-health');
-const accountRoutes = require('./src/routes/account');
-const webhookRoutes = require('./src/routes/webhooks');
+const config = require('./src/config');
+const { ping } = require('./src/db');
+const { migrate } = require('./src/db/migrate');
+const { seedAdmin } = require('./src/seed');
+const { reloadCaddyFromDb } = require('./src/provision');
+const { startHealthChecker } = require('./src/runner/health');
 
 const app = express();
-const PORT = process.env.PORT || 3100;
 
-// Trust one proxy (Caddy) so express-rate-limit and req.ip work correctly
+// Trust one proxy (Caddy) so req.ip + rate limiting work.
 app.set('trust proxy', 1);
 
-// Middleware
 app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (server-to-server, curl, etc.)
-    if (!origin) return callback(null, true);
-    // Allow *.seniorverse.dev and localhost for dev
-    if (/^https?:\/\/(.*\.)?seniorverse\.dev$/.test(origin) ||
-        /^http:\/\/localhost(:\d+)?$/.test(origin)) {
-      return callback(null, true);
-    }
-    callback(new Error('Not allowed by CORS'));
-  },
+  origin: (origin, cb) => (config.isAllowedOrigin(origin) ? cb(null, true) : cb(new Error('Not allowed by CORS'))),
   credentials: true
 }));
-// Webhook route MUST come before express.json() because it needs raw body
-app.use('/webhooks', webhookRoutes);
 
-app.use(express.json());
+// Webhook route needs the raw body, so mount BEFORE express.json().
+app.use('/webhooks', require('./src/routes/webhooks'));
 
-// Health check
-app.get('/health', (req, res) => res.json({ status: 'ok' }));
+app.use(express.json({ limit: '1mb' }));
 
-// Serve account page
-app.get('/account', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'account.html'));
+// Control-plane liveness (distinct from /admin/health monitor data).
+app.get('/health', (req, res) => res.json({ status: 'ok', service: 'toolstead-control-plane' }));
+
+// Hosted end-user account page.
+app.get('/account', (req, res) => res.sendFile(path.join(__dirname, 'public', 'account.html')));
+
+app.use('/verify', require('./src/routes/verify'));
+app.use('/account', require('./src/routes/account'));
+app.use('/admin', require('./src/routes/admin-auth'));
+app.use('/admin/health', require('./src/routes/admin-health'));
+app.use('/admin/users', require('./src/routes/admin-users'));
+app.use('/admin/apps', require('./src/routes/admin-apps'));
+app.use('/admin/tokens', require('./src/routes/admin-tokens'));
+app.use('/admin/activity', require('./src/routes/admin-activity'));
+
+// Fallback error handler.
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  console.error('[error]', err.message);
+  res.status(err.status || 500).json({ error: err.message || 'Internal error' });
 });
 
-// Routes
-app.use('/verify', verifyRoutes);
-app.use('/admin', adminAuthRoutes);
-app.use('/admin/health', adminHealthRoutes);
-app.use('/admin/users', adminUsersRoutes);
-app.use('/admin/apps', adminAppsRoutes);
-app.use('/admin/activity', adminActivityRoutes);
-app.use('/account', accountRoutes);
-
-// Start
 async function start() {
-  await connectDB();
+  if (!config.adminJwtSecret) {
+    console.error('FATAL: TOOLSTEAD_ADMIN_JWT_SECRET is required.');
+    process.exit(1);
+  }
 
-  const { startHealthChecker } = require('./src/lib/health-checker');
+  await migrate();          // bring the schema up to date
+  await ping();             // verify DB connectivity
+  await seedAdmin();        // idempotent admin seed
+
+  // Push current routing to Caddy (best-effort — Caddy may still be booting).
+  reloadCaddyFromDb().catch(() => {});
+
   startHealthChecker();
 
-  app.listen(PORT, () => {
-    console.log(`Auth API running on port ${PORT}`);
+  app.listen(config.port, () => {
+    console.log(`Toolstead control plane listening on :${config.port} (env=${config.env}, base=${config.baseDomain})`);
   });
 }
 
-start().catch(err => {
-  console.error('Failed to start auth API:', err);
-  process.exit(1);
-});
+if (require.main === module) {
+  start().catch((err) => {
+    console.error('Failed to start control plane:', err);
+    process.exit(1);
+  });
+}
+
+module.exports = { app, start };

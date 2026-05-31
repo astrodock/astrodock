@@ -1,35 +1,44 @@
+'use strict';
+
 const express = require('express');
-const Deployment = require('../models/Deployment');
-const AuthLog = require('../models/AuthLog');
-const { requireAdmin } = require('../middleware/requireAdmin');
+const { desc, eq, ilike, and } = require('drizzle-orm');
+const { db, schema } = require('../db');
+const { requireScope } = require('../middleware/auth');
 
 const router = express.Router();
+router.use(requireScope('deploy'));
 
-router.use(requireAdmin);
-
-// Recent deployments across all apps
+// Recent deployments across all apps (no log body in the list view).
 router.get('/deployments', async (req, res) => {
-  const limit = Math.min(parseInt(req.query.limit) || 50, 200);
-  const deployments = await Deployment.find()
-    .sort({ createdAt: -1 })
-    .limit(limit)
-    .select('-log');
-  res.json({ deployments });
+  const limit = Math.min(parseInt(req.query.limit, 10) || 50, 200);
+  const rows = await db
+    .select({
+      id: schema.deployments.id, appSlug: schema.deployments.appSlug, status: schema.deployments.status,
+      trigger: schema.deployments.trigger, commitHash: schema.deployments.commitHash,
+      commitMessage: schema.deployments.commitMessage, error: schema.deployments.error,
+      startedAt: schema.deployments.startedAt, finishedAt: schema.deployments.finishedAt,
+      createdAt: schema.deployments.createdAt
+    })
+    .from(schema.deployments)
+    .orderBy(desc(schema.deployments.createdAt))
+    .limit(limit);
+  res.json({ deployments: rows });
 });
 
-// Auth logs
+// Auth logs, optionally filtered.
 router.get('/auth-logs', async (req, res) => {
-  const limit = Math.min(parseInt(req.query.limit) || 50, 200);
-  const filter = {};
+  const limit = Math.min(parseInt(req.query.limit, 10) || 50, 200);
+  const conds = [];
+  if (req.query.result) conds.push(eq(schema.authLogs.result, req.query.result));
+  if (req.query.appId) conds.push(eq(schema.authLogs.appId, req.query.appId));
+  if (req.query.email) conds.push(ilike(schema.authLogs.email, `%${req.query.email}%`));
 
-  if (req.query.result) filter.result = req.query.result;
-  if (req.query.appId) filter.appId = req.query.appId;
-  if (req.query.email) filter.email = new RegExp(req.query.email, 'i');
-
-  const logs = await AuthLog.find(filter)
-    .sort({ createdAt: -1 })
+  const where = conds.length ? and(...conds) : undefined;
+  const rows = await db.select().from(schema.authLogs)
+    .where(where)
+    .orderBy(desc(schema.authLogs.createdAt))
     .limit(limit);
-  res.json({ logs });
+  res.json({ logs: rows });
 });
 
 module.exports = router;
