@@ -1,0 +1,14 @@
+**/node_modules
+**/dist
+**/build
+**/.vite
+.git
+.gitignore
+**/.env
+**/.env.*
+!**/.env.example
+**/*.log
+.pm2
+docs/legacy
+*.md
+!README.md

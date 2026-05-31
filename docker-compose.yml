@@ -1,0 +1,90 @@
+# Toolstead — the whole platform as one stack. `docker compose up -d` and you have
+# a control plane + admin UI + auto-HTTPS routing + bundled Postgres + bundled
+# object storage, with zero external dependencies.
+#
+# The project name `toolstead` fixes the default network name `toolstead_default`,
+# which the runner attaches Dockerfile-app sibling containers to.
+name: toolstead
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${TOOLSTEAD_PG_USER:-toolstead}
+      POSTGRES_PASSWORD: ${TOOLSTEAD_PG_PASSWORD:?set TOOLSTEAD_PG_PASSWORD in .env}
+      POSTGRES_DB: ${TOOLSTEAD_PG_DATABASE:-toolstead}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${TOOLSTEAD_PG_USER:-toolstead}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  objectstore:
+    image: chrislusf/seaweedfs:3.80
+    # S3-compatible store on :8333. Reachable only on the internal network.
+    # See SECURITY.md for the v1 storage isolation note.
+    command: "server -dir=/data -s3 -s3.port=8333 -ip.bind=0.0.0.0 -volume.max=0 -master.volumeSizeLimitMB=1024"
+    volumes:
+      - objectdata:/data
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile
+      - static:/srv/static
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/control-plane/Dockerfile
+    env_file:
+      - .env
+    environment:
+      # network-specific values — fixed regardless of .env
+      PORT: "3100"
+      TOOLSTEAD_PG_HOST: postgres
+      TOOLSTEAD_PG_PORT: "5432"
+      TOOLSTEAD_PG_APP_HOST: postgres
+      TOOLSTEAD_PG_APP_PORT: "5432"
+      TOOLSTEAD_OBJECTSTORE_ENDPOINT: http://objectstore:8333
+      TOOLSTEAD_OBJECTSTORE_APP_ENDPOINT: http://objectstore:8333
+      TOOLSTEAD_CADDY_ADMIN: http://caddy:2019
+      TOOLSTEAD_INTERNAL_AUTH_URL: http://api:3100
+      TOOLSTEAD_DOCKER_NETWORK: toolstead_default
+      TOOLSTEAD_STATIC_DIR: /data/static
+      TOOLSTEAD_CADDY_STATIC_DIR: /srv/static
+      TOOLSTEAD_APPS_DIR: /data/apps
+      TOOLSTEAD_REPOS_DIR: /data/repos
+    volumes:
+      # Docker socket → run Dockerfile apps as sibling containers (root-equivalent; see SECURITY.md)
+      - /var/run/docker.sock:/var/run/docker.sock
+      - static:/data/static     # same volume Caddy serves from at /srv/static
+      - apps:/data/apps
+      - repos:/data/repos
+    depends_on:
+      postgres:
+        condition: service_healthy
+      objectstore:
+        condition: service_started
+      caddy:
+        condition: service_started
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  objectdata:
+  static:
+  apps:
+  repos:
+  caddy_data:
+  caddy_config:

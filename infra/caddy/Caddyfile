@@ -1,0 +1,13 @@
+# Bootstrap Caddy config. The control plane replaces this at runtime by POSTing a
+# freshly-generated Caddyfile to the admin API (POST /load), adding the admin host
+# and one block per provisioned app. This file just keeps the admin API reachable
+# and answers a health check until that first push lands.
+
+{
+	admin 0.0.0.0:2019
+}
+
+:80 {
+	respond /healthz "toolstead: caddy up\n" 200
+	respond "toolstead: waiting for control plane to publish routes\n" 200
+}
