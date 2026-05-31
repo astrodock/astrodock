@@ -1,0 +1,17 @@
+{
+  "name": "@toolstead/cli",
+  "version": "0.1.0",
+  "description": "Thin CLI for driving a Toolstead platform: apply, deploy, status, logs, deploy:watch, set-secret.",
+  "license": "MIT",
+  "bin": {
+    "toolstead": "bin/toolstead.js",
+    "stead": "bin/toolstead.js"
+  },
+  "files": ["bin/", "src/"],
+  "scripts": {
+    "test": "node --test test/"
+  },
+  "dependencies": {
+    "@toolstead/schema": "*"
+  }
+}
