@@ -65,7 +65,7 @@ test('node app block proxies /api/* and serves static', () => {
   const cfg = generateCaddyfile([internalApp]);
   assert.ok(cfg.includes('admin 0.0.0.0:2019'), 'keeps admin API up');
   assert.ok(cfg.includes('handle /api/*'), 'node app has /api proxy');
-  assert.ok(/reverse_proxy api:3101/.test(cfg), 'proxies to app port');
+  assert.ok(/reverse_proxy runner:3101/.test(cfg), 'proxies /api to the runner container + app port');
   assert.ok(cfg.includes('try_files {path} /index.html'), 'SPA fallback');
 });
 

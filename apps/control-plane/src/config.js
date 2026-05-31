@@ -101,7 +101,13 @@ const config = {
   enableTerminal: bool(process.env.TOOLSTEAD_ENABLE_TERMINAL, false),
 
   // base port for app processes (control plane is on `port`)
-  basePort: int(process.env.TOOLSTEAD_BASE_PORT, 3101)
+  basePort: int(process.env.TOOLSTEAD_BASE_PORT, 3101),
+
+  // ── runner (separate container; holds the Docker socket + PAT + PM2) ──
+  role: process.env.TOOLSTEAD_ROLE || 'control-plane', // 'control-plane' | 'runner'
+  runnerPort: int(process.env.TOOLSTEAD_RUNNER_PORT, 3200),
+  runnerUrl: process.env.TOOLSTEAD_RUNNER_URL || 'http://runner:3200',
+  runnerToken: process.env.TOOLSTEAD_RUNNER_TOKEN || ''
 };
 
 // The internal /verify address apps use (compose-network address of this service).

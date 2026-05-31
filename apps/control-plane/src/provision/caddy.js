@@ -7,6 +7,11 @@
 const config = require('../config');
 
 const API = `api:${config.port}`;
+// Node buildpack apps run as PM2 processes INSIDE the runner container, so their
+// /api/* traffic must be proxied to the runner (not the control-plane api).
+function runnerHost() {
+  try { return new URL(config.runnerUrl).hostname; } catch { return 'runner'; }
+}
 
 // Site address for a host, honoring the TLS mode.
 function site(host) {
@@ -69,7 +74,7 @@ function nodeAppBlock(app) {
   return `
 ${site(host)} {
 \thandle /api/* {
-\t\treverse_proxy ${API.replace(String(config.port), String(app.port))}
+\t\treverse_proxy ${runnerHost()}:${app.port}
 \t}
 \thandle {
 \t\troot * ${staticRoot}

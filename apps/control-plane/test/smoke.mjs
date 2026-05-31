@@ -31,6 +31,13 @@ async function reset() {
   await seedAdmin({ log: () => {} });
 }
 
+// Start an in-process runner too, and point the control plane at it (verifies the split).
+config.runnerToken = config.runnerToken || 'test-runner-token';
+const { app: runnerApp } = require('../src/runner/server.js');
+const runnerServer = runnerApp.listen(0);
+await new Promise((r) => runnerServer.once('listening', r));
+config.runnerUrl = `http://127.0.0.1:${runnerServer.address().port}`;
+
 const server = app.listen(0);
 await new Promise((r) => server.once('listening', r));
 const base = `http://127.0.0.1:${server.address().port}`;
@@ -179,6 +186,7 @@ try {
 
 } finally {
   server.close();
+  runnerServer.close();
   await close().catch(() => {});
 }
 

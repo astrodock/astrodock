@@ -11,12 +11,10 @@ const { getAppBySlug, getAppEnvVars, serializeApp, serializeEnvVar } = require('
 const { applyManifest } = require('../lib/apply');
 const { computeEnv, computeMissingRequired } = require('../lib/env-compute');
 const { provisionApp, reloadCaddyFromDb } = require('../provision');
-const { runDeploy } = require('../runner/deploy');
-const pc = require('../runner/process-control');
+const { runner } = require('../runner/client');
 const { generateAppSecret, generateWebhookSecret } = require('../lib/ids');
 const { encryptSecret } = require('../lib/crypto');
 const { dropDatabase } = require('../provision/database');
-const { dropStorage } = require('../provision/storage');
 const { listRepos, createWebhook, deleteWebhook } = require('../lib/github');
 
 const router = express.Router();
@@ -41,8 +39,8 @@ router.get('/github/repos', async (req, res) => {
 });
 
 router.get('/status/all', async (req, res) => {
-  const apps = await db.select().from(schema.apps);
-  res.json({ statuses: pc.statusAll(apps) });
+  const r = await runner.statusAll().catch(() => ({ status: 503, body: { statuses: {} } }));
+  res.status(r.status === 200 ? 200 : 200).json(r.body || { statuses: {} });
 });
 
 // ── apply a manifest (CLI `apply`) ──────────────────────────────────────────────
@@ -148,12 +146,11 @@ router.delete('/:slug', async (req, res) => {
   const purge = !!(req.query.purge || req.body?.purge); // also drop internal data
 
   if (app.githubRepo && app.webhookId) { try { await deleteWebhook(app.githubRepo, app.webhookId); } catch { /* best effort */ } }
-  try { pc.stop(app); } catch { /* best effort */ }
-  try { pc.remove(app); } catch { /* best effort */ }
+  try { await runner.remove(app.slug); } catch { /* best effort */ }
 
   if (purge) {
     if (app.databaseMode === 'internal') { try { await dropDatabase(app); } catch (e) { console.error('[delete] drop db failed:', e.message); } }
-    if (app.storageMode === 'internal') { try { await dropStorage(app); } catch (e) { console.error('[delete] drop storage failed:', e.message); } }
+    if (app.storageMode === 'internal') { try { await runner.dropStorage(app.slug); } catch (e) { console.error('[delete] drop storage failed:', e.message); } }
   }
 
   await db.delete(schema.deployments).where(eq(schema.deployments.appSlug, app.slug));
@@ -224,15 +221,9 @@ router.post('/:slug/disconnect-repo', async (req, res) => {
 router.post('/:slug/deploy', async (req, res) => {
   const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
-  try {
-    const deployment = await runDeploy(app, { trigger: req.auth?.type === 'token' ? 'cli' : 'manual' });
-    res.json({ message: 'Deploy triggered', deploymentId: deployment.id });
-  } catch (err) {
-    if (err.status === 422 && err.missing) {
-      return res.status(422).json({ error: err.message, missing: err.missing, deploymentId: err.deployment?.id });
-    }
-    res.status(err.status || 500).json({ error: err.message });
-  }
+  const r = await runner.deploy(app.slug, { trigger: req.auth?.type === 'token' ? 'cli' : 'manual' });
+  if (r.status === 200) return res.json({ message: 'Deploy triggered', deploymentId: r.body.deploymentId });
+  res.status(r.status).json(r.body);
 });
 
 // Local (non-GitHub) deploy: receive a gzipped tarball of the working dir and
@@ -241,17 +232,10 @@ router.post('/:slug/deploy-local', express.raw({ type: () => true, limit: '256mb
   const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
   if (!req.body || !req.body.length) return res.status(400).json({ error: 'empty upload (send a gzipped tarball)' });
-  const fs = require('fs');
-  fs.mkdirSync(config.paths.repos, { recursive: true });
-  const tarPath = path.join(config.paths.repos, `${app.slug}.upload.tgz`);
-  fs.writeFileSync(tarPath, req.body);
-  try {
-    const deployment = await runDeploy(app, { trigger: 'cli', localTarball: tarPath });
-    res.json({ message: 'Local deploy triggered', deploymentId: deployment.id });
-  } catch (err) {
-    if (err.status === 422 && err.missing) return res.status(422).json({ error: err.message, missing: err.missing, deploymentId: err.deployment?.id });
-    res.status(err.status || 500).json({ error: err.message });
-  }
+  // forward the tarball to the runner (which holds the build volumes + does the work)
+  const r = await runner.deployLocal(app.slug, req.body);
+  if (r.status === 200) return res.json({ message: 'Local deploy triggered', deploymentId: r.body.deploymentId });
+  res.status(r.status).json(r.body);
 });
 
 router.get('/:slug/deployments', async (req, res) => {
@@ -344,28 +328,29 @@ router.delete('/:slug/env/:key', async (req, res) => {
 router.get('/:slug/status', async (req, res) => {
   const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
-  res.json(pc.appStatus(app));
+  const r = await runner.status(app.slug).catch(() => ({ status: 503, body: { status: 'unavailable' } }));
+  res.json(r.body || { status: 'unavailable' });
 });
 
 router.post('/:slug/restart', async (req, res) => {
   const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
-  try { pc.restart(app); res.json({ message: 'Process restarted' }); }
-  catch (err) { res.status(500).json({ error: `Restart failed: ${err.message}` }); }
+  const r = await runner.restart(app.slug);
+  res.status(r.status).json(r.status === 200 ? { message: 'Process restarted' } : r.body);
 });
 
 router.post('/:slug/stop', async (req, res) => {
   const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
-  try { pc.stop(app); res.json({ message: 'Process stopped' }); }
-  catch (err) { res.status(500).json({ error: `Stop failed: ${err.message}` }); }
+  const r = await runner.stop(app.slug);
+  res.status(r.status).json(r.status === 200 ? { message: 'Process stopped' } : r.body);
 });
 
 router.get('/:slug/logs', async (req, res) => {
   const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
-  const lines = parseInt(req.query.lines, 10) || 100;
-  res.json({ logs: pc.readLogs(app, lines) });
+  const r = await runner.logs(app.slug, parseInt(req.query.lines, 10) || 100).catch(() => ({ status: 503, body: { logs: '(runner unreachable)' } }));
+  res.json(r.body || { logs: '' });
 });
 
 // ── terminal (gated behind TOOLSTEAD_ENABLE_TERMINAL; arbitrary RCE by design) ──

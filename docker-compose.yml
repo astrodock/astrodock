@@ -50,8 +50,12 @@ services:
     env_file:
       - .env
     environment:
-      # network-specific values — fixed regardless of .env
+      # The control plane holds NO Docker socket and NO GitHub PAT (those live in the runner).
       PORT: "3100"
+      TOOLSTEAD_ROLE: control-plane
+      TOOLSTEAD_GITHUB_PAT: ""                 # explicitly blanked on the api
+      TOOLSTEAD_RUNNER_URL: http://runner:3200
+      TOOLSTEAD_RUNNER_TOKEN: "${TOOLSTEAD_RUNNER_TOKEN:-change-me-runner-shared-token}"
       TOOLSTEAD_PG_HOST: postgres
       TOOLSTEAD_PG_PORT: "5432"
       TOOLSTEAD_PG_APP_HOST: postgres
@@ -60,24 +64,52 @@ services:
       TOOLSTEAD_OBJECTSTORE_APP_ENDPOINT: http://objectstore:8333
       TOOLSTEAD_CADDY_ADMIN: http://caddy:2019
       TOOLSTEAD_INTERNAL_AUTH_URL: http://api:3100
+      TOOLSTEAD_CADDY_STATIC_DIR: /srv/static
+      TOOLSTEAD_STATIC_DIR: /data/static
+    volumes:
+      - static:/data/static     # publishes the admin SPA into the shared static volume
+    depends_on:
+      postgres:
+        condition: service_healthy
+      caddy:
+        condition: service_started
+    restart: unless-stopped
+
+  # The runner: owns the Docker socket, the GitHub PAT, PM2, and the build volumes.
+  # Same image as api, started in the runner role. Reachable only on the internal network.
+  runner:
+    build:
+      context: .
+      dockerfile: apps/control-plane/Dockerfile
+    env_file:
+      - .env
+    environment:
+      TOOLSTEAD_ROLE: runner
+      TOOLSTEAD_RUNNER_PORT: "3200"
+      TOOLSTEAD_RUNNER_TOKEN: "${TOOLSTEAD_RUNNER_TOKEN:-change-me-runner-shared-token}"
+      TOOLSTEAD_PG_HOST: postgres
+      TOOLSTEAD_PG_PORT: "5432"
+      TOOLSTEAD_PG_APP_HOST: postgres
+      TOOLSTEAD_PG_APP_PORT: "5432"
+      TOOLSTEAD_OBJECTSTORE_ENDPOINT: http://objectstore:8333
+      TOOLSTEAD_OBJECTSTORE_APP_ENDPOINT: http://objectstore:8333
+      TOOLSTEAD_OBJECTSTORE_CONTAINER: toolstead-objectstore-1
+      TOOLSTEAD_INTERNAL_AUTH_URL: http://api:3100
       TOOLSTEAD_DOCKER_NETWORK: toolstead_default
       TOOLSTEAD_STATIC_DIR: /data/static
-      TOOLSTEAD_CADDY_STATIC_DIR: /srv/static
       TOOLSTEAD_APPS_DIR: /data/apps
       TOOLSTEAD_REPOS_DIR: /data/repos
     volumes:
-      # Docker socket → run Dockerfile apps as sibling containers (root-equivalent; see SECURITY.md)
+      # Docker socket → build/run Dockerfile apps + mint object-store identities (≈ host root; see SECURITY.md)
       - /var/run/docker.sock:/var/run/docker.sock
-      - static:/data/static     # same volume Caddy serves from at /srv/static
+      - static:/data/static
       - apps:/data/apps
       - repos:/data/repos
-      - pm2home:/data/pm2        # PM2 process list survives restarts (#5)
+      - pm2home:/data/pm2
     depends_on:
       postgres:
         condition: service_healthy
       objectstore:
-        condition: service_started
-      caddy:
         condition: service_started
     restart: unless-stopped
 

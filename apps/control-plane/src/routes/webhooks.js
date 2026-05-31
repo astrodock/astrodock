@@ -4,7 +4,7 @@ const express = require('express');
 const { eq } = require('drizzle-orm');
 const { db, schema } = require('../db');
 const { verifyWebhookSignature } = require('../lib/github');
-const { runDeploy } = require('../runner/deploy');
+const { runner } = require('../runner/client');
 
 const router = express.Router();
 
@@ -40,7 +40,7 @@ router.post('/github', express.raw({ type: 'application/json' }), async (req, re
   const commitHash = head?.id?.substring(0, 7) || '';
   const commitMessage = head?.message?.split('\n')[0] || '';
 
-  runDeploy(app, { trigger: 'webhook', commitHash, commitMessage }).catch((err) => {
+  runner.deploy(app.slug, { trigger: 'webhook', commitHash, commitMessage }).catch((err) => {
     console.error(`Deploy failed for ${app.slug}:`, err.message);
   });
 

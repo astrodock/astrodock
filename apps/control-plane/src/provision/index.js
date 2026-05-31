@@ -5,7 +5,7 @@ const { eq } = require('drizzle-orm');
 const config = require('../config');
 const { db, schema } = require('../db');
 const { provisionDatabase } = require('./database');
-const { provisionStorage } = require('./storage');
+const { runner } = require('../runner/client');
 const { generateCaddyfile, loadCaddyfile } = require('./caddy');
 
 // Regenerate the full Caddy config from all provisioned apps and push it.
@@ -48,7 +48,10 @@ async function provisionApp(app) {
   }
 
   if (app.storageMode === 'internal') {
-    const r = await provisionStorage(app);
+    // storage-identity provisioning needs the Docker socket → delegate to the runner
+    const resp = await runner.provisionStorage(app.slug);
+    if (resp.status !== 200) throw new Error(`runner storage provisioning failed: ${resp.body?.error || resp.status}`);
+    const r = resp.body;
     update.storageBucket = r.storageBucket;
     update.storagePrefix = r.storagePrefix;
     update.storageAccessKey = r.storageAccessKey;

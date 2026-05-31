@@ -41,6 +41,13 @@ await migrate();
 for (const t of [schema.appEnvVars, schema.deployments, schema.apps, schema.apiTokens, schema.authLogs, schema.users]) await db.delete(t);
 await seedAdmin({ log: () => {} });
 
+const config = require(path.join(cpDir, 'src/config.js'));
+config.runnerToken = config.runnerToken || 'test-runner-token';
+const { app: runnerApp } = require(path.join(cpDir, 'src/runner/server.js'));
+const runnerServer = runnerApp.listen(0);
+await new Promise((r) => runnerServer.once('listening', r));
+config.runnerUrl = `http://127.0.0.1:${runnerServer.address().port}`;
+
 const server = app.listen(0);
 await new Promise((r) => server.once('listening', r));
 const url = `http://127.0.0.1:${server.address().port}`;
@@ -127,6 +134,7 @@ try {
 
 } finally {
   server.close();
+  runnerServer.close();
   await close().catch(() => {});
   fs.rmSync(dir, { recursive: true, force: true });
 }

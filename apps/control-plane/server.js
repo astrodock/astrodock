@@ -10,7 +10,6 @@ const { seedAdmin } = require('./src/seed');
 const { reloadCaddyWithRetry, startCaddyReconciler } = require('./src/provision');
 const { lockdownControlPlaneDb } = require('./src/provision/database');
 const { isEnabled: secretEncryptionEnabled } = require('./src/lib/crypto');
-const { startHealthChecker } = require('./src/runner/health');
 
 const app = express();
 
@@ -67,8 +66,7 @@ async function start() {
   // Push current routing to Caddy (retried; reconciler keeps it healed).
   reloadCaddyWithRetry().catch(() => {});
   startCaddyReconciler();
-
-  startHealthChecker();
+  // (app health monitoring runs in the runner container; this api reads app_health from the DB)
 
   app.listen(config.port, () => {
     console.log(`Toolstead control plane listening on :${config.port} (env=${config.env}, base=${config.baseDomain})`);
