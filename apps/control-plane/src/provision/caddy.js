@@ -13,8 +13,21 @@ function site(host) {
   return config.tlsMode === 'off' ? `http://${host}` : host;
 }
 
+function adminOrigin() {
+  // Caddy parses origins with url.Parse, so they MUST include a scheme
+  // (a bare "caddy:2019" is read as scheme "caddy"). Match the Origin header
+  // the control plane sends (config.caddyAdmin, e.g. http://caddy:2019).
+  try { return new URL(config.caddyAdmin).origin; } catch { return 'http://caddy:2019'; }
+}
+
 function globalOptions() {
-  const lines = ['\tadmin 0.0.0.0:2019'];
+  // Keep the admin API reachable from the api container; the origins list must
+  // include the Origin the control plane POSTs from, or Caddy returns 403.
+  const lines = [
+    '\tadmin 0.0.0.0:2019 {',
+    `\t\torigins ${adminOrigin()} http://localhost:2019 http://127.0.0.1:2019`,
+    '\t}'
+  ];
   if (config.tlsMode === 'auto' && config.acmeEmail) lines.push(`\temail ${config.acmeEmail}`);
   if (config.tlsMode === 'internal') lines.push('\tlocal_certs');
   if (config.tlsMode === 'off') lines.push('\tauto_https off');
@@ -97,7 +110,8 @@ async function loadCaddyfile(text) {
   try {
     const res = await fetch(`${config.caddyAdmin}/load`, {
       method: 'POST',
-      headers: { 'Content-Type': 'text/caddyfile' },
+      // Caddy's admin API enforces an Origin check on non-loopback binds; send one it allows.
+      headers: { 'Content-Type': 'text/caddyfile', Origin: config.caddyAdmin },
       body: text
     });
     if (!res.ok) {

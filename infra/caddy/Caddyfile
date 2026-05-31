@@ -1,10 +1,13 @@
 # Bootstrap Caddy config. The control plane replaces this at runtime by POSTing a
 # freshly-generated Caddyfile to the admin API (POST /load), adding the admin host
 # and one block per provisioned app. This file just keeps the admin API reachable
-# and answers a health check until that first push lands.
+# (from the api container, over the internal network) and answers a health check
+# until that first push lands.
 
 {
-	admin 0.0.0.0:2019
+	admin 0.0.0.0:2019 {
+		origins http://caddy:2019 http://localhost:2019 http://127.0.0.1:2019
+	}
 }
 
 :80 {

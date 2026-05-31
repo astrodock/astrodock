@@ -51,11 +51,20 @@ Postgres 16 (local, via Homebrew — used as the live test DB).
 - `@toolstead/cli` drives the live control plane. **7 CLI integration tests pass** (apply with
   real provisioning, apps, set-secret, status, deploy gate, app.json validation).
 
-### Stage 2 — docker compose stack ⚠️ config verified, image build pending
-- `docker compose config` validates. Multi-stage Dockerfile, Caddy bootstrap, entrypoint, root
-  `.env.example` written. 📦 Full `docker compose build` + `up` (Caddy routing, SeaweedFS, the
-  runner deploy paths) **unverified-in-sandbox** — needs a real Docker host. This is the #1 thing
-  to smoke-test on a box.
+### Stage 2 — docker compose stack ✅ (booted & verified live in real containers)
+- `docker compose build` succeeds; `docker compose up -d` boots all 4 services (postgres healthy).
+- Control plane migrates + seeds + listens; pushes generated routes to Caddy.
+- **Verified live through Caddy** (internal TLS): admin SPA served at `admin.localhost`
+  (`<title>Toolstead Admin</title>`), `/admin/login` proxied → returns a JWT, `/webhooks/github`
+  proxied → control plane.
+- **Provisioners verified live**: applying an internal-everything app created the internal
+  Postgres DB `app_demo` in the bundled PG, created the SeaweedFS bucket `toolstead` (S3
+  ListBuckets confirms), and generated a `demo.localhost` block in Caddy's active config.
+- Fixed during bring-up: Caddy admin API 403 — its `origins` must be scheme-qualified
+  (`http://caddy:2019`) and the control plane sends a matching `Origin` header.
+- 📦 **Still unverified-in-sandbox:** the actual deploy *worker* (clone a real GitHub repo →
+  build → PM2/Docker run → health) needs a GitHub PAT + repo. Gate/trigger logic is tested; the
+  build/run steps are read-reviewed. This is the one remaining thing to smoke-test with a real repo.
 
 ### Stage 7 — admin UI ✅/⚠️ (delegated to a subagent)
 - De-brand + adapt to the new API contract + a new Tokens page, delegated to a subagent with the
