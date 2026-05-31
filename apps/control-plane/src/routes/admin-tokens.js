@@ -18,13 +18,14 @@ const FORBIDDEN_SCOPES = ['users']; // never grantable to a token
 router.get('/', async (req, res) => {
   const rows = await db.select({
     id: schema.apiTokens.id, name: schema.apiTokens.name, scopes: schema.apiTokens.scopes,
+    appScope: schema.apiTokens.appScope,
     lastUsedAt: schema.apiTokens.lastUsedAt, createdAt: schema.apiTokens.createdAt
   }).from(schema.apiTokens).orderBy(desc(schema.apiTokens.createdAt));
   res.json({ tokens: rows });
 });
 
 router.post('/', async (req, res) => {
-  const { name, scopes } = req.body || {};
+  const { name, scopes, apps } = req.body || {};
   if (!name) return res.status(400).json({ error: 'name is required' });
   const requested = Array.isArray(scopes) && scopes.length ? scopes : ['deploy'];
   if (requested.some((s) => FORBIDDEN_SCOPES.includes(s))) {
@@ -33,13 +34,17 @@ router.post('/', async (req, res) => {
   if (requested.some((s) => !ALLOWED_SCOPES.includes(s))) {
     return res.status(400).json({ error: `Unknown scope. Allowed: ${ALLOWED_SCOPES.join(', ')}` });
   }
+  // optional per-app restriction: [] = all apps
+  const appScope = Array.isArray(apps) ? apps.filter((s) => typeof s === 'string' && /^[a-z0-9-]+$/.test(s)) : [];
 
   const raw = generateApiToken();
-  const rows = await db.insert(schema.apiTokens).values({ name, tokenHash: hashToken(raw), scopes: requested }).returning();
+  const rows = await db.insert(schema.apiTokens).values({ name, tokenHash: hashToken(raw), scopes: requested, appScope }).returning();
   res.status(201).json({
     token: raw, // shown ONCE
-    id: rows[0].id, name: rows[0].name, scopes: rows[0].scopes,
-    note: 'Copy this token now — it will not be shown again.'
+    id: rows[0].id, name: rows[0].name, scopes: rows[0].scopes, appScope: rows[0].appScope,
+    note: appScope.length
+      ? `Copy this token now — it will not be shown again. Scoped to: ${appScope.join(', ')}.`
+      : 'Copy this token now — it will not be shown again.'
   });
 });
 

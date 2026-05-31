@@ -39,6 +39,7 @@ COPY apps/control-plane/docker-entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
 ENV NODE_ENV=production \
+    PM2_HOME=/data/pm2 \
     TOOLSTEAD_STATIC_DIR=/data/static \
     TOOLSTEAD_APPS_DIR=/data/apps \
     TOOLSTEAD_REPOS_DIR=/data/repos

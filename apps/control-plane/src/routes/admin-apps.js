@@ -6,7 +6,7 @@ const path = require('path');
 const { eq, and, desc } = require('drizzle-orm');
 const config = require('../config');
 const { db, schema } = require('../db');
-const { requireScope } = require('../middleware/auth');
+const { requireScope, tokenAllowsApp } = require('../middleware/auth');
 const { getAppBySlug, getAppEnvVars, serializeApp, serializeEnvVar } = require('../lib/apps');
 const { applyManifest } = require('../lib/apply');
 const { computeEnv, computeMissingRequired } = require('../lib/env-compute');
@@ -14,10 +14,22 @@ const { provisionApp, reloadCaddyFromDb } = require('../provision');
 const { runDeploy } = require('../runner/deploy');
 const pc = require('../runner/process-control');
 const { generateAppSecret, generateWebhookSecret } = require('../lib/ids');
+const { encryptSecret } = require('../lib/crypto');
+const { dropDatabase } = require('../provision/database');
+const { dropStorage } = require('../provision/storage');
 const { listRepos, createWebhook, deleteWebhook } = require('../lib/github');
 
 const router = express.Router();
 router.use(requireScope('deploy'));
+
+// Enforce per-app token scope for every /:slug route (params aren't available in
+// the router-level use() above, but router.param runs once :slug is matched).
+router.param('slug', (req, res, next, slug) => {
+  if (req.auth && !tokenAllowsApp(req.auth, slug)) {
+    return res.status(403).json({ error: `Token is not scoped to app "${slug}"` });
+  }
+  next();
+});
 
 const scheme = () => (config.tlsMode === 'off' ? 'http' : 'https');
 
@@ -37,8 +49,11 @@ router.get('/status/all', async (req, res) => {
 router.post('/apply', async (req, res) => {
   const manifest = req.body?.manifest || req.body;
   const prune = !!(req.body?.prune || req.query.prune);
+  if (manifest && manifest.slug && !tokenAllowsApp(req.auth, manifest.slug)) {
+    return res.status(403).json({ error: `Token is not scoped to app "${manifest.slug}"` });
+  }
   try {
-    const { app, created } = await applyManifest(manifest, { prune });
+    const { app, created, appSecret: newAppSecret } = await applyManifest(manifest, { prune });
 
     // Optionally connect repo (githubRepo may come from manifest.source).
     const githubRepo = manifest?.source?.githubRepo;
@@ -54,7 +69,7 @@ router.post('/apply', async (req, res) => {
     res.status(created ? 201 : 200).json({
       created,
       app: serializeApp(provisioned),
-      appSecret: created ? app.appSecret : undefined,
+      appSecret: created ? newAppSecret : undefined, // shown once, plaintext
       repoConnected,
       repoError: res.locals.repoError,
       provision: results
@@ -67,7 +82,9 @@ router.post('/apply', async (req, res) => {
 
 // ── CRUD ──────────────────────────────────────────────────────────────────────
 router.get('/', async (req, res) => {
-  const apps = await db.select().from(schema.apps).orderBy(schema.apps.name);
+  let apps = await db.select().from(schema.apps).orderBy(schema.apps.name);
+  // per-app-scoped tokens only see their apps
+  apps = apps.filter((a) => tokenAllowsApp(req.auth, a.slug));
   res.json({ apps: apps.map(serializeApp) });
 });
 
@@ -85,6 +102,9 @@ router.get('/:slug', async (req, res) => {
 // Manual create (admin UI) — builds a manifest from the body and applies it.
 router.post('/', async (req, res) => {
   const b = req.body || {};
+  if (b.slug && !tokenAllowsApp(req.auth, b.slug)) {
+    return res.status(403).json({ error: `Token is not scoped to app "${b.slug}"` });
+  }
   const manifest = {
     schemaVersion: '1',
     slug: b.slug, name: b.name, subdomain: b.subdomain, description: b.description || '',
@@ -96,9 +116,9 @@ router.post('/', async (req, res) => {
     env: []
   };
   try {
-    const { app, created } = await applyManifest(manifest);
+    const { app, created, appSecret: newAppSecret } = await applyManifest(manifest);
     if (!created) return res.status(409).json({ error: 'An app with this slug already exists' });
-    res.status(201).json({ app: serializeApp(app), appSecret: app.appSecret });
+    res.status(201).json({ app: serializeApp(app), appSecret: newAppSecret });
   } catch (err) {
     if (err.errors) return res.status(err.status || 400).json({ error: err.message, errors: err.errors });
     res.status(err.status || 500).json({ error: err.message });
@@ -125,11 +145,25 @@ router.patch('/:slug', async (req, res) => {
 router.delete('/:slug', async (req, res) => {
   const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
+  const purge = !!(req.query.purge || req.body?.purge); // also drop internal data
+
   if (app.githubRepo && app.webhookId) { try { await deleteWebhook(app.githubRepo, app.webhookId); } catch { /* best effort */ } }
   try { pc.stop(app); } catch { /* best effort */ }
+  try { pc.remove(app); } catch { /* best effort */ }
+
+  if (purge) {
+    if (app.databaseMode === 'internal') { try { await dropDatabase(app); } catch (e) { console.error('[delete] drop db failed:', e.message); } }
+    if (app.storageMode === 'internal') { try { await dropStorage(app); } catch (e) { console.error('[delete] drop storage failed:', e.message); } }
+  }
+
   await db.delete(schema.deployments).where(eq(schema.deployments.appSlug, app.slug));
+  await db.delete(schema.appHealth).where(eq(schema.appHealth.slug, app.slug)).catch(() => {});
   await db.delete(schema.apps).where(eq(schema.apps.id, app.id)); // env vars cascade
   await reloadCaddyFromDb();
+
+  if (!purge && (app.databaseMode === 'internal' || app.storageMode === 'internal')) {
+    console.log(`[delete] ${app.slug}: internal data retained (pass ?purge=true to drop the DB/storage too)`);
+  }
   res.status(204).end();
 });
 
@@ -137,7 +171,7 @@ router.post('/:slug/rotate-secret', async (req, res) => {
   const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
   const appSecret = generateAppSecret();
-  await db.update(schema.apps).set({ appSecret, updatedAt: new Date() }).where(eq(schema.apps.id, app.id));
+  await db.update(schema.apps).set({ appSecret: encryptSecret(appSecret), updatedAt: new Date() }).where(eq(schema.apps.id, app.id));
   res.json({ appSecret, note: 'Redeploy the app for the new secret to take effect.' });
 });
 
@@ -236,7 +270,8 @@ router.put('/:slug/env/:key', async (req, res) => {
     if (!app) return res.status(404).json({ error: 'App not found' });
     const rows = await db.select().from(schema.appEnvVars).where(and(eq(schema.appEnvVars.appId, app.id), eq(schema.appEnvVars.key, req.params.key))).limit(1);
     if (!rows[0]) return res.status(400).json({ error: 'Reserved TOOLSTEAD_* variables cannot be declared by apps' });
-    await db.update(schema.appEnvVars).set({ value, updatedAt: new Date() }).where(eq(schema.appEnvVars.id, rows[0].id));
+    const stored = rows[0].isSecret ? encryptSecret(value) : value;
+    await db.update(schema.appEnvVars).set({ value: stored, updatedAt: new Date() }).where(eq(schema.appEnvVars.id, rows[0].id));
     return res.json({ ok: true });
   }
   if (!/^[A-Z][A-Z0-9_]*$/.test(req.params.key)) return res.status(400).json({ error: 'key must be UPPER_SNAKE_CASE' });
@@ -244,8 +279,12 @@ router.put('/:slug/env/:key', async (req, res) => {
   const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
   const rows = await db.select().from(schema.appEnvVars).where(and(eq(schema.appEnvVars.appId, app.id), eq(schema.appEnvVars.key, req.params.key))).limit(1);
-  if (rows[0]) await db.update(schema.appEnvVars).set({ value, updatedAt: new Date() }).where(eq(schema.appEnvVars.id, rows[0].id));
-  else await db.insert(schema.appEnvVars).values({ appId: app.id, key: req.params.key, value, kind: 'declared' });
+  if (rows[0]) {
+    const stored = rows[0].isSecret ? encryptSecret(value) : value;
+    await db.update(schema.appEnvVars).set({ value: stored, updatedAt: new Date() }).where(eq(schema.appEnvVars.id, rows[0].id));
+  } else {
+    await db.insert(schema.appEnvVars).values({ appId: app.id, key: req.params.key, value, kind: 'declared' });
+  }
   res.json({ ok: true });
 });
 

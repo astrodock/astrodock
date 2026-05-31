@@ -4,6 +4,7 @@ const express = require('express');
 const { eq } = require('drizzle-orm');
 const { db, schema } = require('../db');
 const { verifyPassword } = require('../lib/passwords');
+const { decryptSecret } = require('../lib/crypto');
 const { verifyLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
@@ -25,7 +26,7 @@ router.post('/', verifyLimiter, async (req, res) => {
 
   const appRows = await db.select().from(schema.apps).where(eq(schema.apps.slug, appId)).limit(1);
   const app = appRows[0];
-  if (!app || app.appSecret !== appSecret) {
+  if (!app || decryptSecret(app.appSecret) !== appSecret) {
     logAttempt(email, appId, 'INVALID_APP_SECRET', ip);
     return res.status(401).json({ error: 'Invalid app credentials' });
   }

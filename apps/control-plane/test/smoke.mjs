@@ -147,6 +147,36 @@ try {
     assert.strictEqual(r.status, 400);
   });
 
+  await test('#4 secrets are encrypted at rest', async () => {
+    const rows = await db.select().from(schema.apps).where(eq(schema.apps.slug, 'notes')).limit(1);
+    assert.ok(rows[0].appSecret.startsWith('v1:'), 'app_secret is an encrypted blob, not plaintext');
+    assert.ok(rows[0].appJwtSecret.startsWith('v1:'), 'app_jwt_secret encrypted');
+    // ...and /verify still works (decrypts correctly) — re-fetch the live appSecret via rotate
+    const rot = await api('POST', '/admin/apps/notes/rotate-secret', { token: adminToken });
+    const v = await api('POST', '/verify', { body: { email: 'u@example.com', password: 'password123', appId: 'notes', appSecret: rot.json.appSecret } });
+    assert.strictEqual(v.status, 200, 'verify works with the decrypted secret');
+  });
+
+  await test('#11 per-app-scoped token is confined to its app', async () => {
+    const mk = await api('POST', '/admin/tokens', { token: adminToken, body: { name: 'scoped', scopes: ['deploy'], apps: ['notes'] } });
+    assert.strictEqual(mk.status, 201, JSON.stringify(mk.json));
+    const tk = mk.json.token;
+    const ok = await api('GET', '/admin/apps/notes', { token: tk });
+    assert.strictEqual(ok.status, 200, 'in-scope app readable');
+    const denied = await api('GET', '/admin/apps/crm', { token: tk });
+    assert.strictEqual(denied.status, 403, 'out-of-scope app denied');
+    const list = await api('GET', '/admin/apps', { token: tk });
+    assert.ok(list.json.apps.every((a) => a.slug === 'notes'), 'list filtered to scope');
+  });
+
+  await test('#6 only one active deploy per app (DB-enforced)', async () => {
+    await db.insert(schema.deployments).values({ appSlug: 'notes', status: 'building', trigger: 'manual' });
+    let violated = false;
+    try { await db.insert(schema.deployments).values({ appSlug: 'notes', status: 'pending', trigger: 'manual' }); }
+    catch (e) { violated = /one_active_per_app/.test(e.message); }
+    assert.ok(violated, 'second concurrent active deploy is rejected by the unique index');
+  });
+
 } finally {
   server.close();
   await close().catch(() => {});

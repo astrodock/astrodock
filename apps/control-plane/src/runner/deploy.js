@@ -40,10 +40,21 @@ async function runDeploy(app, { trigger = 'manual', commitHash = '', commitMessa
     throw e;
   }
 
-  const rows = await db.insert(schema.deployments).values({
-    appSlug: app.slug, trigger, commitHash, commitMessage, status: 'pending', startedAt: new Date()
-  }).returning();
-  const deployment = rows[0];
+  // #6: the partial unique index deployments_one_active_per_app guarantees at most
+  // one in-flight deploy per app. A concurrent trigger hits the unique violation.
+  let deployment;
+  try {
+    const rows = await db.insert(schema.deployments).values({
+      appSlug: app.slug, trigger, commitHash, commitMessage, status: 'pending', startedAt: new Date()
+    }).returning();
+    deployment = rows[0];
+  } catch (err) {
+    if (String(err.message).includes('deployments_one_active_per_app')) {
+      const e = new Error('A deploy is already in progress for this app.');
+      e.status = 409; throw e;
+    }
+    throw err;
+  }
 
   const workerPath = path.join(__dirname, 'deploy-worker.js');
   const child = fork(workerPath, [JSON.stringify({ deploymentId: deployment.id, appSlug: app.slug })], {

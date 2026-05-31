@@ -2,6 +2,7 @@
 
 const config = require('../config');
 const { userRequiredReservedKeys } = require('@toolstead/schema');
+const { decryptSecret } = require('./crypto');
 
 function scheme() {
   return config.tlsMode === 'off' ? 'http' : 'https';
@@ -45,11 +46,12 @@ function computeEnv(app, envVars) {
   // ── database ──
   if (app.databaseMode === 'internal') {
     const u = encodeURIComponent(app.dbUser || '');
-    const p = encodeURIComponent(app.dbPassword || '');
+    const p = encodeURIComponent(decryptSecret(app.dbPassword) || '');
     env.TOOLSTEAD_DATABASE_URL = `postgresql://${u}:${p}@${config.pg.appHost}:${config.pg.appPort}/${app.dbName}`;
     env.TOOLSTEAD_DATABASE_ENGINE = 'postgres';
   } else if (app.databaseMode === 'external') {
-    if (vals.get('TOOLSTEAD_DATABASE_URL')) env.TOOLSTEAD_DATABASE_URL = vals.get('TOOLSTEAD_DATABASE_URL');
+    const v = vals.get('TOOLSTEAD_DATABASE_URL');
+    if (v) env.TOOLSTEAD_DATABASE_URL = decryptSecret(v);
     env.TOOLSTEAD_DATABASE_ENGINE = 'postgres';
   }
 
@@ -57,13 +59,22 @@ function computeEnv(app, envVars) {
   if (app.storageMode === 'internal') {
     env.TOOLSTEAD_STORAGE_ENDPOINT = config.objectstore.appEndpoint;
     env.TOOLSTEAD_STORAGE_REGION = config.objectstore.region;
-    env.TOOLSTEAD_STORAGE_BUCKET = config.objectstore.bucket;
-    env.TOOLSTEAD_STORAGE_PREFIX = app.storagePrefix || `${app.slug}/`;
-    env.TOOLSTEAD_STORAGE_ACCESS_KEY = config.objectstore.accessKey;
-    env.TOOLSTEAD_STORAGE_SECRET_KEY = config.objectstore.secretKey;
+    if (app.storageAccessKey) {
+      // scoped per-app key + own bucket
+      env.TOOLSTEAD_STORAGE_BUCKET = app.storageBucket;
+      env.TOOLSTEAD_STORAGE_PREFIX = app.storagePrefix || '';
+      env.TOOLSTEAD_STORAGE_ACCESS_KEY = app.storageAccessKey;
+      env.TOOLSTEAD_STORAGE_SECRET_KEY = decryptSecret(app.storageSecretKey);
+    } else {
+      // shared-key fallback + per-app prefix
+      env.TOOLSTEAD_STORAGE_BUCKET = config.objectstore.bucket;
+      env.TOOLSTEAD_STORAGE_PREFIX = app.storagePrefix || `${app.slug}/`;
+      env.TOOLSTEAD_STORAGE_ACCESS_KEY = config.objectstore.accessKey;
+      env.TOOLSTEAD_STORAGE_SECRET_KEY = config.objectstore.secretKey;
+    }
   } else if (app.storageMode === 'external') {
     for (const k of ['TOOLSTEAD_STORAGE_ENDPOINT', 'TOOLSTEAD_STORAGE_REGION', 'TOOLSTEAD_STORAGE_BUCKET', 'TOOLSTEAD_STORAGE_ACCESS_KEY', 'TOOLSTEAD_STORAGE_SECRET_KEY']) {
-      if (vals.get(k)) env[k] = vals.get(k);
+      if (vals.get(k)) env[k] = decryptSecret(vals.get(k));
     }
   }
 
@@ -71,15 +82,15 @@ function computeEnv(app, envVars) {
   if (app.authMode === 'platform') {
     env.TOOLSTEAD_AUTH_URL = config.internalAuthUrl;
     env.TOOLSTEAD_APP_ID = app.slug;
-    env.TOOLSTEAD_APP_SECRET = app.appSecret;
-    env.TOOLSTEAD_APP_JWT_SECRET = app.appJwtSecret;
+    env.TOOLSTEAD_APP_SECRET = decryptSecret(app.appSecret);
+    env.TOOLSTEAD_APP_JWT_SECRET = decryptSecret(app.appJwtSecret);
   }
 
   // ── app-declared (value or default; secrets never have defaults) ──
   for (const v of envVars) {
     if (v.kind !== 'declared') continue;
-    const value = (v.value != null && v.value !== '') ? v.value : (v.defaultValue ?? null);
-    if (value != null) env[v.key] = value;
+    const raw = (v.value != null && v.value !== '') ? decryptSecret(v.value) : (v.defaultValue ?? null);
+    if (raw != null) env[v.key] = raw;
   }
 
   // ── documented unprefixed alias ──

@@ -7,7 +7,9 @@ const config = require('./src/config');
 const { ping } = require('./src/db');
 const { migrate } = require('./src/db/migrate');
 const { seedAdmin } = require('./src/seed');
-const { reloadCaddyFromDb } = require('./src/provision');
+const { reloadCaddyWithRetry, startCaddyReconciler } = require('./src/provision');
+const { lockdownControlPlaneDb } = require('./src/provision/database');
+const { isEnabled: secretEncryptionEnabled } = require('./src/lib/crypto');
 const { startHealthChecker } = require('./src/runner/health');
 
 const app = express();
@@ -53,12 +55,18 @@ async function start() {
     process.exit(1);
   }
 
+  if (!secretEncryptionEnabled()) {
+    console.warn('WARNING: TOOLSTEAD_SECRET_KEY is not set — secrets are stored in PLAINTEXT. Set it to encrypt secrets at rest (see SECURITY.md).');
+  }
+
   await migrate();          // bring the schema up to date
   await ping();             // verify DB connectivity
+  await lockdownControlPlaneDb(); // app roles can't connect to the control-plane DB
   await seedAdmin();        // idempotent admin seed
 
-  // Push current routing to Caddy (best-effort — Caddy may still be booting).
-  reloadCaddyFromDb().catch(() => {});
+  // Push current routing to Caddy (retried; reconciler keeps it healed).
+  reloadCaddyWithRetry().catch(() => {});
+  startCaddyReconciler();
 
   startHealthChecker();
 

@@ -22,6 +22,37 @@ function getState(slug) {
   return states.get(slug);
 }
 
+// Load persisted state on boot so alert/down-since survive a control-plane restart.
+async function loadStates() {
+  try {
+    const rows = await db.select().from(schema.appHealth);
+    for (const r of rows) {
+      states.set(r.slug, {
+        consecutiveFailures: r.consecutiveFailures || 0,
+        alertSent: !!r.alertSent,
+        downSince: r.downSince || null,
+        lastCheck: r.lastCheck ? new Date(r.lastCheck).toISOString() : null,
+        lastStatus: r.status || 'unknown',
+        responseTime: r.responseTime ?? null,
+        proc: r.proc || null
+      });
+    }
+  } catch (err) { console.error('[health] loadStates failed:', err.message); }
+}
+
+async function persistState(slug, s) {
+  const row = {
+    slug, status: s.lastStatus, consecutiveFailures: s.consecutiveFailures,
+    downSince: s.downSince ? new Date(s.downSince) : null, alertSent: s.alertSent,
+    lastCheck: s.lastCheck ? new Date(s.lastCheck) : null, responseTime: s.responseTime ?? null,
+    proc: s.proc || null, updatedAt: new Date()
+  };
+  try {
+    await db.insert(schema.appHealth).values(row)
+      .onConflictDoUpdate({ target: schema.appHealth.slug, set: row });
+  } catch (err) { console.error('[health] persist failed:', err.message); }
+}
+
 function probe(app) {
   return new Promise((resolve) => {
     const host = app.runtimeType === 'docker' ? `app-${app.slug}` : 'localhost';
@@ -68,6 +99,7 @@ async function checkAll() {
     if (state.proc && state.proc.status === 'stopped') {
       if (state.alertSent) sendEmail(recoveryEmail(app, state)).catch(() => {});
       Object.assign(state, { lastStatus: 'stopped', consecutiveFailures: 0, alertSent: false, downSince: null, responseTime: null });
+      await persistState(app.slug, state);
       continue;
     }
 
@@ -85,6 +117,7 @@ async function checkAll() {
         state.lastStatus = 'degraded';
       }
     }
+    await persistState(app.slug, state);
   }
 }
 
@@ -118,7 +151,9 @@ async function pruneAuthLogs() {
 
 function startHealthChecker() {
   console.log('[health] starting (60s interval)');
-  checkAll().catch((e) => console.error('[health] initial check failed:', e.message));
+  loadStates()
+    .then(() => checkAll())
+    .catch((e) => console.error('[health] initial check failed:', e.message));
   pruneAuthLogs();
   setInterval(() => checkAll().catch((e) => console.error('[health] cycle failed:', e.message)), CHECK_INTERVAL);
   setInterval(() => pruneAuthLogs(), 24 * 60 * 60 * 1000);

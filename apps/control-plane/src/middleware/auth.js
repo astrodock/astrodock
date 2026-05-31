@@ -23,7 +23,7 @@ async function resolveAuth(req) {
     if (!tok) return null;
     // best-effort last-used stamp (don't block on it)
     db.update(schema.apiTokens).set({ lastUsedAt: new Date() }).where(eq(schema.apiTokens.id, tok.id)).catch(() => {});
-    return { type: 'token', id: tok.id, name: tok.name, scopes: tok.scopes || [] };
+    return { type: 'token', id: tok.id, name: tok.name, scopes: tok.scopes || [], appScope: tok.appScope || [] };
   }
 
   // Admin JWT.
@@ -53,15 +53,28 @@ function requireAdmin(req, res, next) {
 
 // Admin JWT OR a scoped API token that carries `scope`. Used for the app /
 // deploy / env / observability surface that an agent drives.
+// A token may be restricted to specific app slugs. Empty appScope = all apps.
+function tokenAllowsApp(auth, slug) {
+  if (auth.type !== 'token') return true;
+  const scope = auth.appScope || [];
+  return scope.length === 0 || (slug && scope.includes(slug));
+}
+
 function requireScope(scope) {
   return (req, res, next) => {
     resolveAuth(req).then((auth) => {
       if (!auth) return res.status(401).json({ error: 'Authentication required' });
       if (auth.type === 'admin') { req.auth = auth; return next(); }
-      if (auth.type === 'token' && tokenHasScope(auth.scopes, scope)) { req.auth = auth; return next(); }
+      if (auth.type === 'token' && tokenHasScope(auth.scopes, scope)) {
+        // per-app scoping: if the route targets a specific app, enforce it
+        if (req.params && req.params.slug && !tokenAllowsApp(auth, req.params.slug)) {
+          return res.status(403).json({ error: `Token is not scoped to app "${req.params.slug}"` });
+        }
+        req.auth = auth; return next();
+      }
       return res.status(403).json({ error: `Insufficient scope (need "${scope}")` });
     }).catch((err) => res.status(500).json({ error: err.message }));
   };
 }
 
-module.exports = { resolveAuth, requireAdmin, requireScope, tokenHasScope };
+module.exports = { resolveAuth, requireAdmin, requireScope, tokenHasScope, tokenAllowsApp };

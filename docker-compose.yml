@@ -71,6 +71,7 @@ services:
       - static:/data/static     # same volume Caddy serves from at /srv/static
       - apps:/data/apps
       - repos:/data/repos
+      - pm2home:/data/pm2        # PM2 process list survives restarts (#5)
     depends_on:
       postgres:
         condition: service_healthy
@@ -86,5 +87,6 @@ volumes:
   static:
   apps:
   repos:
+  pm2home:
   caddy_data:
   caddy_config:

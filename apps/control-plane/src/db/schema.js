@@ -55,8 +55,12 @@ const apps = pgTable('apps', {
   dbUser: text('db_user'),
   dbPassword: text('db_password'),
 
-  // internal-storage provisioning state (prefix; keys/bucket come from stack config in v1)
+  // internal-storage provisioning state. With scoped per-app keys: own bucket +
+  // dedicated key. Without (fallback): shared bucket + prefix, keys stay null.
   storagePrefix: text('storage_prefix'),
+  storageBucket: text('storage_bucket'),
+  storageAccessKey: text('storage_access_key'),
+  storageSecretKey: text('storage_secret_key'),
 
   provisioned: boolean('provisioned').notNull().default(false),
 
@@ -122,10 +126,24 @@ const apiTokens = pgTable('api_tokens', {
   name: text('name').notNull(),
   tokenHash: text('token_hash').notNull(),
   scopes: jsonb('scopes').notNull().default(sql`'[]'::jsonb`),
+  appScope: jsonb('app_scope').notNull().default(sql`'[]'::jsonb`), // slug list; [] = all apps
   lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 }, (t) => ({
   tokenHashUniq: uniqueIndex('api_tokens_hash_uniq').on(t.tokenHash)
 }));
 
-module.exports = { users, apps, appEnvVars, deployments, authLogs, apiTokens };
+// Persisted per-app health (so alerting state survives a control-plane restart).
+const appHealth = pgTable('app_health', {
+  slug: text('slug').primaryKey(),
+  status: text('status').notNull().default('unknown'),
+  consecutiveFailures: integer('consecutive_failures').notNull().default(0),
+  downSince: timestamp('down_since', { withTimezone: true }),
+  alertSent: boolean('alert_sent').notNull().default(false),
+  lastCheck: timestamp('last_check', { withTimezone: true }),
+  responseTime: integer('response_time'),
+  proc: jsonb('proc'),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+});
+
+module.exports = { users, apps, appEnvVars, deployments, authLogs, apiTokens, appHealth };

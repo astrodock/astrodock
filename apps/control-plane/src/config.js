@@ -42,6 +42,9 @@ const config = {
 
   // ── Admin auth ──
   adminJwtSecret: process.env.TOOLSTEAD_ADMIN_JWT_SECRET || '',
+  // Master key for encrypting stored secrets at rest (AES-256-GCM). If unset,
+  // secrets are stored in plaintext (back-compat) and a warning is logged at boot.
+  secretKey: process.env.TOOLSTEAD_SECRET_KEY || '',
   adminEmail: process.env.TOOLSTEAD_ADMIN_EMAIL || '',
   adminPassword: process.env.TOOLSTEAD_ADMIN_PASSWORD || '',
 

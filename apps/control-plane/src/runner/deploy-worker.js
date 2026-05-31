@@ -150,17 +150,45 @@ async function deployNode(app, deployRoot, env, { appendLog, setStatus }) {
       if (key.startsWith('TOOLSTEAD_') && !(key in ecosystemEnv)) ecosystemEnv[key] = '';
     }
 
+    // #1: run each Node app as its own non-root OS user so apps can't read each
+    // other's secrets/code. The ecosystem file (which holds the env) is owned by
+    // that user and not readable by other app users.
+    const appUser = `tsapp_${app.slug.replace(/[^a-z0-9]/g, '_')}`;
+    const haveUseradd = canUseradd();
+    if (haveUseradd) {
+      try { exec(`id -u ${appUser} >/dev/null 2>&1 || useradd -r -M -s /usr/sbin/nologin ${appUser}`); }
+      catch (e) { await appendLog(`(note) could not create per-app user: ${e.message}`); }
+    }
+
     const pkg = JSON.parse(fs.readFileSync(path.join(apiPath, 'package.json'), 'utf8'));
     const ext = pkg.type === 'module' ? '.cjs' : '.js';
     const ecosystemPath = path.join(apiPath, `ecosystem.config${ext}`);
-    const ecosystem = { apps: [{ name: app.slug, script: 'server.js', cwd: apiPath, log_date_format: 'YYYY-MM-DD HH:mm:ss', env: ecosystemEnv }] };
-    fs.writeFileSync(ecosystemPath, `module.exports = ${JSON.stringify(ecosystem, null, 2)};\n`);
+    const appCfg = { name: app.slug, script: 'server.js', cwd: apiPath, log_date_format: 'YYYY-MM-DD HH:mm:ss', env: ecosystemEnv };
+    if (haveUseradd) { appCfg.uid = appUser; appCfg.gid = appUser; }
+    fs.writeFileSync(ecosystemPath, `module.exports = ${JSON.stringify({ apps: [appCfg] }, null, 2)};\n`);
 
-    await appendLog(`(Re)starting PM2 process "${app.slug}"`);
+    if (haveUseradd) {
+      // own + lock down the app dir; secrets file is 600, code dir 700 — no cross-app reads
+      try {
+        exec(`chown -R ${appUser}:${appUser} "${apiPath}"`);
+        exec(`chmod 700 "${apiPath}"`);
+        exec(`chmod 600 "${ecosystemPath}"`);
+      } catch (e) { await appendLog(`(note) could not lock down app dir: ${e.message}`); }
+    }
+
+    await appendLog(`(Re)starting PM2 process "${app.slug}"${haveUseradd ? ` as ${appUser}` : ''}`);
     try { exec(`pm2 delete ${app.slug} 2>&1`); } catch { /* not running yet */ }
     await appendLog(exec(`pm2 start "${ecosystemPath}" 2>&1`) || 'started');
-    try { exec('pm2 save 2>&1'); } catch { /* ignore */ }
+    try { exec('pm2 save 2>&1'); } catch { /* ignore */ } // #5: persist for resurrect on restart
   }
+}
+
+let _useradd;
+function canUseradd() {
+  if (_useradd !== undefined) return _useradd;
+  try { execSync('command -v useradd', { stdio: 'ignore' }); _useradd = true; }
+  catch { _useradd = false; }
+  return _useradd;
 }
 
 // ── Dockerfile (sibling container) ─────────────────────────────────────────────

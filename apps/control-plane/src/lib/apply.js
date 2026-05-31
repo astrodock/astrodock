@@ -4,11 +4,12 @@
 // non-destructive: never overwrites secret VALUES, never deletes user-added env
 // vars unless { prune: true }. Mirrors spec §3.2 "apply semantics".
 
-const { eq, and } = require('drizzle-orm');
+const { eq, and, sql } = require('drizzle-orm');
 const { validate, reservedCatalog } = require('@toolstead/schema');
 const { db, schema } = require('../db');
 const config = require('../config');
 const { generateAppSecret, generateSecretHex } = require('./ids');
+const { encryptSecret } = require('./crypto');
 
 async function nextPort() {
   const rows = await db.select({ port: schema.apps.port }).from(schema.apps);
@@ -108,22 +109,27 @@ async function applyManifest(manifest, { prune = false } = {}) {
   const rows = await db.select().from(schema.apps).where(eq(schema.apps.slug, manifest.slug)).limit(1);
   let app = rows[0];
   let created = false;
+  let appSecretPlain;
 
   if (!app) {
-    // subdomain uniqueness
-    const subClash = await db.select().from(schema.apps).where(eq(schema.apps.subdomain, manifest.subdomain)).limit(1);
-    if (subClash[0]) {
-      const err = new Error(`subdomain "${manifest.subdomain}" is already in use`);
-      err.status = 409; throw err;
-    }
-    const inserted = await db.insert(schema.apps).values({
-      slug: manifest.slug,
-      port: await nextPort(),
-      appSecret: generateAppSecret(),
-      appJwtSecret: generateSecretHex(32),
-      ...structuralFromManifest(manifest)
-    }).returning();
-    app = inserted[0];
+    appSecretPlain = generateAppSecret();
+    // Serialize creates with an advisory lock so concurrent applies can't collide
+    // on a port or duplicate the subdomain (atomic check + assign + insert).
+    app = await db.transaction(async (tx) => {
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(4242)`);
+      const subClash = await tx.select().from(schema.apps).where(eq(schema.apps.subdomain, manifest.subdomain)).limit(1);
+      if (subClash[0]) { const e = new Error(`subdomain "${manifest.subdomain}" is already in use`); e.status = 409; throw e; }
+      const portRows = await tx.select({ port: schema.apps.port }).from(schema.apps);
+      const port = Math.max(config.basePort - 1, ...portRows.map((r) => r.port || 0)) + 1;
+      const inserted = await tx.insert(schema.apps).values({
+        slug: manifest.slug,
+        port,
+        appSecret: encryptSecret(appSecretPlain),
+        appJwtSecret: encryptSecret(generateSecretHex(32)),
+        ...structuralFromManifest(manifest)
+      }).returning();
+      return inserted[0];
+    });
     created = true;
   } else {
     const updated = await db.update(schema.apps)
@@ -135,7 +141,7 @@ async function applyManifest(manifest, { prune = false } = {}) {
   await syncReservedRows(app);
   await syncDeclaredRows(app, manifest.env || [], prune);
 
-  return { app, created };
+  return { app, created, appSecret: appSecretPlain };
 }
 
 module.exports = { applyManifest, nextPort };

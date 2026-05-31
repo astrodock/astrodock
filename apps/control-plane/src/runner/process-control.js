@@ -61,6 +61,12 @@ function stop(app) {
   else sh(`pm2 stop ${app.slug} 2>&1`, 15000);
 }
 
+// Fully remove an app's process/container (used on delete).
+function remove(app) {
+  if (app.runtimeType === 'docker') { try { sh(`docker rm -f app-${app.slug} 2>&1`, 15000); } catch { /* gone */ } }
+  else { try { sh(`pm2 delete ${app.slug} 2>&1`, 15000); sh('pm2 save 2>&1', 10000); } catch { /* gone */ } }
+}
+
 function stripAnsi(s) { return s.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, ''); }
 
 function readLogs(app, lines = 100) {
@@ -85,4 +91,4 @@ function readLogs(app, lines = 100) {
   return all.slice(-lines).join('\n') || 'No logs available';
 }
 
-module.exports = { pm2List, appStatus, statusAll, restart, stop, readLogs, dockerNetwork: config.dockerNetwork };
+module.exports = { pm2List, appStatus, statusAll, restart, stop, remove, readLogs, dockerNetwork: config.dockerNetwork };

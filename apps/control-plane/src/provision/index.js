@@ -14,6 +14,22 @@ async function reloadCaddyFromDb() {
   return loadCaddyfile(generateCaddyfile(provisioned));
 }
 
+// Push with a few retries + backoff — Caddy may still be booting on cold start.
+async function reloadCaddyWithRetry(attempts = 5) {
+  for (let i = 0; i < attempts; i++) {
+    if (await reloadCaddyFromDb()) return true;
+    await new Promise((r) => setTimeout(r, Math.min(1000 * 2 ** i, 15000)));
+  }
+  console.error('[caddy] could not push routing after retries — the reconciler will keep trying');
+  return false;
+}
+
+// Periodic self-heal: re-push routing so a transient failure (or a Caddy restart
+// that lost the dynamic config) recovers without operator action.
+function startCaddyReconciler(intervalMs = 120000) {
+  setInterval(() => { reloadCaddyFromDb().catch(() => {}); }, intervalMs);
+}
+
 // Provision an app's resources from its modes and (re)configure routing.
 // Idempotent. Does NOT drop data when modes change (destructive-by-omission).
 async function provisionApp(app) {
@@ -33,8 +49,13 @@ async function provisionApp(app) {
 
   if (app.storageMode === 'internal') {
     const r = await provisionStorage(app);
+    update.storageBucket = r.storageBucket;
     update.storagePrefix = r.storagePrefix;
-    results.push(`internal storage prefix "${r.storagePrefix}" ready in bucket "${config.objectstore.bucket}"`);
+    update.storageAccessKey = r.storageAccessKey;
+    update.storageSecretKey = r.storageSecretKey;
+    results.push(r.scoped
+      ? `internal storage: scoped key on bucket "${r.storageBucket}"`
+      : `internal storage: shared key + prefix "${r.storagePrefix}" in bucket "${r.storageBucket}" (scoped keys unavailable)`);
   }
 
   const rows = await db.update(schema.apps).set(update).where(eq(schema.apps.id, app.id)).returning();
@@ -52,4 +73,4 @@ async function unprovisionApp() {
   return reloadCaddyFromDb();
 }
 
-module.exports = { provisionApp, unprovisionApp, reloadCaddyFromDb };
+module.exports = { provisionApp, unprovisionApp, reloadCaddyFromDb, reloadCaddyWithRetry, startCaddyReconciler };
