@@ -118,7 +118,7 @@ export default function ActivityPage() {
               {authLogs.map(log => {
                 const style = RESULT_STYLES[log.result] || {};
                 return (
-                  <div key={log._id} className="activity-row">
+                  <div key={log.id} className="activity-row">
                     <span className="activity-result" style={{ color: style.color }}>
                       {style.label || log.result}
                     </span>
@@ -148,7 +148,7 @@ export default function ActivityPage() {
               {deployments.map(d => {
                 const style = DEPLOY_STYLES[d.status] || {};
                 return (
-                  <div key={d._id} className="activity-row">
+                  <div key={d.id} className="activity-row">
                     <span className="activity-result" style={{ color: style.color }}>
                       {style.label || d.status}
                     </span>

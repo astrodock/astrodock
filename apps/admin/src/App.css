@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   SV Platform — Command Center
+   Toolstead — Admin Control Plane
    Light refined aesthetic with deep teal accents
    ═══════════════════════════════════════════════════════════ */
 
@@ -292,7 +292,8 @@ label {
 label input[type="text"],
 label input[type="email"],
 label input[type="password"],
-label input:not([type="checkbox"]) {
+label input:not([type="checkbox"]),
+label select {
   display: block;
   width: 100%;
   padding: 0.6rem 0.75rem;
@@ -306,7 +307,8 @@ label input:not([type="checkbox"]) {
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-label input:focus {
+label input:focus,
+label select:focus {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 2px var(--accent-dim);
@@ -1225,11 +1227,11 @@ button.danger:hover {
 }
 
 .system-var td {
-  opacity: 0.45;
+  opacity: 0.8;
 }
 
 .system-var:hover td {
-  opacity: 0.6;
+  opacity: 1;
 }
 
 .system-label {
@@ -1939,4 +1941,125 @@ button.danger:hover {
 .process-dot-sm.warning {
   background: var(--warning);
   box-shadow: 0 0 0 3px var(--warning-dim);
+}
+
+/* ── Env var badges ───────────────────────────────────── */
+
+.env-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.35rem;
+}
+
+.env-badge {
+  display: inline-block;
+  padding: 0.1rem 0.45rem;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  font-family: var(--font-body);
+  margin-left: 0.3rem;
+  vertical-align: middle;
+}
+
+.env-badges .env-badge {
+  margin-left: 0;
+}
+
+.env-badge-declared {
+  background: var(--info-dim);
+  color: var(--info);
+}
+
+.env-badge-reserved {
+  background: var(--bg-raised);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+.env-badge-required {
+  background: var(--warning-dim);
+  color: var(--warning);
+}
+
+.env-badge-secret {
+  background: var(--danger-dim);
+  color: var(--danger);
+}
+
+.env-badge-unset {
+  background: var(--bg-raised);
+  color: var(--text-muted);
+  border: 1px solid var(--border-subtle);
+}
+
+.env-desc {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.env-value-default {
+  color: var(--text-muted);
+}
+
+.env-default-tag {
+  font-family: var(--font-body);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--text-muted);
+  margin-left: 0.3rem;
+}
+
+/* ── Missing required vars banner ─────────────────────── */
+
+.missing-vars-banner {
+  background: var(--warning-dim);
+  border: 1px solid rgba(217, 119, 6, 0.25);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.missing-vars-banner strong {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--warning);
+  font-size: 13px;
+}
+
+.missing-vars-banner ul {
+  margin: 0.25rem 0 0.5rem 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+
+.missing-vars-banner li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0;
+}
+
+.missing-vars-banner li code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+.missing-reason {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.missing-vars-banner .hint {
+  margin-bottom: 0;
 }

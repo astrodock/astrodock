@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../lib/api';
+import { appHost, appUrl } from '../lib/appUrl';
 
 const STATUS_CLASSES = {
   online: 'active',
@@ -14,12 +15,27 @@ const STATUS_LABELS = {
   errored: 'Errored'
 };
 
+const BLANK_APP = {
+  slug: '',
+  name: '',
+  description: '',
+  subdomain: '',
+  runtimeType: 'node',
+  authMode: 'platform',
+  databaseMode: 'internal',
+  storageMode: 'none',
+  branch: 'main',
+  repoPath: ''
+};
+
 export default function AppsPage() {
   const [apps, setApps] = useState([]);
   const [statuses, setStatuses] = useState({});
   const [showCreate, setShowCreate] = useState(false);
-  const [newApp, setNewApp] = useState({ slug: '', name: '', description: '', subdomain: '', usePlatformAuth: true, usePlatformDb: true });
+  const [newApp, setNewApp] = useState(BLANK_APP);
+  const [creating, setCreating] = useState(false);
   const [revealedSecret, setRevealedSecret] = useState(null);
+  const [copied, setCopied] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
@@ -30,7 +46,7 @@ export default function AppsPage() {
         api.getAllAppStatuses().catch(() => ({ statuses: {} }))
       ]);
       setApps(appData.apps);
-      setStatuses(statusData.statuses);
+      setStatuses(statusData.statuses || {});
     } catch (err) {
       setError(err.message);
     }
@@ -41,14 +57,18 @@ export default function AppsPage() {
   async function handleCreate(e) {
     e.preventDefault();
     setError('');
+    setCreating(true);
     try {
       const data = await api.createApp(newApp);
       setRevealedSecret({ slug: data.app.slug, secret: data.appSecret });
+      setCopied(false);
       setShowCreate(false);
-      setNewApp({ slug: '', name: '', description: '', subdomain: '', usePlatformAuth: true, usePlatformDb: true });
+      setNewApp(BLANK_APP);
       load();
     } catch (err) {
       setError(err.message);
+    } finally {
+      setCreating(false);
     }
   }
 
@@ -62,11 +82,18 @@ export default function AppsPage() {
     });
   }
 
+  function copySecret() {
+    if (!revealedSecret) return;
+    navigator.clipboard?.writeText(revealedSecret.secret).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
   function getAppStatus(app) {
-    const pmName = `${app.slug}-api`;
-    const status = statuses[pmName];
-    if (!app.isProvisioned) return { label: 'Not provisioned', className: 'inactive' };
-    if (!status) return { label: 'Not running', className: 'inactive' };
+    const status = statuses[app.slug];
+    if (!app.provisioned) return { label: 'Not provisioned', className: 'inactive' };
+    if (!status || status === 'unavailable') return { label: 'Not running', className: 'inactive' };
     return {
       label: STATUS_LABELS[status] || status,
       className: STATUS_CLASSES[status] || 'inactive'
@@ -87,7 +114,10 @@ export default function AppsPage() {
           <strong>App Secret for "{revealedSecret.slug}"</strong>
           <code>{revealedSecret.secret}</code>
           <p>Copy this now — it will not be shown again.</p>
-          <button onClick={() => setRevealedSecret(null)}>Dismiss</button>
+          <div className="modal-actions" style={{ marginTop: 0, justifyContent: 'flex-start' }}>
+            <button onClick={copySecret}>{copied ? 'Copied!' : 'Copy'}</button>
+            <button onClick={() => setRevealedSecret(null)}>Dismiss</button>
+          </div>
         </div>
       )}
 
@@ -105,20 +135,20 @@ export default function AppsPage() {
           {apps.map(app => {
             const status = getAppStatus(app);
             return (
-              <tr key={app._id} onClick={() => navigate(`/apps/${app.slug}`)}>
+              <tr key={app.id} onClick={() => navigate(`/apps/${app.slug}`)}>
                 <td>
                   <strong>{app.name}</strong>
                   <span className="row-subtitle">{app.slug}</span>
                 </td>
                 <td>
                   <a
-                    href={`https://${app.subdomain}.seniorverse.dev`}
+                    href={appUrl(app.subdomain)}
                     className="app-link"
                     target="_blank"
                     rel="noopener"
                     onClick={e => e.stopPropagation()}
                   >
-                    {app.subdomain}.seniorverse.dev
+                    {appHost(app.subdomain)}
                     <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M6 3H3a1 1 0 00-1 1v9a1 1 0 001 1h9a1 1 0 001-1v-3M9 2h5v5M15 1L8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                   </a>
                 </td>
@@ -130,8 +160,8 @@ export default function AppsPage() {
                   </span>
                 </td>
                 <td>
-                  {app.githubRepo
-                    ? <code>{app.githubRepo}</code>
+                  {app.source?.githubRepo
+                    ? <code>{app.source.githubRepo}</code>
                     : <span className="text-muted">Not connected</span>
                   }
                 </td>
@@ -167,16 +197,13 @@ export default function AppsPage() {
             </label>
             <label>
               Subdomain
-              <div className="input-suffix">
-                <input
-                  value={newApp.subdomain}
-                  onChange={e => setNewApp({ ...newApp, subdomain: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
-                  placeholder="model"
-                  pattern="[a-z0-9\-]+"
-                  required
-                />
-                <span>.seniorverse.dev</span>
-              </div>
+              <input
+                value={newApp.subdomain}
+                onChange={e => setNewApp({ ...newApp, subdomain: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
+                placeholder="model"
+                pattern="[a-z0-9\-]+"
+                required
+              />
             </label>
             <label>
               Description
@@ -186,26 +213,59 @@ export default function AppsPage() {
                 placeholder="Optional description"
               />
             </label>
-            <label className="checkbox-label">
-              <input
-                type="checkbox"
-                checked={newApp.usePlatformAuth}
-                onChange={e => setNewApp({ ...newApp, usePlatformAuth: e.target.checked })}
-              />
-              Uses platform authentication
-            </label>
-            <label className="checkbox-label">
-              <input
-                type="checkbox"
-                checked={newApp.usePlatformDb}
-                onChange={e => setNewApp({ ...newApp, usePlatformDb: e.target.checked })}
-              />
-              Uses platform database
-            </label>
-            <p className="hint">Port will be auto-assigned.</p>
+
+            <div className="form-row">
+              <label>
+                Runtime
+                <select
+                  value={newApp.runtimeType}
+                  onChange={e => setNewApp({ ...newApp, runtimeType: e.target.value })}
+                >
+                  <option value="node">Node buildpack</option>
+                  <option value="docker">Dockerfile</option>
+                </select>
+              </label>
+              <label>
+                Authentication
+                <select
+                  value={newApp.authMode}
+                  onChange={e => setNewApp({ ...newApp, authMode: e.target.value })}
+                >
+                  <option value="platform">Platform-managed</option>
+                  <option value="public">Public (no auth)</option>
+                </select>
+              </label>
+            </div>
+
+            <div className="form-row">
+              <label>
+                Database
+                <select
+                  value={newApp.databaseMode}
+                  onChange={e => setNewApp({ ...newApp, databaseMode: e.target.value })}
+                >
+                  <option value="internal">Internal</option>
+                  <option value="external">External</option>
+                  <option value="none">None</option>
+                </select>
+              </label>
+              <label>
+                Object Storage
+                <select
+                  value={newApp.storageMode}
+                  onChange={e => setNewApp({ ...newApp, storageMode: e.target.value })}
+                >
+                  <option value="internal">Internal</option>
+                  <option value="external">External</option>
+                  <option value="none">None</option>
+                </select>
+              </label>
+            </div>
+
+            <p className="hint">Port will be auto-assigned. Connect a repo and set required env vars before deploying.</p>
             <div className="modal-actions">
               <button type="button" onClick={() => setShowCreate(false)}>Cancel</button>
-              <button type="submit">Create</button>
+              <button type="submit" disabled={creating}>{creating ? 'Creating...' : 'Create'}</button>
             </div>
           </form>
         </div>

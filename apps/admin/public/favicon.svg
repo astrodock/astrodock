@@ -1,15 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="-30 -50 580 580">
-<defs>
-  <linearGradient id="g1" gradientUnits="userSpaceOnUse" x1="252.83" y1="177.89" x2="401.65" y2="-4.27">
-    <stop offset="0" stop-color="#00D5FE"/>
-    <stop offset="1" stop-color="#00DF8F"/>
-  </linearGradient>
-  <linearGradient id="g2" gradientUnits="userSpaceOnUse" x1="76.16" y1="349.72" x2="348.22" y2="183.46">
-    <stop offset="0" stop-color="#A880FF"/>
-    <stop offset="1" stop-color="#E986FF"/>
-  </linearGradient>
-</defs>
-<path fill="url(#g1)" d="M407.7,132.9l47.3,37.6c-27.7,28.6-56,41-81.3,45.1c-4.3-28.9-17.8-54.7-37.5-74.4c-24.1-24.1-57.3-38.9-94-38.9h-21.3l10.9,65.9c0,0-37.4-23.6-86.1-15.7C139,107.9,154.9,57,202,0l317.3,0C510.8,114.7,407.7,132.9,407.7,132.9z"/>
-<path fill="#2249EB" d="M287.6,200l10.9,65.9h-21.3c-36.7,0-69.9-14.9-94-38.9c-19.7-19.7-33.2-45.5-37.5-74.4c48.8-7.9,86.1,15.7,86.1,15.7l-10.9-65.9h21.3c36.7,0,69.9,14.9,94,38.9c19.7,19.7,33.2,45.5,37.5,74.4C324.9,223.5,287.6,200,287.6,200z"/>
-<path fill="url(#g2)" d="M373.7,215.6c6.6,44.6-9.2,95.3-56.2,152.5H0c8.5-114.7,111.6-132.9,111.6-132.9l-47.3-37.6c27.7-28.6,56-41,81.3-45.1c4.3,28.9,17.8,54.7,37.5,74.4c24.1,24.1,57.3,38.9,94,38.9h21.3L287.6,200C287.6,200,324.9,223.5,373.7,215.6z"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="tsg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#00E5A0"/>
+      <stop offset="1" stop-color="#00B894"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#tsg)"/>
+  <text x="32" y="42" text-anchor="middle" font-family="'JetBrains Mono', ui-monospace, monospace" font-weight="700" font-size="26" letter-spacing="-1" fill="#0c1118">TS</text>
 </svg>

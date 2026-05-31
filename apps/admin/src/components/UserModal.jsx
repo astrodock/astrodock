@@ -20,7 +20,7 @@ export default function UserModal({ user, onClose, onSave }) {
     setLoading(true);
     try {
       if (isEdit) {
-        await api.updateUser(user._id, { name: form.name, isAdmin: form.isAdmin });
+        await api.updateUser(user.id, { name: form.name, isAdmin: form.isAdmin });
       } else {
         await api.createUser({ email: form.email, name: form.name, password: form.password });
       }
@@ -37,7 +37,7 @@ export default function UserModal({ user, onClose, onSave }) {
     e.preventDefault();
     setError('');
     try {
-      await api.resetPassword(user._id, resetPw);
+      await api.resetPassword(user.id, resetPw);
       setShowReset(false);
       setResetPw('');
     } catch (err) {

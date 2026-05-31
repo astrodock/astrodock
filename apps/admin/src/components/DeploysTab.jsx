@@ -12,18 +12,20 @@ const STATUS_COLORS = {
 
 const IN_PROGRESS = ['pending', 'cloning', 'building', 'deploying'];
 
-export default function DeploysTab({ app, onRefresh }) {
+export default function DeploysTab({ app, missingRequired = [], onRefresh }) {
   const [deployments, setDeployments] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
   const [expandedLog, setExpandedLog] = useState('');
   const [deploying, setDeploying] = useState(false);
   const [error, setError] = useState('');
+  const [missing, setMissing] = useState(missingRequired);
   const intervalRef = useRef(null);
   const expandedIdRef = useRef(null);
   const logRef = useRef(null);
 
-  // Keep ref in sync with state
+  // Keep refs / props in sync with state
   useEffect(() => { expandedIdRef.current = expandedId; }, [expandedId]);
+  useEffect(() => { setMissing(missingRequired); }, [missingRequired]);
 
   async function loadDeployments() {
     try {
@@ -78,33 +80,41 @@ export default function DeploysTab({ app, onRefresh }) {
   }, [expandedLog]);
 
   async function handleDeploy() {
-    if (!app.githubRepo) {
+    if (!app.repoConnected) {
       setError('Connect a GitHub repo first (Settings tab)');
       return;
     }
-    if (!app.isProvisioned) {
-      setError('App must be provisioned first');
+    if (!app.provisioned) {
+      setError('App must be provisioned first (Settings tab)');
       return;
     }
     setDeploying(true);
     setError('');
     try {
-      await api.triggerDeploy(app.slug);
+      const result = await api.triggerDeploy(app.slug);
+      setMissing([]);
       // Wait for the deployment record to be created
       setTimeout(async () => {
         const deps = await loadDeployments();
         setDeploying(false);
-        if (deps.length > 0 && IN_PROGRESS.includes(deps[0].status)) {
-          // Set the expanded ID BEFORE starting polling
-          setExpandedId(deps[0]._id);
-          expandedIdRef.current = deps[0]._id;
+        const active = deps.find(d => IN_PROGRESS.includes(d.status)) || deps[0];
+        const targetId = result?.deploymentId || active?.id;
+        if (targetId) {
+          setExpandedId(targetId);
+          expandedIdRef.current = targetId;
           setExpandedLog('Starting deploy...');
           startPolling();
         }
       }, 1500);
     } catch (err) {
-      setError(err.message);
       setDeploying(false);
+      // 422: deploy blocked by missing required env vars
+      if (err.status === 422 && Array.isArray(err.body?.missing)) {
+        setMissing(err.body.missing);
+        setError('Deploy blocked — set the required environment variables below (Env tab).');
+      } else {
+        setError(err.message);
+      }
     }
   }
 
@@ -158,6 +168,21 @@ export default function DeploysTab({ app, onRefresh }) {
 
       {error && <div className="error">{error}</div>}
 
+      {missing.length > 0 && (
+        <div className="missing-vars-banner">
+          <strong>Deploy blocked: {missing.length} required variable{missing.length > 1 ? 's' : ''} not set</strong>
+          <ul>
+            {missing.map(m => (
+              <li key={m.key}>
+                <code>{m.key}</code>
+                {m.reason && <span className="missing-reason"> — {m.reason}</span>}
+              </li>
+            ))}
+          </ul>
+          <p className="hint">Set these in the Env tab, then deploy again.</p>
+        </div>
+      )}
+
       {deployments.length === 0 ? (
         <p className="empty-state">No deployments yet. Connect a repo and click Deploy Now.</p>
       ) : (
@@ -165,8 +190,8 @@ export default function DeploysTab({ app, onRefresh }) {
           {deployments.map(d => {
             const isActive = IN_PROGRESS.includes(d.status);
             return (
-              <div key={d._id} className={`deploy-item ${isActive ? 'deploy-active' : ''}`}>
-                <div className="deploy-row" onClick={() => handleExpand(d._id)}>
+              <div key={d.id} className={`deploy-item ${isActive ? 'deploy-active' : ''}`}>
+                <div className="deploy-row" onClick={() => handleExpand(d.id)}>
                   <span className="deploy-status" style={{ color: STATUS_COLORS[d.status] }}>
                     {isActive && <span className="deploy-spinner" />}
                     {d.status}
@@ -177,15 +202,15 @@ export default function DeploysTab({ app, onRefresh }) {
                   </span>
                   <span className="deploy-meta">
                     <span className="deploy-trigger">{d.trigger}</span>
-                    <span>{formatTime(d.startedAt)}</span>
+                    <span>{formatTime(d.startedAt || d.createdAt)}</span>
                     {d.finishedAt && (
                       <span className="deploy-duration">
-                        {formatDuration(d.startedAt, d.finishedAt)}
+                        {formatDuration(d.startedAt || d.createdAt, d.finishedAt)}
                       </span>
                     )}
                   </span>
                 </div>
-                {expandedId === d._id && (
+                {expandedId === d.id && (
                   <pre className="deploy-log" ref={logRef}>{expandedLog}</pre>
                 )}
               </div>

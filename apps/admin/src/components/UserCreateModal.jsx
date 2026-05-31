@@ -34,7 +34,7 @@ export default function UserCreateModal({ onClose, onSave }) {
             onChange={e => setForm({ ...form, email: e.target.value })}
             required
             autoFocus
-            placeholder="user@seniorverse.dev"
+            placeholder="user@example.com"
           />
         </label>
         <label>

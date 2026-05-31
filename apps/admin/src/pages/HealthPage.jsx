@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../lib/api';
+import { appHost } from '../lib/appUrl';
 
 const STATUS_CONFIG = {
   healthy:  { label: 'Healthy',  dotClass: 'active',   textClass: 'health-healthy' },
@@ -27,9 +28,9 @@ function formatBytes(bytes) {
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
 }
 
-function formatPm2Uptime(pmUptime) {
-  if (!pmUptime) return '-';
-  const seconds = Math.floor((Date.now() - pmUptime) / 1000);
+function formatProcUptime(procUptime) {
+  if (!procUptime) return '-';
+  const seconds = Math.floor((Date.now() - procUptime) / 1000);
   return formatUptime(seconds);
 }
 
@@ -148,7 +149,7 @@ export default function HealthPage() {
                 <tr key={app.slug} onClick={() => navigate(`/apps/${app.slug}`)}>
                   <td>
                     <strong>{app.name}</strong>
-                    <span className="health-slug">{app.subdomain}.seniorverse.dev</span>
+                    <span className="health-slug">{appHost(app.subdomain)}</span>
                   </td>
                   <td>
                     <span className="process-status-inline">
@@ -157,10 +158,10 @@ export default function HealthPage() {
                     </span>
                   </td>
                   <td>{app.responseTime != null ? `${app.responseTime}ms` : '-'}</td>
-                  <td>{app.pm2 ? formatBytes(app.pm2.memory) : '-'}</td>
-                  <td>{app.pm2 ? `${app.pm2.cpu}%` : '-'}</td>
-                  <td>{app.pm2 ? formatPm2Uptime(app.pm2.uptime) : '-'}</td>
-                  <td>{app.pm2 ? app.pm2.restarts : '-'}</td>
+                  <td>{app.proc ? formatBytes(app.proc.memory) : '-'}</td>
+                  <td>{app.proc ? `${app.proc.cpu}%` : '-'}</td>
+                  <td>{app.proc ? formatProcUptime(app.proc.uptime) : '-'}</td>
+                  <td>{app.proc ? app.proc.restarts : '-'}</td>
                   <td>{formatTime(app.lastCheck)}</td>
                 </tr>
               );

@@ -42,9 +42,9 @@ export default function UsersPage() {
         <tbody>
           {users.map(user => (
             <tr
-              key={user._id}
+              key={user.id}
               className={!user.isActive ? 'inactive' : ''}
-              onClick={() => navigate(`/users/${user._id}`)}
+              onClick={() => navigate(`/users/${user.id}`)}
             >
               <td><strong>{user.name}</strong></td>
               <td>{user.email}</td>

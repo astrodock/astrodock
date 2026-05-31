@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { getToken } from '../lib/api';
+import { getToken, TOKEN_KEY } from '../lib/api';
 
 export default function TerminalTab({ app }) {
   const [input, setInput] = useState('');
   const [lines, setLines] = useState([]);
   const [running, setRunning] = useState(false);
+  const [disabled, setDisabled] = useState(false);
   const outputRef = useRef(null);
   const inputRef = useRef(null);
   const abortRef = useRef(null);
@@ -47,13 +48,23 @@ export default function TerminalTab({ app }) {
       });
 
       if (response.status === 401) {
-        sessionStorage.removeItem('sv_token');
+        sessionStorage.removeItem(TOKEN_KEY);
         window.location.href = '/login';
         return;
       }
 
+      if (response.status === 404) {
+        setDisabled(true);
+        setLines(prev => [...prev, {
+          type: 'stderr',
+          text: 'Terminal is disabled on this server. Set TOOLSTEAD_ENABLE_TERMINAL=true to enable it.'
+        }]);
+        setRunning(false);
+        return;
+      }
+
       if (!response.ok) {
-        const data = await response.json();
+        const data = await response.json().catch(() => ({}));
         setLines(prev => [...prev, { type: 'stderr', text: data.error || 'Request failed' }]);
         setRunning(false);
         return;
@@ -160,9 +171,7 @@ export default function TerminalTab({ app }) {
       <div className="tab-header">
         <h2>Terminal</h2>
         <div className="log-controls">
-          <span className="terminal-cwd">
-            /opt/apps/{app.slug}-api
-          </span>
+          <span className="terminal-cwd">{app.slug}</span>
           <button onClick={handleClear}>Clear</button>
         </div>
       </div>
@@ -196,8 +205,8 @@ export default function TerminalTab({ app }) {
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={running ? 'Running...' : 'Enter command...'}
-          disabled={running}
+          placeholder={disabled ? 'Terminal disabled on this server' : running ? 'Running...' : 'Enter command...'}
+          disabled={running || disabled}
           spellCheck={false}
           autoComplete="off"
         />

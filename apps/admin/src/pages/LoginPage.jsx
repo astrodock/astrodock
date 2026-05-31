@@ -27,10 +27,10 @@ export default function LoginPage({ onLogin }) {
       <div className="login-bg-grid" />
       <form className="login-form" onSubmit={handleSubmit}>
         <div className="login-logo">
-          <div className="logo-mark">SV</div>
-          <span className="logo-text-lg">Platform</span>
+          <div className="logo-mark">TS</div>
+          <span className="logo-text-lg">Toolstead</span>
         </div>
-        <p className="login-subtitle">Infrastructure Control Plane</p>
+        <p className="login-subtitle">Admin Control Plane</p>
         {error && <div className="error">{error}</div>}
         <label>
           Email
@@ -40,7 +40,7 @@ export default function LoginPage({ onLogin }) {
             onChange={e => setEmail(e.target.value)}
             required
             autoFocus
-            placeholder="you@seniorverse.dev"
+            placeholder="you@example.com"
           />
         </label>
         <label>

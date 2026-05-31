@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import * as api from '../lib/api';
+import { appHost, appUrl } from '../lib/appUrl';
 import DeploysTab from '../components/DeploysTab';
 import EnvVarsTab from '../components/EnvVarsTab';
 import LogsTab from '../components/LogsTab';
@@ -33,6 +34,7 @@ function formatMemory(bytes) {
 export default function AppDetailPage() {
   const { slug } = useParams();
   const [app, setApp] = useState(null);
+  const [missingRequired, setMissingRequired] = useState([]);
   const [procStatus, setProcStatus] = useState(null);
   const [activeTab, setActiveTab] = useState('deploys');
   const [error, setError] = useState('');
@@ -41,6 +43,7 @@ export default function AppDetailPage() {
     try {
       const data = await api.getApp(slug);
       setApp(data.app);
+      setMissingRequired(data.missingRequired || []);
     } catch (err) {
       setError(err.message);
     }
@@ -92,15 +95,16 @@ export default function AppDetailPage() {
         <span className="back-sep">/</span>
         <h1>{app.name}</h1>
         <div className="detail-meta">
-          <a href={`https://${app.subdomain}.seniorverse.dev`} className="app-link" target="_blank" rel="noopener">
-            {app.subdomain}.seniorverse.dev
+          <a href={appUrl(app.subdomain)} className="app-link" target="_blank" rel="noopener">
+            {appHost(app.subdomain)}
             <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M6 3H3a1 1 0 00-1 1v9a1 1 0 001 1h9a1 1 0 001-1v-3M9 2h5v5M15 1L8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
           </a>
-          <span className={`badge ${app.isProvisioned ? 'active' : 'inactive'}`}>
-            {app.isProvisioned ? 'Provisioned' : 'Not provisioned'}
+          <span className={`badge ${app.provisioned ? 'active' : 'inactive'}`}>
+            {app.provisioned ? 'Provisioned' : 'Not provisioned'}
           </span>
-          {app.githubRepo && (
-            <span className="badge repo-badge">{app.githubRepo}</span>
+          <span className="badge repo-badge">{app.runtime?.type === 'docker' ? 'Docker' : 'Node'}</span>
+          {app.source?.githubRepo && (
+            <span className="badge repo-badge">{app.source.githubRepo}</span>
           )}
         </div>
       </div>
@@ -146,8 +150,8 @@ export default function AppDetailPage() {
       </div>
 
       <div className="tab-content">
-        {activeTab === 'deploys' && <DeploysTab app={app} onRefresh={load} />}
-        {activeTab === 'env' && <EnvVarsTab app={app} />}
+        {activeTab === 'deploys' && <DeploysTab app={app} missingRequired={missingRequired} onRefresh={load} />}
+        {activeTab === 'env' && <EnvVarsTab app={app} onRefresh={load} />}
         {activeTab === 'logs' && <LogsTab app={app} />}
         {activeTab === 'terminal' && <TerminalTab app={app} />}
         {activeTab === 'settings' && <SettingsTab app={app} onRefresh={load} />}

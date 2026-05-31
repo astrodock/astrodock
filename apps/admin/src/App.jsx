@@ -8,6 +8,7 @@ import AppDetailPage from './pages/AppDetailPage';
 import UserDetailPage from './pages/UserDetailPage';
 import ActivityPage from './pages/ActivityPage';
 import HealthPage from './pages/HealthPage';
+import TokensPage from './pages/TokensPage';
 import './App.css';
 
 export default function App() {
@@ -44,8 +45,8 @@ export default function App() {
     <div className="app">
       <nav className="sidebar">
         <div className="sidebar-header">
-          <div className="logo-mark">SV</div>
-          <span className="logo-text">Platform</span>
+          <div className="logo-mark">TS</div>
+          <span className="logo-text">Toolstead</span>
         </div>
         <ul className="nav-links">
           <li>
@@ -58,6 +59,12 @@ export default function App() {
             <NavLink to="/users" className={({ isActive }) => isActive ? 'active' : ''}>
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="3" stroke="currentColor" strokeWidth="1.5"/><path d="M2 14c0-3 2.5-5 6-5s6 2 6 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
               Users
+            </NavLink>
+          </li>
+          <li>
+            <NavLink to="/tokens" className={({ isActive }) => isActive ? 'active' : ''}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10.5 5.5a3 3 0 1 0-3.2 3l-.8.8v1.2H5.3v1.5H3.8V14H1.5v-2.2l4-4a3 3 0 0 1 5-2.3z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/><circle cx="11" cy="5" r="1" fill="currentColor"/></svg>
+              Tokens
             </NavLink>
           </li>
           <li>
@@ -86,6 +93,7 @@ export default function App() {
           <Route path="/users/:id" element={<UserDetailPage />} />
           <Route path="/apps" element={<AppsPage />} />
           <Route path="/apps/:slug" element={<AppDetailPage />} />
+          <Route path="/tokens" element={<TokensPage />} />
           <Route path="/activity" element={<ActivityPage />} />
           <Route path="/health" element={<HealthPage />} />
           <Route path="*" element={<Navigate to="/apps" />} />

@@ -1,10 +1,11 @@
 const API_BASE = '/admin';
+export const TOKEN_KEY = 'toolstead_token';
 
-let token = sessionStorage.getItem('sv_token');
+let token = sessionStorage.getItem(TOKEN_KEY);
 
 export function setToken(t) {
   token = t;
-  sessionStorage.setItem('sv_token', t);
+  sessionStorage.setItem(TOKEN_KEY, t);
 }
 
 export function getToken() {
@@ -13,7 +14,18 @@ export function getToken() {
 
 export function clearToken() {
   token = null;
-  sessionStorage.removeItem('sv_token');
+  sessionStorage.removeItem(TOKEN_KEY);
+}
+
+// Error subclass that preserves the structured body (status + JSON payload)
+// so callers can react to e.g. the 422 missing-required-vars deploy response.
+export class ApiError extends Error {
+  constructor(message, { status, body } = {}) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.body = body || {};
+  }
 }
 
 async function request(path, options = {}) {
@@ -25,13 +37,15 @@ async function request(path, options = {}) {
   if (res.status === 401 && path !== '/login') {
     clearToken();
     window.location.href = '/login';
-    throw new Error('Session expired');
+    throw new ApiError('Session expired', { status: 401 });
   }
 
   if (res.status === 204) return null;
 
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'Request failed');
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new ApiError(data.error || 'Request failed', { status: res.status, body: data });
+  }
   return data;
 }
 
@@ -119,3 +133,10 @@ export const getAuthLogs = ({ limit = 50, result, appId, email } = {}) => {
   if (email) params.set('email', email);
   return request(`/activity/auth-logs?${params}`);
 };
+
+// API Tokens (scoped tokens for the CLI / agents)
+export const getTokens = () => request('/tokens');
+export const createToken = (name, scopes = ['deploy']) =>
+  request('/tokens', { method: 'POST', body: JSON.stringify({ name, scopes }) });
+export const deleteToken = (id) =>
+  request(`/tokens/${id}`, { method: 'DELETE' });

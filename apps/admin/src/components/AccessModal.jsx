@@ -8,9 +8,9 @@ export default function AccessModal({ user, apps, onClose, onSave }) {
     setError('');
     try {
       if (hasAccess) {
-        await api.revokeAccess(user._id, appSlug);
+        await api.revokeAccess(user.id, appSlug);
       } else {
-        await api.grantAccess(user._id, appSlug);
+        await api.grantAccess(user.id, appSlug);
       }
       onSave();
     } catch (err) {
