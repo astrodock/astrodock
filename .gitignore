@@ -30,6 +30,3 @@ Thumbs.db
 
 # ── Local tooling ──────────────────────────────
 .claude/settings.local.json
-
-# ── Workspace / monorepo ──
-package-lock.json
