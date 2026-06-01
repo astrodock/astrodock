@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Run on your own server or any VPS — Astrodock Docs</title>
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body data-page="install-vps">
+  <a class="skip" href="#doc">Skip to content</a>
+  <article id="doc">
+    <p class="eyebrow">Install on a server</p>
+    <h1>Run on your own server or any VPS</h1>
+    <p class="lead">
+      The provider-agnostic install. If you have a server already, or you're spinning one up at a host
+      like Hetzner, Linode, Vultr, AWS, Google Cloud, or running your own hardware, this is the path.
+      It's the same everywhere: an Ubuntu machine, a wildcard DNS record, Docker, then Astrodock.
+    </p>
+
+    <h2>Pick a place to run it</h2>
+    <p>Any Linux machine you can SSH into and run Docker on works. Popular choices:</p>
+    <table>
+      <tr><th>Provider</th><th>Notes</th></tr>
+      <tr><td><strong>Hetzner Cloud</strong></td><td>Cheapest solid option; create a CX/CPX server.</td></tr>
+      <tr><td><strong>DigitalOcean</strong></td><td>Very beginner-friendly — see the dedicated <a href="install-digitalocean.html">DigitalOcean guide</a>.</td></tr>
+      <tr><td><strong>Linode (Akamai)</strong>, <strong>Vultr</strong>, <strong>OVH</strong></td><td>Standard VPS providers; create an Ubuntu instance.</td></tr>
+      <tr><td><strong>AWS Lightsail</strong></td><td>The simplest AWS option — a fixed-price VM. Easier than EC2 for this.</td></tr>
+      <tr><td><strong>AWS EC2 / Google Compute Engine / Azure VM</strong></td><td>Work fine; you'll set firewall rules in the provider's console (see Step 3).</td></tr>
+      <tr><td><strong>Your own hardware / homelab</strong></td><td>Works too. If it isn't publicly reachable, use <code>ASTRODOCK_TLS_MODE=internal</code> (Astrodock's own certificates) instead of <code>auto</code>.</td></tr>
+    </table>
+    <p><strong>Recommended specs:</strong> Ubuntu 22.04 or 24.04 LTS, at least <strong>2&nbsp;GB RAM</strong>
+      (the first build can exhaust 1&nbsp;GB), 1+ vCPU, and ~20&nbsp;GB disk to start.</p>
+
+    <ol class="steps">
+      <li>
+        <h3>Create the server</h3>
+        <p>Spin up an <strong>Ubuntu LTS</strong> instance at your provider (or use your own box). Add
+        your SSH key during setup. Note its <strong>public IP address</strong>.</p>
+      </li>
+
+      <li>
+        <h3>Point your domain at it</h3>
+        <p>Apps live under one domain — we'll use <code>apps.example.com</code>, so apps become
+        <code>&lt;name&gt;.apps.example.com</code> and the dashboard is <code>admin.apps.example.com</code>.
+        At your DNS provider (registrar or cloud DNS), add a single <strong>wildcard</strong> record:</p>
+        <pre><code>Type: A    Name: *.apps    Value: &lt;your server's IP&gt;</code></pre>
+        <p>That one record covers the dashboard and every app. More detail and edge cases (apex
+        domains, internal/LAN setups) in <a href="custom-domains.html">Custom domains &amp; DNS</a>.</p>
+      </li>
+
+      <li>
+        <h3>Allow web traffic</h3>
+        <p>Make sure inbound <strong>80</strong> and <strong>443</strong> (and <strong>22</strong> for
+        SSH) are open. There are two layers to check:</p>
+        <ul>
+          <li><strong>The provider's network firewall</strong> — AWS <em>Security Groups</em>, Google
+            Cloud <em>firewall rules</em>, Azure <em>Network Security Groups</em>, or DigitalOcean/Vultr
+            <em>Cloud Firewalls</em>. Add inbound rules for 22, 80, 443.</li>
+          <li><strong>The server's own firewall</strong> (if enabled), e.g. <code>ufw</code>:
+            <pre><code>ufw allow 22 &amp;&amp; ufw allow 80 &amp;&amp; ufw allow 443 &amp;&amp; ufw enable</code></pre>
+          </li>
+        </ul>
+      </li>
+
+      <li>
+        <h3>Connect to the server</h3>
+        <pre><code>ssh root@&lt;your server's IP&gt;
+# (or: ssh your-user@&lt;ip&gt; — then prefix the commands below with sudo)</code></pre>
+      </li>
+
+      <li>
+        <h3>Install Docker</h3>
+        <p>On Ubuntu/Debian, the official convenience script installs Docker Engine and the Compose
+        plugin in one go:</p>
+        <pre><code>curl -fsSL https://get.docker.com | sh</code></pre>
+        <p>Verify:</p>
+        <pre><code>docker compose version</code></pre>
+        <div class="callout tip">
+          <p class="ct">Running as a non-root user?</p>
+          <p>Add yourself to the <code>docker</code> group so you don't need <code>sudo</code> for every
+          command: <code>sudo usermod -aG docker $USER</code>, then log out and back in.</p>
+        </div>
+      </li>
+
+      <li>
+        <h3>Get Astrodock</h3>
+        <pre><code>git clone https://github.com/your-org/astrodock.git
+cd astrodock</code></pre>
+        <p>(Install git first if needed: <code>apt-get update &amp;&amp; apt-get install -y git</code>.)</p>
+      </li>
+
+      <li>
+        <h3>Configure</h3>
+        <p>Copy the example config and edit it:</p>
+        <pre><code>cp .env.example .env
+nano .env</code></pre>
+        <p>For a public server, set (generate each secret with <code>openssl rand -hex 32</code>):</p>
+        <pre><code>ASTRODOCK_BASE_DOMAIN=apps.example.com
+ASTRODOCK_TLS_MODE=auto
+ASTRODOCK_ACME_EMAIL=you@example.com
+
+ASTRODOCK_ADMIN_EMAIL=you@example.com
+ASTRODOCK_ADMIN_PASSWORD=pick-a-strong-password
+
+ASTRODOCK_ADMIN_JWT_SECRET=<span>&lt;random secret&gt;</span>
+ASTRODOCK_SECRET_KEY=<span>&lt;random secret&gt;</span>
+ASTRODOCK_RUNNER_TOKEN=<span>&lt;random secret&gt;</span>
+ASTRODOCK_PG_PASSWORD=<span>&lt;random secret&gt;</span>
+ASTRODOCK_OBJECTSTORE_SECRET_KEY=<span>&lt;random secret&gt;</span></code></pre>
+        <p>Every value is documented in the <a href="configuration.html">Configuration reference</a>.</p>
+        <div class="callout note">
+          <p class="ct">Running on a LAN / homelab without a public domain?</p>
+          <p>Set <code>ASTRODOCK_TLS_MODE=internal</code> and use a base domain that resolves on your
+          network. Astrodock will issue its own certificates (your browser warns once). See
+          <a href="custom-domains.html">Custom domains &amp; DNS</a>.</p>
+        </div>
+      </li>
+
+      <li>
+        <h3>Start Astrodock</h3>
+        <pre><code>docker compose up -d</code></pre>
+        <p>First run builds the images (a few minutes). Check status and logs:</p>
+        <pre><code>docker compose ps
+docker compose logs -f api</code></pre>
+      </li>
+
+      <li>
+        <h3>Log in</h3>
+        <p>Visit <strong>https://admin.apps.example.com</strong> and sign in with the admin email and
+        password from your <code>.env</code>. HTTPS certificates are obtained automatically on first
+        visit (give DNS a minute to propagate if it errors).</p>
+      </li>
+    </ol>
+
+    <h2>What's next</h2>
+    <ul>
+      <li><a href="first-app.html">Deploy your first app →</a></li>
+      <li><a href="custom-domains.html">Custom domains &amp; DNS</a> · <a href="configuration.html">Configuration reference</a></li>
+      <li><a href="backups.html">Backups &amp; restore</a> · <a href="upgrading.html">Upgrading</a> · <a href="security.html">Security</a></li>
+    </ul>
+  </article>
+  <script src="assets/docs.js"></script>
+</body>
+</html>

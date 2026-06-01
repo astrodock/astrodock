@@ -13,6 +13,11 @@
       { slug: 'install',      file: 'install.html',      title: 'Install & run' },
       { slug: 'first-app',    file: 'first-app.html',    title: 'Deploy your first app' }
     ] },
+    { title: 'Install on a server', items: [
+      { slug: 'install-digitalocean', file: 'install-digitalocean.html', title: 'DigitalOcean droplet' },
+      { slug: 'install-vps',          file: 'install-vps.html',          title: 'Your own server / any VPS' },
+      { slug: 'install-local',        file: 'install-local.html',        title: 'Run locally (to test)' }
+    ] },
     { title: 'Guides', items: [
       { slug: 'custom-domains',   file: 'custom-domains.html',     title: 'Custom domains & DNS' },
       { slug: 'email',            file: 'email-notifications.html', title: 'Email notifications' },

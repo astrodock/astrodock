@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Run on DigitalOcean — Astrodock Docs</title>
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body data-page="install-digitalocean">
+  <a class="skip" href="#doc">Skip to content</a>
+  <article id="doc">
+    <p class="eyebrow">Install on a server</p>
+    <h1>Run on DigitalOcean</h1>
+    <p class="lead">
+      The friendliest way to get Astrodock online if you don't already have a server. We'll create a
+      small machine (a "droplet"), point your domain at it, install Docker, and start Astrodock. Plan
+      for about 20–30 minutes the first time.
+    </p>
+    <div class="callout note">
+      <p class="ct">You'll need</p>
+      <p>A <a href="https://www.digitalocean.com">DigitalOcean</a> account, a <strong>domain name</strong>
+      (from any registrar), and an SSH key (DigitalOcean will help you add one). Rough cost: a suitable
+      droplet is about $12/month.</p>
+    </div>
+
+    <ol class="steps">
+      <li>
+        <h3>Create a droplet</h3>
+        <p>In DigitalOcean, choose <strong>Create → Droplets</strong>:</p>
+        <ul>
+          <li><strong>Image:</strong> pick the <em>Docker</em> image under the <strong>Marketplace</strong>
+            tab. (That comes with Docker already installed, so you can skip Step 4. If you'd rather use
+            a plain <strong>Ubuntu 24.04 LTS</strong> image, that's fine too.)</li>
+          <li><strong>Size:</strong> a Basic plan with at least <strong>2&nbsp;GB RAM</strong>
+            (1&nbsp;vCPU). Astrodock builds your apps on the box, and 1&nbsp;GB can run out of memory
+            during the first build.</li>
+          <li><strong>Authentication:</strong> add your <strong>SSH key</strong> (recommended over a password).</li>
+        </ul>
+        <p>Create it, and note the droplet's <strong>public IP address</strong>.</p>
+      </li>
+
+      <li>
+        <h3>Point your domain at the droplet</h3>
+        <p>Decide which domain your apps live under. We'll use <code>apps.example.com</code> as the
+        example — every app becomes <code>&lt;name&gt;.apps.example.com</code>, and the dashboard is
+        <code>admin.apps.example.com</code>.</p>
+        <p>The easiest route is to let DigitalOcean manage DNS. In DigitalOcean go to
+          <strong>Networking → Domains</strong>, add your domain, then create one
+          <strong>wildcard</strong> record:</p>
+        <pre><code>Type: A    Hostname: *.apps    Will direct to: &lt;your droplet IP&gt;</code></pre>
+        <p>That single record covers the dashboard <em>and</em> every app. (At your registrar, set the
+        domain's nameservers to DigitalOcean's, or skip DO DNS and add the same wildcard <code>A</code>
+        record at your registrar instead.) Full details and other registrars:
+        <a href="custom-domains.html">Custom domains &amp; DNS</a>.</p>
+      </li>
+
+      <li>
+        <h3>Open the firewall</h3>
+        <p>Under <strong>Networking → Firewalls</strong>, create a firewall and attach it to your
+        droplet, allowing inbound <strong>SSH (22)</strong>, <strong>HTTP (80)</strong>, and
+        <strong>HTTPS (443)</strong>. Only those three need to be open.</p>
+      </li>
+
+      <li>
+        <h3>Connect to the droplet</h3>
+        <pre><code>ssh root@&lt;your droplet IP&gt;</code></pre>
+      </li>
+
+      <li>
+        <h3>Install Docker</h3>
+        <p><em>Skip this if you used the Docker Marketplace image.</em> On a plain Ubuntu droplet:</p>
+        <pre><code>curl -fsSL https://get.docker.com | sh</code></pre>
+        <p>Confirm it's ready:</p>
+        <pre><code>docker compose version</code></pre>
+      </li>
+
+      <li>
+        <h3>Get Astrodock</h3>
+        <pre><code>git clone https://github.com/your-org/astrodock.git
+cd astrodock</code></pre>
+        <p>(If <code>git</code> is missing: <code>apt-get update &amp;&amp; apt-get install -y git</code>.)</p>
+      </li>
+
+      <li>
+        <h3>Configure</h3>
+        <p>Copy the example config and open it:</p>
+        <pre><code>cp .env.example .env
+nano .env</code></pre>
+        <p>Set these for a public server (generate each secret with <code>openssl rand -hex 32</code> —
+        run it once per secret line and paste the result):</p>
+        <pre><code>ASTRODOCK_BASE_DOMAIN=apps.example.com
+ASTRODOCK_TLS_MODE=auto
+ASTRODOCK_ACME_EMAIL=you@example.com
+
+ASTRODOCK_ADMIN_EMAIL=you@example.com
+ASTRODOCK_ADMIN_PASSWORD=pick-a-strong-password
+
+ASTRODOCK_ADMIN_JWT_SECRET=<span>&lt;paste a random secret&gt;</span>
+ASTRODOCK_SECRET_KEY=<span>&lt;paste a random secret&gt;</span>
+ASTRODOCK_RUNNER_TOKEN=<span>&lt;paste a random secret&gt;</span>
+ASTRODOCK_PG_PASSWORD=<span>&lt;paste a random secret&gt;</span>
+ASTRODOCK_OBJECTSTORE_SECRET_KEY=<span>&lt;paste a random secret&gt;</span></code></pre>
+        <p>Save and close (in nano: <kbd>Ctrl-O</kbd>, <kbd>Enter</kbd>, <kbd>Ctrl-X</kbd>). Every
+        setting is explained in the <a href="configuration.html">Configuration reference</a>.</p>
+        <div class="callout warn">
+          <p class="ct">Keep <code>.env</code> private</p>
+          <p>It holds your secrets and is already git-ignored — never commit or share it.</p>
+        </div>
+      </li>
+
+      <li>
+        <h3>Start Astrodock</h3>
+        <pre><code>docker compose up -d</code></pre>
+        <p>The first run downloads and <strong>builds</strong> the images, which can take a few minutes
+        on a small droplet. Watch progress with <code>docker compose logs -f api</code>, and check that
+        everything is up with <code>docker compose ps</code>.</p>
+      </li>
+
+      <li>
+        <h3>Log in</h3>
+        <p>Open <strong>https://admin.apps.example.com</strong> and sign in with the
+        <code>ASTRODOCK_ADMIN_EMAIL</code> / <code>ASTRODOCK_ADMIN_PASSWORD</code> you set. The HTTPS
+        certificate is issued automatically on the first visit — if you see a brief error, wait a few
+        seconds and reload (and make sure DNS has propagated).</p>
+        <figure class="shot" data-file="login.png" data-caption="The Astrodock dashboard, served over automatic HTTPS."></figure>
+      </li>
+    </ol>
+
+    <h2>Other beginner-friendly hosts</h2>
+    <p>Prefer somewhere else? The steps are nearly identical on any provider — create an Ubuntu server,
+      point a wildcard DNS record at it, then follow Steps 4–10 above. Good options include
+      <strong>Hetzner Cloud</strong> (very cheap), <strong>Linode/Akamai</strong>, <strong>Vultr</strong>,
+      and <strong>AWS Lightsail</strong>. See <a href="install-vps.html">Your own server / any VPS</a>
+      for the provider-agnostic version.</p>
+
+    <h2>What's next</h2>
+    <ul>
+      <li><a href="first-app.html">Deploy your first app →</a></li>
+      <li><a href="custom-domains.html">Fine-tune your domain &amp; DNS</a></li>
+      <li><a href="backups.html">Set up backups</a> and <a href="email-notifications.html">email alerts</a></li>
+    </ul>
+  </article>
+  <script src="assets/docs.js"></script>
+</body>
+</html>

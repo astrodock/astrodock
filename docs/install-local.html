@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Run locally (to test) — Astrodock Docs</title>
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body data-page="install-local">
+  <a class="skip" href="#doc">Skip to content</a>
+  <article id="doc">
+    <p class="eyebrow">Install on a server</p>
+    <h1>Run locally (to test)</h1>
+    <p class="lead">
+      Want to kick the tires before committing to a server? You can run the whole platform on your own
+      computer. It's perfect for evaluating Astrodock or developing apps — just remember it's only
+      reachable from your machine, so it's not a real, shareable install.
+    </p>
+    <div class="callout note">
+      <p class="ct">This is for trying it, not for real use</p>
+      <p>A local install has no public address and no real HTTPS. When you're ready to put apps online,
+      follow <a href="install-digitalocean.html">DigitalOcean</a> or
+      <a href="install-vps.html">your own server / any VPS</a>.</p>
+    </div>
+
+    <ol class="steps">
+      <li>
+        <h3>Install Docker Desktop</h3>
+        <p>Get <a href="https://www.docker.com/products/docker-desktop/">Docker Desktop</a> for
+        Mac or Windows (on Linux, Docker Engine is fine) and start it. Confirm it works:</p>
+        <pre><code>docker compose version</code></pre>
+      </li>
+      <li>
+        <h3>Get Astrodock</h3>
+        <pre><code>git clone https://github.com/your-org/astrodock.git
+cd astrodock</code></pre>
+      </li>
+      <li>
+        <h3>Configure for local</h3>
+        <p>Copy the example config and set it to local mode:</p>
+        <pre><code>cp .env.example .env</code></pre>
+        <p>In <code>.env</code>, set:</p>
+        <pre><code>ASTRODOCK_BASE_DOMAIN=localhost
+ASTRODOCK_TLS_MODE=off
+ASTRODOCK_ADMIN_EMAIL=you@example.com
+ASTRODOCK_ADMIN_PASSWORD=pick-a-password</code></pre>
+        <p>Still fill in the secret values (<code>openssl rand -hex 32</code> for each of
+        <code>ASTRODOCK_ADMIN_JWT_SECRET</code>, <code>ASTRODOCK_SECRET_KEY</code>,
+        <code>ASTRODOCK_RUNNER_TOKEN</code>, <code>ASTRODOCK_PG_PASSWORD</code>,
+        <code>ASTRODOCK_OBJECTSTORE_SECRET_KEY</code>) — even locally, so secret encryption works.</p>
+      </li>
+      <li>
+        <h3>Start it</h3>
+        <pre><code>docker compose up -d</code></pre>
+        <p>The first run builds the images, which takes a few minutes.</p>
+      </li>
+      <li>
+        <h3>Open the dashboard</h3>
+        <p>Go to <strong><a href="http://admin.localhost">http://admin.localhost</a></strong> and log
+        in. Your apps will live at <code>http://&lt;subdomain&gt;.localhost</code>.</p>
+        <div class="callout tip">
+          <p class="ct">Why <code>.localhost</code> just works</p>
+          <p>Browsers automatically resolve any <code>*.localhost</code> name to your own computer, so
+          <code>admin.localhost</code> and <code>notes.localhost</code> work with no DNS or hosts-file
+          changes.</p>
+        </div>
+      </li>
+    </ol>
+
+    <h2>Stopping &amp; cleaning up</h2>
+    <pre><code>docker compose down        # stop the stack (keeps your data)
+docker compose down -v     # stop AND delete all data (fresh start)</code></pre>
+
+    <h2>What's next</h2>
+    <ul>
+      <li><a href="first-app.html">Deploy your first app →</a> (works the same locally)</li>
+      <li>Ready for real? <a href="install-digitalocean.html">DigitalOcean</a> or <a href="install-vps.html">any server</a></li>
+    </ul>
+  </article>
+  <script src="assets/docs.js"></script>
+</body>
+</html>
