@@ -36,23 +36,18 @@
 cd astrodock</code></pre>
       </li>
       <li>
-        <h3>Configure for local</h3>
-        <p>Copy the example config and set it to local mode:</p>
-        <pre><code>cp .env.example .env</code></pre>
-        <p>In <code>.env</code>, set:</p>
-        <pre><code>ASTRODOCK_BASE_DOMAIN=localhost
-ASTRODOCK_TLS_MODE=off
-ASTRODOCK_ADMIN_EMAIL=you@example.com
-ASTRODOCK_ADMIN_PASSWORD=pick-a-password</code></pre>
-        <p>Still fill in the secret values (<code>openssl rand -hex 32</code> for each of
-        <code>ASTRODOCK_ADMIN_JWT_SECRET</code>, <code>ASTRODOCK_SECRET_KEY</code>,
-        <code>ASTRODOCK_RUNNER_TOKEN</code>, <code>ASTRODOCK_PG_PASSWORD</code>,
-        <code>ASTRODOCK_OBJECTSTORE_SECRET_KEY</code>) — even locally, so secret encryption works.</p>
+        <h3>Configure for local — one command</h3>
+        <p>The setup script generates a local <code>.env</code> for you (localhost, plain HTTP) with all
+        secrets filled in and an admin password printed at the end:</p>
+        <pre><code>./scripts/setup.sh --local</code></pre>
+        <p>Copy the admin email + password it prints — that's your dashboard login. (Want to set your
+        own password? add <code>--admin-password yourpass</code>.)</p>
       </li>
       <li>
         <h3>Start it</h3>
         <pre><code>docker compose up -d</code></pre>
-        <p>The first run builds the images, which takes a few minutes.</p>
+        <p>The first run builds the images, which takes a few minutes. (Tip: <code>./scripts/setup.sh
+        --local --up</code> configures <em>and</em> starts it in one go.)</p>
       </li>
       <li>
         <h3>Open the dashboard</h3>

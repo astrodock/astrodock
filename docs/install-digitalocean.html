@@ -82,34 +82,26 @@ cd astrodock</code></pre>
       </li>
 
       <li>
-        <h3>Configure</h3>
-        <p>Copy the example config and open it:</p>
-        <pre><code>cp .env.example .env
-nano .env</code></pre>
-        <p>Set these for a public server (generate each secret with <code>openssl rand -hex 32</code> —
-        run it once per secret line and paste the result):</p>
-        <pre><code>ASTRODOCK_BASE_DOMAIN=apps.example.com
-ASTRODOCK_TLS_MODE=auto
-ASTRODOCK_ACME_EMAIL=you@example.com
-
-ASTRODOCK_ADMIN_EMAIL=you@example.com
-ASTRODOCK_ADMIN_PASSWORD=pick-a-strong-password
-
-ASTRODOCK_ADMIN_JWT_SECRET=<span>&lt;paste a random secret&gt;</span>
-ASTRODOCK_SECRET_KEY=<span>&lt;paste a random secret&gt;</span>
-ASTRODOCK_RUNNER_TOKEN=<span>&lt;paste a random secret&gt;</span>
-ASTRODOCK_PG_PASSWORD=<span>&lt;paste a random secret&gt;</span>
-ASTRODOCK_OBJECTSTORE_SECRET_KEY=<span>&lt;paste a random secret&gt;</span></code></pre>
-        <p>Save and close (in nano: <kbd>Ctrl-O</kbd>, <kbd>Enter</kbd>, <kbd>Ctrl-X</kbd>). Every
-        setting is explained in the <a href="configuration.html">Configuration reference</a>.</p>
-        <div class="callout warn">
-          <p class="ct">Keep <code>.env</code> private</p>
-          <p>It holds your secrets and is already git-ignored — never commit or share it.</p>
+        <h3>Configure — one command</h3>
+        <p>Run the setup script. It writes your config and <strong>generates every secret for you</strong>,
+        asking only for your domain, email, and an admin password:</p>
+        <pre><code>./scripts/setup.sh</code></pre>
+        <p>Or pass them as flags to skip the questions:</p>
+        <pre><code>./scripts/setup.sh --domain apps.example.com --email you@example.com</code></pre>
+        <p>It sets HTTPS to automatic, fills in the five secret keys, writes a locked-down
+        <code>.env</code>, and prints your dashboard URL and admin login. <strong>If it auto-generates
+        the admin password, copy it from the output.</strong></p>
+        <div class="callout tip">
+          <p class="ct">Prefer to edit it by hand?</p>
+          <p>Run <code>cp .env.example .env</code> and fill it in yourself (generate each secret with
+          <code>openssl rand -hex 32</code>) — every setting is in the
+          <a href="configuration.html">Configuration reference</a>. Either way, never commit <code>.env</code>.</p>
         </div>
       </li>
 
       <li>
         <h3>Start Astrodock</h3>
+        <p>Bring up the stack (or add <code>--up</code> to the setup command above to do both at once):</p>
         <pre><code>docker compose up -d</code></pre>
         <p>The first run downloads and <strong>builds</strong> the images, which can take a few minutes
         on a small droplet. Watch progress with <code>docker compose logs -f api</code>, and check that

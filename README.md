@@ -45,14 +45,14 @@ database/storage, users, secrets, backups…). The quickstart below is the short
 
 ## Quickstart
 ```bash
-cp .env.example .env
-# edit .env — set a base domain, admin creds, a Postgres password, an object-store secret,
-# and (for deploys) a GitHub PAT.  Generate secrets with:  openssl rand -hex 32
+./scripts/setup.sh --domain apps.example.com --email you@example.com   # generates .env + all secrets
 docker compose up -d
 ```
-That's the whole platform: control plane + admin UI + auto-HTTPS routing + bundled Postgres +
-bundled object storage. The admin UI is at `https://admin.<your-base-domain>` (log in with the
-seeded admin). For local/LAN use without public DNS, set `ASTRODOCK_TLS_MODE=internal`.
+`setup.sh` writes `.env` and fills in every secret for you (run it with no flags for interactive
+prompts, or `--local` to try it on your machine). That's the whole platform: control plane + admin
+UI + auto-HTTPS routing + bundled Postgres + bundled object storage. The admin UI is at
+`https://admin.<your-base-domain>` (log in with the admin it prints). Prefer to configure by hand?
+`cp .env.example .env` and edit it (`openssl rand -hex 32` for secrets).
 
 ## Launch your first app
 From an app repo (start from [`examples/starter-app`](examples/starter-app)):
