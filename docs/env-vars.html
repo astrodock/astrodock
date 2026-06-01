@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>app.json &amp; env reference — Astrodock Docs</title>
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body data-page="env-vars">
+  <a class="skip" href="#doc">Skip to content</a>
+  <article id="doc">
+    <p class="eyebrow">Reference</p>
+    <h1>app.json &amp; env reference</h1>
+    <p class="lead">
+      The precise lookup page: every field in <code>app.json</code> with its type and default, the full
+      catalog of reserved <code>ASTRODOCK_*</code> variables (and when each one is present), and the
+      shape of an app-declared <code>env[]</code> entry. For the how-and-why, see
+      <a href="building-apps.html">App structure &amp; app.json</a>.
+    </p>
+
+    <h2>app.json schema</h2>
+    <p>Plain JSON, no comments. The CLI and the platform validate against this schema, so a malformed
+      manifest is caught at <code>apply</code>.</p>
+
+    <h3>Top level</h3>
+    <table>
+      <tr><th>Field</th><th>Type</th><th>Req</th><th>Default</th><th>Notes</th></tr>
+      <tr><td><code>schemaVersion</code></td><td>string</td><td>yes</td><td>—</td><td>Must be <code>"1"</code>.</td></tr>
+      <tr><td><code>slug</code></td><td>string</td><td>yes</td><td>—</td><td>Pattern <code>^[a-z0-9-]+$</code>, max 40 chars. Immutable identity — names the process/container, internal DB, and storage prefix.</td></tr>
+      <tr><td><code>name</code></td><td>string</td><td>yes</td><td>—</td><td>Human display name (min length 1).</td></tr>
+      <tr><td><code>description</code></td><td>string</td><td>no</td><td>—</td><td>Shown in the dashboard.</td></tr>
+      <tr><td><code>subdomain</code></td><td>string</td><td>yes</td><td>—</td><td>Pattern <code>^[a-z0-9-]+$</code>, max 40 chars. App served at <code>https://&lt;subdomain&gt;.&lt;base-domain&gt;</code>. Mutable.</td></tr>
+      <tr><td><code>source</code></td><td>object</td><td>yes</td><td>—</td><td>Where code comes from. See below.</td></tr>
+      <tr><td><code>runtime</code></td><td>object</td><td>yes</td><td>—</td><td>How the app is built and run. See below.</td></tr>
+      <tr><td><code>auth</code></td><td>object</td><td>yes</td><td>—</td><td>Auth mode. See below.</td></tr>
+      <tr><td><code>database</code></td><td>object</td><td>yes</td><td>—</td><td>Database mode. See below.</td></tr>
+      <tr><td><code>storage</code></td><td>object</td><td>yes</td><td>—</td><td>Object-storage mode. See below.</td></tr>
+      <tr><td><code>env</code></td><td>array</td><td>no</td><td><code>[]</code></td><td>App-declared variables (names + metadata). See below.</td></tr>
+    </table>
+
+    <h3><code>source</code></h3>
+    <table>
+      <tr><th>Field</th><th>Type</th><th>Req</th><th>Default</th><th>Notes</th></tr>
+      <tr><td><code>branch</code></td><td>string</td><td>no</td><td><code>"main"</code></td><td>Branch deployed and watched for webhook pushes.</td></tr>
+      <tr><td><code>repoPath</code></td><td>string</td><td>no</td><td><code>""</code></td><td>Subdirectory to deploy from (monorepos). <code>""</code> = repo root.</td></tr>
+      <tr><td><code>githubRepo</code></td><td>string</td><td>no</td><td>—</td><td><code>owner/repo</code> to connect. Can also be set via the CLI or dashboard.</td></tr>
+    </table>
+
+    <h3><code>runtime</code></h3>
+    <table>
+      <tr><th>Field</th><th>Type</th><th>Req</th><th>Default</th><th>Notes</th></tr>
+      <tr><td><code>type</code></td><td>enum</td><td>yes</td><td>—</td><td><code>"node"</code> (buildpack) or <code>"docker"</code> (Dockerfile container).</td></tr>
+      <tr><td><code>buildCommand</code></td><td>string</td><td>no</td><td><code>"npm run build"</code></td><td>Node only. Frontend build command.</td></tr>
+      <tr><td><code>dockerfile</code></td><td>string</td><td>no</td><td><code>"Dockerfile"</code></td><td>Docker only. Path to the Dockerfile, relative to <code>repoPath</code>.</td></tr>
+    </table>
+
+    <h3><code>auth</code> / <code>database</code> / <code>storage</code></h3>
+    <table>
+      <tr><th>Block</th><th>Field</th><th>Values</th><th>Effect</th></tr>
+      <tr><td><code>auth</code></td><td><code>mode</code></td><td><code>platform</code> · <code>public</code></td><td><code>platform</code> injects the auth vars and registers an app secret for <code>/verify</code>; <code>public</code> injects none.</td></tr>
+      <tr><td><code>database</code></td><td><code>mode</code></td><td><code>internal</code> · <code>external</code> · <code>none</code></td><td><code>internal</code> provisions a Postgres DB and injects <code>ASTRODOCK_DATABASE_URL</code>; <code>external</code> makes that var a required secret you set; <code>none</code> injects nothing.</td></tr>
+      <tr><td><code>storage</code></td><td><code>mode</code></td><td><code>internal</code> · <code>external</code> · <code>none</code></td><td><code>internal</code> provisions a bucket/prefix + key and injects <code>ASTRODOCK_STORAGE_*</code>; <code>external</code> makes those required secrets; <code>none</code> injects nothing.</td></tr>
+    </table>
+
+    <h3>Change &amp; immutability</h3>
+    <table>
+      <tr><th>Field</th><th>Behavior</th></tr>
+      <tr><td><code>slug</code></td><td><strong>Immutable.</strong> Changing it means a new app.</td></tr>
+      <tr><td><code>subdomain</code></td><td>Mutable — triggers a routing re-provision + new TLS certificate.</td></tr>
+      <tr><td><code>runtime.type</code></td><td>Mutable — the next deploy switches execution path; the old process/container is torn down.</td></tr>
+      <tr><td><code>database.mode</code> / <code>storage.mode</code></td><td>Mutable but non-migrating: switching points the app at a different (or empty) store. No data is copied.</td></tr>
+    </table>
+
+    <h2>Reserved <code>ASTRODOCK_*</code> variables</h2>
+    <p>The platform <strong>injects</strong> these into your app at deploy; the app <strong>reads</strong>
+      them and never sets or declares them. An app-declared key may not start with <code>ASTRODOCK_</code>.
+      "auto" means the platform generates it; "user-required" means an operator must set it before deploy
+      (the <code>external</code> resource modes).</p>
+    <table>
+      <tr><th>Variable</th><th>Present when</th><th>Source</th><th>Meaning</th></tr>
+      <tr><td><code>ASTRODOCK_APP_SLUG</code></td><td>always</td><td>auto</td><td>App slug / identity.</td></tr>
+      <tr><td><code>ASTRODOCK_APP_NAME</code></td><td>always</td><td>auto</td><td>Display name.</td></tr>
+      <tr><td><code>ASTRODOCK_APP_URL</code></td><td>always</td><td>auto</td><td>Public URL, <code>https://&lt;sub&gt;.&lt;domain&gt;</code>.</td></tr>
+      <tr><td><code>ASTRODOCK_BASE_DOMAIN</code></td><td>always</td><td>auto</td><td>Platform base domain.</td></tr>
+      <tr><td><code>ASTRODOCK_PORT</code></td><td>always</td><td>auto</td><td><strong>The port the server MUST bind.</strong></td></tr>
+      <tr><td><code>ASTRODOCK_ENV</code></td><td>always</td><td>auto</td><td>Deploy environment, e.g. <code>production</code>.</td></tr>
+      <tr><td><code>ASTRODOCK_DATABASE_URL</code></td><td>database ≠ none</td><td>auto (internal) / user-required (external)</td><td>Full connection string. Same name in both modes.</td></tr>
+      <tr><td><code>ASTRODOCK_DATABASE_ENGINE</code></td><td>database ≠ none</td><td>auto</td><td>The engine, e.g. <code>postgres</code>.</td></tr>
+      <tr><td><code>ASTRODOCK_STORAGE_ENDPOINT</code></td><td>storage ≠ none</td><td>auto / user-required</td><td>S3 endpoint URL.</td></tr>
+      <tr><td><code>ASTRODOCK_STORAGE_REGION</code></td><td>storage ≠ none</td><td>auto / user-required</td><td>S3 region.</td></tr>
+      <tr><td><code>ASTRODOCK_STORAGE_BUCKET</code></td><td>storage ≠ none</td><td>auto / user-required</td><td>Bucket name.</td></tr>
+      <tr><td><code>ASTRODOCK_STORAGE_PREFIX</code></td><td>storage = internal</td><td>auto</td><td>App's key prefix within the shared bucket.</td></tr>
+      <tr><td><code>ASTRODOCK_STORAGE_ACCESS_KEY</code></td><td>storage ≠ none</td><td>auto / user-required</td><td>S3 access key.</td></tr>
+      <tr><td><code>ASTRODOCK_STORAGE_SECRET_KEY</code></td><td>storage ≠ none</td><td>auto / user-required</td><td>S3 secret key.</td></tr>
+      <tr><td><code>ASTRODOCK_AUTH_URL</code></td><td>auth = platform</td><td>auto</td><td>Control-plane <code>/verify</code> base URL.</td></tr>
+      <tr><td><code>ASTRODOCK_APP_ID</code></td><td>auth = platform</td><td>auto</td><td>App ID for <code>/verify</code> (equals the slug).</td></tr>
+      <tr><td><code>ASTRODOCK_APP_SECRET</code></td><td>auth = platform</td><td>auto</td><td>App secret for <code>/verify</code>.</td></tr>
+      <tr><td><code>ASTRODOCK_APP_JWT_SECRET</code></td><td>auth = platform</td><td>auto</td><td>Secret the app uses to sign its own sessions.</td></tr>
+    </table>
+    <div class="callout note">
+      <p class="ct">The <code>PORT</code> alias</p>
+      <p>Because <code>process.env.PORT</code> is near-universal in Node hosting, the platform also exports
+      <code>PORT</code> set to the same value as <code>ASTRODOCK_PORT</code>. This is the single documented
+      unprefixed exception. Prefer <code>ASTRODOCK_PORT</code> in your own code.</p>
+    </div>
+    <div class="callout tip">
+      <p class="ct">One name, internal or external</p>
+      <p><code>ASTRODOCK_DATABASE_URL</code> and the <code>ASTRODOCK_STORAGE_*</code> set use the same names
+      whether the resource is internal or external. Your app reads one variable and never knows the
+      difference — moving from the bundled store to a hosted one is a value change, not a code change.</p>
+    </div>
+
+    <h2>App-declared <code>env[]</code> entries</h2>
+    <p>Each entry in the <code>env</code> array declares one of <em>your</em> variables — its name and
+      metadata only, never its value. Secret values are set out-of-band with
+      <code>astrodock set-secret</code> or in the dashboard.</p>
+    <table>
+      <tr><th>Property</th><th>Type</th><th>Req</th><th>Default</th><th>Meaning</th></tr>
+      <tr><td><code>key</code></td><td>string</td><td>yes</td><td>—</td><td>Variable name. Must match <code>^[A-Z][A-Z0-9_]*$</code> (UPPER_SNAKE_CASE) and must <strong>not</strong> start with <code>ASTRODOCK_</code>.</td></tr>
+      <tr><td><code>secret</code></td><td>boolean</td><td>no</td><td><code>false</code></td><td>If true, the value is write-only — masked in the UI/API, set via <code>set-secret</code>, never stored in the manifest.</td></tr>
+      <tr><td><code>required</code></td><td>boolean</td><td>no</td><td><code>false</code></td><td>If true, a deploy is blocked until a value exists (the required-variable gate).</td></tr>
+      <tr><td><code>default</code></td><td>string</td><td>no</td><td>—</td><td>Non-secret default, applied if the operator sets nothing. Not allowed when <code>secret: true</code>.</td></tr>
+      <tr><td><code>description</code></td><td>string</td><td>no</td><td>—</td><td>Shown in the dashboard and to coding agents.</td></tr>
+    </table>
+    <p>Example — one required secret and one optional value with a default:</p>
+    <pre><code>"env": [
+  { "key": "OPENAI_API_KEY", "secret": true, "required": true,
+    "description": "Used to draft line items" },
+  { "key": "INVOICE_PREFIX", "secret": false, "required": false,
+    "default": "INV-", "description": "Prefix for invoice numbers" }
+]</code></pre>
+    <div class="callout warn">
+      <p class="ct">Two rules the schema enforces</p>
+      <p>A declared <code>key</code> may never start with <code>ASTRODOCK_</code> (that prefix is reserved),
+      and <code>default</code> may not be combined with <code>secret: true</code> (a secret has no
+      plaintext default in the manifest).</p>
+    </div>
+
+    <h2>Setting values</h2>
+    <p><code>app.json</code> declares variable <em>names</em>; you supply <em>values</em> separately so
+      nothing secret ever lands in git:</p>
+    <pre><code># reads the value from stdin — never stored in shell history or the repo
+astrodock set-secret OPENAI_API_KEY
+astrodock set-secret ASTRODOCK_DATABASE_URL    # external-mode credentials, same command</code></pre>
+    <p>Non-secret values with a <code>default</code> need nothing set. Required values without a default
+      block the deploy until you set them — see <a href="deploy-lifecycle.html">the required-variable
+      gate</a>.</p>
+
+    <h2>Related</h2>
+    <ul>
+      <li><a href="building-apps.html">App structure &amp; app.json</a> — the how-and-why behind these fields.</li>
+      <li><a href="deploy-lifecycle.html">The deploy lifecycle</a> — when these variables are read and gated.</li>
+      <li><a href="dockerfile-apps.html">Dockerfile apps</a> — the same env, injected into a container.</li>
+      <li><a href="external-database.html">External database</a> · <a href="external-storage.html">External storage</a></li>
+    </ul>
+  </article>
+  <script src="assets/docs.js"></script>
+</body>
+</html>

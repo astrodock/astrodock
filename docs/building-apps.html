@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>App structure &amp; app.json — Astrodock Docs</title>
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body data-page="building-apps">
+  <a class="skip" href="#doc">Skip to content</a>
+  <article id="doc">
+    <p class="eyebrow">Building apps</p>
+    <h1>App structure &amp; app.json</h1>
+    <p class="lead">
+      An Astrodock app is just a normal folder of code plus one small file, <code>app.json</code>,
+      that tells the platform what to build and how to run it. This page covers the folder layout
+      Astrodock auto-detects, the handful of rules your server must follow, and every field in
+      <code>app.json</code>.
+    </p>
+    <div class="callout note">
+      <p class="ct">New here?</p>
+      <p>If you haven't shipped anything yet, start with
+      <a href="first-app.html">Deploy your first app</a> — it walks the whole loop end to end.
+      This page is the reference you'll come back to while building your own.</p>
+    </div>
+
+    <h2>The app layout</h2>
+    <p>You don't configure a router or a build pipeline. You arrange your files in one of a few
+      shapes, and the runner figures out the rest:</p>
+    <table>
+      <tr><th>Shape</th><th>What's in the folder</th><th>How it's served</th></tr>
+      <tr>
+        <td>Frontend + server</td>
+        <td><code>app/</code> (frontend) <strong>and</strong> <code>server/</code> (Express)</td>
+        <td>Built frontend at the app URL; <code>/api/*</code> proxied to the server</td>
+      </tr>
+      <tr>
+        <td>Server-only</td>
+        <td>A standalone <code>server.js</code> (no <code>app/</code>)</td>
+        <td>Only <code>/api/*</code>, proxied to the server. No static frontend.</td>
+      </tr>
+      <tr>
+        <td>Frontend-only</td>
+        <td>A standalone <code>package.json</code> with no server</td>
+        <td>Just the built static frontend. No <code>/api</code>.</td>
+      </tr>
+      <tr>
+        <td>Docker</td>
+        <td>A <code>Dockerfile</code> (with <code>runtime.type: "docker"</code>)</td>
+        <td>The whole subdomain is proxied to your container</td>
+      </tr>
+    </table>
+    <p>The most common shape is the first one — a frontend and a server living side by side:</p>
+    <pre><code>my-app/
+├── app.json            ← the manifest (always)
+├── app/                ← frontend (e.g. Vite/React); builds to app/dist/
+│   ├── package.json
+│   └── src/…
+└── server/             ← Express server
+    ├── package.json
+    └── server.js       ← entry point</code></pre>
+    <p>The frontend builds to <code>app/dist/</code>, and Astrodock serves that static output at
+      <code>https://&lt;subdomain&gt;.&lt;base-domain&gt;</code> with an SPA fallback (unknown paths
+      return <code>index.html</code> so client-side routing works). Anything under <code>/api/*</code>
+      is proxied to your server instead. For Docker apps there is no <code>app/</code> + <code>server/</code>
+      split — your container serves everything; see <a href="dockerfile-apps.html">Dockerfile apps</a>.</p>
+
+    <h2>The hard rules for a server</h2>
+    <p>If your app has a server, it must follow four rules. They're small, and breaking one is the
+      usual reason a deploy looks healthy but doesn't work:</p>
+    <ol class="steps">
+      <li>
+        <h3>Bind <code>process.env.ASTRODOCK_PORT</code></h3>
+        <p>The platform tells your server which port to listen on. Don't hardcode <code>3000</code>.
+        An unprefixed <code>PORT</code> alias is also provided for convenience, but prefer the
+        explicit one.</p>
+        <pre><code>const PORT = process.env.ASTRODOCK_PORT || process.env.PORT || 3000;
+app.listen(PORT);</code></pre>
+      </li>
+      <li>
+        <h3>Put every route under <code>/api</code></h3>
+        <p>Caddy only proxies <code>/api/*</code> to your server; everything else is the static
+        frontend. A route at <code>/login</code> will 404 — it has to be <code>/api/login</code>.</p>
+      </li>
+      <li>
+        <h3>Answer <code>GET /health</code> with a 200</h3>
+        <p>After every deploy the platform probes your server. A 200 from <code>/health</code> marks
+        the deploy healthy. (This is the one route that lives outside <code>/api</code>.)</p>
+        <pre><code>app.get('/health', (req, res) => res.json({ status: 'ok' }));</code></pre>
+      </li>
+      <li>
+        <h3>Read config from injected env — never hardcode</h3>
+        <p>Database URLs, storage credentials, auth secrets, and your own declared variables all
+        arrive as environment variables at deploy time. Read them from
+        <code>process.env</code>; never paste a secret into your code or commit it.</p>
+      </li>
+    </ol>
+    <div class="callout warn">
+      <p class="ct">A 502 after a clean deploy?</p>
+      <p>Almost always rule 1 — the server isn't binding <code>ASTRODOCK_PORT</code> (or it crashed
+      on boot). A <code>/api/...</code> route that 404s is almost always rule 2. Check
+      <code>astrodock logs</code>.</p>
+    </div>
+
+    <h2>A full app.json, annotated</h2>
+    <p>Here is a complete manifest for a frontend + server app that uses platform login, the bundled
+      database, and one app-specific variable. The notes after each block explain what it does — the
+      file itself is plain JSON with no comments.</p>
+    <pre><code>{
+  "schemaVersion": "1",
+
+  "slug": "invoice-tool",
+  "name": "Invoice Tool",
+  "description": "Generate and store client invoices",
+  "subdomain": "invoices",
+
+  "source": {
+    "branch": "main",
+    "repoPath": ""
+  },
+
+  "runtime": {
+    "type": "node",
+    "buildCommand": "npm run build"
+  },
+
+  "auth":     { "mode": "platform" },
+  "database": { "mode": "internal" },
+  "storage":  { "mode": "internal" },
+
+  "env": [
+    { "key": "OPENAI_API_KEY", "secret": true, "required": true,
+      "description": "Used to draft line items" },
+    { "key": "INVOICE_PREFIX", "secret": false, "required": false,
+      "default": "INV-", "description": "Prefix for invoice numbers" }
+  ]
+}</code></pre>
+    <ul>
+      <li><code>slug</code> is the app's permanent identity — it names the process, the internal
+        database, and the storage prefix. It can't change later.</li>
+      <li><code>subdomain</code> is where the app lives: <code>invoices.&lt;base-domain&gt;</code>.
+        You can change it later (it triggers a new certificate).</li>
+      <li><code>runtime.type: "node"</code> means the Node buildpack; <code>buildCommand</code> is how
+        the frontend is built (it defaults to <code>npm run build</code>, so this line is optional).</li>
+      <li><code>auth</code>, <code>database</code>, and <code>storage</code> are the three resource
+        modes — see below.</li>
+      <li><code>env</code> declares your own variables by <em>name</em>. Secret values never go in
+        this file; you set them with <code>astrodock set-secret</code> or in the dashboard.</li>
+    </ul>
+
+    <h2>Field reference</h2>
+    <p>The full schema reference (with types and defaults for every nested field) lives on
+      <a href="env-vars.html">app.json &amp; env reference</a>. This is the quick version:</p>
+    <table>
+      <tr><th>Field</th><th>Req</th><th>Notes</th></tr>
+      <tr><td><code>schemaVersion</code></td><td>yes</td><td>Always <code>"1"</code>.</td></tr>
+      <tr><td><code>slug</code></td><td>yes</td><td><code>^[a-z0-9-]+$</code>. Immutable identity.</td></tr>
+      <tr><td><code>name</code></td><td>yes</td><td>Human display name.</td></tr>
+      <tr><td><code>description</code></td><td>no</td><td>Shown in the dashboard.</td></tr>
+      <tr><td><code>subdomain</code></td><td>yes</td><td><code>^[a-z0-9-]+$</code>. Served at <code>&lt;subdomain&gt;.&lt;base-domain&gt;</code>. Mutable.</td></tr>
+      <tr><td><code>source.branch</code></td><td>no</td><td>Branch to deploy/watch. Default <code>main</code>.</td></tr>
+      <tr><td><code>source.repoPath</code></td><td>no</td><td>Subdirectory to deploy from (monorepos). Default repo root.</td></tr>
+      <tr><td><code>source.githubRepo</code></td><td>no</td><td><code>owner/repo</code>; can also be set via CLI/dashboard.</td></tr>
+      <tr><td><code>runtime.type</code></td><td>yes</td><td><code>node</code> or <code>docker</code>.</td></tr>
+      <tr><td><code>runtime.buildCommand</code></td><td>no</td><td>Node only. Default <code>npm run build</code>.</td></tr>
+      <tr><td><code>runtime.dockerfile</code></td><td>no</td><td>Docker only. Default <code>Dockerfile</code>.</td></tr>
+      <tr><td><code>auth.mode</code></td><td>yes</td><td><code>platform</code> or <code>public</code>.</td></tr>
+      <tr><td><code>database.mode</code></td><td>yes</td><td><code>internal</code>, <code>external</code>, or <code>none</code>.</td></tr>
+      <tr><td><code>storage.mode</code></td><td>yes</td><td><code>internal</code>, <code>external</code>, or <code>none</code>.</td></tr>
+      <tr><td><code>env[]</code></td><td>no</td><td>Declared variable names + metadata. Keys are UPPER_SNAKE_CASE and may not start with <code>ASTRODOCK_</code>.</td></tr>
+    </table>
+
+    <h2>Resource modes</h2>
+    <p>Each app picks how it wants a database and object storage — and whether the platform handles
+      login. The choice is pure configuration: your code reads the same environment variables either
+      way, so moving from the bundled database to a hosted one later is a value change, not a code
+      change.</p>
+    <table>
+      <tr><th>Block</th><th>Modes</th><th>What you get</th></tr>
+      <tr>
+        <td><code>database</code></td>
+        <td><code>internal</code> · <code>external</code> · <code>none</code></td>
+        <td><code>internal</code>: a Postgres database on the bundled engine, auto-created and injected
+          as <code>ASTRODOCK_DATABASE_URL</code>. <code>external</code>: you supply your own connection
+          string. <code>none</code>: no database.</td>
+      </tr>
+      <tr>
+        <td><code>storage</code></td>
+        <td><code>internal</code> · <code>external</code> · <code>none</code></td>
+        <td><code>internal</code>: a bucket/prefix on the bundled S3-compatible store. <code>external</code>:
+          your own S3 / R2 / Spaces credentials. <code>none</code>: no storage.</td>
+      </tr>
+      <tr>
+        <td><code>auth</code></td>
+        <td><code>platform</code> · <code>public</code></td>
+        <td><code>platform</code>: Astrodock manages your users and login. <code>public</code>: the app
+          handles its own (or none).</td>
+      </tr>
+    </table>
+    <p>With <code>internal</code>, everything is provisioned for you. With <code>external</code>, the
+      deploy is blocked until you've set the credentials (the
+      <a href="deploy-lifecycle.html">required-variable gate</a>). The details for each:</p>
+    <ul>
+      <li><a href="external-database.html">External database</a> — bring your own Postgres.</li>
+      <li><a href="external-storage.html">External storage</a> — bring your own S3-compatible bucket.</li>
+    </ul>
+
+    <h2>Adding login with platform auth</h2>
+    <p>Set <code>"auth": { "mode": "platform" }</code> and the platform injects everything your server
+      needs to verify users it manages: <code>ASTRODOCK_AUTH_URL</code>, <code>ASTRODOCK_APP_ID</code>,
+      <code>ASTRODOCK_APP_SECRET</code>, and <code>ASTRODOCK_APP_JWT_SECRET</code>.</p>
+    <p>The flow is: your frontend posts an email + password to your own <code>/api/login</code>, your
+      server asks the platform "are these valid for me?", and on success you mint your <em>own</em>
+      session. Here's the core of it, lifted from the starter app:</p>
+    <pre><code>app.post('/api/login', async (req, res) => {
+  const { email, password } = req.body || {};
+
+  // Ask the control plane to verify the credentials for THIS app.
+  const verifyRes = await fetch(`${process.env.ASTRODOCK_AUTH_URL}/verify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email,
+      password,
+      appId: process.env.ASTRODOCK_APP_ID,
+      appSecret: process.env.ASTRODOCK_APP_SECRET
+    })
+  });
+
+  if (verifyRes.status === 401) return res.status(401).json({ error: 'Invalid credentials' });
+  if (verifyRes.status === 403) return res.status(403).json({ error: 'No access to this app' });
+  if (!verifyRes.ok) return res.status(502).json({ error: 'Auth error' });
+
+  const user = await verifyRes.json(); // { userId, email, name }
+
+  // Mint your own session — here, a JWT signed with the injected secret.
+  const session = jwt.sign(
+    { sub: user.userId, email: user.email, name: user.name },
+    process.env.ASTRODOCK_APP_JWT_SECRET,
+    { expiresIn: '7d' }
+  );
+  res.cookie('session', session, { httpOnly: true, sameSite: 'lax', secure: true });
+  res.json({ user });
+});</code></pre>
+    <div class="callout note">
+      <p class="ct">A 401 means bad password; a 403 means no access</p>
+      <p><code>/verify</code> returns <strong>403</strong> when the credentials are valid but that user
+      hasn't been granted access to this app's slug. Create users and grant access in the dashboard —
+      see <a href="users.html">Manage users &amp; access</a>.</p>
+    </div>
+    <div class="callout tip">
+      <p class="ct">Zero extra dependencies needed</p>
+      <p>The starter calls <code>/verify</code> with plain <code>fetch</code>. There's also an
+      <code>@astrodock/auth-client</code> package that wraps exactly this call if you'd rather not
+      write it yourself.</p>
+    </div>
+
+    <h2>Next steps</h2>
+    <ul>
+      <li>How a deploy actually runs: <a href="deploy-lifecycle.html">The deploy lifecycle</a></li>
+      <li>Ship a non-Node runtime: <a href="dockerfile-apps.html">Dockerfile apps</a></li>
+      <li>Every field and variable, precisely: <a href="env-vars.html">app.json &amp; env reference</a></li>
+    </ul>
+
+    <h2>Related</h2>
+    <ul>
+      <li><a href="first-app.html">Deploy your first app</a></li>
+      <li><a href="users.html">Manage users &amp; access</a></li>
+      <li><a href="external-database.html">External database</a> · <a href="external-storage.html">External storage</a></li>
+    </ul>
+  </article>
+  <script src="assets/docs.js"></script>
+</body>
+</html>

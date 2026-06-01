@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Deploy your first app — Astrodock Docs</title>
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body data-page="first-app">
+  <a class="skip" href="#doc">Skip to content</a>
+  <article id="doc">
+    <p class="eyebrow">Get started</p>
+    <h1>Deploy your first app</h1>
+    <p class="lead">
+      Let's take the included <strong>starter app</strong> — a small React + Express app with login —
+      from your machine to a live URL on your platform. No GitHub required.
+    </p>
+    <div class="callout note">
+      <p class="ct">Before you start</p>
+      <p>You should have Astrodock <a href="install.html">installed and running</a>, and be able to
+      log in to the dashboard. This guide uses a local install (<code>admin.localhost</code>); swap in
+      your real domain if you're on a server.</p>
+    </div>
+
+    <h2>Step 1 — Make the CLI runnable</h2>
+    <p>The <code>astrodock</code> command lives in the repo you cloned. Install its dependencies once,
+      then add a shortcut so you can call it from anywhere:</p>
+    <pre><code># from the astrodock repo folder
+npm install
+
+# add a handy alias (adjust the path to where you cloned it)
+alias astrodock="node $(pwd)/packages/cli/bin/astrodock.js"</code></pre>
+    <p>Check it works:</p>
+    <pre><code>astrodock help</code></pre>
+    <div class="callout tip">
+      <p class="ct">Tip</p>
+      <p>Add that <code>alias</code> line to your <code>~/.zshrc</code> or <code>~/.bashrc</code> to make it
+      permanent. There's also a shorter alias, <code>adock</code>.</p>
+    </div>
+
+    <h2>Step 2 — Get a copy of the starter app</h2>
+    <p>Copy the example out of the repo so you can make it your own:</p>
+    <pre><code>cp -r examples/starter-app ~/my-first-app
+cd ~/my-first-app</code></pre>
+    <p>Have a look at <code>app.json</code> — this is the file that tells Astrodock what your app is:</p>
+    <pre><code>{
+  "schemaVersion": "1",
+  "slug": "starter",
+  "name": "Starter App",
+  "subdomain": "starter",
+  "source": { "branch": "main" },
+  "runtime": { "type": "node" },
+  "auth": { "mode": "platform" },
+  "database": { "mode": "none" },
+  "storage": { "mode": "none" }
+}</code></pre>
+    <p>It will be served at <code>starter.localhost</code> and uses <strong>platform login</strong>
+      (so users sign in with accounts you manage in Astrodock).</p>
+
+    <h2>Step 3 — Create an API token</h2>
+    <p>The CLI authenticates with a token. In the dashboard, open <strong>Tokens → New token</strong>,
+      give it a name (e.g. "my laptop"), and copy the value — it's shown only once.</p>
+    <figure class="shot" data-file="tokens-create.png" data-caption="Creating a scoped API token on the Tokens page."></figure>
+
+    <h2>Step 4 — Point the CLI at your platform</h2>
+    <pre><code>export ASTRODOCK_URL="http://admin.localhost"
+export ASTRODOCK_TOKEN="tk_paste-your-token-here"</code></pre>
+
+    <h2>Step 5 — Create the app</h2>
+    <p>From your app folder, run <code>apply</code>. This reads <code>app.json</code>, creates the app on
+      the platform, and sets up its resources and routing:</p>
+    <pre><code>astrodock apply</code></pre>
+    <p>You'll see it create the app and (because this app uses platform login) print an
+      <strong>app secret</strong> once — the starter reads it automatically from the environment, so
+      you don't need to copy it down for this tutorial.</p>
+
+    <h2>Step 6 — Deploy it</h2>
+    <p>Now ship the code straight from your laptop and watch it go live:</p>
+    <pre><code>astrodock deploy:watch --local</code></pre>
+    <p>The <code>--local</code> flag uploads your current folder (no GitHub needed). Astrodock builds
+      it, starts it, and streams the log until it finishes:</p>
+    <pre><code>Uploading 12 KB for "starter"…
+Local deploy triggered for "starter" (deployment …)
+[…] Installing server deps…
+[…] Building frontend (npm run build)…
+[…] Health probe: app is responding
+[…] Deploy complete
+
+✓ deploy success</code></pre>
+
+    <h2>Step 7 — Create a user who can log in</h2>
+    <p>This app uses platform login, so you need a user account <em>and</em> that user must be granted
+      access to this app. In the dashboard:</p>
+    <ol>
+      <li>Open <strong>Users → New user</strong>, set an email + password.</li>
+      <li>Open that user and <strong>grant access</strong> to the <code>starter</code> app.</li>
+    </ol>
+    <figure class="shot" data-file="users-grant-access.png" data-caption="Granting a user access to an app."></figure>
+    <div class="callout note">
+      <p class="ct">Two kinds of accounts</p>
+      <p>Your <em>admin</em> login (the dashboard) is separate from <em>app users</em> (people who log
+      into your deployed apps). More in <a href="users.html">Manage users &amp; access</a>.</p>
+    </div>
+
+    <h2>Step 8 — Open your app 🎉</h2>
+    <p>Visit <strong><a href="http://starter.localhost">http://starter.localhost</a></strong> and log in
+      with the user you just created. You're looking at your own app, on your own platform, with login
+      handled for you.</p>
+    <figure class="shot" data-file="starter-running.png" data-caption="The starter app running, after login."></figure>
+
+    <h2>Recap</h2>
+    <p>You just did the whole loop: <code>apply</code> (create) → <code>deploy:watch --local</code> (ship)
+      → grant access → log in. From here you'll usually connect a GitHub repo so pushes deploy
+      automatically, but the manual loop above always works.</p>
+
+    <h2>What's next</h2>
+    <ul>
+      <li>Understand the app layout &amp; <code>app.json</code>: <a href="building-apps.html">App structure &amp; app.json</a></li>
+      <li>Auto-deploy from GitHub: <a href="deploy-lifecycle.html">The deploy lifecycle</a></li>
+      <li>Give your app a real database: <a href="external-database.html">External database</a> (or use the built-in one)</li>
+      <li>Have an AI build the next one: <a href="ai-agents.html">Let an AI build &amp; deploy</a></li>
+    </ul>
+  </article>
+  <script src="assets/docs.js"></script>
+</body>
+</html>

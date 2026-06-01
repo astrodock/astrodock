@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Architecture — Astrodock Docs</title>
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body data-page="architecture">
+  <a class="skip" href="#doc">Skip to content</a>
+  <article id="doc">
+    <p class="eyebrow">Reference</p>
+    <h1>Architecture</h1>
+    <p class="lead">
+      Astrodock is one <code>docker compose</code> stack: five services that together route, run,
+      authenticate, store, and monitor your apps on a single box. This page shows how the pieces fit
+      and how a request flows through them.
+    </p>
+
+    <h2>The stack at a glance</h2>
+    <pre><code>                          ┌──────────────── host / VPS ────────────────┐
+   *.&lt;base-domain&gt; ─TLS──▶ │  caddy        reverse proxy + auto-HTTPS      │
+   (the only public ports) │    │           serves static frontends (vol)  │
+                           │    │           proxies /api/* and Docker apps  │
+                           │    ▼                                          │
+                           │  api          control plane (Express)         │
+                           │    │           admin API · /verify · webhooks  │
+                           │    │           health monitor · orchestration  │
+                           │    ▼  (internal, token-authed)                 │
+                           │  runner       clones, builds, runs apps        │
+                           │   │  holds the Docker socket + GitHub PAT      │
+                           │   ├─ PM2 ───▶ node app  &lt;slug&gt;  (buildpack)    │
+                           │   └─ docker ▶ app-&lt;slug&gt; container (Dockerfile) │
+                           │                                               │
+                           │  postgres     bundled DB (control plane + apps)│
+                           │  objectstore  bundled S3-compatible storage    │
+                           └───────────────────────────────────────────────┘
+   volumes:  pgdata · objectdata · static (builds) · apps (server code) · repos (clone cache)
+   network:  one bridge net; Caddy resolves app containers by name; runner reachable as "runner"</code></pre>
+
+    <h2>What each service does</h2>
+    <table>
+      <tr><th>Service</th><th>Role</th></tr>
+      <tr>
+        <td><code>caddy</code></td>
+        <td>Reverse proxy and automatic HTTPS. <strong>The only thing on ports 80/443.</strong>
+          Serves built static frontends from the shared <code>static</code> volume, proxies
+          <code>/api/*</code> to Node apps, and whole-proxies Dockerfile-app subdomains.</td>
+      </tr>
+      <tr>
+        <td><code>api</code></td>
+        <td>The control plane (Express). Hosts the admin API and dashboard, the <code>/verify</code>
+          end-user auth endpoint, GitHub webhooks, the health monitor, and deploy orchestration.
+          Talks to <code>postgres</code>. Holds <strong>no</strong> Docker socket and
+          <strong>no</strong> GitHub PAT.</td>
+      </tr>
+      <tr>
+        <td><code>runner</code></td>
+        <td>Clones, builds, and runs your apps. Runs Node buildpack apps as per-app
+          <strong>non-root OS users via PM2</strong> (inside the runner), and Dockerfile apps as
+          <strong>sibling containers</strong>. Holds the Docker socket and the GitHub PAT. Reachable
+          only on the internal network, token-authed.</td>
+      </tr>
+      <tr>
+        <td><code>postgres</code></td>
+        <td>The bundled database — both the control-plane store <em>and</em> the
+          <code>internal</code> per-app database option.</td>
+      </tr>
+      <tr>
+        <td><code>objectstore</code></td>
+        <td>The bundled S3-compatible object storage (SeaweedFS) — the <code>internal</code> per-app
+          storage option. Internal network only.</td>
+      </tr>
+    </table>
+
+    <h2>How a request flows</h2>
+    <p>Everything from the outside world enters through Caddy. Where it goes next depends on the host
+      and the path:</p>
+    <ul>
+      <li><strong>Loading an app's frontend:</strong>
+        browser → caddy → static files from the shared <code>static</code> volume (for Node
+        buildpack apps), or → the app's own container (for Dockerfile apps).</li>
+      <li><strong>An app's API call:</strong>
+        browser → caddy → <code>/api/*</code> proxied to the running app.</li>
+      <li><strong>Using the dashboard:</strong>
+        the dashboard host → caddy → <code>api</code>.</li>
+      <li><strong>An app checking a login:</strong>
+        the app → <code>/verify</code> on the control plane, over the internal network (your
+        app never needs to be public to verify a user).</li>
+      <li><strong>A push to GitHub:</strong>
+        GitHub → webhook → <code>api</code> → tells the <code>runner</code> to deploy.</li>
+    </ul>
+
+    <h2>The api / runner split (and why)</h2>
+    <p>The <code>api</code> and <code>runner</code> are <strong>separate containers</strong>. This is
+      deliberate, and it's the platform's main internal trust boundary.</p>
+    <p>The runner is the powerful, dangerous part: it holds the <strong>Docker socket</strong> (which
+      is roughly root on the host) and the <strong>GitHub PAT</strong>, and it executes code from your
+      repos when it builds and runs apps. The control plane — the thing that serves the admin API and
+      <code>/verify</code> — holds <em>neither</em> the socket nor the PAT. Keeping the build/exec
+      surface in its own container isolates that risk away from the API.</p>
+    <p>The two talk over the internal compose network only, and the runner's internal API is
+      token-authed with <code>ASTRODOCK_RUNNER_TOKEN</code>. Nothing outside the box reaches the
+      runner directly.</p>
+    <div class="callout note">
+      <p class="ct">Two roles, one image</p>
+      <p>The <code>api</code> and <code>runner</code> are built from the same image, started in
+      different roles (<code>ASTRODOCK_ROLE</code>). What differs is what each one is handed: the
+      runner gets the socket, the PAT, and the build volumes; the api gets neither.</p>
+    </div>
+
+    <h2>Where data lives</h2>
+    <p>State is kept in named Docker volumes, so it survives restarts and upgrades:</p>
+    <table>
+      <tr><th>Volume</th><th>What's in it</th></tr>
+      <tr><td><code>pgdata</code></td><td>Postgres data — control-plane records and internal app databases.</td></tr>
+      <tr><td><code>objectdata</code></td><td>The bundled object store's contents (internal app buckets).</td></tr>
+      <tr><td><code>static</code></td><td>Built frontends (and the admin SPA), served by Caddy.</td></tr>
+      <tr><td><code>apps</code></td><td>Server code for running Node buildpack apps.</td></tr>
+      <tr><td><code>repos</code></td><td>The runner's clone cache for connected repos.</td></tr>
+    </table>
+    <div class="callout tip">
+      <p class="ct">Back these up</p>
+      <p>For a real install, the volumes that hold your data are <code>pgdata</code> and
+      <code>objectdata</code>. See <a href="backups.html">Backups &amp; restore</a>.</p>
+    </div>
+
+    <h2>The deploy &amp; provision flow</h2>
+    <p>At a high level, a deploy goes:</p>
+    <ol class="steps">
+      <li>
+        <h3>Trigger</h3>
+        <p>A webhook from a <code>git push</code> (via <code>api</code>), or
+        <code>astrodock deploy</code>. A deploy record is created so progress is observable.</p>
+      </li>
+      <li>
+        <h3>Provision &amp; gate</h3>
+        <p>Resources are ensured (an internal Postgres DB + role, or an internal storage
+        bucket + scoped key), and the <strong>required-variable gate</strong> runs — if any required
+        secret or external credential is missing, the deploy is rejected before any code runs.</p>
+      </li>
+      <li>
+        <h3>Build</h3>
+        <p>The runner clones the repo, then builds. Node apps: install deps and run the
+        <code>buildCommand</code>; the frontend's <code>dist/</code> is synced to the
+        <code>static</code> volume. Dockerfile apps: <code>docker build</code> an image.</p>
+      </li>
+      <li>
+        <h3>Run</h3>
+        <p>Node apps start as a PM2 process bound to <code>ASTRODOCK_PORT</code>; Dockerfile apps
+        run as a sibling container on the compose network. Caddy routes the subdomain accordingly.</p>
+      </li>
+      <li>
+        <h3>Health probe</h3>
+        <p>The runner probes the app (a <code>GET /health</code> 200 means healthy) and marks the
+        deploy <code>success</code> or <code>failed</code>, with the full streamed log attached.</p>
+      </li>
+    </ol>
+    <p>The injected environment for the app process is the reserved <code>ASTRODOCK_*</code> set
+      (computed from the resource modes) plus the app's declared vars — the platform's own stack
+      secrets are never injected into an app.</p>
+
+    <h2>Related</h2>
+    <ul>
+      <li>The full technical contract — manifest, env model, runner internals:
+        <a href="platform-spec.html">Platform Design Spec</a></li>
+      <li>The trust model and protections: <a href="security.html">Security</a></li>
+    </ul>
+  </article>
+  <script src="assets/docs.js"></script>
+</body>
+</html>

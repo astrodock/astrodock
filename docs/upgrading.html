@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Upgrading — Astrodock Docs</title>
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body data-page="upgrading">
+  <a class="skip" href="#doc">Skip to content</a>
+  <article id="doc">
+    <p class="eyebrow">Guides</p>
+    <h1>Upgrading</h1>
+    <p class="lead">
+      Upgrading Astrodock is three commands: pull the new code, rebuild the images, and bring the stack
+      back up. Database migrations run on their own, and your apps' data is preserved across the upgrade.
+    </p>
+
+    <div class="callout danger">
+      <p class="ct">Back up first</p>
+      <p>Always take a fresh backup before upgrading, so you have something to roll back to if anything
+        goes sideways. It takes one command — see <a href="backups.html">Backups &amp; restore</a>.</p>
+    </div>
+
+    <h2>Upgrade in three steps</h2>
+    <p>From the repo root on your server:</p>
+    <ol class="steps">
+      <li>
+        <h3>Pull the latest code</h3>
+        <pre><code>git pull</code></pre>
+        <p>This updates the repo to the newest version, including any migrations and image changes.</p>
+      </li>
+      <li>
+        <h3>Rebuild the images</h3>
+        <pre><code>docker compose build</code></pre>
+        <p>Compose rebuilds the Astrodock service images against the new code.</p>
+      </li>
+      <li>
+        <h3>Bring the stack back up</h3>
+        <pre><code>docker compose up -d</code></pre>
+        <p>Compose recreates only the services that changed and leaves your data volumes untouched.</p>
+      </li>
+    </ol>
+
+    <div class="callout note">
+      <p class="ct">Migrations run automatically</p>
+      <p>When the <code>api</code> (control plane) starts, it applies any pending schema migrations
+        itself. There's no separate migrate command to remember — bringing the stack up is enough.</p>
+    </div>
+
+    <h2>Check it came back healthy</h2>
+    <p>After <code>up -d</code>, confirm everything restarted cleanly:</p>
+    <pre><code>docker compose ps          # every service should be "Up" (postgres "healthy")
+docker compose logs -f api  # watch migrations run and the control plane start listening</code></pre>
+    <p>In the <code>api</code> logs you should see it apply migrations (if any), then start serving. Then
+      open the dashboard and glance at the <strong>Health</strong> page to confirm your apps are
+      responding.</p>
+    <div class="callout tip">
+      <p class="ct">If a service won't come up</p>
+      <p>Read its logs directly, e.g. <code>docker compose logs api</code> or
+        <code>docker compose logs caddy</code>. Most upgrade hiccups are a config value the new version
+        expects — check the release notes and your <code>.env</code> against the latest
+        <code>.env.example</code>.</p>
+    </div>
+
+    <h2>Your app data is preserved</h2>
+    <p>Upgrades rebuild the platform's container images, not its data. Everything in the Docker volumes —
+      the control-plane database, every internal per-app database, and the object store — stays exactly
+      where it is. Your apps and their data carry across the upgrade untouched.</p>
+
+    <h2>Rolling back</h2>
+    <p>If an upgrade goes wrong, you have two ways back:</p>
+    <ul>
+      <li><strong>Check out the previous version</strong> of the code, then rebuild and bring the stack
+        up again:
+        <pre><code>git checkout &lt;previous-tag-or-commit&gt;
+docker compose build
+docker compose up -d</code></pre>
+      </li>
+      <li><strong>Restore from backup</strong> if a migration changed data in a way an older version can't
+        read. Use the backup you took before upgrading — see <a href="backups.html">Backups &amp;
+        restore</a> for the procedure.</li>
+    </ul>
+    <div class="callout warn">
+      <p class="ct">Migrations move forward</p>
+      <p>Schema migrations are designed to be applied going forward, not reversed. If you downgrade the
+        code after a migration ran, restoring the pre-upgrade backup is the reliable way to get a matching
+        database. This is exactly why you back up first.</p>
+    </div>
+
+    <h2>Related</h2>
+    <ul>
+      <li>Take a backup before you start: <a href="backups.html">Backups &amp; restore</a></li>
+      <li>Watch app status afterward: <a href="email-notifications.html">Email notifications</a></li>
+      <li>First-time setup: <a href="install.html">Install &amp; run</a></li>
+    </ul>
+  </article>
+  <script src="assets/docs.js"></script>
+</body>
+</html>

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The deploy lifecycle — Astrodock Docs</title>
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body data-page="deploy-lifecycle">
+  <a class="skip" href="#doc">Skip to content</a>
+  <article id="doc">
+    <p class="eyebrow">Building apps</p>
+    <h1>The deploy lifecycle</h1>
+    <p class="lead">
+      A deploy turns your code into a running app behind a URL. There are two ways to start one —
+      push to a connected GitHub repo, or upload straight from your laptop — and from there every
+      deploy goes through the same steps. This page covers both paths and what happens in between.
+    </p>
+
+    <h2>Two ways to deploy</h2>
+    <p>Both end the same way: a built, running, health-checked app. They differ only in where the
+      code comes from.</p>
+    <table>
+      <tr><th>Path</th><th>How it starts</th><th>Best for</th></tr>
+      <tr>
+        <td><strong>GitHub</strong></td>
+        <td>You connect a repo; a webhook auto-deploys on every push to <code>source.branch</code>.</td>
+        <td>The day-to-day flow once an app is set up.</td>
+      </tr>
+      <tr>
+        <td><strong>Local upload</strong></td>
+        <td><code>astrodock deploy --local</code> uploads your working directory. No GitHub.</td>
+        <td>Trying things out, no-repo apps, or deploying private code from your machine.</td>
+      </tr>
+    </table>
+    <div class="callout note">
+      <p class="ct">You can use both</p>
+      <p>An app can have a connected repo <em>and</em> still take a one-off <code>--local</code> deploy
+      whenever you want. The manual path always works.</p>
+    </div>
+
+    <h2>Path A — Connect a GitHub repo</h2>
+    <p>Once a repo is connected, you stop thinking about deploys: every <code>git push</code> to the
+      configured branch ships automatically.</p>
+    <h3>What you need first</h3>
+    <p>Connecting a repo requires the platform to have a GitHub token so it can read the repo and
+      create a webhook. That's set once, on the platform, as <code>ASTRODOCK_GITHUB_PAT</code> (in the
+      platform's <code>.env</code> / dashboard) — it is <em>not</em> an app variable and never goes in
+      <code>app.json</code>.</p>
+    <h3>Connect it</h3>
+    <p>Name the repo in <code>app.json</code> under <code>source</code>, then run <code>apply</code>:</p>
+    <pre><code>"source": {
+  "githubRepo": "your-org/invoice-tool",
+  "branch": "main"
+}</code></pre>
+    <pre><code>astrodock apply</code></pre>
+    <p>On <code>apply</code>, Astrodock connects the repo and <strong>creates a webhook</strong> on it.
+      From then on, a push to <code>main</code> (or whatever <code>source.branch</code> is) triggers a
+      deploy on its own. You can also set the repo from the dashboard instead of in the manifest.</p>
+    <div class="callout tip">
+      <p class="ct">Monorepos</p>
+      <p>If the app lives in a subdirectory, set <code>source.repoPath</code> (e.g. <code>"apps/web"</code>).
+      The deploy builds from there instead of the repo root.</p>
+    </div>
+
+    <h2>Path B — Deploy from your laptop</h2>
+    <p>No repo, no webhook — just upload what's in the current folder:</p>
+    <pre><code>astrodock deploy --local</code></pre>
+    <p>The <code>--local</code> flag packages your working directory and uploads it, then runs the exact
+      same build/run/health steps as a GitHub deploy. This is what <a href="first-app.html">Deploy your
+      first app</a> uses, and it's the quickest way to iterate before (or instead of) wiring up GitHub.</p>
+
+    <h2>What a deploy actually does</h2>
+    <p>However it's triggered, every deploy walks the same pipeline. Each step streams into a log you
+      can watch live:</p>
+    <ol class="steps">
+      <li>
+        <h3>Get the source</h3>
+        <p>Clone or pull the connected repo at <code>source.branch</code>, or unpack the upload from a
+        <code>--local</code> deploy. If <code>repoPath</code> is set, that subdirectory becomes the
+        deploy root.</p>
+      </li>
+      <li>
+        <h3>Check the required-variable gate</h3>
+        <p>Before any building happens, the platform confirms every required value is set. If anything
+        is missing, the deploy stops right here — nothing is cloned, built, or run. (Details below.)</p>
+      </li>
+      <li>
+        <h3>Build</h3>
+        <p>For a Node app: <code>npm ci</code> plus your <code>buildCommand</code> for the frontend, and
+        <code>npm install</code> for the server. For a Docker app: <code>docker build</code> from your
+        Dockerfile.</p>
+      </li>
+      <li>
+        <h3>Run</h3>
+        <p>Start the app — a Node process for the buildpack, or a container for a Dockerfile app — with
+        all the injected environment variables in place.</p>
+      </li>
+      <li>
+        <h3>Health probe</h3>
+        <p>The platform hits your <code>GET /health</code>. A 200 marks the deploy healthy; otherwise it's
+        recorded as failed.</p>
+      </li>
+      <li>
+        <h3>Record &amp; log</h3>
+        <p>The deployment is recorded as success or failed, with the full streamed log kept so you can
+        read it after the fact.</p>
+      </li>
+    </ol>
+
+    <h2>Watching a deploy</h2>
+    <p>From the CLI, add <code>:watch</code> to stream the log to your terminal until the deploy finishes:</p>
+    <pre><code>astrodock deploy:watch            # GitHub-connected app
+astrodock deploy:watch --local    # upload + watch in one go</code></pre>
+    <pre><code>Uploading 12 KB for "starter"…
+Local deploy triggered for "starter" (deployment …)
+[…] Installing server deps…
+[…] Building frontend (npm run build)…
+[…] Health probe: app is responding
+[…] Deploy complete
+
+✓ deploy success</code></pre>
+    <p>You can also watch from the dashboard: the <strong>Deploys</strong> tab lists every deployment and
+      its status, and the <strong>Logs</strong> tab shows the streamed output. After a deploy, your app's
+      runtime logs are also available with:</p>
+    <pre><code>astrodock logs --lines 200</code></pre>
+    <figure class="shot" data-file="deploys-tab.png" data-caption="The Deploys tab, showing deployment history and live status."></figure>
+
+    <h2>The required-variable gate</h2>
+    <p>A deploy is <strong>blocked</strong> until every value the app needs is set. The gate runs before
+      any clone or build, so a misconfigured app fails fast and clearly instead of half-deploying. It
+      checks two things:</p>
+    <ul>
+      <li>Every <code>env[]</code> entry marked <code>"required": true</code> that has no value and no
+        <code>default</code>.</li>
+      <li>Every credential made required by an <code>external</code> resource mode — that's
+        <code>ASTRODOCK_DATABASE_URL</code> for an external database, and the
+        <code>ASTRODOCK_STORAGE_*</code> credentials for external storage.</li>
+    </ul>
+    <p>If anything is missing, the deploy is rejected with a list of exactly what to set. Set the values
+      and try again:</p>
+    <pre><code># the CLI reads the value from stdin so it never lands in your shell history
+astrodock set-secret OPENAI_API_KEY
+astrodock set-secret ASTRODOCK_DATABASE_URL</code></pre>
+    <div class="callout note">
+      <p class="ct">Why a gate at all?</p>
+      <p>It guarantees an app never starts up missing a database URL or an API key it declared it needs —
+      you get a clear error before the deploy, not a crash loop after it.</p>
+    </div>
+
+    <h2>Redeploying &amp; triggering manually</h2>
+    <p>For a GitHub-connected app, the normal way to redeploy is to push to the watched branch. To kick
+      off a deploy by hand at any time:</p>
+    <pre><code>astrodock deploy             # deploy the app configured in this folder
+astrodock deploy my-slug     # deploy a specific app by slug
+astrodock deploy --local     # upload the working dir and deploy that</code></pre>
+    <p>You can also trigger a deploy from the dashboard's <strong>Deploys</strong> tab. Each run is its
+      own recorded deployment, so you can always see what shipped and when.</p>
+
+    <h2>Next steps</h2>
+    <ul>
+      <li>Build the app you're deploying: <a href="building-apps.html">App structure &amp; app.json</a></li>
+      <li>Deploy a container instead: <a href="dockerfile-apps.html">Dockerfile apps</a></li>
+      <li>Every variable the gate checks: <a href="env-vars.html">app.json &amp; env reference</a></li>
+    </ul>
+
+    <h2>Related</h2>
+    <ul>
+      <li><a href="first-app.html">Deploy your first app</a></li>
+      <li><a href="external-database.html">External database</a> · <a href="external-storage.html">External storage</a></li>
+    </ul>
+  </article>
+  <script src="assets/docs.js"></script>
+</body>
+</html>

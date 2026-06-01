@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Manage users &amp; access — Astrodock Docs</title>
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body data-page="users">
+  <a class="skip" href="#doc">Skip to content</a>
+  <article id="doc">
+    <p class="eyebrow">Guides</p>
+    <h1>Manage users &amp; access</h1>
+    <p class="lead">
+      Astrodock has <strong>two completely separate kinds of accounts</strong>. This page explains the
+      difference, then walks through creating an app user, granting them access to an app, resetting a
+      password, and the self-service page where users manage their own login.
+    </p>
+
+    <h2>Two kinds of accounts</h2>
+    <p>It's worth getting this straight up front, because it's the thing people trip over most.</p>
+    <table>
+      <tr><th>Account type</th><th>Who they are</th><th>Where they live</th></tr>
+      <tr>
+        <td><strong>Admins</strong></td>
+        <td>You and anyone who helps run the platform. They log into the <strong>dashboard</strong> to
+          create apps, deploy, and manage everything.</td>
+        <td>The admin login (<code>admin.&lt;your-domain&gt;</code>).</td>
+      </tr>
+      <tr>
+        <td><strong>App end-users</strong></td>
+        <td>The people who log into the <strong>apps you deploy</strong>. They never see the dashboard.</td>
+        <td>The dashboard's <strong>Users</strong> page (you manage them; they log into the apps).</td>
+      </tr>
+    </table>
+    <div class="callout note">
+      <p class="ct">Your admin login is not an app account</p>
+      <p>Being an admin doesn't automatically let you log into a deployed app. App login uses the
+      end-user accounts below — even your own. (An end-user can be flagged as an admin too, but those are
+      still two separate ideas.)</p>
+    </div>
+
+    <h2>How app login works</h2>
+    <p>When an app uses <strong>platform login</strong> (its <code>app.json</code> has
+      <code>auth.mode: platform</code>), Astrodock handles the password checking for it. The flow is simple:</p>
+    <ol>
+      <li>A user types their email and password into your app's login form.</li>
+      <li>Your app's server forwards those, plus its own app id and secret, to the platform's
+        <code>/verify</code> endpoint.</li>
+      <li>The platform checks the password <em>and</em> that the user has been <strong>granted access to
+        that specific app</strong>. It replies with the user's id, email, and name — or a rejection.</li>
+      <li>Your app creates its own session and lets them in.</li>
+    </ol>
+    <p>So there are two gates: the password must be right, <em>and</em> the user must be on the app's
+      access list. Miss either and login is refused.</p>
+    <div class="callout tip">
+      <p class="ct">Where the app id and secret come from</p>
+      <p>You don't manage these by hand. The app's id is its <code>slug</code>, and its secret is minted
+      when you run <code>astrodock apply</code>. The starter app reads both from its environment
+      automatically — see <a href="building-apps.html">App structure &amp; app.json</a>.</p>
+    </div>
+
+    <h2>Create an app user</h2>
+    <ol class="steps">
+      <li>
+        <h3>Open the Users page</h3>
+        <p>In the dashboard, go to <strong>Users</strong>, then click <strong>New user</strong>.</p>
+      </li>
+      <li>
+        <h3>Fill in their details</h3>
+        <p>Enter a <strong>name</strong>, an <strong>email</strong>, and an initial
+          <strong>password</strong> (at least 8 characters). The email is what they'll log in with — it's
+          stored lower-cased, so capitalisation doesn't matter.</p>
+      </li>
+      <li>
+        <h3>Save</h3>
+        <p>The user now exists on the platform — but they still can't log into anything yet. That's the
+          next step.</p>
+      </li>
+    </ol>
+    <figure class="shot" data-file="users-new.png" data-caption="Creating a new app end-user on the Users page."></figure>
+
+    <h2>Grant access to an app</h2>
+    <p>A brand-new user has access to <strong>nothing</strong>. You grant access per app, by the app's
+      slug, so the same person can be allowed into one app and kept out of another.</p>
+    <ol class="steps">
+      <li>
+        <h3>Open the user</h3>
+        <p>On the <strong>Users</strong> page, click the user you want to edit.</p>
+      </li>
+      <li>
+        <h3>Grant access to the app</h3>
+        <p>In their <strong>app access</strong> list, turn on the app you want them to use (it's listed
+          by slug). That's the access check the <code>/verify</code> flow looks for.</p>
+      </li>
+    </ol>
+    <figure class="shot" data-file="users-grant-access.png" data-caption="Granting a user access to a specific app by slug."></figure>
+    <div class="callout note">
+      <p class="ct">Revoking access</p>
+      <p>To remove someone, open the user and turn the app back off. They'll be refused at the next login.
+      Revoking access doesn't delete the account, so you can grant it again later without re-creating them.</p>
+    </div>
+
+    <h2>Reset a password</h2>
+    <p>If a user is locked out, you can set a new password for them from the dashboard — you never need to
+      know their old one.</p>
+    <ol class="steps">
+      <li><h3>Open the user</h3><p>Find them on the <strong>Users</strong> page and open their record.</p></li>
+      <li><h3>Reset the password</h3><p>Click <strong>Reset password</strong> and enter a new one (at
+        least 8 characters). Share it with them over a safe channel and ask them to change it.</p></li>
+    </ol>
+
+    <h2>Active and admin flags</h2>
+    <p>Each user has two switches you can toggle when editing them:</p>
+    <ul>
+      <li><strong>Active</strong> — uncheck this to suspend an account. An inactive user is refused at
+        login without losing their access list or password. Re-check it to restore them.</li>
+      <li><strong>Admin</strong> — marks the user as an admin within your apps. This is a flag your apps
+        can read; it does not, on its own, grant dashboard access.</li>
+    </ul>
+
+    <h2>The self-service /account page</h2>
+    <p>Users don't have to come to you for everything. Astrodock hosts a small
+      <strong><code>/account</code></strong> page where an end-user can <strong>change their own
+      password</strong> after signing in. Point users there (for example, link to it from your app) so
+      routine password changes don't land on your desk.</p>
+    <div class="callout tip">
+      <p class="ct">Good first-login habit</p>
+      <p>When you hand someone a password you set, ask them to visit <code>/account</code> and change it to
+      something only they know.</p>
+    </div>
+
+    <h2>What about "public" apps?</h2>
+    <p>Everything above applies only to apps with <code>auth.mode: platform</code>. Apps with
+      <code>auth.mode: public</code> <strong>do not use the Users page at all</strong> — Astrodock doesn't
+      gate them. A public app handles its own login (or has none), so creating users and granting access
+      has no effect on it.</p>
+    <div class="callout warn">
+      <p class="ct">Public means open</p>
+      <p>A public app is reachable by anyone who knows the URL unless the app itself adds protection.
+      Choose <code>platform</code> auth if you want Astrodock to control who gets in.</p>
+    </div>
+
+    <h2>Next steps</h2>
+    <ul>
+      <li>Build an app that uses platform login: <a href="building-apps.html">App structure &amp; app.json</a></li>
+      <li>See the whole deploy-then-log-in loop: <a href="first-app.html">Deploy your first app</a></li>
+      <li>Find your way around the dashboard: <a href="admin-ui.html">Admin UI</a></li>
+    </ul>
+  </article>
+  <script src="assets/docs.js"></script>
+</body>
+</html>

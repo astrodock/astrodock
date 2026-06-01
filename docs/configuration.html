@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Configuration (.env) — Astrodock Docs</title>
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body data-page="configuration">
+  <a class="skip" href="#doc">Skip to content</a>
+  <article id="doc">
+    <p class="eyebrow">Reference</p>
+    <h1>Configuration (.env)</h1>
+    <p class="lead">
+      Every setting that lives in your <code>.env</code> file, grouped the way the file is. Copy
+      <code>.env.example</code> to <code>.env</code>, fill in the required values, and run
+      <code>docker compose up -d</code>. This page is the complete reference.
+    </p>
+    <div class="callout warn">
+      <p class="ct">Keep <code>.env</code> private</p>
+      <p>It holds your secrets. It's already in <code>.gitignore</code> — never commit it. Only the
+      <code>.env.example</code> template is checked in.</p>
+    </div>
+
+    <h2>How to read this page</h2>
+    <ul>
+      <li>All platform settings use the reserved <code>ASTRODOCK_</code> prefix.</li>
+      <li><span class="pill accent">required</span> means a deploy or boot will complain until it's set.
+        <span class="pill">default</span> shows the built-in fallback when you leave it blank.</li>
+      <li>A few values are <strong>compose-managed</strong> — set for you by
+        <code>docker-compose.yml</code>. You normally don't put these in <code>.env</code> at all; they're
+        listed at the end for reference.</li>
+    </ul>
+
+    <h2>Generating secrets</h2>
+    <p>For every "random secret" below, generate a fresh value — don't reuse one. The easy way:</p>
+    <pre><code>openssl rand -hex 32</code></pre>
+    <p>Run it once per secret (JWT secret, secret key, runner token, DB password, object-store key) and
+      paste the output into <code>.env</code>.</p>
+
+    <h2>Domain / routing</h2>
+    <p>Where your platform lives and how HTTPS is handled.</p>
+    <table>
+      <tr><th>Variable</th><th>What it does</th><th>Default / required</th></tr>
+      <tr>
+        <td><code>ASTRODOCK_BASE_DOMAIN</code></td>
+        <td>The base domain every app lives under: <code>&lt;subdomain&gt;.&lt;base-domain&gt;</code>.
+          Use <code>localhost</code> locally; your real domain on a server.</td>
+        <td><span class="pill">localhost</span> (template ships <code>example.com</code>)</td>
+      </tr>
+      <tr>
+        <td><code>ASTRODOCK_ADMIN_SUBDOMAIN</code></td>
+        <td>The subdomain the dashboard is served at, giving <code>&lt;admin&gt;.&lt;base-domain&gt;</code>.</td>
+        <td><span class="pill">admin</span></td>
+      </tr>
+      <tr>
+        <td><code>ASTRODOCK_TLS_MODE</code></td>
+        <td>How HTTPS works. <code>auto</code> = real Let's Encrypt certs (needs a public domain + DNS);
+          <code>internal</code> = Caddy's own CA (LAN / no public DNS; browser warns once);
+          <code>off</code> = plain HTTP (local / behind another proxy).</td>
+        <td><span class="pill">internal</span> (template ships <code>auto</code>)</td>
+      </tr>
+      <tr>
+        <td><code>ASTRODOCK_ACME_EMAIL</code></td>
+        <td>Contact email Let's Encrypt uses for certificate notices. Needed when
+          <code>TLS_MODE=auto</code>.</td>
+        <td><span class="pill">empty</span></td>
+      </tr>
+      <tr>
+        <td><code>ASTRODOCK_ALLOWED_ORIGIN_PATTERN</code></td>
+        <td>Optional. A regex to override the CORS allowed-origin check. Leave blank and it's derived from
+          your base domain (plus localhost outside production).</td>
+        <td><span class="pill">empty</span> (derived)</td>
+      </tr>
+    </table>
+
+    <h2>Admin login + secrets</h2>
+    <p>Your dashboard login and the platform's internal secrets.</p>
+    <table>
+      <tr><th>Variable</th><th>What it does</th><th>Default / required</th></tr>
+      <tr>
+        <td><code>ASTRODOCK_ADMIN_JWT_SECRET</code></td>
+        <td>Signs your dashboard login session. A long random secret.</td>
+        <td><span class="pill accent">required</span></td>
+      </tr>
+      <tr>
+        <td><code>ASTRODOCK_SECRET_KEY</code></td>
+        <td>Master key that encrypts stored secrets at rest (AES-256-GCM). If unset, secrets are stored in
+          plaintext and the control plane warns at boot. <strong>Strongly recommended.</strong></td>
+        <td><span class="pill accent">strongly recommended</span></td>
+      </tr>
+      <tr>
+        <td><code>ASTRODOCK_RUNNER_TOKEN</code></td>
+        <td>Shared secret the control plane uses to authenticate to the runner over the internal network.
+          A random secret.</td>
+        <td><span class="pill accent">required</span></td>
+      </tr>
+      <tr>
+        <td><code>ASTRODOCK_ADMIN_EMAIL</code></td>
+        <td>The email of the first admin, created on first boot.</td>
+        <td><span class="pill accent">required</span></td>
+      </tr>
+      <tr>
+        <td><code>ASTRODOCK_ADMIN_PASSWORD</code></td>
+        <td>The password for that first admin. Change it after logging in.</td>
+        <td><span class="pill accent">required</span></td>
+      </tr>
+    </table>
+
+    <h2>Database (bundled Postgres)</h2>
+    <p>Credentials for the Postgres that ships with Astrodock — it holds the control plane's data and any
+      internal app databases.</p>
+    <table>
+      <tr><th>Variable</th><th>What it does</th><th>Default / required</th></tr>
+      <tr><td><code>ASTRODOCK_PG_USER</code></td><td>Database user.</td><td><span class="pill">astrodock</span></td></tr>
+      <tr><td><code>ASTRODOCK_PG_PASSWORD</code></td><td>Database password. A random secret.</td><td><span class="pill accent">required</span></td></tr>
+      <tr><td><code>ASTRODOCK_PG_DATABASE</code></td><td>Database name.</td><td><span class="pill">astrodock</span></td></tr>
+    </table>
+
+    <h2>Object store (bundled SeaweedFS)</h2>
+    <p>Credentials for the bundled S3-compatible file storage. Apps in internal-storage mode receive
+      these.</p>
+    <table>
+      <tr><th>Variable</th><th>What it does</th><th>Default / required</th></tr>
+      <tr><td><code>ASTRODOCK_OBJECTSTORE_REGION</code></td><td>S3 region label.</td><td><span class="pill">us-east-1</span></td></tr>
+      <tr><td><code>ASTRODOCK_OBJECTSTORE_ACCESS_KEY</code></td><td>S3 access key (the "username").</td><td><span class="pill">astrodock</span></td></tr>
+      <tr><td><code>ASTRODOCK_OBJECTSTORE_SECRET_KEY</code></td><td>S3 secret key. A random secret.</td><td><span class="pill accent">required</span></td></tr>
+      <tr><td><code>ASTRODOCK_OBJECTSTORE_BUCKET</code></td><td>Default bucket name.</td><td><span class="pill">astrodock</span></td></tr>
+    </table>
+
+    <h2>GitHub (deploys)</h2>
+    <p>Optional. Only needed if you want apps to deploy automatically on <code>git push</code>. Skip these
+      and you can still deploy from your laptop with <code>--local</code>.</p>
+    <table>
+      <tr><th>Variable</th><th>What it does</th><th>Default / required</th></tr>
+      <tr>
+        <td><code>ASTRODOCK_GITHUB_PAT</code></td>
+        <td>A fine-grained GitHub token (contents:read + repo webhooks read/write) the runner uses to pull
+          code and manage webhooks.</td>
+        <td><span class="pill">empty</span> (optional)</td>
+      </tr>
+      <tr>
+        <td><code>ASTRODOCK_GITHUB_OWNER</code></td>
+        <td>The GitHub org or user your app repos live under.</td>
+        <td><span class="pill">empty</span> (optional)</td>
+      </tr>
+    </table>
+    <div class="callout note">
+      <p class="ct">The PAT lives only on the runner</p>
+      <p>For safety, the GitHub token is held by the runner service, not the public-facing API — the
+      compose file explicitly blanks it on the API container.</p>
+    </div>
+
+    <h2>Email / alerts</h2>
+    <p>Optional. Powers the health-monitor down/recovery emails via Resend. Leave blank to skip email.</p>
+    <table>
+      <tr><th>Variable</th><th>What it does</th><th>Default / required</th></tr>
+      <tr>
+        <td><code>ASTRODOCK_EMAIL_FROM</code></td>
+        <td>The "from" address/name for platform emails.</td>
+        <td><span class="pill">Astrodock &lt;noreply@example.com&gt;</span></td>
+      </tr>
+      <tr>
+        <td><code>ASTRODOCK_ALERT_EMAIL</code></td>
+        <td>Where down/recovery alerts are sent.</td>
+        <td><span class="pill">empty</span> (optional)</td>
+      </tr>
+      <tr>
+        <td><code>ASTRODOCK_RESEND_API_KEY</code></td>
+        <td>Your Resend API key. Without it, no email is sent.</td>
+        <td><span class="pill">empty</span> (optional)</td>
+      </tr>
+    </table>
+    <p>Step-by-step setup: <a href="email-notifications.html">Email notifications</a>.</p>
+
+    <h2>Feature flags</h2>
+    <table>
+      <tr><th>Variable</th><th>What it does</th><th>Default / required</th></tr>
+      <tr>
+        <td><code>ASTRODOCK_ENABLE_TERMINAL</code></td>
+        <td>Turns on the per-app terminal. <strong>This is arbitrary remote code execution by design</strong>
+          — leave it off unless you understand the threat model.</td>
+        <td><span class="pill">false</span></td>
+      </tr>
+    </table>
+    <div class="callout danger">
+      <p class="ct">Leave the terminal off</p>
+      <p>The per-app terminal runs shell commands inside an app's context — effectively full access. Keep
+      <code>ASTRODOCK_ENABLE_TERMINAL=false</code> unless you've read <a href="security.html">Security</a>
+      and accept the risk.</p>
+    </div>
+
+    <h2>Compose-managed values (don't normally touch)</h2>
+    <p>These are network-internal values set by <code>docker-compose.yml</code> so the services can find
+      each other. In the standard stack you <strong>shouldn't put them in <code>.env</code></strong> —
+      they're listed here only so you know what they're for.</p>
+    <table>
+      <tr><th>Variable</th><th>What it does</th><th>Compose value</th></tr>
+      <tr><td><code>ASTRODOCK_PG_HOST</code> / <code>ASTRODOCK_PG_PORT</code></td><td>Where the control plane reaches Postgres.</td><td><code>postgres</code> : <code>5432</code></td></tr>
+      <tr><td><code>ASTRODOCK_PG_APP_HOST</code> / <code>ASTRODOCK_PG_APP_PORT</code></td><td>Where apps reach the bundled DB.</td><td><code>postgres</code> : <code>5432</code></td></tr>
+      <tr><td><code>ASTRODOCK_OBJECTSTORE_ENDPOINT</code> / <code>..._APP_ENDPOINT</code></td><td>The S3 endpoint for the platform and for apps.</td><td><code>http://objectstore:8333</code></td></tr>
+      <tr><td><code>ASTRODOCK_CADDY_ADMIN</code></td><td>Caddy's admin API, used to manage routes.</td><td><code>http://caddy:2019</code></td></tr>
+      <tr><td><code>ASTRODOCK_INTERNAL_AUTH_URL</code></td><td>The internal address apps call for <code>/verify</code>.</td><td><code>http://api:3100</code></td></tr>
+      <tr><td><code>ASTRODOCK_RUNNER_URL</code> / <code>ASTRODOCK_RUNNER_PORT</code></td><td>Where the control plane reaches the runner.</td><td><code>http://runner:3200</code></td></tr>
+      <tr><td><code>ASTRODOCK_DOCKER_NETWORK</code></td><td>The network Dockerfile-app containers join.</td><td><code>astrodock_default</code></td></tr>
+      <tr><td><code>ASTRODOCK_ROLE</code></td><td>Which role the container runs as.</td><td><code>control-plane</code> / <code>runner</code></td></tr>
+      <tr><td><code>ASTRODOCK_STATIC_DIR</code>, <code>ASTRODOCK_APPS_DIR</code>, <code>ASTRODOCK_REPOS_DIR</code>, <code>ASTRODOCK_CADDY_STATIC_DIR</code></td><td>The <code>/data/…</code> and <code>/srv/…</code> paths inside the containers.</td><td>set on the volumes</td></tr>
+      <tr><td><code>PORT</code></td><td>The control plane's HTTP port.</td><td><code>3100</code></td></tr>
+    </table>
+    <div class="callout note">
+      <p class="ct">When would I change these?</p>
+      <p>Almost never. They only matter if you're customising the compose topology — e.g. pointing at an
+      external database (<a href="external-database.html">External database</a>) or storage
+      (<a href="external-storage.html">External object storage</a>), which those guides cover.</p>
+    </div>
+
+    <h2>Related</h2>
+    <ul>
+      <li>First-time setup with these values: <a href="install.html">Install &amp; run</a></li>
+      <li>Per-app variables (not platform config): <a href="secrets.html">Secrets &amp; env vars</a></li>
+      <li>Something not booting? <a href="troubleshooting.html">Troubleshooting</a></li>
+    </ul>
+  </article>
+  <script src="assets/docs.js"></script>
+</body>
+</html>

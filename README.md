@@ -37,6 +37,12 @@ to boot.
   read a connection string from injected env.
 - **Hybrid compute.** Node buildpack by default (PM2), or ship a `Dockerfile` for any runtime.
 
+## Documentation
+Full, beginner-friendly docs live in [`docs/`](docs/index.html) — a small static site you can open
+locally (`open docs/index.html`) or host anywhere. Start with **Introduction → Install & run →
+Deploy your first app**, then the topic guides (custom domains & DNS, email notifications, external
+database/storage, users, secrets, backups…). The quickstart below is the short version.
+
 ## Quickstart
 ```bash
 cp .env.example .env
@@ -59,8 +65,8 @@ astrodock deploy:watch       # deploy and stream the log until it's live
 ```
 Then grant a user access in the admin UI and visit `https://<subdomain>.your-domain`.
 
-**Building an app (for humans and agents):** read [`AGENTS.md`](AGENTS.md) and
-[`docs/building-apps.md`](docs/building-apps.md). The `app.json` schema lives in
+**Building an app:** see the docs site — [App structure & app.json](docs/building-apps.html) — or,
+for AI agents specifically, [`AGENTS.md`](AGENTS.md). The `app.json` schema lives in
 [`packages/schema`](packages/schema).
 
 ## Repository layout
@@ -71,7 +77,7 @@ packages/auth-client/ @astrodock/auth-client — server-side /verify client
 packages/cli/         @astrodock/cli — astrodock / adock (apply, deploy, status, logs, set-secret)
 packages/schema/      @astrodock/schema — app.json JSON Schema + validator + env catalog
 examples/starter-app/ a real app to copy from
-docs/                 platform-spec.html · building-apps.md · deploying.md
+docs/                 the documentation site (index.html) + platform-spec.html
 docker-compose.yml    the whole stack
 ```
 
@@ -91,8 +97,9 @@ Full technical contract: [`docs/platform-spec.html`](docs/platform-spec.html).
 
 ## Deployment modes
 One artifact, three ways to run it: (1) local on your own box, (2) self-managed cloud VPS,
-(3) a future managed SaaS as orchestrated single-tenant instances. See
-[`docs/deploying.md`](docs/deploying.md) — host-agnostic, any VPS or box.
+(3) a future managed SaaS as orchestrated single-tenant instances. The
+[Install &amp; run](docs/install.html) and [Custom domains &amp; DNS](docs/custom-domains.html)
+guides cover both local and server installs — any VPS or box.
 
 ## Security model — read this
 Astrodock is designed for a **single trusted operator on a single-tenant box**, not multi-tenant

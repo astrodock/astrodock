@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CLI commands — Astrodock Docs</title>
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body data-page="cli">
+  <a class="skip" href="#doc">Skip to content</a>
+  <article id="doc">
+    <p class="eyebrow">Reference</p>
+    <h1>CLI commands</h1>
+    <p class="lead">
+      <code>astrodock</code> drives an Astrodock platform from an app repo: create the app, set
+      secrets, deploy, and watch the result. This is the complete command reference.
+    </p>
+
+    <h2>Installing &amp; aliasing the CLI</h2>
+    <p>The <code>astrodock</code> command lives in the repo you cloned. Install dependencies once,
+      then add a shortcut so you can call it from anywhere:</p>
+    <pre><code># from the astrodock repo folder
+npm install
+
+# add a handy alias (adjust the path to where you cloned it)
+alias astrodock="node $(pwd)/packages/cli/bin/astrodock.js"
+
+# check it
+astrodock help</code></pre>
+    <div class="callout tip">
+      <p class="ct">Tip</p>
+      <p>Add the <code>alias</code> line to your <code>~/.zshrc</code> or <code>~/.bashrc</code> to
+      make it permanent. There's also a shorter alias: <code>adock</code>.</p>
+    </div>
+
+    <h2>The two environment variables</h2>
+    <p>The CLI reads exactly two variables for every command (except <code>help</code>):</p>
+    <table>
+      <tr><th>Variable</th><th>What it is</th></tr>
+      <tr><td><code>ASTRODOCK_URL</code></td><td>Base URL of your admin host, e.g.
+        <code>https://admin.example.com</code> (or <code>http://admin.localhost</code> locally).
+        <strong>Required.</strong></td></tr>
+      <tr><td><code>ASTRODOCK_TOKEN</code></td><td>A scoped API token (<code>tk_…</code>) or an admin
+        JWT. Sent as a bearer token.</td></tr>
+    </table>
+    <pre><code>export ASTRODOCK_URL="https://admin.example.com"
+export ASTRODOCK_TOKEN="tk_..."</code></pre>
+    <div class="callout note">
+      <p class="ct">How the slug is resolved</p>
+      <p>Most commands take an optional <code>slug</code>. If you omit it, the CLI reads
+      <code>slug</code> from the <code>app.json</code> in the current directory (or the file you pass
+      with <code>--file</code>). Run from your app folder and you rarely need to type the slug.</p>
+    </div>
+
+    <h2>Synopsis</h2>
+    <pre><code>astrodock &lt;command&gt; [options]
+
+  apply [--file app.json] [--prune]            Create/update the app, connect repo, provision
+  deploy [slug] [--local]                      Trigger a deploy (--local uploads the working dir)
+  deploy:watch [slug] [--local] [--id &lt;id&gt;]     Trigger (or attach to) a deploy and stream its log
+  status [slug]                                Show the app's process status
+  logs [slug] [--lines N]                      Print recent app logs
+  set-secret &lt;KEY&gt; [value] [slug]              Set an env var value (stdin if value omitted)
+  apps                                         List apps
+  help                                         Show help</code></pre>
+
+    <h2><code>apply</code></h2>
+    <p><strong>Synopsis:</strong> <code>astrodock apply [--file app.json] [--prune]</code></p>
+    <p>Reads <code>app.json</code>, validates it, and reconciles the platform to match: creates the
+      app if the slug is new (otherwise updates it), connects the repo (creating the webhook), and
+      provisions resources and routing — in one pass. It's additive and non-destructive, and it never
+      prints secret <em>values</em>.</p>
+    <table>
+      <tr><th>Option</th><th>Effect</th></tr>
+      <tr><td><code>--file &lt;path&gt;</code></td><td>Read the manifest from this path instead of
+        <code>./app.json</code>.</td></tr>
+      <tr><td><code>--prune</code></td><td>Allow removing platform state (e.g. user-added env vars)
+        that the manifest no longer mentions. Without it, <code>apply</code> never deletes them.</td></tr>
+    </table>
+    <p>On success it reports whether the app was created or updated, prints a one-time
+      <strong>app secret</strong> if one was generated (auth = platform), notes whether the repo was
+      connected, and lists provisioning results:</p>
+    <pre><code>$ astrodock apply
+Created "starter" (starter.&lt;domain&gt;)
+  app secret (shown once): as_...
+  repo connected (webhook created)
+  · internal database provisioned
+  · routing configured</code></pre>
+    <div class="callout warn">
+      <p class="ct">If validation fails</p>
+      <p><code>apply</code> validates <code>app.json</code> against the schema first. An invalid
+      manifest is reported with the exact problems and nothing is changed.</p>
+    </div>
+
+    <h2><code>deploy</code></h2>
+    <p><strong>Synopsis:</strong> <code>astrodock deploy [slug] [--local]</code></p>
+    <p>Triggers a deploy and returns immediately with the new deployment id (it does not stream — use
+      <code>deploy:watch</code> for that). By default the runner deploys from the connected Git repo.</p>
+    <table>
+      <tr><th>Option</th><th>Effect</th></tr>
+      <tr><td><code>--local</code></td><td>Tar the <strong>current working directory</strong> and
+        upload it as the deploy source — <strong>no GitHub required</strong>. Heavy/secret paths
+        (<code>node_modules</code>, <code>.git</code>, <code>dist</code>, <code>.env</code>,
+        <code>.env.local</code>, <code>.DS_Store</code>) are excluded from the upload.</td></tr>
+    </table>
+    <pre><code>$ astrodock deploy
+Deploy triggered for "starter" (deployment 42)
+
+$ astrodock deploy --local
+Uploading 12 KB for "starter"…
+Local deploy triggered for "starter" (deployment 43)</code></pre>
+    <div class="callout note">
+      <p class="ct">Deploys can be blocked</p>
+      <p>If any <code>required</code> declared var, or an external-mode resource credential, has no
+      value, the deploy is rejected before any build runs. The CLI prints exactly what's missing and
+      exits non-zero — set the values with <code>set-secret</code>, then redeploy.</p>
+    </div>
+
+    <h2><code>deploy:watch</code></h2>
+    <p><strong>Synopsis:</strong> <code>astrodock deploy:watch [slug] [--local] [--id &lt;id&gt;]</code></p>
+    <p>The one to use day to day. It triggers a deploy and then <strong>streams the deploy log until
+      the deployment reaches a terminal state</strong> — <code>success</code> or <code>failed</code> —
+      exiting <code>0</code> on success and non-zero on failure. This is how you (or an agent) confirm
+      a launch actually succeeded.</p>
+    <table>
+      <tr><th>Option</th><th>Effect</th></tr>
+      <tr><td><code>--local</code></td><td>Same as <code>deploy --local</code>: upload the working
+        dir instead of deploying from Git.</td></tr>
+      <tr><td><code>--id &lt;id&gt;</code></td><td><strong>Attach</strong> to an existing deployment and
+        stream its log, instead of triggering a new one.</td></tr>
+    </table>
+    <pre><code>$ astrodock deploy:watch --local
+Uploading 12 KB for "starter"…
+Local deploy triggered for "starter" (deployment 44)
+[…] Installing server deps…
+[…] Building frontend (npm run build)…
+[…] Health probe: app is responding
+[…] Deploy complete
+
+✓ deploy success (a1b2c3d)</code></pre>
+
+    <h2><code>status</code></h2>
+    <p><strong>Synopsis:</strong> <code>astrodock status [slug]</code></p>
+    <p>Prints the app's process status as JSON (whatever the platform reports for the running
+      process or container).</p>
+    <pre><code>$ astrodock status starter
+{
+  "slug": "starter",
+  "status": "online",
+  ...
+}</code></pre>
+
+    <h2><code>logs</code></h2>
+    <p><strong>Synopsis:</strong> <code>astrodock logs [slug] [--lines N]</code></p>
+    <p>Prints recent log output for the running app.</p>
+    <table>
+      <tr><th>Option</th><th>Effect</th></tr>
+      <tr><td><code>--lines N</code></td><td>How many recent lines to fetch. Defaults to
+        <code>100</code>.</td></tr>
+    </table>
+    <pre><code>$ astrodock logs --lines 200</code></pre>
+
+    <h2><code>set-secret</code></h2>
+    <p><strong>Synopsis:</strong> <code>astrodock set-secret &lt;KEY&gt; [value] [slug]</code></p>
+    <p>Sets the value of an env var (typically a declared secret) on an app. The value can be passed
+      as the second argument <strong>or piped via stdin if you omit it</strong> — handy for keeping
+      secrets out of your shell history. The optional third argument is the slug (otherwise resolved
+      from <code>app.json</code>).</p>
+    <pre><code># value as an argument
+astrodock set-secret OPENAI_API_KEY sk-...
+
+# value from stdin (no value argument) — never appears in shell history
+printf '%s' "$MY_SECRET" | astrodock set-secret OPENAI_API_KEY
+
+# explicit slug as the third positional
+astrodock set-secret OPENAI_API_KEY sk-... starter</code></pre>
+    <div class="callout tip">
+      <p class="ct">stdin vs argument</p>
+      <p>If you don't pass a value, the CLI reads it from stdin (when piped). If neither a value nor
+      piped input is provided, it errors rather than setting an empty value.</p>
+    </div>
+
+    <h2><code>apps</code></h2>
+    <p><strong>Synopsis:</strong> <code>astrodock apps</code></p>
+    <p>Lists the apps the token can see, one per line: slug, subdomain, runtime type, database and
+      storage modes, and whether the app is provisioned.</p>
+    <pre><code>$ astrodock apps
+starter              starter          node    db:none storage:none provisioned
+invoices             invoices         node    db:internal storage:internal provisioned</code></pre>
+
+    <h2><code>help</code></h2>
+    <p><strong>Synopsis:</strong> <code>astrodock help</code> (also the default with no command, or
+      with <code>--help</code>)</p>
+    <p>Prints usage — the command list and the two environment variables. It's the only command that
+      doesn't need <code>ASTRODOCK_URL</code> / <code>ASTRODOCK_TOKEN</code> set.</p>
+
+    <h2>Related</h2>
+    <ul>
+      <li>Walk the whole loop once: <a href="first-app.html">Deploy your first app</a></li>
+      <li>Set values for declared secrets and resources: <a href="secrets.html">Secrets &amp; env vars</a></li>
+      <li>Create the token the CLI uses: <a href="api-tokens.html">API tokens</a></li>
+    </ul>
+  </article>
+  <script src="assets/docs.js"></script>
+</body>
+</html>

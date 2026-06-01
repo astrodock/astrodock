@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin UI — Astrodock Docs</title>
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body data-page="admin-ui">
+  <a class="skip" href="#doc">Skip to content</a>
+  <article id="doc">
+    <p class="eyebrow">Reference</p>
+    <h1>Admin UI</h1>
+    <p class="lead">
+      A guided tour of the Astrodock dashboard — the web app at <code>admin.&lt;your-domain&gt;</code>
+      where you run the whole platform. This is the "where do I click to…" reference: one stop per page,
+      with what each is for.
+    </p>
+    <div class="callout note">
+      <p class="ct">Who this is for</p>
+      <p>The dashboard is for <strong>admins</strong> — the people running the platform. It's a different
+      thing from the apps you deploy and the people who log into them. See
+      <a href="users.html">Manage users &amp; access</a> for that distinction.</p>
+    </div>
+
+    <h2>Login</h2>
+    <p>Open <code>https://admin.&lt;your-domain&gt;</code> (or <code>http://admin.localhost</code> locally)
+      and sign in with the admin email and password from your <code>.env</code>
+      (<code>ASTRODOCK_ADMIN_EMAIL</code> / <code>ASTRODOCK_ADMIN_PASSWORD</code>). That admin account is
+      seeded on first boot.</p>
+    <figure class="shot" data-file="login.png" data-caption="The Astrodock dashboard login screen."></figure>
+
+    <h2>Apps</h2>
+    <p>The home of the dashboard. The <strong>Apps</strong> page lists every app on the platform with its
+      subdomain and current status, and it's where you <strong>create a new app</strong>.</p>
+    <figure class="shot" data-file="apps-list.png" data-caption="The Apps list, showing each app's subdomain and status."></figure>
+    <p>Click an app to open its <strong>detail view</strong>, which is organised into tabs. Here's what
+      each tab is for.</p>
+
+    <h3>Settings</h3>
+    <p>The app's core configuration: its name, subdomain, source repo and branch, auth mode, and its
+      database/storage modes. This is where you change where an app is served or which GitHub repo it
+      deploys from.</p>
+    <figure class="shot" data-file="app-settings.png" data-caption="An app's Settings tab."></figure>
+
+    <h3>Env vars</h3>
+    <p>The app's environment variables — the values your app reads at runtime. Set, edit, and remove them
+      here; secret values are stored encrypted and masked in the UI. If a required variable is missing, a
+      deploy is blocked until you fill it in.</p>
+    <figure class="shot" data-file="app-env.png" data-caption="The Env vars tab, with secret values masked."></figure>
+    <div class="callout tip">
+      <p class="ct">Also settable from the CLI</p>
+      <p>You can set the same variables with <code>astrodock</code> from your terminal. See
+      <a href="secrets.html">Secrets &amp; env vars</a>.</p>
+    </div>
+
+    <h3>Deploys</h3>
+    <p>The deployment history for this app — each build, when it ran, and whether it succeeded. Trigger a
+      new deploy and open a past one to inspect it.</p>
+    <figure class="shot" data-file="app-deploys.png" data-caption="The Deploys tab listing past deployments."></figure>
+
+    <h3>Logs</h3>
+    <p>The live log stream for the running app, plus build output. This is your first stop when an app
+      misbehaves after deploy.</p>
+    <figure class="shot" data-file="app-logs.png" data-caption="The Logs tab streaming an app's output."></figure>
+
+    <h3>Process status</h3>
+    <p>Alongside the tabs, the app detail view shows the app's current <strong>process status</strong> —
+      whether it's running, stopped, or crashing — so you can tell at a glance if it's healthy. From here
+      you can restart it.</p>
+
+    <h2>Users</h2>
+    <p>Manage the <strong>end-users</strong> who log into your apps: create and edit them, reset
+      passwords, grant or revoke per-app access, and toggle their active/admin flags. This page only
+      affects apps that use platform login.</p>
+    <figure class="shot" data-file="users-list.png" data-caption="The Users page listing app end-users."></figure>
+    <p>Full walkthrough: <a href="users.html">Manage users &amp; access</a>.</p>
+
+    <h2>Activity</h2>
+    <p>A recent-history feed combining <strong>deployments</strong> and <strong>auth logs</strong> —
+      so you can see at a glance what's been shipped lately and who's been logging into your apps
+      (including failed attempts).</p>
+    <figure class="shot" data-file="activity.png" data-caption="The Activity feed: recent deploys and auth events."></figure>
+
+    <h2>Health</h2>
+    <p>The status board. Shows each app as <strong>up or down</strong> and reports
+      <strong>server metrics</strong> for the host. If you've configured email alerts, this is the same
+      monitoring that emails you when an app goes down or recovers.</p>
+    <figure class="shot" data-file="health.png" data-caption="The Health page: per-app up/down and server metrics."></figure>
+    <p>Want the down/recovery emails? See <a href="email-notifications.html">Email notifications</a>.</p>
+
+    <h2>Tokens</h2>
+    <p>Create and revoke <strong>API tokens</strong> — the scoped credentials the <code>astrodock</code>
+      CLI (and AI agents) use to talk to the platform. A new token's value is shown <strong>only
+      once</strong>, so copy it when you create it.</p>
+    <figure class="shot" data-file="tokens-create.png" data-caption="Creating a scoped API token on the Tokens page."></figure>
+    <p>More on these: <a href="api-tokens.html">API tokens</a>.</p>
+
+    <h2>Related</h2>
+    <ul>
+      <li>Manage who can log into your apps: <a href="users.html">Manage users &amp; access</a></li>
+      <li>Every config value explained: <a href="configuration.html">Configuration (.env)</a></li>
+      <li>Do it all from the terminal instead: <a href="cli.html">CLI commands</a></li>
+      <li>When something's wrong: <a href="troubleshooting.html">Troubleshooting</a></li>
+    </ul>
+  </article>
+  <script src="assets/docs.js"></script>
+</body>
+</html>

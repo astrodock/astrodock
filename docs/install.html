@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Install &amp; run — Astrodock Docs</title>
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body data-page="install">
+  <a class="skip" href="#doc">Skip to content</a>
+  <article id="doc">
+    <p class="eyebrow">Get started</p>
+    <h1>Install &amp; run</h1>
+    <p class="lead">
+      Astrodock ships as a single Docker stack. You'll copy a config file, fill in a few values,
+      and run one command. Two ways to do it: <strong>locally</strong> to try it out, or on a
+      <strong>server</strong> for a real, public install.
+    </p>
+
+    <h2>Before you begin</h2>
+    <ul>
+      <li><strong>Docker</strong> with the Compose plugin. Check with <code>docker compose version</code>.
+        (Docker Desktop on Mac/Windows, or Docker Engine on Linux.)</li>
+      <li><strong>For a server install:</strong> a domain name and the ability to add DNS records,
+        plus a box reachable on ports <code>80</code> and <code>443</code>.</li>
+      <li><strong>Optional:</strong> a GitHub token, only if you want apps to redeploy automatically
+        on <code>git push</code>. You can skip it and deploy from your laptop instead.</li>
+    </ul>
+
+    <h2>Get the code</h2>
+    <pre><code>git clone https://github.com/your-org/astrodock.git
+cd astrodock</code></pre>
+
+    <h2>Configure</h2>
+    <p>Copy the example config to <code>.env</code> and open it in your editor:</p>
+    <pre><code>cp .env.example .env</code></pre>
+    <p>A few values you <strong>must</strong> set. Generate each secret with
+      <code>openssl rand -hex 32</code>:</p>
+    <table>
+      <tr><th>Setting</th><th>What it is</th></tr>
+      <tr><td><code>ASTRODOCK_ADMIN_JWT_SECRET</code></td><td>Signs your dashboard login session. Random secret.</td></tr>
+      <tr><td><code>ASTRODOCK_SECRET_KEY</code></td><td>Encrypts stored secrets at rest. Random secret. <strong>Strongly recommended.</strong></td></tr>
+      <tr><td><code>ASTRODOCK_RUNNER_TOKEN</code></td><td>Internal password between the two Astrodock services. Random secret.</td></tr>
+      <tr><td><code>ASTRODOCK_PG_PASSWORD</code></td><td>Password for the bundled database. Random secret.</td></tr>
+      <tr><td><code>ASTRODOCK_OBJECTSTORE_SECRET_KEY</code></td><td>Password for the bundled file storage. Random secret.</td></tr>
+      <tr><td><code>ASTRODOCK_ADMIN_EMAIL</code> / <code>ASTRODOCK_ADMIN_PASSWORD</code></td><td>Your first dashboard login. The admin user is created on first boot.</td></tr>
+      <tr><td><code>ASTRODOCK_BASE_DOMAIN</code></td><td>The domain apps live under. <code>localhost</code> locally; your real domain on a server.</td></tr>
+      <tr><td><code>ASTRODOCK_TLS_MODE</code></td><td>How HTTPS is handled: <code>off</code>, <code>internal</code>, or <code>auto</code> (explained below).</td></tr>
+    </table>
+    <div class="callout warn">
+      <p class="ct">Keep <code>.env</code> private</p>
+      <p>It holds your secrets. It's already in <code>.gitignore</code> — never commit it.</p>
+    </div>
+
+    <h3>Choosing a TLS mode</h3>
+    <table>
+      <tr><th><code>TLS_MODE</code></th><th>Use it when…</th><th>What happens</th></tr>
+      <tr><td><code>off</code></td><td>Trying it on your laptop</td><td>Plain HTTP. Simplest. Apps at <code>http://&lt;sub&gt;.localhost</code>.</td></tr>
+      <tr><td><code>internal</code></td><td>On a LAN with no public DNS</td><td>Astrodock issues its own certificates (your browser will warn the first time).</td></tr>
+      <tr><td><code>auto</code></td><td>On a public server with a domain</td><td>Real, free Let's Encrypt certificates, renewed automatically.</td></tr>
+    </table>
+
+    <h2 id="local">Option A — Run locally</h2>
+    <p>Best for trying Astrodock or developing apps. In your <code>.env</code>:</p>
+    <pre><code>ASTRODOCK_BASE_DOMAIN=localhost
+ASTRODOCK_TLS_MODE=off</code></pre>
+    <p>Then bring the stack up:</p>
+    <pre><code>docker compose up -d</code></pre>
+    <p>That's it — your dashboard is at <strong><a href="http://admin.localhost">http://admin.localhost</a></strong>
+      and your apps will live at <code>http://&lt;subdomain&gt;.localhost</code>.</p>
+    <div class="callout tip">
+      <p class="ct">Why <code>.localhost</code> works with no setup</p>
+      <p>Browsers automatically point any <code>*.localhost</code> name at your own machine, so
+      <code>admin.localhost</code> and <code>notes.localhost</code> just work — no DNS or hosts-file
+      editing needed.</p>
+    </div>
+
+    <h2 id="server">Option B — Run on a server</h2>
+    <p>For a real, internet-facing install. In your <code>.env</code>:</p>
+    <pre><code>ASTRODOCK_BASE_DOMAIN=apps.example.com
+ASTRODOCK_TLS_MODE=auto
+ASTRODOCK_ACME_EMAIL=you@example.com</code></pre>
+    <ol class="steps">
+      <li>
+        <h3>Point DNS at your server</h3>
+        <p>Add a <strong>wildcard</strong> DNS record so every app subdomain resolves:</p>
+        <pre><code>*.apps.example.com   A   &lt;your server's IP&gt;</code></pre>
+        <p>This one record covers <code>admin.apps.example.com</code> and every app. Full walkthrough
+        in <a href="custom-domains.html">Custom domains &amp; DNS</a>.</p>
+      </li>
+      <li>
+        <h3>Open the web ports</h3>
+        <p>Make sure ports <code>80</code> and <code>443</code> are reachable (firewall / security group).
+        Only those two need to be public.</p>
+      </li>
+      <li>
+        <h3>Bring the stack up</h3>
+        <pre><code>docker compose up -d</code></pre>
+        <p>Caddy will fetch HTTPS certificates automatically the first time each subdomain is visited.</p>
+      </li>
+    </ol>
+
+    <h2>Check it's running</h2>
+    <pre><code>docker compose ps        # all services should be "Up" (postgres "healthy")
+docker compose logs -f api   # watch the control plane start up</code></pre>
+    <p>You should see the control plane run its database setup, create your admin user, and start listening.</p>
+
+    <h2>Log in</h2>
+    <p>Open the dashboard — <code>http://admin.localhost</code> (local) or
+      <code>https://admin.&lt;your-domain&gt;</code> (server) — and sign in with the
+      <code>ASTRODOCK_ADMIN_EMAIL</code> / <code>ASTRODOCK_ADMIN_PASSWORD</code> you set.</p>
+    <figure class="shot" data-file="login.png" data-caption="The Astrodock dashboard login screen."></figure>
+    <div class="callout note">
+      <p class="ct">First boot</p>
+      <p>The admin account is seeded from your <code>.env</code> the first time the stack starts. Change
+      the password after logging in, or rotate it via <code>.env</code> + a restart.</p>
+    </div>
+
+    <h2>What's next</h2>
+    <ul>
+      <li>Take an app live: <a href="first-app.html">Deploy your first app →</a></li>
+      <li>Use your own domain: <a href="custom-domains.html">Custom domains &amp; DNS</a></li>
+      <li>Every config value explained: <a href="configuration.html">Configuration reference</a></li>
+      <li>Stuck? <a href="troubleshooting.html">Troubleshooting</a></li>
+    </ul>
+  </article>
+  <script src="assets/docs.js"></script>
+</body>
+</html>
