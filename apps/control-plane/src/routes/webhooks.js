@@ -4,6 +4,7 @@ const express = require('express');
 const { eq } = require('drizzle-orm');
 const { db, schema } = require('../db');
 const { verifyWebhookSignature } = require('../lib/github');
+const { decryptSecret } = require('../lib/crypto');
 const { runner } = require('../runner/client');
 
 const router = express.Router();
@@ -25,7 +26,7 @@ router.post('/github', express.raw({ type: 'application/json' }), async (req, re
   const app = rows[0];
   if (!app) return res.status(404).json({ error: 'No app linked to this repository' });
 
-  if (!verifyWebhookSignature(req.body, signature, app.webhookSecret)) {
+  if (!verifyWebhookSignature(req.body, signature, decryptSecret(app.webhookSecret))) {
     return res.status(401).json({ error: 'Invalid signature' });
   }
 

@@ -7,6 +7,7 @@ const { eq, and, desc } = require('drizzle-orm');
 const config = require('../config');
 const { db, schema } = require('../db');
 const { requireScope, tokenAllowsApp } = require('../middleware/auth');
+const { deployLimiter } = require('../middleware/rateLimiter');
 const { getAppBySlug, getAppEnvVars, serializeApp, serializeEnvVar } = require('../lib/apps');
 const { applyManifest } = require('../lib/apply');
 const { computeEnv, computeMissingRequired } = require('../lib/env-compute');
@@ -39,8 +40,11 @@ router.get('/github/repos', async (req, res) => {
 });
 
 router.get('/status/all', async (req, res) => {
-  const r = await runner.statusAll().catch(() => ({ status: 503, body: { statuses: {} } }));
-  res.status(r.status === 200 ? 200 : 200).json(r.body || { statuses: {} });
+  const r = await runner.statusAll().catch(() => ({ status: 200, body: { statuses: {} } }));
+  const all = r.body?.statuses || {};
+  // a per-app-scoped token only sees its own apps
+  const statuses = Object.fromEntries(Object.entries(all).filter(([slug]) => tokenAllowsApp(req.auth, slug)));
+  res.json({ statuses });
 });
 
 // ── apply a manifest (CLI `apply`) ──────────────────────────────────────────────
@@ -124,6 +128,20 @@ router.post('/', async (req, res) => {
 });
 
 // Update structural fields / modes.
+// Structural fields that flow into a shell (git/docker) or the generated Caddyfile MUST be
+// validated here too — PATCH must not be a bypass around the manifest schema.
+const PATCH_VALIDATORS = {
+  subdomain: (v) => /^[a-z0-9-]+$/.test(v) && v.length <= 40,
+  branch: (v) => /^[A-Za-z0-9._/-]+$/.test(v) && v.length <= 200,
+  repoPath: (v) => /^[A-Za-z0-9._/-]*$/.test(v) && !v.includes('..') && v.length <= 200,
+  dockerfile: (v) => /^[A-Za-z0-9._/-]+$/.test(v) && !v.includes('..') && v.length <= 200,
+  runtimeType: (v) => v === 'node' || v === 'docker',
+  authMode: (v) => v === 'platform' || v === 'public',
+  databaseMode: (v) => ['internal', 'external', 'none'].includes(v),
+  storageMode: (v) => ['internal', 'external', 'none'].includes(v),
+  buildCommand: (v) => typeof v === 'string' && v.length <= 500
+};
+
 router.patch('/:slug', async (req, res) => {
   const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
@@ -135,7 +153,17 @@ router.patch('/:slug', async (req, res) => {
     runtimeType: 'runtimeType', buildCommand: 'buildCommand', dockerfile: 'dockerfile',
     branch: 'branch', repoPath: 'repoPath', subdomain: 'subdomain'
   };
-  for (const [k, col] of Object.entries(map)) if (b[k] !== undefined) update[col] = b[k];
+  for (const [k, col] of Object.entries(map)) {
+    if (b[k] === undefined) continue;
+    const check = PATCH_VALIDATORS[k];
+    if (check && !check(String(b[k]))) return res.status(400).json({ error: `invalid value for "${k}"` });
+    update[col] = b[k];
+  }
+  // changing the subdomain must not collide with another app
+  if (update.subdomain && update.subdomain !== app.subdomain) {
+    const clash = await db.select().from(schema.apps).where(eq(schema.apps.subdomain, update.subdomain)).limit(1);
+    if (clash[0]) return res.status(409).json({ error: 'subdomain already in use' });
+  }
   const rows = await db.update(schema.apps).set(update).where(eq(schema.apps.id, app.id)).returning();
   res.json({ app: serializeApp(rows[0]) });
 });
@@ -191,7 +219,8 @@ async function connectRepoInternal(app, githubRepo, branch, repoPath) {
   const callbackUrl = `${scheme()}://${config.adminSubdomain}.${config.baseDomain}/webhooks/github`;
   const webhookId = await createWebhook(githubRepo, callbackUrl, webhookSecret);
   await db.update(schema.apps).set({
-    githubRepo, branch: branch || 'main', repoPath: repoPath || '', webhookId, webhookSecret, updatedAt: new Date()
+    githubRepo, branch: branch || 'main', repoPath: repoPath || '', webhookId,
+    webhookSecret: encryptSecret(webhookSecret), updatedAt: new Date() // encrypted at rest like every other generated secret
   }).where(eq(schema.apps.id, app.id));
 }
 
@@ -222,7 +251,7 @@ router.post('/:slug/disconnect-repo', async (req, res) => {
 });
 
 // ── deploys ───────────────────────────────────────────────────────────────────
-router.post('/:slug/deploy', async (req, res) => {
+router.post('/:slug/deploy', deployLimiter, async (req, res) => {
   const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
   const r = await runner.deploy(app.slug, { trigger: req.auth?.type === 'token' ? 'cli' : 'manual' }).catch((e) => ({ status: e.status || 503, body: { error: e.message } }));
@@ -232,7 +261,7 @@ router.post('/:slug/deploy', async (req, res) => {
 
 // Local (non-GitHub) deploy: receive a gzipped tarball of the working dir and
 // deploy it directly. Body is raw octet-stream (express.json skips non-JSON).
-router.post('/:slug/deploy-local', express.raw({ type: () => true, limit: '256mb' }), async (req, res) => {
+router.post('/:slug/deploy-local', deployLimiter, express.raw({ type: () => true, limit: '100mb' }), async (req, res) => {
   const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
   if (!req.body || !req.body.length) return res.status(400).json({ error: 'empty upload (send a gzipped tarball)' });
@@ -290,7 +319,9 @@ router.put('/:slug/env/:key', async (req, res) => {
     const stored = rows[0].isSecret ? encryptSecret(value) : value;
     await db.update(schema.appEnvVars).set({ value: stored, updatedAt: new Date() }).where(eq(schema.appEnvVars.id, rows[0].id));
   } else {
-    await db.insert(schema.appEnvVars).values({ appId: app.id, key: req.params.key, value, kind: 'declared' });
+    // An ad-hoc value set on an UNDECLARED key (e.g. `astrodock set-secret`) is treated as
+    // secret: encrypted at rest + masked on read, so it can never be echoed back in cleartext.
+    await db.insert(schema.appEnvVars).values({ appId: app.id, key: req.params.key, value: encryptSecret(value), isSecret: true, kind: 'declared' });
   }
   res.json({ ok: true });
 });
@@ -311,8 +342,14 @@ router.post('/:slug/env/bulk', async (req, res) => {
     const key = t.slice(0, i).trim();
     const value = t.slice(i + 1).trim();
     if (!key || /^ASTRODOCK_/.test(key) || !/^[A-Z][A-Z0-9_]*$/.test(key)) { skipped++; continue; }
-    if (byKey.has(key)) await db.update(schema.appEnvVars).set({ value, updatedAt: new Date() }).where(eq(schema.appEnvVars.id, byKey.get(key).id));
-    else await db.insert(schema.appEnvVars).values({ appId: app.id, key, value, kind: 'declared' });
+    const existingRow = byKey.get(key);
+    if (existingRow) {
+      // honor the declared isSecret flag — never store a declared secret in plaintext
+      const stored = existingRow.isSecret ? encryptSecret(value) : value;
+      await db.update(schema.appEnvVars).set({ value: stored, updatedAt: new Date() }).where(eq(schema.appEnvVars.id, existingRow.id));
+    } else {
+      await db.insert(schema.appEnvVars).values({ appId: app.id, key, value, kind: 'declared' });
+    }
     added++;
   }
   res.json({ added, skipped });

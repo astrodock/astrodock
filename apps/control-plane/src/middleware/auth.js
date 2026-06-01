@@ -66,10 +66,9 @@ function requireScope(scope) {
       if (!auth) return res.status(401).json({ error: 'Authentication required' });
       if (auth.type === 'admin') { req.auth = auth; return next(); }
       if (auth.type === 'token' && tokenHasScope(auth.scopes, scope)) {
-        // per-app scoping: if the route targets a specific app, enforce it
-        if (req.params && req.params.slug && !tokenAllowsApp(auth, req.params.slug)) {
-          return res.status(403).json({ error: `Token is not scoped to app "${req.params.slug}"` });
-        }
+        // NB: per-app scope is enforced per-route (router.param('slug') on the apps router,
+        // and explicit tokenAllowsApp filters on the cross-app list/activity/health routes).
+        // It can't be enforced here — req.params isn't populated in router-level use().
         req.auth = auth; return next();
       }
       return res.status(403).json({ error: `Insufficient scope (need "${scope}")` });

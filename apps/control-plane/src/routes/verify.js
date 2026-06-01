@@ -1,6 +1,7 @@
 'use strict';
 
 const express = require('express');
+const crypto = require('crypto');
 const { eq } = require('drizzle-orm');
 const { db, schema } = require('../db');
 const { verifyPassword } = require('../lib/passwords');
@@ -8,6 +9,13 @@ const { decryptSecret } = require('../lib/crypto');
 const { verifyLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
+
+// constant-time string compare (length check first; secrets are fixed-format high-entropy)
+function safeEqual(a, b) {
+  const ab = Buffer.from(String(a));
+  const bb = Buffer.from(String(b));
+  return ab.length === bb.length && crypto.timingSafeEqual(ab, bb);
+}
 
 function logAttempt(email, appId, result, ip) {
   console.log(`[verify] ${new Date().toISOString()} | ${result} | app=${appId} | email=${email} | ip=${ip}`);
@@ -26,7 +34,7 @@ router.post('/', verifyLimiter, async (req, res) => {
 
   const appRows = await db.select().from(schema.apps).where(eq(schema.apps.slug, appId)).limit(1);
   const app = appRows[0];
-  if (!app || decryptSecret(app.appSecret) !== appSecret) {
+  if (!app || !safeEqual(decryptSecret(app.appSecret), appSecret)) {
     logAttempt(email, appId, 'INVALID_APP_SECRET', ip);
     return res.status(401).json({ error: 'Invalid app credentials' });
   }

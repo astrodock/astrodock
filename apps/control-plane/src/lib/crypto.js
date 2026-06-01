@@ -31,10 +31,17 @@ function decryptSecret(blob) {
   if (typeof blob !== 'string' || !blob.startsWith('v1:')) return blob; // legacy/plaintext
   const key = masterKey();
   if (!key) return blob; // no key — can't decrypt; surface the blob rather than crash
-  const [, ivb, tagb, ctb] = blob.split(':');
-  const decipher = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(ivb, 'base64'));
-  decipher.setAuthTag(Buffer.from(tagb, 'base64'));
-  return Buffer.concat([decipher.update(Buffer.from(ctb, 'base64')), decipher.final()]).toString('utf8');
+  try {
+    const parts = blob.split(':');
+    if (parts.length !== 4) return null;
+    const [, ivb, tagb, ctb] = parts;
+    const decipher = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(ivb, 'base64'));
+    decipher.setAuthTag(Buffer.from(tagb, 'base64'));
+    return Buffer.concat([decipher.update(Buffer.from(ctb, 'base64')), decipher.final()]).toString('utf8');
+  } catch {
+    // corrupt blob or wrong/rotated key — never leak a crypto error to the caller
+    return null;
+  }
 }
 
 function isEnabled() { return !!masterKey(); }

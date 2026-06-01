@@ -47,7 +47,7 @@ app.post('/deploy', express.json(), async (req, res) => {
 });
 
 // Local deploy: raw gzipped tarball body, ?slug=.
-app.post('/deploy-local', express.raw({ type: () => true, limit: '256mb' }), async (req, res) => {
+app.post('/deploy-local', express.raw({ type: () => true, limit: '100mb' }), async (req, res) => {
   const a = await loadApp(req.query.slug);
   if (!a) return res.status(404).json({ error: 'App not found' });
   if (!req.body || !req.body.length) return res.status(400).json({ error: 'empty upload' });

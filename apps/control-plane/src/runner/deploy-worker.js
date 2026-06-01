@@ -5,7 +5,7 @@
 // Deployment row. Branches on runtime.type (node buildpack vs Dockerfile).
 // Receives { deploymentId, appSlug } as JSON in argv[2].
 
-const { execSync } = require('child_process');
+const { execSync, execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const { eq } = require('drizzle-orm');
@@ -32,11 +32,17 @@ async function run() {
   let commitHash = deployment.commitHash || '';
   let commitMessage = deployment.commitMessage || '';
 
-  // Never let the GitHub token (embedded in the clone URL) reach the stored log.
+  // Never let the GitHub token reach the stored log (raw, in a URL, or base64 in an auth header).
   function redact(s) {
     let out = String(s);
-    if (config.github.pat) out = out.split(config.github.pat).join('***');
-    return out.replace(/x-access-token:[^@\s]*@/g, 'x-access-token:***@');
+    if (config.github.pat) {
+      out = out.split(config.github.pat).join('***');
+      const b64 = Buffer.from(`x-access-token:${config.github.pat}`).toString('base64');
+      out = out.split(b64).join('***');
+    }
+    out = out.replace(/x-access-token:[^@\s]*@/g, 'x-access-token:***@');
+    out = out.replace(/Authorization: Basic [A-Za-z0-9+/=]+/g, 'Authorization: Basic ***');
+    return out;
   }
   async function appendLog(msg) {
     log += `[${new Date().toISOString()}] ${redact(msg)}\n`;
@@ -65,15 +71,19 @@ async function run() {
       commitHash = commitHash || 'local';
       commitMessage = commitMessage || 'local upload';
     } else {
-      const repoUrl = `https://x-access-token:${config.github.pat}@github.com/${app.githubRepo}.git`;
+      // Pass the token via a per-invocation auth header (-c http.extraHeader) and keep the
+      // stored remote tokenless, so the PAT is never written to <repo>/.git/config on disk.
+      const tokenlessUrl = `https://github.com/${app.githubRepo}.git`;
+      const authHeader = `Authorization: Basic ${Buffer.from(`x-access-token:${config.github.pat}`).toString('base64')}`;
+      const gitAuth = `git -c http.extraHeader="${authHeader}"`;
       if (fs.existsSync(path.join(repoDir, '.git'))) {
         await appendLog(`Pulling ${app.githubRepo} (${app.branch})`);
-        exec(`git -C "${repoDir}" fetch origin`);
-        exec(`git -C "${repoDir}" reset --hard origin/${app.branch}`);
+        exec(`${gitAuth} -C "${repoDir}" fetch origin`);
+        exec(`git -C "${repoDir}" reset --hard "origin/${app.branch}"`);
       } else {
         await appendLog(`Cloning ${app.githubRepo} (${app.branch})`);
         fs.rmSync(repoDir, { recursive: true, force: true });
-        exec(`git clone --branch ${app.branch} --single-branch "${repoUrl}" "${repoDir}"`);
+        exec(`${gitAuth} clone --branch "${app.branch}" --single-branch "${tokenlessUrl}" "${repoDir}"`);
       }
       if (!commitHash) commitHash = exec(`git -C "${repoDir}" rev-parse --short HEAD`);
       if (!commitMessage) commitMessage = exec(`git -C "${repoDir}" log -1 --pretty=%s`);
@@ -120,6 +130,7 @@ async function run() {
 async function deployNode(app, deployRoot, env, { appendLog, setStatus }) {
   await setStatus('building');
 
+  const repoDir = path.join(config.paths.repos, app.slug);
   const hasApp = fs.existsSync(path.join(deployRoot, 'app'));
   const hasServer = fs.existsSync(path.join(deployRoot, 'server'));
   const standaloneServer = !hasApp && !hasServer && fs.existsSync(path.join(deployRoot, 'server.js'));
@@ -131,25 +142,54 @@ async function deployNode(app, deployRoot, env, { appendLog, setStatus }) {
     await appendLog('WARNING: no app/ or server/ (or standalone server.js/package.json) found');
   }
 
+  // Per-app non-root identity. Build, install (incl. npm lifecycle scripts), and the
+  // runtime process ALL run as this user so a malicious app can neither read the
+  // platform secrets nor reach another app's files. Created before any app code runs.
+  const appUser = `tsapp_${app.slug.replace(/[^a-z0-9]/g, '_')}`;
+  const haveUseradd = canUseradd();
+  let ids = null;
+  if (haveUseradd) {
+    try {
+      exec(`id -u ${appUser} >/dev/null 2>&1 || useradd -r -M -s /usr/sbin/nologin ${appUser}`);
+      ids = { uid: parseInt(exec(`id -u ${appUser}`), 10), gid: parseInt(exec(`id -g ${appUser}`), 10) };
+    } catch (e) { await appendLog(`(note) per-app user unavailable, building as runner user: ${e.message}`); }
+  }
+
+  // The build env is the app's OWN computed env ONLY (no platform stack secrets like
+  // the Postgres superuser pw, object-store master key, or ASTRODOCK_SECRET_KEY — those
+  // live in process.env but must never reach app build/install code). npm cache → app HOME.
+  const appHome = path.join(config.paths.apps, `${app.slug}.home`);
+  fs.mkdirSync(appHome, { recursive: true });
+  if (ids) { try { exec(`chown -R ${appUser}:${appUser} "${appHome}"`); exec(`chmod 700 "${appHome}"`); } catch { /* best effort */ } }
+  const buildEnv = { PATH: process.env.PATH, HOME: appHome, NODE_ENV: config.env, npm_config_cache: path.join(appHome, '.npm'), ...env };
+
   // npm ci needs a lockfile; fall back to npm install when there isn't one
   const installCmd = (dir, prod) => {
     const ci = fs.existsSync(path.join(dir, 'package-lock.json'));
     return ci ? `npm ci${prod ? ' --omit=dev' : ''}` : `npm install${prod ? ' --omit=dev' : ''}`;
   };
+  // Run an app-supplied command (install/build) as the unprivileged app user, with the
+  // scrubbed build env. execFileSync({uid,gid}) avoids any su/shell-quoting pitfalls.
+  function runAsApp(cwd, command) {
+    return execFileSync('sh', ['-c', command], { encoding: 'utf8', timeout: 300000, cwd, env: buildEnv, ...(ids || {}) });
+  }
+
+  // the app user must own the build tree it writes into
+  if (ids) { try { exec(`chown -R ${appUser}:${appUser} "${repoDir}"`); } catch { /* best effort */ } }
 
   // frontend
   if (appSrc) {
     await appendLog('Installing frontend deps…');
-    await appendLog(exec(`cd "${appSrc}" && ${installCmd(appSrc, false)} 2>&1`) || 'deps installed');
+    await appendLog(runAsApp(appSrc, `${installCmd(appSrc, false)} 2>&1`) || 'deps installed');
     await appendLog(`Building frontend (${app.buildCommand})…`);
-    await appendLog(exec(`cd "${appSrc}" && ${app.buildCommand} 2>&1`) || 'build complete');
+    await appendLog(runAsApp(appSrc, `${app.buildCommand} 2>&1`) || 'build complete');
 
     const distDir = path.join(appSrc, 'dist');
     const staticPath = path.join(config.paths.static, app.slug);
     if (fs.existsSync(distDir)) {
       fs.mkdirSync(staticPath, { recursive: true });
       await appendLog(`Syncing frontend → ${staticPath}`);
-      exec(`rsync -a --delete "${distDir}/" "${staticPath}/"`);
+      exec(`rsync -a --delete "${distDir}/" "${staticPath}/"`); // root → static (served publicly)
     } else {
       await appendLog('WARNING: no dist/ after build');
     }
@@ -162,46 +202,39 @@ async function deployNode(app, deployRoot, env, { appendLog, setStatus }) {
     fs.mkdirSync(apiPath, { recursive: true });
     await appendLog(`Copying server → ${apiPath}`);
     exec(`rsync -a --delete --exclude='.env' --exclude='node_modules' "${serverSrc}/" "${apiPath}/"`);
+    if (ids) { try { exec(`chown -R ${appUser}:${appUser} "${apiPath}"`); } catch { /* best effort */ } }
     await appendLog('Installing server deps…');
-    await appendLog(exec(`cd "${apiPath}" && ${installCmd(apiPath, true)} 2>&1`) || 'server deps installed');
+    await appendLog(runAsApp(apiPath, `${installCmd(apiPath, true)} 2>&1`) || 'server deps installed');
 
-    // PM2 ecosystem with the computed env. Blank any platform-only ASTRODOCK_*
-    // that isn't part of this app's env so the runner's own secrets never leak.
+    // PM2 ecosystem with the RUNTIME env. Blank any platform-only ASTRODOCK_* not in the
+    // app's env so the runner's own secrets never leak into the running process either.
     const ecosystemEnv = { ...env, NODE_ENV: config.env };
     for (const key of Object.keys(process.env)) {
       if (key.startsWith('ASTRODOCK_') && !(key in ecosystemEnv)) ecosystemEnv[key] = '';
-    }
-
-    // #1: run each Node app as its own non-root OS user so apps can't read each
-    // other's secrets/code. The ecosystem file (which holds the env) is owned by
-    // that user and not readable by other app users.
-    const appUser = `tsapp_${app.slug.replace(/[^a-z0-9]/g, '_')}`;
-    const haveUseradd = canUseradd();
-    if (haveUseradd) {
-      try { exec(`id -u ${appUser} >/dev/null 2>&1 || useradd -r -M -s /usr/sbin/nologin ${appUser}`); }
-      catch (e) { await appendLog(`(note) could not create per-app user: ${e.message}`); }
     }
 
     const pkg = JSON.parse(fs.readFileSync(path.join(apiPath, 'package.json'), 'utf8'));
     const ext = pkg.type === 'module' ? '.cjs' : '.js';
     const ecosystemPath = path.join(apiPath, `ecosystem.config${ext}`);
     const appCfg = { name: app.slug, script: 'server.js', cwd: apiPath, log_date_format: 'YYYY-MM-DD HH:mm:ss', env: ecosystemEnv };
-    if (haveUseradd) { appCfg.uid = appUser; appCfg.gid = appUser; }
+    if (ids) { appCfg.uid = appUser; appCfg.gid = appUser; }
     fs.writeFileSync(ecosystemPath, `module.exports = ${JSON.stringify({ apps: [appCfg] }, null, 2)};\n`);
 
-    if (haveUseradd) {
-      // own + lock down the app dir; secrets file is 600, code dir 700 — no cross-app reads
+    if (ids) {
+      // lock down: secrets file 600, dirs 700, all owned by the app user — no cross-app reads
       try {
-        exec(`chown -R ${appUser}:${appUser} "${apiPath}"`);
-        exec(`chmod 700 "${apiPath}"`);
+        exec(`chown ${appUser}:${appUser} "${ecosystemPath}"`);
+        exec(`chmod 700 "${apiPath}" "${repoDir}"`);
         exec(`chmod 600 "${ecosystemPath}"`);
       } catch (e) { await appendLog(`(note) could not lock down app dir: ${e.message}`); }
     }
 
-    await appendLog(`(Re)starting PM2 process "${app.slug}"${haveUseradd ? ` as ${appUser}` : ''}`);
+    await appendLog(`(Re)starting PM2 process "${app.slug}"${ids ? ` as ${appUser}` : ''}`);
     try { exec(`pm2 delete ${app.slug} 2>&1`); } catch { /* not running yet */ }
     await appendLog(exec(`pm2 start "${ecosystemPath}" 2>&1`) || 'started');
     try { exec('pm2 save 2>&1'); } catch { /* ignore */ } // #5: persist for resurrect on restart
+  } else if (ids) {
+    try { exec(`chmod 700 "${repoDir}"`); } catch { /* best effort */ }
   }
 }
 

@@ -3,7 +3,7 @@
 const express = require('express');
 const { eq } = require('drizzle-orm');
 const { db, schema } = require('../db');
-const { requireScope } = require('../middleware/auth');
+const { requireScope, tokenAllowsApp } = require('../middleware/auth');
 const { getServerMetrics } = require('../runner/health');
 
 const router = express.Router();
@@ -12,8 +12,9 @@ router.use(requireScope('deploy'));
 // App health is written to app_health by the runner; read it from the DB here.
 router.get('/', async (req, res) => {
   const server = getServerMetrics();
-  const apps = await db.select({ slug: schema.apps.slug, name: schema.apps.name, subdomain: schema.apps.subdomain, port: schema.apps.port })
+  let apps = await db.select({ slug: schema.apps.slug, name: schema.apps.name, subdomain: schema.apps.subdomain, port: schema.apps.port })
     .from(schema.apps).where(eq(schema.apps.provisioned, true));
+  apps = apps.filter((a) => tokenAllowsApp(req.auth, a.slug)); // per-app-scoped tokens see only their apps
   const health = await db.select().from(schema.appHealth);
   const byslug = new Map(health.map((h) => [h.slug, h]));
 

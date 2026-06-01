@@ -24,4 +24,13 @@ const accountLimiter = rateLimit({
   legacyHeaders: false
 });
 
-module.exports = { verifyLimiter, adminLoginLimiter, accountLimiter };
+// Caps deploy triggers (esp. the large deploy-local upload) to blunt resource-exhaustion.
+const deployLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: 30,
+  message: { error: 'Too many deploys, slow down' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+module.exports = { verifyLimiter, adminLoginLimiter, accountLimiter, deployLimiter };
