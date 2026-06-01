@@ -27,8 +27,13 @@ plainly rather than pretending they aren't there.
 
 ## Data protection
 - **Secrets are encrypted at rest** (AES-256-GCM) when `ASTRODOCK_SECRET_KEY` is set: app secrets,
-  app JWT secrets, internal DB passwords, and secret env values. Set this key — without it the
-  control plane stores secrets in plaintext and warns at boot.
+  app JWT secrets, internal DB passwords, webhook secrets, and secret env values. Set this key —
+  without it the control plane stores secrets in plaintext and warns at boot.
+- **App build runs unprivileged with no platform secrets.** `npm`/postinstall/`buildCommand` run
+  as the app's own non-root user with a scrubbed env containing only the app's own injected vars —
+  never the platform stack secrets (`ASTRODOCK_SECRET_KEY`, the Postgres superuser password, the
+  object-store master key, the admin JWT secret, the runner token, the GitHub PAT). The GitHub PAT
+  is passed to git via a per-invocation header and never written to the cloned repo's `.git/config`.
 - **Per-app database isolation:** each internal-DB app gets its own Postgres database + login
   role, and `CONNECT` is revoked from `PUBLIC` (on app DBs *and* the control-plane DB), so an
   app's role can't reach another app's data or the control plane's.
@@ -60,8 +65,13 @@ plainly rather than pretending they aren't there.
 - Only Caddy's `80`/`443` should be published to the internet.
 
 ## Remaining known limitations
-- The runner runs privileged operations (socket = host root, executes repo build/postinstall
-  code); the trust boundary is the runner container, not per-app.
+- The runner container itself is privileged (holds the Docker socket ≈ host root and the GitHub
+  PAT). App build + runtime drop to a non-root per-app user, but a bug in the runner's own
+  orchestration code, or a Dockerfile-app escape via the socket, is bounded only by the runner
+  container. The trust boundary is the runner container.
+- Dockerfile apps share one Docker network with the control plane/Caddy; a deployed Dockerfile
+  app could reach internal services (objectstore, caddy admin, runner) on that network. Put only
+  trusted Dockerfile apps on the box, or segment the network.
 - No multi-admin RBAC — admins are all-powerful (per-app scoping exists only for API tokens).
 - The optional terminal (`ASTRODOCK_ENABLE_TERMINAL`) remains arbitrary RCE and off by default.
 
