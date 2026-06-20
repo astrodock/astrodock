@@ -160,6 +160,128 @@ env/secret management, and token management.
 
 ---
 
+## Phase 6 — Production hardening (single-host operator)
+
+Stages 0–9 got the platform standing up and deploying apps. Phase 6 makes a **single
+trusted operator's box** production-ready: observability, alerting, in-UI configuration,
+durability, and deploy safety. **Scope guard:** anything that only matters with multiple
+mutually-distrusting operators/customers is **out** — it lives in `MULTI_TENANT.md`. The
+audit log stays here (one operator still wants a change history); the multi-admin RBAC layer
+on top of it does not.
+
+**Architectural keystone:** items 2/3/4 below are one primitive — *record an event, then
+optionally route it*. Build the event/audit spine first; alerts, access logs, and the audit
+trail all hang off it instead of being three systems.
+
+### Pinned decisions (defaults for this phase)
+- **Settings precedence:** infra/bootstrap config (PG, secret key, domain, ports, object-store
+  creds) stays **env-only**, surfaced **read-only** as Diagnostics. Operational settings (alert
+  routing, retention, thresholds, email-from, feature flags) take env as default + a **DB
+  override**, applied live where safe.
+- **Page-view IP retention:** store the full IP + prune on the retention window by default;
+  knob `ASTRODOCK_PAGE_LOG_IP=full|truncated|off` (operator/GDPR choice).
+- **v1 alert channels:** email (exists) + a generic **outbound webhook** (JSON; Slack/Discord
+  compatible). Native chat formatting is later.
+- **Severity levels:** `info | warning | critical`.
+
+### Stage 10 — Event & settings spine (keystone)
+- `events` table (audit + system events) and `emitEvent()` that records a row and delivers any
+  attached notification. Rewire the existing health down/recovery alerts through it
+  (behavior-preserving).
+- `platform_settings` table + a settings accessor (env default → DB override) and an admin-only
+  `/admin/settings` API exposing operational settings, read-only infra **diagnostics** (secrets
+  masked), and **readiness** checks (SECRET_KEY set? alert email set? email provider set?).
+- **Done when:** an app going down still emails *and* writes an `events` row; auth-log retention
+  is read from settings (default 90); `GET /admin/settings` returns settings + diagnostics +
+  readiness, and `PATCH` records an audit event. *(Backend in place; UI is Stage 12.)*
+
+### Stage 11 — Notification routing & channels
+- `notification_rules` (per event/category → channels, targets, min severity, app scope) +
+  `notification_deliveries` (send log; dedup/rate-limit — generalize the health `alertSent`
+  latch). Channels: email + outbound webhook. A "send test alert" action.
+- New emit sites: **deploy** started/succeeded/**failed** (deploy-worker emits nothing today),
+  **pages** published/deleted, **auth anomaly** (failed-`/verify` bursts), **audit** (token/user/
+  settings changes), **system** (disk/mem/load high — `getServerMetrics` already computes them).
+- **Done when:** a deploy failure and an app-down both notify per configured rules across
+  email + webhook, deduped; the test action delivers on each enabled channel.
+
+### Stage 12 — Settings & notifications UI
+- Global **Settings** nav (alongside Users/Apps/Tokens/Activity/Health): Notifications · Email ·
+  Logging & Retention · Feature flags · Diagnostics (read-only) + the readiness banner.
+- **Done when:** an operator can edit alert routing + retention and see effective config without
+  SSH; secret-typed settings reuse the AES-GCM at-rest path.
+
+### Stage 13 — Logging: page access, app access, audit surfacing
+- `page_views` table (per request: ts, IP per the retention knob, UA, referrer, path, userId,
+  status) written in the Pages public middleware; keep the aggregate counter for cheap display;
+  prune on the retention window. Views-over-time / referrers / per-file hits.
+- Surface **Caddy access logs** for deployed apps (JSON log to a mounted volume): tail + per-app
+  request-rate / status-code breakdown — today end-user app traffic is a blind spot.
+- Per-app **live runtime logs** tail (PM2 / `docker logs`) via the runner; extend CLI `logs`.
+- Audit log surfaced in the Activity UI; cap `deployments.log` size/retention.
+- **Done when:** page views show source/referrer over time, deployed-app traffic is visible, and
+  admin actions appear in an audit trail.
+
+### Stage 14 — Durability: backups & disk/quota
+- Scheduled `pg_dump` + object-store snapshots; last-run status; **alert on backup failure**;
+  optional off-box copy to an external S3 (the one place an external dep earns its keep).
+- Disk usage per consumer (apps/builds/pages/logs/objects); caps; threshold alerts; prune old
+  builds/logs/orphaned objects. (Single-box disk-full is the classic single-VPS outage.)
+- **Done when:** a restorable backup runs on schedule, and a failed backup or low-disk condition
+  alerts.
+
+### Stage 15 — Deploy safety & platform self-health
+- **Rollback:** "redeploy last successful build," keep last-N artifacts; build timeout.
+- **Platform self-health:** probe DB / object-store / runner reachability + disk and surface +
+  alert (today only *apps* are probed); TLS cert-expiry alert.
+- Optional operator-facing **status page** summarizing app + platform health.
+- **Done when:** a bad deploy can be rolled back in one action; platform-level outages and cert
+  expiry alert.
+
+### Stage 16 — Custom domains & DNS
+Today every app lives at `<subdomain>.<base-domain>` (one base domain, one wildcard DNS
+record, global TLS mode). This stage lets an app (and a Page) be served at an **operator-owned
+external domain**, with a guided add → verify → activate flow in the admin UI.
+
+- **Reserved-subdomain fix (pull forward — latent bug):** app subdomains are only validated as
+  `/^[a-z0-9-]+$/`, so an app can claim `admin`/`pages`/the configured admin subdomain and
+  collide with a platform host in the generated Caddyfile. Block reserved names (`admin`,
+  `pages`, `www`, `api`, the configured admin/pages subdomains) and reject invalid DNS labels
+  (leading/trailing hyphen, label > 63). *Do this independently of the rest of the stage.*
+- **Data:** `custom_domains` (id, appId, hostname, status `pending|verifying|active|failed`,
+  verificationToken, isPrimary, redirectToCanonical, lastCheckedAt, createdAt). One app → many
+  domains. A Page may own domains too (nullable appId / pageId).
+- **Domain-management UI (the operator flow):**
+  1. Operator adds a hostname (e.g. `app.example.com` or apex `example.com`) to an app.
+  2. The system **shows the exact DNS records to create** — an `A`/`AAAA` to the server's public
+     IP (detected/configured), plus a `TXT` verification record (`_astrodock-challenge`) — with
+     copy buttons and per-record status.
+  3. A **"Verify"** action resolves the records (A/AAAA points here? TXT matches?) and flips the
+     domain to `active`; clear per-record pass/fail feedback on failure.
+- **Verification folded into health checks:** the existing 60s health loop re-resolves active
+  custom domains and watches for **DNS drift** (record no longer points here) and cert
+  status/expiry, emitting `domain.dns_drift` / `domain.cert_failed` / cert-expiry events through
+  the Stage 10/11 event spine. (This is the "add verification to our health checks" ask.)
+- **Routing:** extend `nodeAppBlock`/`dockerAppBlock` to emit the same `handle` blocks keyed on
+  each active custom host; honor `isPrimary` + `redirectToCanonical` (redirect the others, incl.
+  the subdomain, to the canonical) and `www`↔apex normalization. Decide apex (base-domain root)
+  handling here too.
+- **TLS — pinned default: Caddy on-demand TLS.** A site block per active custom host with
+  `tls { on_demand }`, plus a global `on_demand_tls { ask <url> }`; the control plane's `ask`
+  endpoint authorizes issuance only for a hostname that is a *registered active* custom domain
+  (prevents abuse, no pre-provisioning). DNS-01 wildcard (bundled Caddy DNS plugin) is the later
+  upgrade, not v1.
+- **Pages custom domains:** once the app path works, let a published Page bind its own host via
+  the same on-demand mechanism.
+- **Done when:** an operator can add a custom domain to an app, copy the shown DNS records, click
+  Verify, and reach the app over HTTPS at that domain; the health loop flags DNS drift / cert
+  problems via alerts; and no app can claim a reserved subdomain.
+
+> **Out of scope (see `MULTI_TENANT.md`):** cross-tenant domain ownership/isolation and automated
+> domain delegation per customer. Everything above is for the single operator's own domains.
+
+---
+
 ## Open decisions — surface to the user when you reach them
 - **License:** MIT (recommended) vs Apache-2.0.
 - **Internal backups:** local-only vs optional off-box to an external object store.
