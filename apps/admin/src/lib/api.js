@@ -93,6 +93,8 @@ export const disconnectRepo = (slug) =>
 // Deploys
 export const triggerDeploy = (slug) =>
   request(`/apps/${slug}/deploy`, { method: 'POST' });
+export const rollbackApp = (slug) =>
+  request(`/apps/${slug}/rollback`, { method: 'POST' });
 export const getDeployments = (slug) =>
   request(`/apps/${slug}/deployments`);
 export const getDeployment = (slug, id) =>
@@ -121,6 +123,7 @@ export const getAppLogs = (slug, lines = 100) =>
 
 // Health
 export const getHealth = () => request('/health');
+export const getPlatformHealth = () => request('/health/platform');
 
 // Activity
 export const getRecentDeployments = (limit = 50) =>

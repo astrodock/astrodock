@@ -5,9 +5,15 @@ const { eq } = require('drizzle-orm');
 const { db, schema } = require('../db');
 const { requireScope, tokenAllowsApp } = require('../middleware/auth');
 const { getServerMetrics } = require('../runner/health');
+const platformHealth = require('../lib/platform-health');
 
 const router = express.Router();
 router.use(requireScope('deploy'));
+
+// Platform self-health snapshot (DB / object store / runner / TLS cert).
+router.get('/platform', async (req, res) => {
+  res.json(platformHealth.getLast() || await platformHealth.probePlatform());
+});
 
 // App health is written to app_health by the runner; read it from the DB here.
 router.get('/', async (req, res) => {

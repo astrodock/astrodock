@@ -42,7 +42,7 @@ app.post('/deploy', express.json(), async (req, res) => {
   const a = await loadApp(req.body?.appSlug);
   if (!a) return res.status(404).json({ error: 'App not found' });
   try {
-    const d = await runDeploy(a, { trigger: req.body.trigger || 'manual', commitHash: req.body.commitHash, commitMessage: req.body.commitMessage });
+    const d = await runDeploy(a, { trigger: req.body.trigger || 'manual', commitHash: req.body.commitHash, commitMessage: req.body.commitMessage, targetCommit: req.body.targetCommit });
     res.json({ deploymentId: d.id });
   } catch (err) { handleDeployError(res, err); }
 });

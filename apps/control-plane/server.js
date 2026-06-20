@@ -78,6 +78,8 @@ async function start() {
   // Push current routing to Caddy (retried; reconciler keeps it healed).
   reloadCaddyWithRetry().catch(() => {});
   startCaddyReconciler();
+  // Platform self-health: probe DB/object-store/runner/cert + alert on transitions.
+  require('./src/lib/platform-health').startPlatformHealth();
   // (app health monitoring runs in the runner container; this api reads app_health from the DB)
 
   app.listen(config.port, () => {

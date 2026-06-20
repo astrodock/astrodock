@@ -43,8 +43,14 @@ function formatTime(dateStr) {
   return new Date(dateStr).toLocaleString();
 }
 
+function depLabel(d) {
+  if (!d) return { cls: 'inactive', text: 'unknown' };
+  return d.ok ? { cls: 'active', text: 'ok' } : { cls: 'errored', text: d.error || 'down' };
+}
+
 export default function HealthPage() {
   const [data, setData] = useState(null);
+  const [platform, setPlatform] = useState(null);
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
@@ -56,6 +62,7 @@ export default function HealthPage() {
     } catch (err) {
       setError(err.message);
     }
+    try { setPlatform(await api.getPlatformHealth()); } catch { /* non-fatal */ }
   }
 
   useEffect(() => { load(); }, []);
@@ -93,6 +100,30 @@ export default function HealthPage() {
       {degradedCount > 0 && (
         <div className="health-alert health-alert-warning">
           {degradedCount} app{degradedCount > 1 ? 's' : ''} degraded
+        </div>
+      )}
+
+      {platform && (
+        <div className="health-metrics">
+          {[['database', 'Database'], ['objectstore', 'Object store'], ['runner', 'Runner']].map(([k, label]) => {
+            const st = depLabel(platform[k]);
+            return (
+              <div className="metric-card" key={k}>
+                <div className="metric-label">{label}</div>
+                <div className="metric-value" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span className={`process-dot-sm ${st.cls}`} />
+                  <span style={{ fontSize: 15 }}>{st.text}</span>
+                </div>
+              </div>
+            );
+          })}
+          {platform.cert && !platform.cert.skipped && (
+            <div className="metric-card">
+              <div className="metric-label">TLS cert</div>
+              <div className="metric-value">{platform.cert.daysLeft != null ? `${platform.cert.daysLeft}d` : (platform.cert.ok ? 'ok' : 'error')}</div>
+              <div className="metric-sub">until expiry</div>
+            </div>
+          )}
         </div>
       )}
 

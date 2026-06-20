@@ -15,11 +15,11 @@ const { computeEnv, computeMissingRequired } = require('../lib/env-compute');
 const { emitEvent } = require('../lib/events');
 
 function exec(cmd, opts = {}) {
-  return execSync(cmd, { encoding: 'utf8', timeout: 300000, ...opts }).trim();
+  return execSync(cmd, { encoding: 'utf8', timeout: config.deploy.buildTimeoutMs, ...opts }).trim();
 }
 
 async function run() {
-  const { deploymentId, appSlug, localTarball } = JSON.parse(process.argv[2]);
+  const { deploymentId, appSlug, localTarball, targetCommit } = JSON.parse(process.argv[2]);
 
   const depRows = await db.select().from(schema.deployments).where(eq(schema.deployments.id, deploymentId)).limit(1);
   const appRows = await db.select().from(schema.apps).where(eq(schema.apps.slug, appSlug)).limit(1);
@@ -82,11 +82,18 @@ async function run() {
       if (fs.existsSync(path.join(repoDir, '.git'))) {
         await appendLog(`Pulling ${app.githubRepo} (${app.branch})`);
         exec(`${gitAuth} -C "${repoDir}" fetch origin`);
-        exec(`git -C "${repoDir}" reset --hard "origin/${app.branch}"`);
       } else {
         await appendLog(`Cloning ${app.githubRepo} (${app.branch})`);
         fs.rmSync(repoDir, { recursive: true, force: true });
         exec(`${gitAuth} clone --branch "${app.branch}" --single-branch "${tokenlessUrl}" "${repoDir}"`);
+        exec(`${gitAuth} -C "${repoDir}" fetch origin`); // ensure rollback target commits are present
+      }
+      if (targetCommit) {
+        // Rollback / pinned deploy: check out the requested commit instead of branch HEAD.
+        await appendLog(`Rolling back to commit ${targetCommit}`);
+        exec(`git -C "${repoDir}" reset --hard "${targetCommit}"`);
+      } else {
+        exec(`git -C "${repoDir}" reset --hard "origin/${app.branch}"`);
       }
       if (!commitHash) commitHash = exec(`git -C "${repoDir}" rev-parse --short HEAD`);
       if (!commitMessage) commitMessage = exec(`git -C "${repoDir}" log -1 --pretty=%s`);
@@ -270,7 +277,7 @@ async function deployDocker(app, deployRoot, env, { appendLog, setStatus, commit
   const dockerfile = app.dockerfile || 'Dockerfile';
 
   await appendLog(`docker build -t ${tag} (${dockerfile})`);
-  await appendLog(exec(`docker build -f "${path.join(deployRoot, dockerfile)}" -t "${tag}" "${deployRoot}" 2>&1`, { timeout: 600000 }) || 'build complete');
+  await appendLog(exec(`docker build -f "${path.join(deployRoot, dockerfile)}" -t "${tag}" "${deployRoot}" 2>&1`, { timeout: config.deploy.dockerBuildTimeoutMs }) || 'build complete');
 
   await setStatus('deploying');
   // env-file (contains secrets) — written to the app's apps-dir, locked down

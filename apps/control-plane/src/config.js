@@ -128,6 +128,12 @@ const config = {
   // ── Feature flags ──
   enableTerminal: bool(process.env.ASTRODOCK_ENABLE_TERMINAL, false),
 
+  // Deploy build timeouts (per command). A hung build fails instead of wedging the runner.
+  deploy: {
+    buildTimeoutMs: int(process.env.ASTRODOCK_BUILD_TIMEOUT_MS, 300000),
+    dockerBuildTimeoutMs: int(process.env.ASTRODOCK_DOCKER_BUILD_TIMEOUT_MS, 600000)
+  },
+
   // base port for app processes (control plane is on `port`)
   basePort: int(process.env.ASTRODOCK_BASE_PORT, 3101),
 

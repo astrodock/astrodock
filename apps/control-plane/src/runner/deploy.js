@@ -10,7 +10,7 @@ const { computeMissingRequired } = require('../lib/env-compute');
 // Kick off a deploy: validate preconditions + required-variable gate, create a
 // Deployment record, then fork the worker (so the API event loop stays free).
 // Throws errors with a .status for the route to surface; webhook path logs.
-async function runDeploy(app, { trigger = 'manual', commitHash = '', commitMessage = '', localTarball = null } = {}) {
+async function runDeploy(app, { trigger = 'manual', commitHash = '', commitMessage = '', localTarball = null, targetCommit = null } = {}) {
   // A local tarball deploy (CLI `deploy --local`) needs neither a PAT nor a connected repo.
   if (!localTarball) {
     if (!config.github.pat) {
@@ -60,7 +60,7 @@ async function runDeploy(app, { trigger = 'manual', commitHash = '', commitMessa
   }
 
   const workerPath = path.join(__dirname, 'deploy-worker.js');
-  const child = fork(workerPath, [JSON.stringify({ deploymentId: deployment.id, appSlug: app.slug, localTarball })], {
+  const child = fork(workerPath, [JSON.stringify({ deploymentId: deployment.id, appSlug: app.slug, localTarball, targetCommit })], {
     detached: true, stdio: 'ignore'
   });
   child.unref();

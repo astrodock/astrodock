@@ -259,6 +259,25 @@ router.post('/:slug/deploy', deployLimiter, async (req, res) => {
   res.status(r.status).json(r.body);
 });
 
+// Roll back to the last good build: redeploy the most recent successful commit
+// (the one before what's currently live, if live is healthy).
+router.post('/:slug/rollback', deployLimiter, async (req, res) => {
+  const app = await getAppBySlug(req.params.slug);
+  if (!app) return res.status(404).json({ error: 'App not found' });
+  if (!app.githubRepo) return res.status(400).json({ error: 'Rollback requires a connected GitHub repo' });
+  const deps = await db.select({ status: schema.deployments.status, commitHash: schema.deployments.commitHash })
+    .from(schema.deployments).where(eq(schema.deployments.appSlug, app.slug))
+    .orderBy(desc(schema.deployments.createdAt)).limit(30);
+  const successes = deps.filter((d) => d.status === 'success' && d.commitHash && d.commitHash !== 'local');
+  if (!successes.length) return res.status(400).json({ error: 'No previous successful build to roll back to' });
+  const liveCommit = deps[0] && deps[0].status === 'success' ? deps[0].commitHash : null;
+  const target = successes.find((d) => d.commitHash !== liveCommit) || successes[0];
+  const r = await runner.deploy(app.slug, { trigger: 'rollback', targetCommit: target.commitHash, commitHash: target.commitHash, commitMessage: `Rollback to ${target.commitHash}` })
+    .catch((e) => ({ status: e.status || 503, body: { error: e.message } }));
+  if (r.status === 200) return res.json({ message: `Rolling back to ${target.commitHash}`, deploymentId: r.body.deploymentId, commitHash: target.commitHash });
+  res.status(r.status).json(r.body);
+});
+
 // Local (non-GitHub) deploy: receive a gzipped tarball of the working dir and
 // deploy it directly. Body is raw octet-stream (express.json skips non-JSON).
 router.post('/:slug/deploy-local', deployLimiter, express.raw({ type: () => true, limit: '100mb' }), async (req, res) => {

@@ -118,6 +118,29 @@ export default function DeploysTab({ app, missingRequired = [], onRefresh }) {
     }
   }
 
+  async function handleRollback() {
+    if (!confirm('Roll back to the last successful build? This redeploys the previous good commit.')) return;
+    setDeploying(true);
+    setError('');
+    try {
+      const result = await api.rollbackApp(app.slug);
+      setTimeout(async () => {
+        const deps = await loadDeployments();
+        setDeploying(false);
+        const targetId = result?.deploymentId || deps.find(d => IN_PROGRESS.includes(d.status))?.id;
+        if (targetId) {
+          setExpandedId(targetId);
+          expandedIdRef.current = targetId;
+          setExpandedLog('Starting rollback...');
+          startPolling();
+        }
+      }, 1500);
+    } catch (err) {
+      setDeploying(false);
+      setError(err.message);
+    }
+  }
+
   async function handleExpand(id) {
     if (expandedId === id) {
       setExpandedId(null);
@@ -161,9 +184,14 @@ export default function DeploysTab({ app, missingRequired = [], onRefresh }) {
     <div>
       <div className="tab-header">
         <h2>Deployments</h2>
-        <button onClick={handleDeploy} disabled={deploying}>
-          {deploying ? 'Deploying...' : 'Deploy Now'}
-        </button>
+        <div className="modal-actions" style={{ margin: 0 }}>
+          {deployments.some(d => d.status === 'success') && (
+            <button className="secondary" onClick={handleRollback} disabled={deploying}>Roll back</button>
+          )}
+          <button onClick={handleDeploy} disabled={deploying}>
+            {deploying ? 'Deploying...' : 'Deploy Now'}
+          </button>
+        </div>
       </div>
 
       {error && <div className="error">{error}</div>}
