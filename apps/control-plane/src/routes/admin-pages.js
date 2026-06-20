@@ -12,6 +12,7 @@ const config = require('../config');
 const { db, schema } = require('../db');
 const { requireScope } = require('../middleware/auth');
 const { encryptSecret, decryptSecret } = require('../lib/crypto');
+const { emitEvent, actorFromAuth } = require('../lib/events');
 const pages = require('../lib/pages');
 const store = require('../lib/pages-store');
 
@@ -93,6 +94,13 @@ router.post('/', async (req, res) => {
       await db.insert(schema.pageFiles).values({ pageId: page.id, name: entryFile, size: Buffer.byteLength(b.content), contentType: ct, storageKey: store.keyFor(page.pageId, entryFile) });
     }
     const files = await listFiles(page.id);
+    emitEvent({
+      category: 'pages', type: 'page.published', severity: 'info',
+      ...actorFromAuth(req.auth), ip: req.ip,
+      targetType: 'page', targetId: page.pageId,
+      message: `Page "${page.title}" published`,
+      meta: { pageId: page.pageId, accessMode: page.accessMode, url: serialize(page).url }
+    }).catch(() => {});
     res.status(201).json({ page: serialize(page, files, { includePasskey: true }) });
   } catch (err) { res.status(err.status || 500).json({ error: err.message }); }
 });
@@ -143,6 +151,12 @@ router.delete('/:pageId', async (req, res) => {
   if (!page) return res.status(404).json({ error: 'Page not found' });
   await store.deleteAll(page.pageId);
   await db.delete(schema.pages).where(eq(schema.pages.id, page.id)); // files + data cascade
+  emitEvent({
+    category: 'pages', type: 'page.deleted', severity: 'info',
+    ...actorFromAuth(req.auth), ip: req.ip,
+    targetType: 'page', targetId: page.pageId,
+    message: `Page "${page.title}" deleted`
+  }).catch(() => {});
   res.status(204).end();
 });
 

@@ -12,6 +12,7 @@ const { eq } = require('drizzle-orm');
 const config = require('../config');
 const { db, schema, close } = require('../db');
 const { computeEnv, computeMissingRequired } = require('../lib/env-compute');
+const { emitEvent } = require('../lib/events');
 
 function exec(cmd, opts = {}) {
   return execSync(cmd, { encoding: 'utf8', timeout: 300000, ...opts }).trim();
@@ -113,6 +114,14 @@ async function run() {
     await db.update(schema.deployments).set({
       status: 'success', log, commitHash, commitMessage, finishedAt: new Date()
     }).where(eq(schema.deployments.id, deploymentId));
+    // Awaited (not fire-and-forget): this is a short-lived process that closes the
+    // DB pool and exits below, so delivery must finish first.
+    await emitEvent({
+      category: 'deploy', type: 'deploy.succeeded', severity: 'info',
+      appSlug: app.slug, targetType: 'app', targetId: app.slug,
+      message: `Deploy of ${app.name} succeeded (${commitHash})`,
+      meta: { commitHash, commitMessage, trigger: deployment.trigger, deploymentId }
+    }).catch(() => {});
   } catch (err) {
     await appendLog(`ERROR: ${err.message}`);
     if (err.stderr) await appendLog(String(err.stderr));
@@ -120,6 +129,12 @@ async function run() {
     await db.update(schema.deployments).set({
       status: 'failed', error: redact(err.message), log, finishedAt: new Date()
     }).where(eq(schema.deployments.id, deploymentId));
+    await emitEvent({
+      category: 'deploy', type: 'deploy.failed', severity: 'critical',
+      appSlug: app.slug, targetType: 'app', targetId: app.slug,
+      message: `Deploy of ${app.name} failed: ${redact(err.message)}`,
+      meta: { commitHash, commitMessage, trigger: deployment.trigger, deploymentId }
+    }).catch(() => {});
   } finally {
     await close().catch(() => {});
   }

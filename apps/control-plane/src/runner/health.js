@@ -6,7 +6,8 @@ const { execSync } = require('child_process');
 const { eq, lt } = require('drizzle-orm');
 const config = require('../config');
 const { db, schema } = require('../db');
-const { sendEmail } = require('../lib/email');
+const { emitEvent } = require('../lib/events');
+const { getSetting } = require('../lib/settings');
 const { appStatus, pm2List } = require('./process-control');
 const { appUrl } = require('../lib/env-compute');
 
@@ -82,6 +83,28 @@ function recoveryEmail(app, state) {
   };
 }
 
+// Health transitions flow through the event spine: each records an audit row and
+// delivers the attached email (Stage 11 generalizes delivery to configured channels).
+function emitDown(app, state) {
+  emitEvent({
+    category: 'health', type: 'app.down', severity: 'critical',
+    appSlug: app.slug, targetType: 'app', targetId: app.slug,
+    message: `${app.name} failed ${state.consecutiveFailures} consecutive health checks`,
+    meta: { port: app.port, url: appUrl(app), downSince: state.downSince },
+    email: downEmail(app, state)
+  }).catch(() => {});
+}
+function emitRecovered(app, state) {
+  emitEvent({
+    // warning (not info) so it routes alongside the down alert it clears
+    category: 'health', type: 'app.recovered', severity: 'warning',
+    appSlug: app.slug, targetType: 'app', targetId: app.slug,
+    message: `${app.name} recovered`,
+    meta: { url: appUrl(app) },
+    email: recoveryEmail(app, state)
+  }).catch(() => {});
+}
+
 async function checkAll() {
   let apps;
   try { apps = await db.select().from(schema.apps).where(eq(schema.apps.provisioned, true)); }
@@ -97,7 +120,7 @@ async function checkAll() {
     state.lastCheck = new Date().toISOString();
 
     if (state.proc && state.proc.status === 'stopped') {
-      if (state.alertSent) sendEmail(recoveryEmail(app, state)).catch(() => {});
+      if (state.alertSent) emitRecovered(app, state);
       Object.assign(state, { lastStatus: 'stopped', consecutiveFailures: 0, alertSent: false, downSince: null, responseTime: null });
       await persistState(app.slug, state);
       continue;
@@ -105,14 +128,14 @@ async function checkAll() {
 
     const result = await probe(app);
     if (result.ok) {
-      if (state.alertSent) sendEmail(recoveryEmail(app, state)).catch(() => {});
+      if (state.alertSent) emitRecovered(app, state);
       Object.assign(state, { consecutiveFailures: 0, alertSent: false, downSince: null, lastStatus: 'healthy', responseTime: result.responseTime });
     } else {
       state.consecutiveFailures++;
       if (state.consecutiveFailures === 1) state.downSince = new Date();
       if (state.consecutiveFailures >= FAILURE_THRESHOLD) {
         state.lastStatus = 'down';
-        if (!state.alertSent) { sendEmail(downEmail(app, state)).catch(() => {}); state.alertSent = true; }
+        if (!state.alertSent) { emitDown(app, state); state.alertSent = true; }
       } else {
         state.lastStatus = 'degraded';
       }
@@ -142,9 +165,11 @@ function getServerMetrics() {
   };
 }
 
-// Prune auth logs older than 90 days (Postgres has no native TTL).
+// Prune auth logs older than the configured retention (default 90 days; Postgres
+// has no native TTL). Retention is an operator-editable setting.
 async function pruneAuthLogs() {
-  const cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+  const days = await getSetting('logging.auth_log_retention_days', 90);
+  const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
   try { await db.delete(schema.authLogs).where(lt(schema.authLogs.createdAt, cutoff)); }
   catch (err) { console.error('[health] auth-log prune failed:', err.message); }
 }

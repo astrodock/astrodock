@@ -178,6 +178,69 @@ const pageFiles = pgTable('page_files', {
   pageNameUniq: uniqueIndex('page_files_page_name_uniq').on(t.pageId, t.name)
 }));
 
+// ── events ─────────────────────────────────────────────────────────────────
+// Unified audit + system-event log; also the source feed for notifications.
+const events = pgTable('events', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  category: text('category').notNull(),                  // health|deploy|pages|auth|audit|system
+  type: text('type').notNull(),                          // e.g. app.down, deploy.failed, settings.update
+  severity: text('severity').notNull().default('info'),  // info|warning|critical
+  actorType: text('actor_type').notNull().default('system'), // admin|token|user|system
+  actor: text('actor').notNull().default('system'),      // admin email / token name / 'system'
+  targetType: text('target_type').notNull().default(''), // app|user|token|page|setting
+  targetId: text('target_id').notNull().default(''),
+  appSlug: text('app_slug').notNull().default(''),
+  ip: text('ip').notNull().default(''),
+  message: text('message').notNull().default(''),
+  meta: jsonb('meta').notNull().default(sql`'{}'::jsonb`)
+}, (t) => ({
+  createdAtIdx: index('events_created_at_idx').on(t.createdAt),
+  categoryIdx: index('events_category_idx').on(t.category),
+  appSlugIdx: index('events_app_slug_idx').on(t.appSlug)
+}));
+
+// ── platform_settings ────────────────────────────────────────────────────────
+// Operator-editable operational overrides (env/config supplies the defaults).
+const platformSettings = pgTable('platform_settings', {
+  key: text('key').primaryKey(),
+  value: jsonb('value'),                                 // scalar or object; interpreted per the settings registry
+  updatedBy: text('updated_by').notNull().default(''),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+});
+
+// ── notification_rules ───────────────────────────────────────────────────────
+// "When an event matches THIS, send it THERE." Empty categories/appScope = all.
+const notificationRules = pgTable('notification_rules', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  name: text('name').notNull().default(''),
+  enabled: boolean('enabled').notNull().default(true),
+  channel: text('channel').notNull(),                    // email | webhook
+  target: jsonb('target').notNull().default(sql`'{}'::jsonb`), // email: {to}; webhook: {url, format}
+  categories: jsonb('categories').notNull().default(sql`'[]'::jsonb`),
+  minSeverity: text('min_severity').notNull().default('info'),
+  appScope: jsonb('app_scope').notNull().default(sql`'[]'::jsonb`),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+});
+
+// ── notification_deliveries ──────────────────────────────────────────────────
+// Append-only send log; also the dedup/rate-limit source.
+const notificationDeliveries = pgTable('notification_deliveries', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  eventId: uuid('event_id'),
+  ruleId: uuid('rule_id'),
+  channel: text('channel').notNull(),
+  target: text('target').notNull().default(''),
+  status: text('status').notNull(),                      // sent | failed | suppressed | skipped
+  error: text('error').notNull().default(''),
+  dedupeKey: text('dedupe_key').notNull().default(''),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+}, (t) => ({
+  dedupeIdx: index('notif_deliveries_dedupe_idx').on(t.dedupeKey, t.createdAt),
+  createdAtIdx: index('notif_deliveries_created_at_idx').on(t.createdAt)
+}));
+
 // One small JSON blob per page (shared) or per page+user (per-user). Size-capped.
 const pageData = pgTable('page_data', {
   id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
@@ -190,4 +253,4 @@ const pageData = pgTable('page_data', {
 // Uniqueness (one shared blob per page; one per-user blob per page+user) is enforced
 // by partial indexes in the 0004_pages migration — NULL user_id needs special handling.
 
-module.exports = { users, apps, appEnvVars, deployments, authLogs, apiTokens, appHealth, pages, pageFiles, pageData };
+module.exports = { users, apps, appEnvVars, deployments, authLogs, apiTokens, appHealth, pages, pageFiles, pageData, events, platformSettings, notificationRules, notificationDeliveries };
