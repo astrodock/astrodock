@@ -9,7 +9,7 @@
   },
   "files": ["bin/", "src/"],
   "scripts": {
-    "test": "node test/cli.test.mjs"
+    "test": "node test/pages-unit.mjs && node test/cli.test.mjs"
   },
   "dependencies": {
     "@astrodock/schema": "*"

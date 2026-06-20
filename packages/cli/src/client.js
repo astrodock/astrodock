@@ -39,7 +39,25 @@ function makeClient({ url = process.env.ASTRODOCK_URL, token = process.env.ASTRO
     return { status: res.status, json };
   }
 
-  return { base, hasToken: !!token, request, uploadRaw };
+  // multipart/form-data POST (fetch sets the boundary; don't set Content-Type).
+  async function postForm(path, form) {
+    let res;
+    try {
+      res = await fetch(`${base}${path}`, {
+        method: 'POST',
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: form
+      });
+    } catch (err) {
+      throw new Error(`Cannot reach ${base}: ${err.message}`);
+    }
+    let json = null;
+    const text = await res.text();
+    if (text) { try { json = JSON.parse(text); } catch { json = { raw: text }; } }
+    return { status: res.status, json };
+  }
+
+  return { base, hasToken: !!token, request, uploadRaw, postForm };
 }
 
 module.exports = { makeClient };

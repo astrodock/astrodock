@@ -62,6 +62,9 @@ export ASTRODOCK_TOKEN="tk_..."</code></pre>
   logs [slug] [--lines N]                      Print recent app logs
   set-secret &lt;KEY&gt; [value] [slug]              Set an env var value (stdin if value omitted)
   apps                                         List apps
+  pages push &lt;dir|file&gt; [options]              Publish a document / bundle / file share to Pages
+  pages list                                   List pages
+  pages rm &lt;pageId&gt;                            Delete a page
   help                                         Show help</code></pre>
 
     <h2><code>apply</code></h2>
@@ -187,6 +190,23 @@ astrodock set-secret OPENAI_API_KEY sk-... starter</code></pre>
     <pre><code>$ astrodock apps
 starter              starter          node    db:none storage:none provisioned
 invoices             invoices         node    db:internal storage:internal provisioned</code></pre>
+
+    <h2><code>pages</code></h2>
+    <p><strong>Synopsis:</strong> <code>astrodock pages &lt;push|list|rm&gt; …</code></p>
+    <p>Publish and manage <a href="pages.html">Pages</a> — documents, static bundles, and file shares.
+      Needs a token with the <strong>pages</strong> scope. <code>push</code> takes a folder (nested paths
+      preserved) or a single file; <code>--page-id</code> updates an existing page instead of creating one.</p>
+    <pre><code>$ astrodock pages push ./build --title "Q3 Dashboard"
+Published 3 files to page "k3v9x2mqa7f1".
+  URL:     https://pages.example.com/k3v9x2mqa7f1/
+
+$ astrodock pages push ./build --page-id k3v9x2mqa7f1   # update in place
+$ astrodock pages list
+$ astrodock pages rm k3v9x2mqa7f1</code></pre>
+    <p>Options: <code>--title</code>, <code>--access public|passkey|platform</code>,
+      <code>--generate-passkey</code> / <code>--passkey K</code>, <code>--data shared|per-user</code>,
+      <code>--entry FILE</code>, <code>--page-id ID</code>, <code>--quiet</code>. Full walkthrough:
+      <a href="pages-publishing.html">Publishing a page</a>.</p>
 
     <h2><code>help</code></h2>
     <p><strong>Synopsis:</strong> <code>astrodock help</code> (also the default with no command, or

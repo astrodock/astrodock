@@ -140,3 +140,35 @@ export const createToken = (name, scopes = ['deploy']) =>
   request('/tokens', { method: 'POST', body: JSON.stringify({ name, scopes }) });
 export const deleteToken = (id) =>
   request(`/tokens/${id}`, { method: 'DELETE' });
+
+// Pages (lightweight hosted documents / mini-sites)
+export const getPages = () => request('/pages');
+export const getPage = (pageId) => request(`/pages/${pageId}`);
+export const createPage = (data) =>
+  request('/pages', { method: 'POST', body: JSON.stringify(data) });
+export const updatePage = (pageId, data) =>
+  request(`/pages/${pageId}`, { method: 'PATCH', body: JSON.stringify(data) });
+export const deletePage = (pageId) =>
+  request(`/pages/${pageId}`, { method: 'DELETE' });
+export const generatePagePasskey = (pageId) =>
+  request(`/pages/${pageId}/generate-passkey`, { method: 'POST' });
+export const getPageFileContent = (pageId, p) =>
+  request(`/pages/${pageId}/file?path=${encodeURIComponent(p)}`);
+export const savePageFileContent = (pageId, p, content) =>
+  request(`/pages/${pageId}/file`, { method: 'PUT', body: JSON.stringify({ path: p, content }) });
+export const deletePageFile = (pageId, p) =>
+  request(`/pages/${pageId}/file?path=${encodeURIComponent(p)}`, { method: 'DELETE' });
+
+// multipart upload (fetch sets the boundary; don't set Content-Type)
+export async function uploadPageFiles(pageId, fileList, paths) {
+  const form = new FormData();
+  for (const f of fileList) form.append('files', f, f.name);
+  form.append('paths', JSON.stringify(paths));
+  const headers = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(`${API_BASE}/pages/${pageId}/files`, { method: 'POST', headers, body: form });
+  if (res.status === 401) { clearToken(); window.location.href = '/login'; throw new ApiError('Session expired', { status: 401 }); }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new ApiError(data.error || 'Upload failed', { status: res.status, body: data });
+  return data;
+}

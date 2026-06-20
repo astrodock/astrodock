@@ -2063,3 +2063,73 @@ button.danger:hover {
 .missing-vars-banner .hint {
   margin-bottom: 0;
 }
+
+/* ── Pages ─────────────────────────────────────────────────────────────── */
+.card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px 18px;
+  margin-bottom: 16px;
+}
+.card > h2 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 12px;
+  color: var(--text-primary);
+}
+.kv {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.kv > span:first-child {
+  min-width: 120px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+.kv code {
+  background: var(--bg-raised);
+  padding: 3px 7px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  word-break: break-all;
+}
+.toggle-btn {
+  border: 1px solid var(--border);
+  background: var(--bg-raised);
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.toggle-btn.on { color: var(--accent); border-color: var(--accent); background: var(--accent-dim); }
+.toggle-btn.off { color: var(--text-muted); }
+.checkbox-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.modal-wide { max-width: 760px; width: 90vw; }
+.code-editor {
+  width: 100%;
+  min-height: 340px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-input);
+  resize: vertical;
+  box-sizing: border-box;
+}

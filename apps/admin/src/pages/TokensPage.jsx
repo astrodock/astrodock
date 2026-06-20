@@ -15,6 +15,7 @@ export default function TokensPage() {
   const [tokens, setTokens] = useState([]);
   const [showCreate, setShowCreate] = useState(false);
   const [name, setName] = useState('');
+  const [scopes, setScopes] = useState(['deploy']);
   const [creating, setCreating] = useState(false);
   const [revealed, setRevealed] = useState(null);
   const [copied, setCopied] = useState(false);
@@ -31,17 +32,23 @@ export default function TokensPage() {
 
   useEffect(() => { load(); }, []);
 
+  function toggleScope(s) {
+    setScopes((cur) => (cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s]));
+  }
+
   async function handleCreate(e) {
     e.preventDefault();
     if (!name.trim()) return;
+    if (!scopes.length) { setError('Pick at least one scope.'); return; }
     setCreating(true);
     setError('');
     try {
-      const data = await api.createToken(name.trim(), ['deploy']);
+      const data = await api.createToken(name.trim(), scopes);
       setRevealed(data);
       setCopied(false);
       setShowCreate(false);
       setName('');
+      setScopes(['deploy']);
       load();
     } catch (err) {
       setError(err.message);
@@ -146,11 +153,19 @@ export default function TokensPage() {
                 autoFocus
               />
             </label>
-            <label>
-              Scopes
-              <input value="deploy" disabled />
-            </label>
-            <p className="hint">Deploy-scoped tokens can trigger deploys and read app status. They cannot manage users.</p>
+            <label>Scopes</label>
+            <div className="access-pills" style={{ margin: '2px 0 6px' }}>
+              <label className="checkbox-pill">
+                <input type="checkbox" checked={scopes.includes('deploy')} onChange={() => toggleScope('deploy')} /> deploy
+              </label>
+              <label className="checkbox-pill">
+                <input type="checkbox" checked={scopes.includes('pages')} onChange={() => toggleScope('pages')} /> pages
+              </label>
+            </div>
+            <p className="hint">
+              <strong>deploy</strong> — trigger deploys, read app status/logs. <strong>pages</strong> — publish &amp;
+              manage Pages. Neither can manage users or tokens. Grant only what the agent needs.
+            </p>
             <div className="modal-actions">
               <button type="button" onClick={() => setShowCreate(false)}>Cancel</button>
               <button type="submit" disabled={creating}>{creating ? 'Creating...' : 'Create'}</button>

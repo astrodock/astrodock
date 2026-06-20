@@ -35,6 +35,10 @@
       { slug: 'dockerfile-apps',  file: 'dockerfile-apps.html',  title: 'Dockerfile apps' },
       { slug: 'ai-agents',        file: 'ai-agents.html',        title: 'Let an AI build & deploy' }
     ] },
+    { title: 'Pages', items: [
+      { slug: 'pages',            file: 'pages.html',            title: 'Host documents & mini-sites' },
+      { slug: 'pages-publishing', file: 'pages-publishing.html', title: 'Publishing a page (CLI/agents)' }
+    ] },
     { title: 'Reference', items: [
       { slug: 'configuration',  file: 'configuration.html',  title: 'Configuration (.env)' },
       { slug: 'cli',            file: 'cli.html',            title: 'CLI commands' },

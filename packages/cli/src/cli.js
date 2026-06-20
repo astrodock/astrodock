@@ -6,6 +6,7 @@ const path = require('path');
 const { execFileSync } = require('child_process');
 const { validate } = require('@astrodock/schema');
 const { makeClient } = require('./client');
+const { cmdPages } = require('./pages');
 
 const USAGE = `astrodock — drive an Astrodock platform from an app repo
 
@@ -20,7 +21,19 @@ Commands:
   logs [slug] [--lines N]              Print recent app logs
   set-secret <KEY> [value] [slug]      Set an env var value (value read from stdin if omitted)
   apps                                 List apps
+  pages push <dir|file> [options]      Publish a document / static bundle / file share to Pages
+  pages list                           List pages
+  pages rm <pageId>                    Delete a page
   help                                 Show this help
+
+pages push options:
+  --title T                            Page title (defaults to the dir/file name)
+  --access public|passkey|platform     Access mode (default public)
+  --generate-passkey | --passkey K     Protect with a generated or chosen passkey
+  --data shared|per-user               Enable the per-page saved-data blob
+  --entry FILE                         Entry file (default index.html, else the only/-first file)
+  --page-id ID                         Update an existing page instead of creating one
+  --quiet                              Print only the resulting URL
 
 Environment:
   ASTRODOCK_URL     Base URL of the admin host, e.g. https://admin.example.com
@@ -208,6 +221,7 @@ async function main(argv) {
       case 'logs': return await cmdLogs(client, positional, flags);
       case 'set-secret': return await cmdSetSecret(client, positional);
       case 'apps': return await cmdApps(client);
+      case 'pages': return await cmdPages(client, positional, flags);
       default: die(`unknown command "${command}" (try: astrodock help)`);
     }
   } catch (e) {

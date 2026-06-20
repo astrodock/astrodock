@@ -5,6 +5,8 @@ import LoginPage from './pages/LoginPage';
 import UsersPage from './pages/UsersPage';
 import AppsPage from './pages/AppsPage';
 import AppDetailPage from './pages/AppDetailPage';
+import PagesPage from './pages/PagesPage';
+import PageDetailPage from './pages/PageDetailPage';
 import UserDetailPage from './pages/UserDetailPage';
 import ActivityPage from './pages/ActivityPage';
 import HealthPage from './pages/HealthPage';
@@ -56,6 +58,12 @@ export default function App() {
             </NavLink>
           </li>
           <li>
+            <NavLink to="/pages" className={({ isActive }) => isActive ? 'active' : ''}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 1.5h6L13 5v9.5a0 0 0 0 1 0 0H3a0 0 0 0 1 0 0v-13z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/><path d="M9 1.5V5h4M5.5 8h5M5.5 11h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+              Pages
+            </NavLink>
+          </li>
+          <li>
             <NavLink to="/users" className={({ isActive }) => isActive ? 'active' : ''}>
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="3" stroke="currentColor" strokeWidth="1.5"/><path d="M2 14c0-3 2.5-5 6-5s6 2 6 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
               Users
@@ -93,6 +101,8 @@ export default function App() {
           <Route path="/users/:id" element={<UserDetailPage />} />
           <Route path="/apps" element={<AppsPage />} />
           <Route path="/apps/:slug" element={<AppDetailPage />} />
+          <Route path="/pages" element={<PagesPage />} />
+          <Route path="/pages/:pageId" element={<PageDetailPage />} />
           <Route path="/tokens" element={<TokensPage />} />
           <Route path="/activity" element={<ActivityPage />} />
           <Route path="/health" element={<HealthPage />} />

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pages — Astrodock Docs</title>
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body data-page="pages">
+  <a class="skip" href="#doc">Skip to content</a>
+  <article id="doc">
+    <p class="eyebrow">Pages</p>
+    <h1>Host documents &amp; mini-sites</h1>
+    <p class="lead">
+      Pages are for things that are <em>less than an app</em>: a one-off HTML report, a small static
+      mini-site, a shared PDF, a quick prototype. No repo, no build, no deploy — you upload files (or
+      paste content) and they're live immediately at <code>pages.&lt;your-domain&gt;/&lt;id&gt;/</code>.
+      You can leave a page wide open, lock it with a passkey, or put your platform login in front of it.
+    </p>
+
+    <h2>Pages vs apps</h2>
+    <p>Reach for a <strong>Page</strong> when you just need to put static content (or a tiny interactive
+      widget) on the web. Reach for an <a href="building-apps.html">app</a> when you need a real backend,
+      a database with many records, or per-user accounts and server-side logic.</p>
+    <div class="callout note">
+      <p class="ct">The dividing line</p>
+      <p>A Page can hold a <em>little</em> saved state (see <a href="#saved-data">Saved data</a>), but the
+        moment you need growing, queryable, or relational data, that's an app — which gets its own full
+        Postgres database.</p>
+    </div>
+
+    <h2>Create a page</h2>
+    <p>Two ways:</p>
+    <ul>
+      <li><strong>Dashboard</strong> — open <strong>Pages</strong> → <strong>New Page</strong>, then upload
+        files or create a text file right in the browser.</li>
+      <li><strong>CLI</strong> — point it at a folder and publish in one command. See
+        <a href="pages-publishing.html">Publishing a page</a>.</li>
+    </ul>
+    <figure class="shot" data-file="pages-list.png" data-caption="The Pages list — title, link, access mode, and views."></figure>
+
+    <h2>Files &amp; folders</h2>
+    <p>A page is a set of files. One of them is the <strong>entry file</strong> (default
+      <code>index.html</code>) — that's what the page link opens. Everything else is reachable by its path,
+      and relative links just work:</p>
+    <pre><code>index.html        →  https://pages.example.com/abc123def456/
+style.css         →  …/abc123def456/style.css
+img/logo.svg      →  …/abc123def456/img/logo.svg   (nested folders are fine)</code></pre>
+    <p>The entry file doesn't have to be HTML. Make a PDF the entry and the page link becomes a clean,
+      shareable <strong>file-share</strong> link.</p>
+    <div class="callout tip">
+      <p class="ct">Ship the built output</p>
+      <p>Pages serve static files as-is — there's no build step on the server. If you use Vite/webpack/etc.,
+        build locally and publish the output folder (e.g. <code>dist/</code>).</p>
+    </div>
+
+    <h2>Access control</h2>
+    <p>Each page has an <strong>access mode</strong>:</p>
+    <table>
+      <tr><th>Mode</th><th>Who can see it</th></tr>
+      <tr><td><strong>Public</strong></td><td>Anyone with the link.</td></tr>
+      <tr><td><strong>Passkey</strong></td><td>Anyone who knows a shared passkey. They're prompted for it,
+        or you share a frictionless link with the key embedded.</td></tr>
+      <tr><td><strong>Platform login</strong></td><td>Only people with an Astrodock <a href="users.html">user
+        account</a> — optionally restricted to a specific list of emails.</td></tr>
+    </table>
+
+    <h3>Passkey</h3>
+    <p>Generate one or set your own. Visitors get a small prompt; or share the page with the key in the URL
+      (<code>…/&lt;id&gt;/?key=YOURKEY</code>) and it unlocks silently. Rotating the passkey instantly
+      invalidates every previously shared link.</p>
+    <div class="callout warn">
+      <p class="ct">A passkey is a latch, not a lock</p>
+      <p>It keeps a page out of casual reach, but it isn't real authentication — treat every passkey page as
+        potentially public, and never put secrets in page content. For real per-person access, use
+        <strong>Platform login</strong>.</p>
+    </div>
+
+    <h3>Platform login</h3>
+    <p>Put your platform's own user accounts in front of a page. Unauthenticated visitors get a sign-in form;
+      after logging in they see the page. Leave the allowlist empty to allow any active user, or list specific
+      emails to restrict it. Page authors write zero auth code — the platform gates the bytes.</p>
+
+    <h2 id="saved-data">Saved data</h2>
+    <p>A page can have one small <strong>JSON data blob</strong> that its own JavaScript reads and writes —
+      enough to make a document <em>editable</em> (e.g. a shared checklist people tick off). Turn it on per
+      page and pick a scope:</p>
+    <ul>
+      <li><strong>Shared</strong> — one blob for the whole page (everyone edits the same thing).</li>
+      <li><strong>Per-user</strong> — each logged-in user gets their own blob (requires platform login).</li>
+    </ul>
+    <p>Your page talks to two endpoints at its own URL:</p>
+    <pre><code>GET  …/&lt;id&gt;/_data   →  { "data": { … }, "version": 3 }
+PUT  …/&lt;id&gt;/_data   ←  { "data": { … }, "version": 3 }   // version is optional</code></pre>
+    <p>A checklist becomes a few lines of vanilla JS — <code>GET</code> on load, <code>PUT</code> on every
+      change:</p>
+    <pre><code>// load
+const { data } = await (await fetch('_data')).json();
+// save
+await fetch('_data', {
+  method: 'PUT',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ data: { items } })
+});</code></pre>
+    <div class="callout note">
+      <p class="ct">Reads vs writes</p>
+      <p><strong>Writes are always gated</strong> — a page with saved data must use passkey or platform access
+        (never anonymous writes). Pass the passkey on the request (<code>?key=…</code>) or rely on the visitor's
+        login session.</p>
+    </div>
+
+    <h2>Limits</h2>
+    <ul>
+      <li><strong>Data blob:</strong> up to <strong>1 MB</strong> per blob (configurable). Bigger than that
+        means you want an app, not a page.</li>
+      <li><strong>Files:</strong> up to 200 MB each; the in-browser text editor handles files up to 2 MB.</li>
+      <li><strong>Blob is for state, files are for bytes.</strong> Don't base64-embed images into the data blob —
+        upload them as files and reference them by URL.</li>
+    </ul>
+
+    <h2>Managing a page</h2>
+    <ul>
+      <li><strong>Active / inactive</strong> — flip a page to inactive and it 404s for everyone until you turn
+        it back on (a soft, reversible alternative to deleting).</li>
+      <li><strong>Views</strong> — each page tracks how many times it's been opened.</li>
+      <li><strong>Update, don't duplicate</strong> — re-upload to the same page to publish a new revision; the
+        link stays the same.</li>
+      <li><strong>Delete</strong> — removes the page and all its files permanently.</li>
+    </ul>
+
+    <h2>Next steps</h2>
+    <ul>
+      <li>Publish from the terminal or hand it to an agent: <a href="pages-publishing.html">Publishing a page</a></li>
+      <li>Gate a page behind real accounts: <a href="users.html">Manage users &amp; access</a></li>
+      <li>Outgrown Pages? <a href="building-apps.html">Build an app</a></li>
+    </ul>
+  </article>
+  <script src="assets/docs.js"></script>
+</body>
+</html>

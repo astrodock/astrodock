@@ -173,6 +173,20 @@
     </table>
     <p>Step-by-step setup: <a href="email-notifications.html">Email notifications</a>.</p>
 
+    <h2>Pages</h2>
+    <p>Optional — sensible defaults shown. The bucket is created automatically. See <a href="pages.html">Pages</a>.</p>
+    <table>
+      <tr><th>Variable</th><th>What it does</th><th>Default / required</th></tr>
+      <tr><td><code>ASTRODOCK_PAGES_SUBDOMAIN</code></td><td>Subdomain Pages are served on (<code>&lt;sub&gt;.&lt;base-domain&gt;</code>).</td><td><span class="pill">pages</span></td></tr>
+      <tr><td><code>ASTRODOCK_PAGES_BUCKET</code></td><td>Object-store bucket for page file bytes.</td><td><span class="pill">astrodock-pages</span></td></tr>
+      <tr><td><code>ASTRODOCK_PAGE_DATA_MAX</code></td><td>Max size of a page's saved-data JSON blob (per page, or per page+user).</td><td><span class="pill">1mb</span></td></tr>
+    </table>
+    <div class="callout note">
+      <p class="ct">Pages need a wildcard, too</p>
+      <p>Pages live at <code>pages.&lt;base-domain&gt;</code>, which the same <code>*.&lt;base-domain&gt;</code>
+      wildcard DNS record already covers. No extra DNS needed.</p>
+    </div>
+
     <h2>Feature flags</h2>
     <table>
       <tr><th>Variable</th><th>What it does</th><th>Default / required</th></tr>
