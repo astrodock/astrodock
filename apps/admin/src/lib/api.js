@@ -141,6 +141,23 @@ export const createToken = (name, scopes = ['deploy']) =>
 export const deleteToken = (id) =>
   request(`/tokens/${id}`, { method: 'DELETE' });
 
+// Platform settings (operational overrides + read-only diagnostics + readiness)
+export const getSettings = () => request('/settings');
+export const updateSettings = (updates) =>
+  request('/settings', { method: 'PATCH', body: JSON.stringify({ updates }) });
+
+// Notification rules + delivery log
+export const getNotificationRules = () => request('/notifications');
+export const createNotificationRule = (data) =>
+  request('/notifications', { method: 'POST', body: JSON.stringify(data) });
+export const updateNotificationRule = (id, data) =>
+  request(`/notifications/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+export const deleteNotificationRule = (id) =>
+  request(`/notifications/${id}`, { method: 'DELETE' });
+export const testNotification = (data) =>
+  request('/notifications/test', { method: 'POST', body: JSON.stringify(data) });
+export const getNotificationDeliveries = () => request('/notifications/deliveries');
+
 // Pages (lightweight hosted documents / mini-sites)
 export const getPages = () => request('/pages');
 export const getPage = (pageId) => request(`/pages/${pageId}`);

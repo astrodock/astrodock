@@ -11,6 +11,7 @@ import UserDetailPage from './pages/UserDetailPage';
 import ActivityPage from './pages/ActivityPage';
 import HealthPage from './pages/HealthPage';
 import TokensPage from './pages/TokensPage';
+import SettingsPage from './pages/SettingsPage';
 import './App.css';
 
 export default function App() {
@@ -87,6 +88,12 @@ export default function App() {
               Health
             </NavLink>
           </li>
+          <li>
+            <NavLink to="/settings" className={({ isActive }) => isActive ? 'active' : ''}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2" stroke="currentColor" strokeWidth="1.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.5 1.5M11.5 11.5L13 13M13 3l-1.5 1.5M4.5 11.5L3 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+              Settings
+            </NavLink>
+          </li>
         </ul>
         <div className="sidebar-footer">
           <button className="logout-btn" onClick={handleLogout}>
@@ -106,6 +113,7 @@ export default function App() {
           <Route path="/tokens" element={<TokensPage />} />
           <Route path="/activity" element={<ActivityPage />} />
           <Route path="/health" element={<HealthPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
           <Route path="*" element={<Navigate to="/apps" />} />
         </Routes>
       </main>
