@@ -11,6 +11,7 @@ const config = require('../config');
 const { db, schema } = require('../db');
 const { decryptSecret } = require('../lib/crypto');
 const { verifyPassword } = require('../lib/passwords');
+const { getSetting } = require('../lib/settings');
 const { pageDataLimiter, pageLoginLimiter } = require('../middleware/rateLimiter');
 const P = require('../lib/pages');
 
@@ -61,6 +62,33 @@ function gate(page, req, res, { json = false } = {}) {
 function allowed(page, email) {
   const list = page.allowlist || [];
   return list.length === 0 || list.includes(String(email).toLowerCase());
+}
+
+// IP truncation for the "truncated" privacy mode (zero the last IPv4 octet / keep
+// the first three IPv6 groups).
+function truncateIp(ip) {
+  if (!ip) return '';
+  if (ip.includes(':')) return ip.split(':').slice(0, 3).join(':') + '::';
+  const parts = ip.split('.');
+  if (parts.length === 4) { parts[3] = '0'; return parts.join('.'); }
+  return ip;
+}
+
+// Best-effort per-request access log. Honors logging.page_view_ip (full|truncated|off).
+async function recordView(page, req, name, status, user) {
+  try {
+    const mode = await getSetting('logging.page_view_ip', 'full');
+    let ip = req.ip || '';
+    if (mode === 'off') ip = '';
+    else if (mode === 'truncated') ip = truncateIp(ip);
+    await db.insert(schema.pageViews).values({
+      pageId: page.id, path: name, ip,
+      userAgent: (req.get('user-agent') || '').slice(0, 300),
+      referrer: (req.get('referer') || '').slice(0, 400),
+      userId: user && user.sub ? user.sub : null,
+      status
+    });
+  } catch { /* logging must never break serving */ }
 }
 function cookieOpts(httpOnly) {
   return { httpOnly: !!httpOnly, sameSite: 'lax', secure: config.tlsMode !== 'off', maxAge: 7 * 864e5, path: '/' };
@@ -148,6 +176,7 @@ router.get('/:pageId/*', withPage, async (req, res) => {
   if (isEntry) {
     db.update(schema.pages).set({ views: page.views + 1, lastViewedAt: new Date() }).where(eq(schema.pages.id, page.id)).catch(() => {});
   }
+  recordView(page, req, name, 200, g.user).catch(() => {});
   res.setHeader('Content-Type', obj.contentType || P.contentTypeFor(name));
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.send(obj.body);

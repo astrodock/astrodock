@@ -394,6 +394,30 @@ router.get('/:slug/logs', async (req, res) => {
   res.json(r.body || { logs: '' });
 });
 
+// HTTP access logs for the deployed app (opt-in: Settings → Caddy access logs).
+// Reads Caddy's per-app JSON log from the shared volume. Best-effort.
+router.get('/:slug/access-logs', async (req, res) => {
+  const app = await getAppBySlug(req.params.slug);
+  if (!app) return res.status(404).json({ error: 'App not found' });
+  const fs = require('fs');
+  const file = path.join(config.paths.accessLogs, `${app.slug}.log`);
+  let entries = [];
+  try {
+    const lines = fs.readFileSync(file, 'utf8').split('\n').filter(Boolean).slice(-500);
+    entries = lines.map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+  } catch (err) {
+    if (err.code === 'ENOENT') return res.json({ enabled: false, recent: [], statusCounts: {}, note: 'No access log yet — enable "Caddy access logs for deployed apps" in Settings, then redeploy.' });
+    return res.status(500).json({ error: err.message });
+  }
+  const statusCounts = {};
+  for (const e of entries) { const s = String(e.status || '?'); statusCounts[s] = (statusCounts[s] || 0) + 1; }
+  const recent = entries.slice(-100).reverse().map((e) => ({
+    ts: e.ts, status: e.status, method: e.request && e.request.method, uri: e.request && e.request.uri,
+    ip: e.request && (e.request.client_ip || e.request.remote_ip), duration: e.duration
+  }));
+  res.json({ enabled: true, count: entries.length, statusCounts, recent });
+});
+
 // ── terminal (gated behind ASTRODOCK_ENABLE_TERMINAL; arbitrary RCE by design) ──
 if (config.enableTerminal) {
   router.get('/:slug/exec', async (req, res) => {

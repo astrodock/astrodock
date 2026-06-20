@@ -18,6 +18,14 @@ function site(host) {
   return config.tlsMode === 'off' ? `http://${host}` : host;
 }
 
+// Per-app JSON access log (opt-in via the logging.app_access_logs setting). The
+// control plane reads these files back from a shared volume. Returns '' when off.
+const CADDY_LOG_DIR = '/var/log/caddy';
+function appLog(app, accessLogs) {
+  if (!accessLogs) return '';
+  return `\tlog {\n\t\toutput file ${CADDY_LOG_DIR}/${app.slug}.log {\n\t\t\troll_size 10MiB\n\t\t\troll_keep 3\n\t\t}\n\t\tformat json\n\t}\n`;
+}
+
 function adminOrigin() {
   // Caddy parses origins with url.Parse, so they MUST include a scheme
   // (a bare "caddy:2019" is read as scheme "caddy"). Match the Origin header
@@ -68,12 +76,12 @@ ${site(host)} {
 `;
 }
 
-function nodeAppBlock(app) {
+function nodeAppBlock(app, accessLogs) {
   const host = `${app.subdomain}.${config.baseDomain}`;
   const staticRoot = `${config.paths.caddyStatic}/${app.slug}`;
   return `
 ${site(host)} {
-\thandle /api/* {
+${appLog(app, accessLogs)}\thandle /api/* {
 \t\treverse_proxy ${runnerHost()}:${app.port}
 \t}
 \thandle {
@@ -85,11 +93,11 @@ ${site(host)} {
 `;
 }
 
-function dockerAppBlock(app) {
+function dockerAppBlock(app, accessLogs) {
   const host = `${app.subdomain}.${config.baseDomain}`;
   return `
 ${site(host)} {
-\treverse_proxy app-${app.slug}:${app.port}
+${appLog(app, accessLogs)}\treverse_proxy app-${app.slug}:${app.port}
 }
 `;
 }
@@ -109,12 +117,13 @@ ${site(host)} {
 `;
 }
 
-function generateCaddyfile(apps) {
+function generateCaddyfile(apps, opts = {}) {
+  const accessLogs = !!opts.accessLogs;
   let out = globalOptions();
   out += adminBlock();
   out += pagesBlock();
   for (const app of apps) {
-    out += app.runtimeType === 'docker' ? dockerAppBlock(app) : nodeAppBlock(app);
+    out += app.runtimeType === 'docker' ? dockerAppBlock(app, accessLogs) : nodeAppBlock(app, accessLogs);
   }
   return out;
 }

@@ -45,8 +45,10 @@ async function run() {
     out = out.replace(/Authorization: Basic [A-Za-z0-9+/=]+/g, 'Authorization: Basic ***');
     return out;
   }
+  const LOG_MAX = 256 * 1024; // cap stored deploy logs so a noisy build can't bloat the row
   async function appendLog(msg) {
     log += `[${new Date().toISOString()}] ${redact(msg)}\n`;
+    if (log.length > LOG_MAX) log = '…[earlier build output truncated]\n' + log.slice(log.length - LOG_MAX);
     await db.update(schema.deployments).set({ log }).where(eq(schema.deployments.id, deploymentId));
   }
   async function setStatus(status) {

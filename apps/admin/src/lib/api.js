@@ -134,6 +134,18 @@ export const getAuthLogs = ({ limit = 50, result, appId, email } = {}) => {
   return request(`/activity/auth-logs?${params}`);
 };
 
+// Audit / system events
+export const getEvents = ({ limit = 100, category, appSlug } = {}) => {
+  const p = new URLSearchParams();
+  p.set('limit', limit);
+  if (category) p.set('category', category);
+  if (appSlug) p.set('appSlug', appSlug);
+  return request(`/activity/events?${p}`);
+};
+
+// App HTTP access logs (opt-in Caddy logs)
+export const getAppAccessLogs = (slug) => request(`/apps/${slug}/access-logs`);
+
 // API Tokens (scoped tokens for the CLI / agents)
 export const getTokens = () => request('/tokens');
 export const createToken = (name, scopes = ['deploy']) =>
@@ -169,6 +181,7 @@ export const deletePage = (pageId) =>
   request(`/pages/${pageId}`, { method: 'DELETE' });
 export const generatePagePasskey = (pageId) =>
   request(`/pages/${pageId}/generate-passkey`, { method: 'POST' });
+export const getPageViews = (pageId) => request(`/pages/${pageId}/views`);
 export const getPageFileContent = (pageId, p) =>
   request(`/pages/${pageId}/file?path=${encodeURIComponent(p)}`);
 export const savePageFileContent = (pageId, p, content) =>

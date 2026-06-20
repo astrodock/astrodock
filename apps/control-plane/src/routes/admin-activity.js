@@ -52,4 +52,20 @@ router.get('/auth-logs', async (req, res) => {
   res.json({ logs: rows });
 });
 
+// Audit / system event trail. Admin-only — scoped tokens (agents) can't read the
+// platform audit log even though they pass the deploy scope on this router.
+router.get('/events', async (req, res) => {
+  if (req.auth.type !== 'admin') return res.status(403).json({ error: 'Admin access required' });
+  const limit = Math.min(parseInt(req.query.limit, 10) || 100, 300);
+  const conds = [];
+  if (req.query.category) conds.push(eq(schema.events.category, req.query.category));
+  if (req.query.appSlug) conds.push(eq(schema.events.appSlug, req.query.appSlug));
+  const where = conds.length ? and(...conds) : undefined;
+  const rows = await db.select().from(schema.events)
+    .where(where)
+    .orderBy(desc(schema.events.createdAt))
+    .limit(limit);
+  res.json({ events: rows });
+});
+
 module.exports = router;

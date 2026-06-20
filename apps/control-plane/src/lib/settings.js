@@ -35,6 +35,14 @@ const REGISTRY = {
   'logging.auth_log_retention_days': {
     label: 'Auth-log retention (days)', type: 'int',
     default: () => 90
+  },
+  'logging.page_view_retention_days': {
+    label: 'Page access-log retention (days)', type: 'int',
+    default: () => 90
+  },
+  'logging.app_access_logs': {
+    label: 'Caddy access logs for deployed apps', type: 'enum',
+    values: ['off', 'on'], default: () => 'off'
   }
 };
 

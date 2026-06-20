@@ -253,4 +253,22 @@ const pageData = pgTable('page_data', {
 // Uniqueness (one shared blob per page; one per-user blob per page+user) is enforced
 // by partial indexes in the 0004_pages migration — NULL user_id needs special handling.
 
-module.exports = { users, apps, appEnvVars, deployments, authLogs, apiTokens, appHealth, pages, pageFiles, pageData, events, platformSettings, notificationRules, notificationDeliveries };
+// ── page_views ───────────────────────────────────────────────────────────────
+// Per-request access log for Pages (the aggregate `pages.views` counter stays for
+// cheap display). IP storage honors the logging.page_view_ip setting.
+const pageViews = pgTable('page_views', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  pageId: uuid('page_id').notNull().references(() => pages.id, { onDelete: 'cascade' }),
+  path: text('path').notNull().default(''),
+  ip: text('ip').notNull().default(''),
+  userAgent: text('user_agent').notNull().default(''),
+  referrer: text('referrer').notNull().default(''),
+  userId: uuid('user_id'),
+  status: integer('status').notNull().default(200),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+}, (t) => ({
+  pageIdx: index('page_views_page_idx').on(t.pageId, t.createdAt),
+  createdAtIdx: index('page_views_created_at_idx').on(t.createdAt)
+}));
+
+module.exports = { users, apps, appEnvVars, deployments, authLogs, apiTokens, appHealth, pages, pageFiles, pageData, events, platformSettings, notificationRules, notificationDeliveries, pageViews };

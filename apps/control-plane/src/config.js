@@ -88,7 +88,9 @@ const config = {
     apps: process.env.ASTRODOCK_APPS_DIR || '/data/apps',
     repos: process.env.ASTRODOCK_REPOS_DIR || '/data/repos',
     // the SAME static volume as seen from inside the Caddy container
-    caddyStatic: process.env.ASTRODOCK_CADDY_STATIC_DIR || '/srv/static'
+    caddyStatic: process.env.ASTRODOCK_CADDY_STATIC_DIR || '/srv/static',
+    // Caddy per-app access logs (shared volume); the control plane reads these back
+    accessLogs: process.env.ASTRODOCK_ACCESS_LOG_DIR || '/var/log/caddy'
   },
 
   // ── Caddy ──

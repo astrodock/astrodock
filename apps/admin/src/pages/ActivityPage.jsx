@@ -22,10 +22,14 @@ const DEPLOY_STYLES = {
   deploying: { color: 'var(--info)', label: 'Deploying' }
 };
 
+const SEVERITY_COLOR = { info: 'var(--text-muted)', warning: 'var(--warning)', critical: 'var(--danger)' };
+
 export default function ActivityPage() {
   const [tab, setTab] = useState('auth');
   const [authLogs, setAuthLogs] = useState([]);
   const [deployments, setDeployments] = useState([]);
+  const [events, setEvents] = useState([]);
+  const [eventCategory, setEventCategory] = useState('');
   const [filter, setFilter] = useState({ result: '', appId: '', email: '' });
   const [error, setError] = useState('');
 
@@ -47,10 +51,24 @@ export default function ActivityPage() {
     }
   }
 
+  async function loadEvents() {
+    try {
+      const data = await api.getEvents({ limit: 200, category: eventCategory || undefined });
+      setEvents(data.events);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   useEffect(() => {
     if (tab === 'auth') loadAuth();
-    else loadDeploys();
+    else if (tab === 'deploys') loadDeploys();
+    else loadEvents();
   }, [tab]);
+
+  useEffect(() => {
+    if (tab === 'audit') loadEvents();
+  }, [eventCategory]);
 
   useEffect(() => {
     if (tab === 'auth') loadAuth();
@@ -80,6 +98,9 @@ export default function ActivityPage() {
         </button>
         <button className={`tab ${tab === 'deploys' ? 'active' : ''}`} onClick={() => setTab('deploys')}>
           Deployments
+        </button>
+        <button className={`tab ${tab === 'audit' ? 'active' : ''}`} onClick={() => setTab('audit')}>
+          Audit
         </button>
       </div>
 
@@ -134,6 +155,40 @@ export default function ActivityPage() {
                   </div>
                 );
               })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab === 'audit' && (
+        <div>
+          <div className="activity-filters">
+            <select value={eventCategory} onChange={e => setEventCategory(e.target.value)}>
+              <option value="">All categories</option>
+              {['health', 'deploy', 'pages', 'auth', 'audit', 'system'].map(c => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+          {events.length === 0 ? (
+            <p className="empty-state">No events yet.</p>
+          ) : (
+            <div className="activity-list">
+              {events.map(ev => (
+                <div key={ev.id} className="activity-row">
+                  <span className="activity-result" style={{ color: SEVERITY_COLOR[ev.severity] || 'var(--text-muted)' }}>
+                    {ev.type}
+                  </span>
+                  <span className="activity-detail">
+                    <span className="activity-commit-msg">{ev.message}</span>
+                    {ev.appSlug && (<><span className="activity-sep">&middot;</span><code>{ev.appSlug}</code></>)}
+                  </span>
+                  <span className="activity-meta">
+                    <span className="deploy-trigger">{ev.actor}</span>
+                    <span>{formatTime(ev.createdAt)}</span>
+                  </span>
+                </div>
+              ))}
             </div>
           )}
         </div>

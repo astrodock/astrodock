@@ -165,13 +165,16 @@ function getServerMetrics() {
   };
 }
 
-// Prune auth logs older than the configured retention (default 90 days; Postgres
-// has no native TTL). Retention is an operator-editable setting.
-async function pruneAuthLogs() {
-  const days = await getSetting('logging.auth_log_retention_days', 90);
-  const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-  try { await db.delete(schema.authLogs).where(lt(schema.authLogs.createdAt, cutoff)); }
+// Prune time-series logs older than their configured retention (Postgres has no
+// native TTL). Retention windows are operator-editable settings.
+async function pruneLogs() {
+  const authDays = await getSetting('logging.auth_log_retention_days', 90);
+  try { await db.delete(schema.authLogs).where(lt(schema.authLogs.createdAt, new Date(Date.now() - authDays * 864e5))); }
   catch (err) { console.error('[health] auth-log prune failed:', err.message); }
+
+  const viewDays = await getSetting('logging.page_view_retention_days', 90);
+  try { await db.delete(schema.pageViews).where(lt(schema.pageViews.createdAt, new Date(Date.now() - viewDays * 864e5))); }
+  catch (err) { console.error('[health] page-view prune failed:', err.message); }
 }
 
 function startHealthChecker() {
@@ -179,9 +182,9 @@ function startHealthChecker() {
   loadStates()
     .then(() => checkAll())
     .catch((e) => console.error('[health] initial check failed:', e.message));
-  pruneAuthLogs();
+  pruneLogs();
   setInterval(() => checkAll().catch((e) => console.error('[health] cycle failed:', e.message)), CHECK_INTERVAL);
-  setInterval(() => pruneAuthLogs(), 24 * 60 * 60 * 1000);
+  setInterval(() => pruneLogs(), 24 * 60 * 60 * 1000);
 }
 
 module.exports = { startHealthChecker, getHealthData, getServerMetrics };

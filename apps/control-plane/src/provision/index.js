@@ -7,11 +7,13 @@ const { db, schema } = require('../db');
 const { provisionDatabase } = require('./database');
 const { runner } = require('../runner/client');
 const { generateCaddyfile, loadCaddyfile } = require('./caddy');
+const { getSetting } = require('../lib/settings');
 
 // Regenerate the full Caddy config from all provisioned apps and push it.
 async function reloadCaddyFromDb() {
   const provisioned = await db.select().from(schema.apps).where(eq(schema.apps.provisioned, true));
-  return loadCaddyfile(generateCaddyfile(provisioned));
+  const accessLogs = (await getSetting('logging.app_access_logs', 'off')) === 'on';
+  return loadCaddyfile(generateCaddyfile(provisioned, { accessLogs }));
 }
 
 // Push with a few retries + backoff — Caddy may still be booting on cold start.

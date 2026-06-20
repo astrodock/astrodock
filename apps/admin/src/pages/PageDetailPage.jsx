@@ -17,6 +17,7 @@ export default function PageDetailPage() {
   const [customKey, setCustomKey] = useState('');
   const [editing, setEditing] = useState(null); // { name, content }
   const [busy, setBusy] = useState(false);
+  const [views, setViews] = useState(null);
   const fileRef = useRef();
   const dirRef = useRef();
 
@@ -27,6 +28,7 @@ export default function PageDetailPage() {
     } catch (err) { setError(err.message); }
   }
   useEffect(() => { load(); }, [pageId]);
+  useEffect(() => { api.getPageViews(pageId).then(setViews).catch(() => {}); }, [pageId]);
 
   function flash(m) { setMsg(m); setTimeout(() => setMsg(''), 1800); }
   async function patch(body, note) {
@@ -158,6 +160,23 @@ export default function PageDetailPage() {
           </select>
         </label>
       </div>
+
+      {/* Analytics */}
+      {views && (
+        <div className="card">
+          <h2>Analytics</h2>
+          <div className="kv"><span>Total views</span><code>{views.views}</code></div>
+          <div className="kv"><span>Last 7 days</span><code>{views.last7d} accesses</code></div>
+          <div className="kv"><span>Unique visitors</span><code>{views.uniqueIps}</code></div>
+          {views.topReferrers?.length > 0 && (
+            <div className="kv"><span>Top referrers</span><code>{views.topReferrers.map((r) => `${r.key} (${r.count})`).join(', ')}</code></div>
+          )}
+          {views.topPaths?.length > 0 && (
+            <div className="kv"><span>Top paths</span><code>{views.topPaths.map((p) => `${p.key} (${p.count})`).join(', ')}</code></div>
+          )}
+          <p className="hint">From the last {views.sampleSize} logged accesses. Visitor-IP capture is controlled in Settings.</p>
+        </div>
+      )}
 
       {/* Files */}
       <div className="card">

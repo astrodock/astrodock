@@ -41,6 +41,7 @@ services:
       - static:/srv/static
       - caddy_data:/data
       - caddy_config:/config
+      - caddylogs:/var/log/caddy      # per-app access logs (opt-in via Settings)
     restart: unless-stopped
 
   api:
@@ -68,6 +69,7 @@ services:
       ASTRODOCK_STATIC_DIR: /data/static
     volumes:
       - static:/data/static     # publishes the admin SPA into the shared static volume
+      - caddylogs:/var/log/caddy:ro   # read deployed-app access logs back (opt-in)
     depends_on:
       postgres:
         condition: service_healthy
@@ -120,5 +122,6 @@ volumes:
   apps:
   repos:
   pm2home:
+  caddylogs:
   caddy_data:
   caddy_config:

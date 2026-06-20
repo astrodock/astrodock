@@ -116,6 +116,31 @@ router.get('/:pageId', async (req, res) => {
   res.json({ page: serialize(page, await listFiles(page.id), { includePasskey: true }) });
 });
 
+// Access analytics for a page (from the page_views log + the lifetime counter).
+router.get('/:pageId/views', async (req, res) => {
+  const page = await loadPage(req.params.pageId);
+  if (!page) return res.status(404).json({ error: 'Page not found' });
+  const rows = await db.select().from(schema.pageViews)
+    .where(eq(schema.pageViews.pageId, page.id))
+    .orderBy(desc(schema.pageViews.createdAt)).limit(500);
+  const referrers = {}, paths = {}, ips = new Set();
+  const weekAgo = Date.now() - 7 * 864e5;
+  let last7 = 0;
+  for (const v of rows) {
+    if (v.referrer) referrers[v.referrer] = (referrers[v.referrer] || 0) + 1;
+    paths[v.path] = (paths[v.path] || 0) + 1;
+    if (v.ip) ips.add(v.ip);
+    if (new Date(v.createdAt).getTime() >= weekAgo) last7++;
+  }
+  const top = (o) => Object.entries(o).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([key, count]) => ({ key, count }));
+  res.json({
+    views: page.views, lastViewedAt: page.lastViewedAt,
+    sampleSize: rows.length, last7d: last7, uniqueIps: ips.size,
+    topReferrers: top(referrers), topPaths: top(paths),
+    recent: rows.slice(0, 30).map((v) => ({ path: v.path, ip: v.ip, referrer: v.referrer, status: v.status, createdAt: v.createdAt }))
+  });
+});
+
 router.patch('/:pageId', async (req, res) => {
   const page = await loadPage(req.params.pageId);
   if (!page) return res.status(404).json({ error: 'Page not found' });
