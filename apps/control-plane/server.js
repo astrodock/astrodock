@@ -51,6 +51,7 @@ app.use('/admin/tokens', require('./src/routes/admin-tokens'));
 app.use('/admin/activity', require('./src/routes/admin-activity'));
 app.use('/admin/settings', require('./src/routes/admin-settings'));
 app.use('/admin/notifications', require('./src/routes/admin-notifications'));
+app.use('/admin/backups', require('./src/routes/admin-backups'));
 
 // Fallback error handler.
 // eslint-disable-next-line no-unused-vars

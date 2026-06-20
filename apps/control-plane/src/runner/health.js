@@ -175,6 +175,26 @@ async function pruneLogs() {
   const viewDays = await getSetting('logging.page_view_retention_days', 90);
   try { await db.delete(schema.pageViews).where(lt(schema.pageViews.createdAt, new Date(Date.now() - viewDays * 864e5))); }
   catch (err) { console.error('[health] page-view prune failed:', err.message); }
+
+  // Keep deployment history bounded (logs already capped per-row).
+  try { await db.delete(schema.deployments).where(lt(schema.deployments.createdAt, new Date(Date.now() - 90 * 864e5))); }
+  catch (err) { console.error('[health] deployment prune failed:', err.message); }
+}
+
+// Alert when disk passes the configured threshold (deduped to ~6h so it doesn't spam).
+async function checkDisk() {
+  try {
+    const m = getServerMetrics();
+    const threshold = await getSetting('alerts.disk_threshold_percent', 85);
+    if (m.disk && m.disk.usedPercent >= threshold) {
+      emitEvent({
+        category: 'system', type: 'system.disk_high', severity: 'warning',
+        message: `Disk usage at ${m.disk.usedPercent}% (threshold ${threshold}%)`,
+        meta: { usedPercent: m.disk.usedPercent, used: m.disk.used, total: m.disk.total },
+        dedupeKey: 'system:disk_high', dedupeWindowMs: 6 * 3600 * 1000
+      }).catch(() => {});
+    }
+  } catch (err) { console.error('[health] disk check failed:', err.message); }
 }
 
 function startHealthChecker() {
@@ -183,7 +203,9 @@ function startHealthChecker() {
     .then(() => checkAll())
     .catch((e) => console.error('[health] initial check failed:', e.message));
   pruneLogs();
+  checkDisk();
   setInterval(() => checkAll().catch((e) => console.error('[health] cycle failed:', e.message)), CHECK_INTERVAL);
+  setInterval(() => checkDisk(), 5 * 60 * 1000);
   setInterval(() => pruneLogs(), 24 * 60 * 60 * 1000);
 }
 

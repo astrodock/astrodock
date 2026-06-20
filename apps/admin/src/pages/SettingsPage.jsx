@@ -106,11 +106,20 @@ function RuleModal({ initial, onClose, onSaved }) {
   );
 }
 
+function fmtBytes(b) {
+  if (!b) return '—';
+  if (b < 1024 * 1024) return `${(b / 1024).toFixed(0)} KB`;
+  if (b < 1024 * 1024 * 1024) return `${(b / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(b / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+}
+
 export default function SettingsPage() {
   const [settings, setSettings] = useState([]);
   const [diagnostics, setDiagnostics] = useState(null);
   const [readiness, setReadiness] = useState([]);
   const [rules, setRules] = useState([]);
+  const [backups, setBackups] = useState(null);
+  const [backingUp, setBackingUp] = useState(false);
   const [draft, setDraft] = useState({});           // pending operational-setting edits
   const [savingSettings, setSavingSettings] = useState(false);
   const [editRule, setEditRule] = useState(null);    // {} = new, {id,…} = edit, null = closed
@@ -119,15 +128,22 @@ export default function SettingsPage() {
 
   async function load() {
     try {
-      const [s, r] = await Promise.all([api.getSettings(), api.getNotificationRules()]);
+      const [s, r, b] = await Promise.all([api.getSettings(), api.getNotificationRules(), api.getBackups().catch(() => null)]);
       setSettings(s.settings || []);
       setDiagnostics(s.diagnostics || null);
       setReadiness(s.readiness || []);
       setRules(r.rules || []);
+      setBackups(b);
       setError('');
     } catch (err) { setError(err.message); }
   }
   useEffect(() => { load(); }, []);
+
+  async function triggerBackup() {
+    setBackingUp(true); setError('');
+    try { await api.runBackup(); await load(); }
+    catch (err) { setError(`Backup failed: ${err.message}`); } finally { setBackingUp(false); }
+  }
 
   const valueOf = (key) => (key in draft ? draft[key] : settings.find((s) => s.key === key)?.value);
   const dirty = Object.keys(draft).length > 0;
@@ -227,6 +243,37 @@ export default function SettingsPage() {
           </div>
         )}
       </div>
+
+      {/* ── Backups ── */}
+      {backups && (
+        <div className="settings-section">
+          <div className="page-header" style={{ marginBottom: 8 }}>
+            <h3>Backups</h3>
+            <button onClick={triggerBackup} disabled={backingUp}>{backingUp ? 'Backing up…' : 'Back up now'}</button>
+          </div>
+          <p className="hint">
+            Scheduled pg_dumpall {backups.config.intervalHours > 0 ? `every ${backups.config.intervalHours}h` : '(disabled)'},
+            keeping the last {backups.config.keep}, in <code>{backups.config.dir}</code>.
+          </p>
+          {(backups.backups || []).length === 0 ? (
+            <p className="empty-state">No backups recorded yet.</p>
+          ) : (
+            <table className="data-table">
+              <thead><tr><th>When</th><th>Status</th><th>Size</th><th>Trigger</th></tr></thead>
+              <tbody>
+                {backups.backups.slice(0, 10).map((b) => (
+                  <tr key={b.id}>
+                    <td>{new Date(b.createdAt).toLocaleString()}</td>
+                    <td><span style={{ color: b.status === 'success' ? 'var(--accent)' : 'var(--danger)' }}>{b.status}</span>{b.error && <span className="hint"> — {b.error.slice(0, 80)}</span>}</td>
+                    <td>{fmtBytes(b.sizeBytes)}</td>
+                    <td>{b.trigger}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
 
       {/* ── Diagnostics (read-only) ── */}
       {diagnostics && (

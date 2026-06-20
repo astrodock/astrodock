@@ -117,6 +117,14 @@ const config = {
     editTextMaxBytes: parseSize(process.env.ASTRODOCK_PAGE_EDIT_MAX, 2 * 1024 * 1024)
   },
 
+  // ── Backups (run on the runner; needs the Docker socket + a backups volume) ──
+  backups: {
+    dir: process.env.ASTRODOCK_BACKUP_DIR || '/data/backups',
+    intervalHours: int(process.env.ASTRODOCK_BACKUP_INTERVAL_HOURS, 24), // 0 = disabled
+    keep: int(process.env.ASTRODOCK_BACKUP_KEEP, 7),
+    pgContainer: process.env.ASTRODOCK_PG_CONTAINER || 'astrodock-postgres-1'
+  },
+
   // ── Feature flags ──
   enableTerminal: bool(process.env.ASTRODOCK_ENABLE_TERMINAL, false),
 

@@ -43,6 +43,10 @@ const REGISTRY = {
   'logging.app_access_logs': {
     label: 'Caddy access logs for deployed apps', type: 'enum',
     values: ['off', 'on'], default: () => 'off'
+  },
+  'alerts.disk_threshold_percent': {
+    label: 'Disk-usage alert threshold (%)', type: 'int',
+    default: () => 85
   }
 };
 

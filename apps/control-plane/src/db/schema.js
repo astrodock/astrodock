@@ -271,4 +271,18 @@ const pageViews = pgTable('page_views', {
   createdAtIdx: index('page_views_created_at_idx').on(t.createdAt)
 }));
 
-module.exports = { users, apps, appEnvVars, deployments, authLogs, apiTokens, appHealth, pages, pageFiles, pageData, events, platformSettings, notificationRules, notificationDeliveries, pageViews };
+// ── backups ──────────────────────────────────────────────────────────────────
+const backups = pgTable('backups', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  kind: text('kind').notNull().default('postgres'),
+  status: text('status').notNull(),                      // success | failed
+  sizeBytes: bigint('size_bytes', { mode: 'number' }),
+  path: text('path').notNull().default(''),
+  trigger: text('trigger').notNull().default('scheduled'), // scheduled | manual
+  error: text('error').notNull().default(''),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+}, (t) => ({
+  createdAtIdx: index('backups_created_at_idx').on(t.createdAt)
+}));
+
+module.exports = { users, apps, appEnvVars, deployments, authLogs, apiTokens, appHealth, pages, pageFiles, pageData, events, platformSettings, notificationRules, notificationDeliveries, pageViews, backups };

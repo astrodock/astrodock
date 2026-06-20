@@ -108,6 +108,7 @@ services:
       - apps:/data/apps
       - repos:/data/repos
       - pm2home:/data/pm2
+      - backups:/data/backups   # pg_dumpall output (scheduled + manual backups)
     depends_on:
       postgres:
         condition: service_healthy
@@ -123,5 +124,6 @@ volumes:
   repos:
   pm2home:
   caddylogs:
+  backups:
   caddy_data:
   caddy_config:

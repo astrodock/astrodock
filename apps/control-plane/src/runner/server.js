@@ -13,6 +13,7 @@ const { runDeploy } = require('./deploy');
 const pc = require('./process-control');
 const { provisionStorage, dropStorage } = require('../provision/storage');
 const { startHealthChecker } = require('./health');
+const { runBackup, startBackupScheduler } = require('../lib/backups');
 
 const app = express();
 
@@ -105,8 +106,15 @@ app.get('/apps/status-all', async (req, res) => {
   res.json({ statuses: pc.statusAll(apps) });
 });
 
+// Trigger a backup on demand (the api proxies POST /admin/backups here).
+app.post('/backup', express.json(), async (req, res) => {
+  const result = await runBackup({ trigger: req.body?.trigger || 'manual' });
+  res.status(result.ok ? 200 : 500).json(result);
+});
+
 function start() {
   startHealthChecker(); // the runner owns app health (it can probe + read pm2/docker)
+  startBackupScheduler(); // the runner owns the Docker socket + backups volume
   app.listen(config.runnerPort, () => console.log(`Astrodock runner listening on :${config.runnerPort}`));
 }
 

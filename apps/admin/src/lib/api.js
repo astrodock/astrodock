@@ -146,6 +146,10 @@ export const getEvents = ({ limit = 100, category, appSlug } = {}) => {
 // App HTTP access logs (opt-in Caddy logs)
 export const getAppAccessLogs = (slug) => request(`/apps/${slug}/access-logs`);
 
+// Backups
+export const getBackups = () => request('/backups');
+export const runBackup = () => request('/backups', { method: 'POST' });
+
 // API Tokens (scoped tokens for the CLI / agents)
 export const getTokens = () => request('/tokens');
 export const createToken = (name, scopes = ['deploy']) =>
