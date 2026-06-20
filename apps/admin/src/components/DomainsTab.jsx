@@ -44,6 +44,11 @@ export default function DomainsTab({ app }) {
   async function makePrimary(id) {
     try { await api.updateDomain(app.slug, id, { isPrimary: true }); await load(); } catch (err) { setError(err.message); }
   }
+  async function toggleRedirect(id, redirectToCanonical) {
+    try { await api.updateDomain(app.slug, id, { redirectToCanonical }); await load(); } catch (err) { setError(err.message); }
+  }
+
+  const hasPrimary = domains.some((d) => d.isPrimary && d.status === 'active');
 
   return (
     <div>
@@ -72,12 +77,20 @@ export default function DomainsTab({ app }) {
               </h2>
               <span style={{ color: STATUS_COLOR[d.status] || 'var(--text-muted)' }}>{d.status}</span>
             </div>
-            <div className="modal-actions" style={{ margin: 0 }}>
+            <div className="modal-actions" style={{ margin: 0, alignItems: 'center' }}>
               {d.status !== 'active' && <button onClick={() => verify(d.id)}>Verify</button>}
+              {d.status === 'active' && !d.isPrimary && hasPrimary && (
+                <label className="checkbox-pill">
+                  <input type="checkbox" checked={!!d.redirectToCanonical} onChange={(e) => toggleRedirect(d.id, e.target.checked)} /> redirect to primary
+                </label>
+              )}
               {d.status === 'active' && !d.isPrimary && <button className="secondary" onClick={() => makePrimary(d.id)}>Make primary</button>}
               <button className="danger" onClick={() => remove(d.id, d.hostname)}>Remove</button>
             </div>
           </div>
+          {d.status === 'active' && d.redirectToCanonical && hasPrimary && (
+            <p className="hint">Redirects (301) to the primary domain, preserving the path.</p>
+          )}
           {d.status !== 'active' && (
             <>
               <p className="hint">Add these records at your DNS provider:</p>

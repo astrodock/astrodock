@@ -54,10 +54,17 @@ function globalOptions(onDemand) {
   return `{\n${lines.join('\n')}\n}\n`;
 }
 
-// A custom domain mirrors its app's routing, keyed on the external hostname.
-function customDomainBlock(d, accessLogs, onDemand) {
+function schemeFor() { return config.tlsMode === 'off' ? 'http' : 'https'; }
+
+// A custom domain mirrors its app's routing, keyed on the external hostname —
+// unless it's flagged to redirect to the app's canonical (primary) domain, in
+// which case it 301s there preserving path + query (e.g. www → apex).
+function customDomainBlock(d, accessLogs, onDemand, canonicalHost) {
   const host = d.hostname;
   const tlsLine = onDemand ? '\ttls {\n\t\ton_demand\n\t}\n' : '';
+  if (d.redirectToCanonical && canonicalHost && canonicalHost !== host) {
+    return `\n${site(host)} {\n${tlsLine}\tredir ${schemeFor()}://${canonicalHost}{uri} permanent\n}\n`;
+  }
   const logLine = appLog({ slug: d.appSlug }, accessLogs);
   if (d.runtimeType === 'docker') {
     return `\n${site(host)} {\n${tlsLine}${logLine}\treverse_proxy app-${d.appSlug}:${d.port}\n}\n`;
@@ -146,8 +153,11 @@ function generateCaddyfile(apps, opts = {}) {
   for (const app of apps) {
     out += app.runtimeType === 'docker' ? dockerAppBlock(app, accessLogs) : nodeAppBlock(app, accessLogs);
   }
+  // canonical (primary) host per app, so redirect-flagged domains know their target
+  const canonicalByApp = new Map();
+  for (const d of domains) if (d.isPrimary) canonicalByApp.set(d.appSlug, d.hostname);
   for (const d of domains) {
-    out += customDomainBlock(d, accessLogs, onDemand);
+    out += customDomainBlock(d, accessLogs, onDemand, canonicalByApp.get(d.appSlug));
   }
   return out;
 }
