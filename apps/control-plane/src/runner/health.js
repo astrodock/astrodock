@@ -181,6 +181,26 @@ async function pruneLogs() {
   catch (err) { console.error('[health] deployment prune failed:', err.message); }
 }
 
+// Re-check active custom domains' ownership TXT; alert on DNS drift (deduped).
+async function checkDomains() {
+  const { verifyOwnership } = require('../lib/domains');
+  let rows;
+  try { rows = await db.select().from(schema.customDomains).where(eq(schema.customDomains.status, 'active')); }
+  catch { return; }
+  for (const d of rows) {
+    const ok = await verifyOwnership(d);
+    db.update(schema.customDomains).set({ lastCheckedAt: new Date() }).where(eq(schema.customDomains.id, d.id)).catch(() => {});
+    if (!ok) {
+      emitEvent({
+        category: 'system', type: 'domain.dns_drift', severity: 'warning',
+        message: `Custom domain ${d.hostname} is missing its verification TXT record`,
+        meta: { hostname: d.hostname },
+        dedupeKey: `domain:drift:${d.hostname}`, dedupeWindowMs: 12 * 3600 * 1000
+      }).catch(() => {});
+    }
+  }
+}
+
 // Alert when disk passes the configured threshold (deduped to ~6h so it doesn't spam).
 async function checkDisk() {
   try {
@@ -206,6 +226,7 @@ function startHealthChecker() {
   checkDisk();
   setInterval(() => checkAll().catch((e) => console.error('[health] cycle failed:', e.message)), CHECK_INTERVAL);
   setInterval(() => checkDisk(), 5 * 60 * 1000);
+  setInterval(() => checkDomains().catch(() => {}), 30 * 60 * 1000);
   setInterval(() => pruneLogs(), 24 * 60 * 60 * 1000);
 }
 

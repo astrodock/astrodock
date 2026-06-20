@@ -17,6 +17,17 @@ const { generateAppSecret, generateWebhookSecret } = require('../lib/ids');
 const { encryptSecret } = require('../lib/crypto');
 const { dropDatabase } = require('../provision/database');
 const { listRepos, createWebhook, deleteWebhook } = require('../lib/github');
+const domainsLib = require('../lib/domains');
+const { emitEvent, actorFromAuth } = require('../lib/events');
+
+// Subdomains may not collide with platform hosts or be invalid DNS labels.
+const RESERVED_SUBDOMAINS = new Set(['admin', 'pages', 'api', 'www', 'mail', 'ftp', config.adminSubdomain, config.pages.subdomain].filter(Boolean));
+function validSubdomain(v) {
+  return typeof v === 'string'
+    && v.length <= 40
+    && /^[a-z0-9]([a-z0-9-]{0,38}[a-z0-9])?$/.test(v)   // valid label, no leading/trailing hyphen
+    && !RESERVED_SUBDOMAINS.has(v);
+}
 
 const router = express.Router();
 router.use(requireScope('deploy'));
@@ -107,6 +118,9 @@ router.post('/', async (req, res) => {
   if (b.slug && !tokenAllowsApp(req.auth, b.slug)) {
     return res.status(403).json({ error: `Token is not scoped to app "${b.slug}"` });
   }
+  if (b.subdomain !== undefined && !validSubdomain(String(b.subdomain))) {
+    return res.status(400).json({ error: 'Invalid or reserved subdomain' });
+  }
   const manifest = {
     schemaVersion: '1',
     slug: b.slug, name: b.name, subdomain: b.subdomain, description: b.description || '',
@@ -131,7 +145,7 @@ router.post('/', async (req, res) => {
 // Structural fields that flow into a shell (git/docker) or the generated Caddyfile MUST be
 // validated here too — PATCH must not be a bypass around the manifest schema.
 const PATCH_VALIDATORS = {
-  subdomain: (v) => /^[a-z0-9-]+$/.test(v) && v.length <= 40,
+  subdomain: validSubdomain,
   branch: (v) => /^[A-Za-z0-9._/-]+$/.test(v) && v.length <= 200,
   repoPath: (v) => /^[A-Za-z0-9._/-]*$/.test(v) && !v.includes('..') && v.length <= 200,
   dockerfile: (v) => /^[A-Za-z0-9._/-]+$/.test(v) && !v.includes('..') && v.length <= 200,
@@ -276,6 +290,75 @@ router.post('/:slug/rollback', deployLimiter, async (req, res) => {
     .catch((e) => ({ status: e.status || 503, body: { error: e.message } }));
   if (r.status === 200) return res.json({ message: `Rolling back to ${target.commitHash}`, deploymentId: r.body.deploymentId, commitHash: target.commitHash });
   res.status(r.status).json(r.body);
+});
+
+// ── custom domains ───────────────────────────────────────────────────────────
+router.get('/:slug/domains', async (req, res) => {
+  const app = await getAppBySlug(req.params.slug);
+  if (!app) return res.status(404).json({ error: 'App not found' });
+  const rows = await db.select().from(schema.customDomains).where(eq(schema.customDomains.appId, app.id)).orderBy(desc(schema.customDomains.createdAt));
+  res.json({ domains: rows.map((d) => ({ ...d, records: domainsLib.dnsRecords(d) })), publicIp: config.publicIp || null });
+});
+
+router.post('/:slug/domains', async (req, res) => {
+  const app = await getAppBySlug(req.params.slug);
+  if (!app) return res.status(404).json({ error: 'App not found' });
+  const hostname = domainsLib.normalizeHostname(req.body?.hostname);
+  if (!domainsLib.validHostname(hostname)) return res.status(400).json({ error: 'Invalid hostname' });
+  if (hostname === config.baseDomain || hostname.endsWith(`.${config.baseDomain}`)) {
+    return res.status(400).json({ error: 'Names under the base domain use the subdomain field, not a custom domain' });
+  }
+  try {
+    const [row] = await db.insert(schema.customDomains).values({ appId: app.id, hostname, verificationToken: domainsLib.genToken() }).returning();
+    emitEvent({ category: 'audit', type: 'domain.added', severity: 'info', ...actorFromAuth(req.auth), ip: req.ip, appSlug: app.slug, targetType: 'app', targetId: app.slug, message: `Custom domain ${hostname} added` }).catch(() => {});
+    res.status(201).json({ domain: { ...row, records: domainsLib.dnsRecords(row) } });
+  } catch (err) {
+    if (String(err.message).includes('custom_domains_hostname_uniq')) return res.status(409).json({ error: 'That hostname is already registered' });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/:slug/domains/:id/verify', async (req, res) => {
+  const app = await getAppBySlug(req.params.slug);
+  if (!app) return res.status(404).json({ error: 'App not found' });
+  const rows = await db.select().from(schema.customDomains).where(and(eq(schema.customDomains.id, req.params.id), eq(schema.customDomains.appId, app.id))).limit(1);
+  const domain = rows[0];
+  if (!domain) return res.status(404).json({ error: 'Domain not found' });
+  const ok = await domainsLib.verifyOwnership(domain);
+  const [updated] = await db.update(schema.customDomains).set({ status: ok ? 'active' : 'failed', lastCheckedAt: new Date(), updatedAt: new Date() }).where(eq(schema.customDomains.id, domain.id)).returning();
+  if (ok) {
+    await reloadCaddyFromDb().catch(() => {});
+    emitEvent({ category: 'audit', type: 'domain.verified', severity: 'info', ...actorFromAuth(req.auth), ip: req.ip, appSlug: app.slug, message: `Custom domain ${domain.hostname} verified + activated` }).catch(() => {});
+  }
+  res.json({ domain: { ...updated, records: domainsLib.dnsRecords(updated) }, verified: ok, error: ok ? undefined : 'Verification TXT not found yet — DNS can take a few minutes to propagate.' });
+});
+
+router.patch('/:slug/domains/:id', async (req, res) => {
+  const app = await getAppBySlug(req.params.slug);
+  if (!app) return res.status(404).json({ error: 'App not found' });
+  const rows = await db.select().from(schema.customDomains).where(and(eq(schema.customDomains.id, req.params.id), eq(schema.customDomains.appId, app.id))).limit(1);
+  if (!rows[0]) return res.status(404).json({ error: 'Domain not found' });
+  const set = { updatedAt: new Date() };
+  if (req.body?.redirectToCanonical !== undefined) set.redirectToCanonical = !!req.body.redirectToCanonical;
+  if (req.body?.isPrimary === true) {
+    await db.update(schema.customDomains).set({ isPrimary: false }).where(eq(schema.customDomains.appId, app.id));
+    set.isPrimary = true;
+  } else if (req.body?.isPrimary === false) {
+    set.isPrimary = false;
+  }
+  const [updated] = await db.update(schema.customDomains).set(set).where(eq(schema.customDomains.id, req.params.id)).returning();
+  res.json({ domain: { ...updated, records: domainsLib.dnsRecords(updated) } });
+});
+
+router.delete('/:slug/domains/:id', async (req, res) => {
+  const app = await getAppBySlug(req.params.slug);
+  if (!app) return res.status(404).json({ error: 'App not found' });
+  const rows = await db.select().from(schema.customDomains).where(and(eq(schema.customDomains.id, req.params.id), eq(schema.customDomains.appId, app.id))).limit(1);
+  if (!rows[0]) return res.status(404).json({ error: 'Domain not found' });
+  await db.delete(schema.customDomains).where(eq(schema.customDomains.id, req.params.id));
+  await reloadCaddyFromDb().catch(() => {});
+  emitEvent({ category: 'audit', type: 'domain.removed', severity: 'info', ...actorFromAuth(req.auth), ip: req.ip, appSlug: app.slug, message: `Custom domain ${rows[0].hostname} removed` }).catch(() => {});
+  res.status(204).end();
 });
 
 // Local (non-GitHub) deploy: receive a gzipped tarball of the working dir and

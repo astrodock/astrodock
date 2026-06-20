@@ -33,7 +33,11 @@ function adminOrigin() {
   try { return new URL(config.caddyAdmin).origin; } catch { return 'http://caddy:2019'; }
 }
 
-function globalOptions() {
+function askUrl() {
+  return `${config.internalAuthUrl}/_caddy/ask`;
+}
+
+function globalOptions(onDemand) {
   // Keep the admin API reachable from the api container; the origins list must
   // include the Origin the control plane POSTs from, or Caddy returns 403.
   const lines = [
@@ -44,7 +48,22 @@ function globalOptions() {
   if (config.tlsMode === 'auto' && config.acmeEmail) lines.push(`\temail ${config.acmeEmail}`);
   if (config.tlsMode === 'internal') lines.push('\tlocal_certs');
   if (config.tlsMode === 'off') lines.push('\tauto_https off');
+  // On-demand TLS for custom domains: Caddy asks us before issuing a cert, so it
+  // only issues for hostnames we've registered + verified (no abuse, no preprovision).
+  if (onDemand) lines.push(`\ton_demand_tls {\n\t\task ${askUrl()}\n\t}`);
   return `{\n${lines.join('\n')}\n}\n`;
+}
+
+// A custom domain mirrors its app's routing, keyed on the external hostname.
+function customDomainBlock(d, accessLogs, onDemand) {
+  const host = d.hostname;
+  const tlsLine = onDemand ? '\ttls {\n\t\ton_demand\n\t}\n' : '';
+  const logLine = appLog({ slug: d.appSlug }, accessLogs);
+  if (d.runtimeType === 'docker') {
+    return `\n${site(host)} {\n${tlsLine}${logLine}\treverse_proxy app-${d.appSlug}:${d.port}\n}\n`;
+  }
+  const staticRoot = `${config.paths.caddyStatic}/${d.appSlug}`;
+  return `\n${site(host)} {\n${tlsLine}${logLine}\thandle /api/* {\n\t\treverse_proxy ${runnerHost()}:${d.port}\n\t}\n\thandle {\n\t\troot * ${staticRoot}\n\t\ttry_files {path} /index.html\n\t\tfile_server\n\t}\n}\n`;
 }
 
 function adminBlock() {
@@ -119,11 +138,16 @@ ${site(host)} {
 
 function generateCaddyfile(apps, opts = {}) {
   const accessLogs = !!opts.accessLogs;
-  let out = globalOptions();
+  const domains = opts.domains || [];
+  const onDemand = config.tlsMode === 'auto' && domains.length > 0;
+  let out = globalOptions(onDemand);
   out += adminBlock();
   out += pagesBlock();
   for (const app of apps) {
     out += app.runtimeType === 'docker' ? dockerAppBlock(app, accessLogs) : nodeAppBlock(app, accessLogs);
+  }
+  for (const d of domains) {
+    out += customDomainBlock(d, accessLogs, onDemand);
   }
   return out;
 }

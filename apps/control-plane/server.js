@@ -4,8 +4,9 @@ const express = require('express');
 const path = require('path');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
+const { and, eq } = require('drizzle-orm');
 const config = require('./src/config');
-const { ping } = require('./src/db');
+const { ping, db, schema } = require('./src/db');
 const { migrate } = require('./src/db/migrate');
 const { seedAdmin } = require('./src/seed');
 const { reloadCaddyWithRetry, startCaddyReconciler } = require('./src/provision');
@@ -37,6 +38,18 @@ app.use(express.json({ limit: '1mb' }));
 
 // Control-plane liveness (distinct from /admin/health monitor data).
 app.get('/health', (req, res) => res.json({ status: 'ok', service: 'astrodock-control-plane' }));
+
+// Caddy on-demand-TLS authorization (no auth; Caddy calls this before issuing a
+// cert). Only authorize hostnames that are registered + active custom domains.
+app.get('/_caddy/ask', async (req, res) => {
+  const domain = String(req.query.domain || '').toLowerCase();
+  if (!domain) return res.status(400).send('no domain');
+  try {
+    const rows = await db.select({ id: schema.customDomains.id }).from(schema.customDomains)
+      .where(and(eq(schema.customDomains.hostname, domain), eq(schema.customDomains.status, 'active'))).limit(1);
+    return rows[0] ? res.status(200).send('ok') : res.status(403).send('unknown domain');
+  } catch { return res.status(500).send('error'); }
+});
 
 // Hosted end-user account page.
 app.get('/account', (req, res) => res.sendFile(path.join(__dirname, 'public', 'account.html')));

@@ -1,7 +1,7 @@
 'use strict';
 
 const fs = require('fs');
-const { eq } = require('drizzle-orm');
+const { eq, and } = require('drizzle-orm');
 const config = require('../config');
 const { db, schema } = require('../db');
 const { provisionDatabase } = require('./database');
@@ -13,7 +13,16 @@ const { getSetting } = require('../lib/settings');
 async function reloadCaddyFromDb() {
   const provisioned = await db.select().from(schema.apps).where(eq(schema.apps.provisioned, true));
   const accessLogs = (await getSetting('logging.app_access_logs', 'off')) === 'on';
-  return loadCaddyfile(generateCaddyfile(provisioned, { accessLogs }));
+  // Active custom domains, joined to their (provisioned) app for routing.
+  const domains = await db.select({
+    hostname: schema.customDomains.hostname,
+    isPrimary: schema.customDomains.isPrimary,
+    redirectToCanonical: schema.customDomains.redirectToCanonical,
+    appSlug: schema.apps.slug, runtimeType: schema.apps.runtimeType, port: schema.apps.port
+  }).from(schema.customDomains)
+    .innerJoin(schema.apps, eq(schema.customDomains.appId, schema.apps.id))
+    .where(and(eq(schema.customDomains.status, 'active'), eq(schema.apps.provisioned, true)));
+  return loadCaddyfile(generateCaddyfile(provisioned, { accessLogs, domains }));
 }
 
 // Push with a few retries + backoff — Caddy may still be booting on cold start.

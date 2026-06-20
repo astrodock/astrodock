@@ -95,6 +95,17 @@ export const triggerDeploy = (slug) =>
   request(`/apps/${slug}/deploy`, { method: 'POST' });
 export const rollbackApp = (slug) =>
   request(`/apps/${slug}/rollback`, { method: 'POST' });
+
+// Custom domains
+export const getDomains = (slug) => request(`/apps/${slug}/domains`);
+export const addDomain = (slug, hostname) =>
+  request(`/apps/${slug}/domains`, { method: 'POST', body: JSON.stringify({ hostname }) });
+export const verifyDomain = (slug, id) =>
+  request(`/apps/${slug}/domains/${id}/verify`, { method: 'POST' });
+export const updateDomain = (slug, id, data) =>
+  request(`/apps/${slug}/domains/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+export const deleteDomain = (slug, id) =>
+  request(`/apps/${slug}/domains/${id}`, { method: 'DELETE' });
 export const getDeployments = (slug) =>
   request(`/apps/${slug}/deployments`);
 export const getDeployment = (slug, id) =>

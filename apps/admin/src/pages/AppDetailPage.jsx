@@ -7,8 +7,9 @@ import EnvVarsTab from '../components/EnvVarsTab';
 import LogsTab from '../components/LogsTab';
 import SettingsTab from '../components/SettingsTab';
 import TerminalTab from '../components/TerminalTab';
+import DomainsTab from '../components/DomainsTab';
 
-const TABS = ['deploys', 'env', 'logs', 'terminal', 'settings'];
+const TABS = ['deploys', 'env', 'domains', 'logs', 'terminal', 'settings'];
 
 const STATUS_LABELS = {
   online: { label: 'Running', className: 'active' },
@@ -152,6 +153,7 @@ export default function AppDetailPage() {
       <div className="tab-content">
         {activeTab === 'deploys' && <DeploysTab app={app} missingRequired={missingRequired} onRefresh={load} />}
         {activeTab === 'env' && <EnvVarsTab app={app} onRefresh={load} />}
+        {activeTab === 'domains' && <DomainsTab app={app} />}
         {activeTab === 'logs' && <LogsTab app={app} />}
         {activeTab === 'terminal' && <TerminalTab app={app} />}
         {activeTab === 'settings' && <SettingsTab app={app} onRefresh={load} />}

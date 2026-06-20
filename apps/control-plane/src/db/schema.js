@@ -285,4 +285,24 @@ const backups = pgTable('backups', {
   createdAtIdx: index('backups_created_at_idx').on(t.createdAt)
 }));
 
-module.exports = { users, apps, appEnvVars, deployments, authLogs, apiTokens, appHealth, pages, pageFiles, pageData, events, platformSettings, notificationRules, notificationDeliveries, pageViews, backups };
+// ── custom_domains ───────────────────────────────────────────────────────────
+// Operator-owned external hostnames pointed at an app (in addition to its
+// <subdomain>.<base-domain>). Verified by a TXT challenge; served via Caddy
+// on-demand TLS once active.
+const customDomains = pgTable('custom_domains', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  appId: uuid('app_id').notNull().references(() => apps.id, { onDelete: 'cascade' }),
+  hostname: text('hostname').notNull(),
+  status: text('status').notNull().default('pending'),   // pending | active | failed
+  verificationToken: text('verification_token').notNull(),
+  isPrimary: boolean('is_primary').notNull().default(false),
+  redirectToCanonical: boolean('redirect_to_canonical').notNull().default(false),
+  lastCheckedAt: timestamp('last_checked_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+}, (t) => ({
+  hostnameUniq: uniqueIndex('custom_domains_hostname_uniq').on(t.hostname),
+  appIdx: index('custom_domains_app_idx').on(t.appId)
+}));
+
+module.exports = { users, apps, appEnvVars, deployments, authLogs, apiTokens, appHealth, pages, pageFiles, pageData, events, platformSettings, notificationRules, notificationDeliveries, pageViews, backups, customDomains };

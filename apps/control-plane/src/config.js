@@ -46,6 +46,8 @@ const config = {
   acmeEmail: process.env.ASTRODOCK_ACME_EMAIL || '',
   // Override the CORS allowed-origin regex; otherwise derived from baseDomain.
   allowedOriginPattern: process.env.ASTRODOCK_ALLOWED_ORIGIN_PATTERN || '',
+  // Public IP of this server, shown in custom-domain DNS instructions (the A record target).
+  publicIp: process.env.ASTRODOCK_PUBLIC_IP || '',
 
   // ── Admin auth ──
   adminJwtSecret: process.env.ASTRODOCK_ADMIN_JWT_SECRET || '',
