@@ -146,4 +146,48 @@ const appHealth = pgTable('app_health', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 });
 
-module.exports = { users, apps, appEnvVars, deployments, authLogs, apiTokens, appHealth };
+// ── pages (lightweight hosted documents / mini-sites) ──────────────────────────
+const pages = pgTable('pages', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  pageId: text('page_id').notNull(),          // 12-char public handle in the URL
+  title: text('title').notNull().default(''),
+  entryFile: text('entry_file').notNull().default('index.html'),
+  accessMode: text('access_mode').notNull().default('public'), // public | passkey | platform
+  passkey: text('passkey'),                   // encrypted at rest; null unless passkey mode
+  allowlist: jsonb('allowlist').notNull().default(sql`'[]'::jsonb`), // emails; [] = any active user (platform mode)
+  dataMode: text('data_mode').notNull().default('none'),       // none | shared | per-user
+  isActive: boolean('is_active').notNull().default(true),
+  views: integer('views').notNull().default(0),
+  lastViewedAt: timestamp('last_viewed_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+}, (t) => ({
+  pageIdUniq: uniqueIndex('pages_page_id_uniq').on(t.pageId)
+}));
+
+const pageFiles = pgTable('page_files', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  pageId: uuid('page_id').notNull().references(() => pages.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),               // relative path, e.g. "index.html" or "img/logo.png"
+  size: integer('size').notNull().default(0),
+  contentType: text('content_type').notNull().default('application/octet-stream'),
+  storageKey: text('storage_key').notNull(),  // object-store key
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+}, (t) => ({
+  pageNameUniq: uniqueIndex('page_files_page_name_uniq').on(t.pageId, t.name)
+}));
+
+// One small JSON blob per page (shared) or per page+user (per-user). Size-capped.
+const pageData = pgTable('page_data', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  pageId: uuid('page_id').notNull().references(() => pages.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id'),                    // null = shared blob; else the platform user
+  data: jsonb('data').notNull().default(sql`'{}'::jsonb`),
+  version: integer('version').notNull().default(1),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+});
+// Uniqueness (one shared blob per page; one per-user blob per page+user) is enforced
+// by partial indexes in the 0004_pages migration — NULL user_id needs special handling.
+
+module.exports = { users, apps, appEnvVars, deployments, authLogs, apiTokens, appHealth, pages, pageFiles, pageData };

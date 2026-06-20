@@ -33,4 +33,20 @@ const deployLimiter = rateLimit({
   legacyHeaders: false
 });
 
-module.exports = { verifyLimiter, adminLoginLimiter, accountLimiter, deployLimiter };
+// Pages: cap data-blob writes and page-login attempts (public, untrusted surface).
+const pageDataLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: 120,
+  message: { error: 'Too many writes, slow down' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+const pageLoginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: { error: 'Too many login attempts, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+module.exports = { verifyLimiter, adminLoginLimiter, accountLimiter, deployLimiter, pageDataLimiter, pageLoginLimiter };

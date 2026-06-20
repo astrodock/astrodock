@@ -3,6 +3,7 @@
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const config = require('./src/config');
 const { ping } = require('./src/db');
 const { migrate } = require('./src/db/migrate');
@@ -20,9 +21,17 @@ app.use(cors({
   origin: (origin, cb) => (config.isAllowedOrigin(origin) ? cb(null, true) : cb(new Error('Not allowed by CORS'))),
   credentials: true
 }));
+app.use(cookieParser());
 
-// Webhook route needs the raw body, so mount BEFORE express.json().
+// The pages.<base-domain> host serves entirely from the public Pages router (which has
+// its own body parsers and ends in a 404, so /admin/* is never reachable there).
+const pagesPublic = require('./src/routes/pages-public');
+app.use((req, res, next) => (config.isPagesHost(req.hostname) ? pagesPublic(req, res, next) : next()));
+
+// Webhook route needs the raw body; Pages admin needs multipart + a larger JSON limit.
+// Both are mounted BEFORE the global express.json so they control their own parsing.
 app.use('/webhooks', require('./src/routes/webhooks'));
+app.use('/admin/pages', require('./src/routes/admin-pages'));
 
 app.use(express.json({ limit: '1mb' }));
 

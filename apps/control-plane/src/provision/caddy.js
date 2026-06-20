@@ -98,9 +98,21 @@ ${site(host)} {
  * Build the full Caddyfile text from the given apps (provisioned apps only).
  * Pure function — unit-tested.
  */
+// The pages.<base-domain> host — all paths proxied to the control plane, which serves
+// page files, applies the access gate, and rejects /admin/* on this host.
+function pagesBlock() {
+  const host = `${config.pages.subdomain}.${config.baseDomain}`;
+  return `
+${site(host)} {
+\treverse_proxy ${API}
+}
+`;
+}
+
 function generateCaddyfile(apps) {
   let out = globalOptions();
   out += adminBlock();
+  out += pagesBlock();
   for (const app of apps) {
     out += app.runtimeType === 'docker' ? dockerAppBlock(app) : nodeAppBlock(app);
   }

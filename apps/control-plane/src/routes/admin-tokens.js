@@ -12,7 +12,7 @@ const { generateApiToken, hashToken } = require('../lib/ids');
 const router = express.Router();
 router.use(requireAdmin);
 
-const ALLOWED_SCOPES = ['deploy', '*'];
+const ALLOWED_SCOPES = ['deploy', 'pages', '*'];
 const FORBIDDEN_SCOPES = ['users']; // never grantable to a token
 
 router.get('/', async (req, res) => {
