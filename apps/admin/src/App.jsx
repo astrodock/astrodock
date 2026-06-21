@@ -2,6 +2,7 @@ import { Routes, Route, Navigate, NavLink, useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react';
 import { getToken, clearToken } from './lib/api';
 import LoginPage from './pages/LoginPage';
+import OverviewPage from './pages/OverviewPage';
 import UsersPage from './pages/UsersPage';
 import AppsPage from './pages/AppsPage';
 import AppDetailPage from './pages/AppDetailPage';
@@ -34,7 +35,7 @@ export default function App() {
 
   function handleLogin() {
     setIsAuthed(true);
-    navigate('/apps');
+    navigate('/overview');
   }
 
   function handleLogout() {
@@ -70,6 +71,13 @@ export default function App() {
           </div>
         </div>
         <ul className="nav-links">
+          <li className="nav-sec">Operate</li>
+          <li>
+            <NavLink to="/overview" className={({ isActive }) => isActive ? 'active' : ''}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 9.5 8 3l6 6.5M4 8.5V14h8V8.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              Overview
+            </NavLink>
+          </li>
           <li>
             <NavLink to="/apps" className={({ isActive }) => isActive ? 'active' : ''}>
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="1.5"/><rect x="9" y="1" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="1.5"/><rect x="1" y="9" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="1.5"/><rect x="9" y="9" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="1.5"/></svg>
@@ -88,12 +96,14 @@ export default function App() {
               Users
             </NavLink>
           </li>
+          <li className="nav-sec">Network &amp; access</li>
           <li>
             <NavLink to="/tokens" className={({ isActive }) => isActive ? 'active' : ''}>
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10.5 5.5a3 3 0 1 0-3.2 3l-.8.8v1.2H5.3v1.5H3.8V14H1.5v-2.2l4-4a3 3 0 0 1 5-2.3z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/><circle cx="11" cy="5" r="1" fill="currentColor"/></svg>
-              Tokens
+              Access keys
             </NavLink>
           </li>
+          <li className="nav-sec">Observe</li>
           <li>
             <NavLink to="/activity" className={({ isActive }) => isActive ? 'active' : ''}>
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 8h2l2-4 4 8 2-4h2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -136,6 +146,7 @@ export default function App() {
       </nav>
       <main className="content">
         <Routes>
+          <Route path="/overview" element={<OverviewPage />} />
           <Route path="/users" element={<UsersPage />} />
           <Route path="/users/:id" element={<UserDetailPage />} />
           <Route path="/apps" element={<AppsPage />} />
@@ -146,7 +157,7 @@ export default function App() {
           <Route path="/activity" element={<ActivityPage />} />
           <Route path="/health" element={<HealthPage />} />
           <Route path="/settings" element={<SettingsPage />} />
-          <Route path="*" element={<Navigate to="/apps" />} />
+          <Route path="*" element={<Navigate to="/overview" />} />
         </Routes>
       </main>
     </div>

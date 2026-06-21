@@ -79,8 +79,8 @@ export default function TokensPage() {
   return (
     <div>
       <div className="page-header">
-        <h1>API Tokens</h1>
-        <button onClick={() => setShowCreate(true)}>Create Token</button>
+        <h1>Access keys</h1>
+        <button onClick={() => setShowCreate(true)}>Create key</button>
       </div>
 
       <p className="hint">
