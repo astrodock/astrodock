@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Astrodock — Domains (prototype v2)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --space-0:#06090f; --space-1:#0a0e15; --panel:#0f141d; --panel-2:#141b26;
+  --line:#222d3b; --line-soft:#19212c; --field:#0c121b;
+  --ink:#f1f5fa; --ink-2:#b6c4d4; --ink-3:#8595a8;
+  --nominal:#2fe6a8; --amber:#ffbe5c; --critical:#ff6573; --cyan:#5ad3ff;
+  --nominal-dim:rgba(47,230,168,.11); --amber-dim:rgba(255,190,92,.13); --critical-dim:rgba(255,101,115,.13); --cyan-dim:rgba(90,211,255,.13);
+  --display:'Saira',system-ui,sans-serif; --mono:'IBM Plex Mono',monospace; --r:14px; --r-sm:9px; --signal:var(--nominal); --signal-dim:var(--nominal-dim);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--display); background:var(--space-1); color:var(--ink); font-size:14.5px; line-height:1.55; -webkit-font-smoothing:antialiased; overflow-x:hidden}
+.bg{position:fixed; inset:0; z-index:0; pointer-events:none}
+.bg-stars{position:absolute; inset:0; opacity:.4; background-image:radial-gradient(1px 1px at 20% 30%,#cfe3ff55,transparent),radial-gradient(1px 1px at 80% 20%,#bcd6ff44,transparent),radial-gradient(1px 1px at 65% 60%,#ffffff2a,transparent),radial-gradient(1px 1px at 35% 75%,#cfe3ff44,transparent)}
+.bg-glow{position:absolute; top:-360px; left:60%; width:1000px; height:680px; border-radius:50%; filter:blur(110px); opacity:.26; background:radial-gradient(circle,var(--signal-dim),transparent 62%)}
+.bg-vignette{position:absolute; inset:0; background:radial-gradient(ellipse 120% 90% at 50% -10%,transparent 55%,#0008 100%)}
+.app{position:relative; z-index:1; display:flex; min-height:100vh}
+.sidebar{width:240px; flex-shrink:0; position:fixed; inset:0 auto 0 0; background:linear-gradient(180deg,var(--space-0),var(--space-1)); border-right:1px solid var(--line-soft); display:flex; flex-direction:column; z-index:20}
+.brand{display:flex; align-items:center; gap:11px; padding:20px 20px 18px}
+.mark .orbit-dot{transform-origin:17px 17px; animation:orbit 6s linear infinite} @keyframes orbit{to{transform:rotate(360deg)}}
+.brand-name{font-weight:700; font-size:16px; letter-spacing:.6px} .brand-name b{color:var(--ink)} .brand-name span{color:var(--ink-3); font-weight:500}
+.brand-sub{font-family:var(--mono); font-size:9.5px; letter-spacing:2.5px; color:var(--ink-3); text-transform:uppercase; margin-top:1px}
+nav{padding:8px 12px; display:flex; flex-direction:column; gap:2px; flex:1}
+.nav-sec{font-family:var(--mono); font-size:9px; letter-spacing:2px; color:var(--ink-3); text-transform:uppercase; padding:14px 10px 6px; opacity:.7}
+.nav-item{display:flex; align-items:center; gap:11px; padding:9px 11px; border-radius:var(--r-sm); color:var(--ink-2); text-decoration:none; font-size:14px; font-weight:500; position:relative; transition:.15s}
+.nav-item svg{width:16px; height:16px; opacity:.6; flex-shrink:0}
+.nav-item:hover{background:#ffffff0a; color:var(--ink)}
+.nav-item.on{background:var(--signal-dim); color:var(--signal)} .nav-item.on svg{opacity:1}
+.nav-item.on::before{content:""; position:absolute; left:-12px; top:9px; bottom:9px; width:3px; background:var(--signal); border-radius:0 3px 3px 0; box-shadow:0 0 10px var(--signal)}
+.sys-chip{margin:12px; padding:12px 14px; border:1px solid var(--line-soft); border-radius:var(--r-sm); background:#0c1119; display:flex; align-items:center; gap:10px}
+.sys-chip .led{width:9px; height:9px} .sys-chip .t{font-size:12px} .sys-chip .t b{display:block; font-weight:600} .sys-chip .t span{font-family:var(--mono); font-size:10px; color:var(--ink-3)}
+.deck{flex:1; margin-left:240px; padding:24px 40px 70px; max-width:1180px}
+.topbar{display:flex; align-items:center; gap:14px; margin-bottom:18px}
+.crumb{font-family:var(--mono); font-size:11px; letter-spacing:3px; color:var(--ink-3); text-transform:uppercase}
+.topbar .spacer{flex:1} .clock{font-family:var(--mono); font-size:12px; color:var(--ink-2)} .clock b{color:var(--ink)}
+.page-header{display:flex; align-items:center; gap:16px; margin-bottom:18px}
+.page-header h1{font-size:28px; font-weight:700; letter-spacing:-.5px} .page-header .spacer{flex:1}
+button.btn{font-family:var(--display); font-size:13.5px; font-weight:600; border-radius:var(--r-sm); padding:10px 18px; cursor:pointer; background:var(--signal); color:#06120d; border:0}
+button.btn:hover{background:#13c98c}
+button.btn.ghost{background:var(--panel-2); border:1px solid var(--line); color:var(--ink)} button.btn.ghost:hover{border-color:#3a4d63}
+button.btn.cyan{background:transparent; border:1px solid var(--cyan-dim); color:var(--cyan)} button.btn.cyan:hover{background:var(--cyan-dim)}
+button.btn.danger{background:transparent; border:1px solid var(--critical-dim); color:var(--critical)} button.btn.danger:hover{background:var(--critical-dim)}
+button.btn.solid-danger{background:var(--critical); color:#fff; border:0} button.btn.solid-danger:hover{background:#e0414f}
+button.btn.sm{padding:7px 13px; font-size:12.5px}
+.led{width:9px; height:9px; border-radius:50%; display:inline-block; flex-shrink:0}
+.led.ok{background:var(--nominal); box-shadow:0 0 8px var(--nominal)} .led.warn{background:var(--amber); box-shadow:0 0 8px var(--amber)} .led.crit{background:var(--critical); box-shadow:0 0 8px var(--critical)}
+a.link{color:var(--cyan); text-decoration:none} a.link:hover{text-decoration:underline}
+
+/* base-domain card */
+.basecard{border:1px solid var(--line); border-radius:var(--r); background:linear-gradient(135deg,var(--panel),#0b0f17); padding:22px 24px; margin-bottom:14px; display:flex; align-items:center; gap:22px}
+.basecard .globe{width:46px; height:46px; flex-shrink:0; color:var(--signal); opacity:.85}
+.basecard h2{font-size:11px; font-family:var(--mono); letter-spacing:1.5px; text-transform:uppercase; color:var(--ink-3); font-weight:500}
+.basecard .dom{font-size:24px; font-weight:700; letter-spacing:-.4px; margin-top:3px}
+.basecard .meta{font-size:13.5px; color:var(--ink-2); margin-top:7px; line-height:1.55; max-width:600px}
+.basecard .meta code{font-family:var(--mono); font-size:12px; background:var(--field); border:1px solid var(--line-soft); padding:2px 7px; border-radius:5px; color:var(--ink)}
+.basecard .pill-ok{margin-left:auto; flex-shrink:0; align-self:flex-start; display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--nominal); font-family:var(--mono)}
+.howset{font-size:13px; color:var(--ink-3); margin:0 2px 26px; line-height:1.6}
+.howset b{color:var(--ink-2)}
+
+.secthead{display:flex; align-items:baseline; gap:12px; margin:0 2px 12px}
+.secthead h3{font-size:18px; font-weight:600; letter-spacing:-.2px}
+.secthead p{font-size:13px; color:var(--ink-3)}
+.secthead .spacer{flex:1}
+
+.tbl{border:1px solid var(--line-soft); border-radius:var(--r); overflow:hidden; background:var(--panel); margin-bottom:30px}
+table{width:100%; border-collapse:collapse}
+thead th{font-family:var(--mono); font-size:9.5px; letter-spacing:1.4px; text-transform:uppercase; color:var(--ink-3); text-align:left; padding:13px 18px; border-bottom:1px solid var(--line-soft); font-weight:500}
+tbody td{padding:16px 18px; border-bottom:1px solid var(--line-soft); font-size:14px; vertical-align:middle}
+tbody tr:last-child td{border-bottom:0}
+.host{font-family:var(--mono); font-size:13.5px; display:flex; align-items:center; gap:9px}
+.host .star{color:var(--amber); font-size:11px}
+.points b{font-weight:500} .points .redir{display:block; color:var(--ink-3); font-size:12px; font-family:var(--mono); margin-top:2px}
+.chip{display:inline-flex; align-items:center; gap:7px; font-family:var(--mono); font-size:10.5px; letter-spacing:.5px; text-transform:uppercase; padding:4px 10px; border-radius:20px; border:1px solid var(--line)}
+.chip.ok{color:var(--nominal); border-color:var(--nominal-dim); background:var(--nominal-dim)}
+.chip.warn{color:var(--amber); border-color:var(--amber-dim); background:var(--amber-dim)}
+.chip.crit{color:var(--critical); border-color:var(--critical-dim); background:var(--critical-dim)}
+.tls{font-family:var(--mono); font-size:12px; color:var(--ink-3)} .tls.ok{color:var(--nominal)}
+.rowacts{display:flex; gap:7px; justify-content:flex-end}
+
+/* automatic list */
+.autolist{border:1px solid var(--line-soft); border-radius:var(--r); overflow:hidden; background:var(--panel); margin-bottom:24px}
+.autorow{display:flex; align-items:center; gap:14px; padding:14px 18px; border-bottom:1px solid var(--line-soft)}
+.autorow:last-child{border-bottom:0}
+.autorow .ahost{font-family:var(--mono); font-size:13px; color:var(--ink-2); min-width:230px}
+.autorow .agoes{flex:1; color:var(--ink-3); font-size:13.5px}
+.autorow .agoes b{color:var(--ink-2); font-weight:500}
+.autorow .open{color:var(--cyan); font-size:12.5px; text-decoration:none; display:flex; align-items:center; gap:5px}
+
+.tag-proto{position:fixed; bottom:14px; right:16px; z-index:30; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:var(--ink-3); background:#0c1119cc; border:1px solid var(--line); padding:5px 10px; border-radius:20px; backdrop-filter:blur(6px)}
+
+/* modal */
+.overlay{position:fixed; inset:0; z-index:60; background:#040711cc; backdrop-filter:blur(5px); display:none; align-items:center; justify-content:center}
+.overlay.show{display:flex}
+.modal{width:560px; max-width:94vw; max-height:88vh; display:flex; flex-direction:column; overflow:hidden; background:var(--panel); border:1px solid var(--line); border-radius:18px; box-shadow:0 24px 80px #000c}
+.modal-h{padding:20px 24px; border-bottom:1px solid var(--line-soft); flex-shrink:0; display:flex; align-items:center; gap:11px} .modal-h h3{font-size:18px; font-weight:600}
+.modal-b{padding:22px 24px; overflow-y:auto; display:flex; flex-direction:column; gap:18px}
+.modal-f{padding:16px 24px; border-top:1px solid var(--line-soft); display:flex; justify-content:flex-end; gap:10px; flex-shrink:0}
+.modal-b label{font-size:13.5px; font-weight:600; display:block; margin-bottom:8px}
+.modal-b input,.modal-b select{width:100%; background:var(--field); border:1px solid var(--line); border-radius:var(--r-sm); color:var(--ink); font-family:var(--display); font-size:14.5px; height:42px; padding:0 14px; outline:none}
+.modal-b input.mono{font-family:var(--mono); font-size:13px}
+.modal-b input:focus,.modal-b select:focus{border-color:var(--signal); box-shadow:0 0 0 3px var(--signal-dim)}
+.hintx{font-size:13px; color:var(--ink-3); margin-top:7px; line-height:1.5}
+
+/* setup steps */
+.step{display:flex; gap:14px}
+.step .num{width:26px; height:26px; flex-shrink:0; border-radius:50%; background:var(--signal-dim); color:var(--signal); display:grid; place-items:center; font-weight:700; font-size:13px}
+.step .sb{flex:1}
+.step .sb b{font-size:14.5px} .step .sb p{font-size:13px; color:var(--ink-2); margin:3px 0 10px; line-height:1.5}
+.rec{background:var(--field); border:1px solid var(--line-soft); border-radius:var(--r-sm); padding:12px 14px; display:grid; grid-template-columns:54px 1fr auto; gap:8px 12px; align-items:center; font-family:var(--mono); font-size:12.5px}
+.rec .rk{color:var(--ink-3); font-size:9.5px; letter-spacing:1px; text-transform:uppercase}
+.rec .rv{color:var(--ink); word-break:break-all}
+.rec .copy{grid-row:span 2; align-self:center}
+.copy{background:var(--panel-2); border:1px solid var(--line); color:var(--ink-2); font-family:var(--display); font-size:11.5px; padding:5px 10px; border-radius:6px; cursor:pointer}
+.copy:hover{border-color:var(--cyan); color:var(--cyan)}
+.callout{background:var(--cyan-dim); border:1px solid var(--cyan-dim); border-radius:var(--r-sm); padding:12px 15px; font-size:13px; color:var(--ink-2); line-height:1.55}
+.mrow{display:flex; align-items:center; gap:14px; padding:14px 0; border-bottom:1px solid var(--line-soft)}
+.mrow:first-child{padding-top:0} .mrow .ml{flex:1} .mrow .ml b{font-size:14px} .mrow .ml span{display:block; font-size:12.5px; color:var(--ink-3); margin-top:2px}
+.sw{width:46px; height:26px; border-radius:20px; background:var(--field); border:1px solid var(--line); position:relative; cursor:pointer; transition:.2s; flex-shrink:0}
+.sw::after{content:""; position:absolute; top:2px; left:2px; width:20px; height:20px; border-radius:50%; background:var(--ink-3); transition:.2s}
+.sw.on{background:var(--signal); border-color:var(--signal)} .sw.on::after{transform:translateX(20px); background:#06120d}
+@media(max-width:980px){ .sidebar{transform:translateX(-100%)} .deck{margin-left:0} .basecard{flex-wrap:wrap} }
+</style>
+</head>
+<body>
+<div class="bg"><div class="bg-glow"></div><div class="bg-stars"></div><div class="bg-vignette"></div></div>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><div class="mark"><svg width="34" height="34" viewBox="0 0 34 34" fill="none"><circle cx="17" cy="17" r="15" stroke="var(--signal)" stroke-width="1.4" opacity=".4"/><circle cx="17" cy="17" r="9.5" stroke="var(--signal)" stroke-width="1.4" opacity=".7"/><circle cx="17" cy="17" r="3.6" fill="var(--signal)"/><g class="orbit-dot"><circle cx="32" cy="17" r="2.3" fill="var(--ink)"/></g></svg></div>
+      <div><div class="brand-name"><b>ASTRO</b><span>DOCK</span></div><div class="brand-sub">control plane</div></div></div>
+    <nav>
+      <div class="nav-sec">Operate</div>
+      <a class="nav-item" href="overview.html"><svg viewBox="0 0 16 16" fill="none"><path d="M2 9.5 8 3l6 6.5M4 8.5V14h8V8.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Overview</a>
+      <a class="nav-item" href="apps.html"><svg viewBox="0 0 16 16" fill="none"><rect x="1.5" y="1.5" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="9.5" y="1.5" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="1.5" y="9.5" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="9.5" y="9.5" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/></svg>Apps</a>
+      <a class="nav-item" href="#"><svg viewBox="0 0 16 16" fill="none"><path d="M3 1.5h6L13 5v9.5H3z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>Pages</a>
+      <a class="nav-item" href="#"><svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M2 14c0-3 2.5-5 6-5s6 2 6 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Users</a>
+      <div class="nav-sec">Network &amp; access</div>
+      <a class="nav-item on" href="domains.html"><svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.3" stroke="currentColor" stroke-width="1.5"/><path d="M1.7 8h12.6M8 1.7c1.8 2 1.8 10.6 0 12.6M8 1.7c-1.8 2-1.8 10.6 0 12.6" stroke="currentColor" stroke-width="1.2"/></svg>Domains</a>
+      <a class="nav-item" href="#"><svg viewBox="0 0 16 16" fill="none"><circle cx="5" cy="8" r="3.2" stroke="currentColor" stroke-width="1.5"/><path d="M8 8h6.5M12.5 8v2.3M10.5 8v1.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Access keys</a>
+      <div class="nav-sec">Observe</div>
+      <a class="nav-item" href="#"><svg viewBox="0 0 16 16" fill="none"><path d="M2 8h2l2-4 4 8 2-4h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Activity</a>
+      <a class="nav-item" href="#"><svg viewBox="0 0 16 16" fill="none"><path d="M8 14s-5.5-3.5-5.5-7.5a3.5 3.5 0 0 1 7 0 3.5 3.5 0 0 1 7 0C13.5 10.5 8 14 8 14z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>Health</a>
+      <a class="nav-item" href="settings.html"><svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Settings</a>
+    </nav>
+    <div class="sys-chip"><span class="led ok"></span><div class="t"><b>Nominal</b><span>box-01 · localhost</span></div></div>
+  </aside>
+
+  <main class="deck">
+    <div class="topbar"><span class="crumb">Mission · Domains</span><span class="spacer"></span><span class="clock"><b id="clk">--:--:--</b> UTC</span></div>
+    <div class="page-header"><h1>Domains</h1><span class="spacer"></span><button class="btn" onclick="openAdd()">+ Add a domain</button></div>
+
+    <div class="basecard">
+      <svg class="globe" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="19" stroke="currentColor" stroke-width="1.6" opacity=".5"/><path d="M5 24h38M24 5c5.5 6 5.5 32 0 38M24 5c-5.5 6-5.5 32 0 38" stroke="currentColor" stroke-width="1.3" opacity=".8"/><circle cx="24" cy="24" r="3" fill="currentColor"/></svg>
+      <div class="bd">
+        <h2>Your main web address</h2>
+        <div class="dom">example.com</div>
+        <div class="meta">Every app and page lives under this. The address <code>*.example.com</code> already points to your server, so new apps just work — no setup needed.</div>
+      </div>
+      <div class="pill-ok"><span class="led ok"></span> HTTPS on · renews itself</div>
+    </div>
+    <p class="howset"><b>Where does this come from?</b> You chose it when you first set up Astrodock. Changing it later is a bigger job (you’d re-point your DNS and get new security certificates), so it’s done back on the server — not from this page.</p>
+
+    <!-- CUSTOM (managed here) -->
+    <div class="secthead"><h3>Your custom domains</h3><p>— domains you add and manage here</p></div>
+    <div class="tbl"><table>
+      <thead><tr><th>Domain</th><th>Goes to</th><th>Secure (HTTPS)</th><th>Status</th><th></th></tr></thead>
+      <tbody id="customRows"></tbody>
+    </table></div>
+
+    <!-- AUTOMATIC (not managed here) -->
+    <div class="secthead"><h3>Automatic addresses</h3><p>— handled for you, nothing to set up</p></div>
+    <div class="autolist" id="autoList"></div>
+  </main>
+</div>
+
+<!-- ADD -->
+<div class="overlay" id="addOverlay">
+  <div class="modal" style="width:500px">
+    <div class="modal-h"><h3>Add a domain</h3></div>
+    <div class="modal-b">
+      <div><label>Which app should it open?</label><select><option>blog</option><option>notes</option><option>shop</option><option>Pages</option></select>
+        <div class="hintx">A domain sends visitors to one app.</div></div>
+      <div><label>Your domain name</label><input class="mono" placeholder="shop.example.com">
+        <div class="hintx">Type the address you own. We’ll show you exactly what to do next.</div></div>
+    </div>
+    <div class="modal-f"><button class="btn ghost" onclick="close_('addOverlay')">Cancel</button><button class="btn" onclick="close_('addOverlay'); toast('Added — now set up its DNS.')">Add &amp; show steps</button></div>
+  </div>
+</div>
+
+<!-- SET UP DNS -->
+<div class="overlay" id="setupOverlay">
+  <div class="modal">
+    <div class="modal-h"><span class="led warn"></span><h3 id="setupTitle">Connect your domain</h3></div>
+    <div class="modal-b" id="setupBody"></div>
+    <div class="modal-f"><button class="btn ghost" onclick="close_('setupOverlay')">Close</button><button class="btn" onclick="toast('Checking your domain…')">Check it now</button></div>
+  </div>
+</div>
+
+<!-- MANAGE -->
+<div class="overlay" id="manageOverlay">
+  <div class="modal">
+    <div class="modal-h"><span class="led ok"></span><h3 id="manageTitle">Manage domain</h3></div>
+    <div class="modal-b" id="manageBody"></div>
+    <div class="modal-f"><button class="btn danger" onclick="toast('Type-to-confirm appears here.')">Remove domain</button><span style="flex:1"></span><button class="btn" onclick="close_('manageOverlay')">Done</button></div>
+  </div>
+</div>
+
+<div class="tag-proto">PROTOTYPE · domains v2 · orbital mission control</div>
+<script>
+const SERVER_IP='203.0.113.10';
+const CUSTOM=[
+  {host:'blog.acme.com', app:'blog', kind:'app', primary:true, status:'active', cert:58, token:'astrodock-verify=ab12cd34ef'},
+  {host:'www.acme.com', app:'blog', kind:'app', redirect:'blog.acme.com', status:'active', cert:58, token:'astrodock-verify=ab12cd34ef'},
+  {host:'shop.io', app:'shop', kind:'app', status:'pending', token:'astrodock-verify=77aa88bb22'},
+  {host:'docs.client.com', app:'Pages', kind:'pages', status:'failed', token:'astrodock-verify=99ff00aa11'},
+];
+const AUTO=[
+  {host:'admin.example.com', goes:'Your dashboard', kind:'dash'},
+  {host:'pages.example.com', goes:'Your Pages', kind:'pages'},
+  {host:'blog.example.com', goes:'the <b>blog</b> app', kind:'app'},
+  {host:'notes.example.com', goes:'the <b>notes</b> app', kind:'app'},
+];
+const STC={active:'ok', pending:'warn', failed:'crit'};
+const STLABEL={active:'live', pending:'waiting for DNS', failed:'not connected'};
+function pointsTo(d){
+  const target = d.kind==='pages' ? 'your <b>Pages</b>' : `the <b>${d.app}</b> app`;
+  return `<div class="points"><a class="link" href="apps.html">${target}</a>${d.redirect?`<span class="redir">sends visitors to ${d.redirect}</span>`:''}</div>`;
+}
+function liveLink(host){ return `<a class="link" href="#" onclick="event.stopPropagation();return false" title="Open the live site">${host} ↗</a>`; }
+
+function renderCustom(){
+  document.getElementById('customRows').innerHTML=CUSTOM.map((d,i)=>`
+    <tr>
+      <td><span class="host">${d.primary?'<span class="star" title="Main address">★</span>':''}${d.status==='active'?liveLink(d.host):d.host}</span></td>
+      <td>${pointsTo(d)}</td>
+      <td>${d.status==='active'?`<span class="tls ok">on · renews in ${d.cert}d</span>`:'<span class="tls">—</span>'}</td>
+      <td><span class="chip ${STC[d.status]}">${STLABEL[d.status]}</span></td>
+      <td><div class="rowacts">${d.status==='active'
+        ? `<button class="btn ghost sm" onclick="openManage(${i})">Manage</button>`
+        : `<button class="btn sm" onclick="openSetup(${i})">Set up DNS</button>`}</div></td>
+    </tr>`).join('');
+}
+function renderAuto(){
+  document.getElementById('autoList').innerHTML=AUTO.map(a=>`
+    <div class="autorow"><span class="led ok"></span><span class="ahost">${a.host}</span>
+      <span class="agoes">→ ${a.goes}</span>
+      <a class="open" href="#" onclick="return false">Open ↗</a></div>`).join('');
+}
+
+function recordsHtml(d){
+  return `<div class="rec">
+    <span class="rk">Type</span><span class="rk">Name</span>
+    <span class="rv" style="grid-column:1">A</span><span class="rv">${d.host}</span><button class="copy" onclick="toast('Copied')">Copy</button>
+    <span class="rv" style="grid-column:1;color:var(--cyan)">value</span><span class="rv">${SERVER_IP}</span>
+  </div>`;
+}
+function setupRecords(d){
+  return `
+  <div class="step"><div class="num">1</div><div class="sb"><b>Add an “A” record</b>
+    <p>This tells the internet where your site lives — that’s your server.</p>
+    <div class="rec"><span class="rk">Type</span><span class="rv">A</span><button class="copy" onclick="toast('Copied A record')">Copy</button>
+      <span class="rk">Name</span><span class="rv">${d.host}</span>
+      <span class="rk">Points to</span><span class="rv" style="color:var(--cyan)">${SERVER_IP}</span></div></div></div>
+  <div class="step"><div class="num">2</div><div class="sb"><b>Add a “TXT” record</b>
+    <p>This proves the domain is really yours.</p>
+    <div class="rec"><span class="rk">Type</span><span class="rv">TXT</span><button class="copy" onclick="toast('Copied TXT record')">Copy</button>
+      <span class="rk">Name</span><span class="rv">_astrodock-challenge.${d.host}</span>
+      <span class="rk">Value</span><span class="rv" style="color:var(--cyan)">${d.token}</span></div></div></div>
+  <div class="step"><div class="num">3</div><div class="sb"><b>Come back and check</b>
+    <p>Once both are added, click <b>Check it now</b> below. DNS changes can take a few minutes — sometimes a few hours.</p></div></div>`;
+}
+function openSetup(i){
+  const d=CUSTOM[i];
+  document.getElementById('setupTitle').textContent=`Connect ${d.host}`;
+  document.getElementById('setupBody').innerHTML=`
+    <div class="callout">Almost there! To send <b>${d.host}</b> to ${d.kind==='pages'?'your Pages':'the '+d.app+' app'}, add two small records at the company where you bought your domain — like GoDaddy, Namecheap, or Cloudflare.</div>
+    ${setupRecords(d)}
+    ${d.status==='failed'?'<div class="callout" style="background:var(--critical-dim);border-color:var(--critical-dim);color:var(--ink-2)">We looked but couldn’t find the TXT record yet. Double-check it was added exactly as shown, then check again.</div>':''}`;
+  document.getElementById('setupOverlay').classList.add('show');
+}
+function openManage(i){
+  const d=CUSTOM[i];
+  document.getElementById('manageTitle').textContent=d.host;
+  document.getElementById('manageBody').innerHTML=`
+    <div class="mrow"><div class="ml"><b>Goes to ${d.kind==='pages'?'your Pages':'the '+d.app+' app'}</b><span>This is what people see when they visit ${d.host}.</span></div>
+      <a class="btn ghost sm" href="apps.html" style="text-decoration:none">Open app →</a></div>
+    <div class="mrow"><div class="ml"><b>Secure (HTTPS) is on</b><span>Visitors get a padlock. The certificate renews itself — next renewal in ${d.cert} days.</span></div><span class="led ok"></span></div>
+    <div class="mrow"><div class="ml"><b>Make this the main address</b><span>People will see ${d.host} as the primary address. Your app’s other addresses will send visitors here.</span></div><div class="sw ${d.primary?'on':''}" onclick="this.classList.toggle('on')"></div></div>
+    <div style="padding-top:6px"><label style="margin-bottom:8px">These records are set up correctly</label>
+      <div class="rec"><span class="rk">A</span><span class="rv">${d.host}</span><span class="led ok"></span>
+        <span class="rk">TXT</span><span class="rv">_astrodock-challenge.${d.host}</span></div>
+      <div class="hintx">You don’t need to change these — we just keep them on file.</div></div>`;
+  document.getElementById('manageOverlay').classList.add('show');
+}
+function openAdd(){ document.getElementById('addOverlay').classList.add('show'); }
+function close_(id){ document.getElementById(id).classList.remove('show'); }
+['addOverlay','setupOverlay','manageOverlay'].forEach(id=>document.getElementById(id).addEventListener('click',e=>{ if(e.target.id===id) close_(id); }));
+function toast(m){ const t=document.createElement('div'); t.textContent=m; t.style.cssText='position:fixed;top:18px;right:18px;z-index:90;background:var(--panel-2);border:1px solid var(--line);border-left:3px solid var(--cyan);border-radius:10px;padding:12px 16px;font-size:13.5px;box-shadow:0 12px 40px #000a'; document.body.appendChild(t); setTimeout(()=>{t.style.opacity='0';t.style.transition='opacity .3s';setTimeout(()=>t.remove(),300)},1800); }
+function tick(){ document.getElementById('clk').textContent=new Date().toISOString().slice(11,19); }
+setInterval(tick,1000); tick(); renderCustom(); renderAuto();
+</script>
+</body>
+</html>

@@ -1,0 +1,666 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Astrodock — Settings (prototype v3)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --space-0:#06090f; --space-1:#0a0e15; --panel:#0f141d; --panel-2:#141b26;
+  --line:#222d3b; --line-soft:#19212c; --field:#0c121b;
+  --ink:#f1f5fa; --ink-2:#b6c4d4; --ink-3:#8595a8;
+  --nominal:#2fe6a8; --nominal-2:#13c98c; --nominal-dim:rgba(47,230,168,.11);
+  --amber:#ffbe5c; --amber-dim:rgba(255,190,92,.13);
+  --critical:#ff6573; --critical-dim:rgba(255,101,115,.13);
+  --cyan:#5ad3ff; --cyan-dim:rgba(90,211,255,.13);
+  --display:'Saira',system-ui,sans-serif; --mono:'IBM Plex Mono',monospace;
+  --r:16px; --r-sm:10px; --signal:var(--nominal); --signal-dim:var(--nominal-dim);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:var(--display); background:var(--space-1); color:var(--ink); font-size:14.5px; line-height:1.55; -webkit-font-smoothing:antialiased; overflow-x:hidden}
+.bg{position:fixed; inset:0; z-index:0; pointer-events:none}
+.bg-stars{position:absolute; inset:0; opacity:.4; background-image:radial-gradient(1px 1px at 20% 30%,#cfe3ff55,transparent),radial-gradient(1px 1px at 80% 20%,#bcd6ff44,transparent),radial-gradient(1px 1px at 65% 60%,#ffffff2a,transparent),radial-gradient(1px 1px at 35% 75%,#cfe3ff44,transparent)}
+.bg-glow{position:absolute; top:-360px; left:62%; width:1100px; height:680px; border-radius:50%; filter:blur(110px); opacity:.28; background:radial-gradient(circle,var(--signal-dim),transparent 62%)}
+.bg-vignette{position:absolute; inset:0; background:radial-gradient(ellipse 120% 90% at 50% -10%,transparent 55%,#0008 100%)}
+
+.app{position:relative; z-index:1; display:flex; min-height:100vh}
+.sidebar{width:240px; flex-shrink:0; position:fixed; inset:0 auto 0 0; background:linear-gradient(180deg,var(--space-0),var(--space-1)); border-right:1px solid var(--line-soft); display:flex; flex-direction:column; z-index:20}
+.brand{display:flex; align-items:center; gap:11px; padding:20px 20px 18px}
+.mark .orbit-dot{transform-origin:17px 17px; animation:orbit 6s linear infinite}
+@keyframes orbit{to{transform:rotate(360deg)}}
+.brand-name{font-weight:700; font-size:16px; letter-spacing:.6px} .brand-name b{color:var(--ink)} .brand-name span{color:var(--ink-3); font-weight:500}
+.brand-sub{font-family:var(--mono); font-size:9.5px; letter-spacing:2.5px; color:var(--ink-3); text-transform:uppercase; margin-top:1px}
+nav{padding:8px 12px; display:flex; flex-direction:column; gap:2px; flex:1}
+.nav-sec{font-family:var(--mono); font-size:9px; letter-spacing:2px; color:var(--ink-3); text-transform:uppercase; padding:14px 10px 6px; opacity:.7}
+.nav-item{display:flex; align-items:center; gap:11px; padding:9px 11px; border-radius:var(--r-sm); color:var(--ink-2); text-decoration:none; font-size:14px; font-weight:500; position:relative; transition:.15s}
+.nav-item svg{width:16px; height:16px; opacity:.6; flex-shrink:0}
+.nav-item:hover{background:#ffffff0a; color:var(--ink)}
+.nav-item.on{background:var(--signal-dim); color:var(--signal)} .nav-item.on svg{opacity:1}
+.nav-item.on::before{content:""; position:absolute; left:-12px; top:9px; bottom:9px; width:3px; background:var(--signal); border-radius:0 3px 3px 0; box-shadow:0 0 10px var(--signal)}
+.sys-chip{margin:12px; padding:12px 14px; border:1px solid var(--line-soft); border-radius:var(--r-sm); background:#0c1119; display:flex; align-items:center; gap:10px}
+.sys-chip .led{width:9px; height:9px} .sys-chip .t{font-size:12px}
+.sys-chip .t b{display:block; font-weight:600} .sys-chip .t span{font-family:var(--mono); font-size:10px; color:var(--ink-3)}
+
+.deck{flex:1; margin-left:240px; padding:0 0 100px}
+.wrap{padding:24px 48px 0}  /* full content width — no narrow cap */
+.topbar{display:flex; align-items:center; gap:14px; margin-bottom:18px}
+.crumb{font-family:var(--mono); font-size:11px; letter-spacing:3px; color:var(--ink-3); text-transform:uppercase}
+.topbar .spacer{flex:1}
+.clock{font-family:var(--mono); font-size:12px; color:var(--ink-2)} .clock b{color:var(--ink)}
+.demo-toggle{display:flex; border:1px solid var(--line); border-radius:20px; overflow:hidden; font-family:var(--mono); font-size:10px}
+.demo-toggle button{background:transparent; border:0; color:var(--ink-3); padding:6px 12px; cursor:pointer; letter-spacing:1px; text-transform:uppercase}
+.demo-toggle button.sel{background:var(--signal); color:#06120d}
+
+.page-title{font-size:30px; font-weight:700; letter-spacing:-.6px}
+.page-desc{color:var(--ink-2); font-size:15px; margin-top:5px; max-width:680px; line-height:1.6}
+
+/* readiness — row of soft tinted cards (uses width) */
+.ready{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin:22px 0 8px}
+.rcard{border-radius:var(--r); padding:16px 18px; display:flex; gap:14px; align-items:flex-start}
+.rcard.ok{background:var(--nominal-dim)} .rcard.warn{background:var(--amber-dim)} .rcard.crit{background:var(--critical-dim)}
+.rcard .ic{width:34px; height:34px; border-radius:10px; display:grid; place-items:center; flex-shrink:0; background:#0009}
+.rcard.ok .ic{color:var(--nominal)} .rcard.warn .ic{color:var(--amber)} .rcard.crit .ic{color:var(--critical)}
+.rcard b{font-size:14.5px; font-weight:600} .rcard span{font-size:13px; color:var(--ink-2); display:block; margin-top:3px; line-height:1.5}
+.rcard a{color:var(--cyan); font-size:13px; text-decoration:none; font-weight:600; margin-top:8px; display:inline-block}
+.rcard a:hover{text-decoration:underline}
+
+/* sticky save bar — always visible, top of content */
+.savebar{position:sticky; top:0; z-index:25; display:flex; align-items:center; padding:14px 0 12px; margin-bottom:16px; background:linear-gradient(180deg,var(--space-1) 78%,transparent)}
+.savebar .lbl{font-family:var(--mono); font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--ink-3)}
+.savebar .spacer{flex:1}
+.savestate{display:flex; align-items:center; gap:12px; border:1px solid var(--line); border-radius:24px; padding:8px 9px 8px 16px; background:var(--panel); transition:.25s}
+.savestate .clean{display:flex; align-items:center; gap:8px; font-size:13px; color:var(--ink-3); padding-right:7px}
+.savestate .clean .led{width:7px; height:7px}
+.savestate .dirty{display:none; align-items:center; gap:12px; font-size:13.5px}
+.savestate.on{border-color:var(--amber); background:#1a1710; box-shadow:0 0 0 4px var(--amber-dim)}
+.savestate.on .clean{display:none} .savestate.on .dirty{display:flex}
+.savestate .dirty .lead{display:flex; align-items:center; gap:8px; color:var(--amber); font-weight:600}
+.savestate .dirty .lead .led{width:8px; height:8px; background:var(--amber); box-shadow:0 0 8px var(--amber); border-radius:50%}
+
+/* ── single-column, full-width sections (heading on top, controls below) ── */
+.section{margin-bottom:40px; scroll-margin-top:80px}
+.sec-head{display:flex; align-items:flex-end; justify-content:space-between; gap:24px; margin-bottom:14px}
+.sec-head .hg{min-width:0}
+.sec-head h2{font-size:20px; font-weight:600; letter-spacing:-.3px}
+.sec-head .blurb{font-size:14px; color:var(--ink-3); margin-top:6px; line-height:1.6; max-width:760px}
+
+.panel{background:var(--panel); border:1px solid var(--line-soft); border-radius:var(--r); padding:4px 24px}
+.field{display:flex; align-items:center; gap:30px; padding:20px 0; border-bottom:1px solid var(--line-soft)}
+.field:last-child{border-bottom:0}
+.field .lab{flex:1; min-width:0}
+.field .lab b{font-size:15px; font-weight:600; display:flex; align-items:center; gap:9px}
+.field .lab .desc{font-size:13.5px; color:var(--ink-2); display:block; margin-top:4px; line-height:1.55; max-width:720px}
+.field .ctl{display:flex; align-items:center; gap:14px; flex-shrink:0}
+.src{font-family:var(--mono); font-size:10px; letter-spacing:.8px; text-transform:uppercase; color:var(--ink-3); border:1px solid var(--line); border-radius:6px; padding:3px 8px}
+.src.override{color:var(--cyan); border-color:var(--cyan-dim); background:var(--cyan-dim)}
+.edited-tag{font-family:var(--mono); font-size:10px; letter-spacing:.5px; text-transform:uppercase; color:var(--amber); display:none}
+.field.edited .edited-tag{display:inline}
+.field.edited .lab b::after{content:""; width:7px; height:7px; border-radius:50%; background:var(--amber); box-shadow:0 0 7px var(--amber); display:inline-block}
+
+input.t,select.t{background:var(--field); border:1px solid var(--line); border-radius:var(--r-sm); color:var(--ink); font-family:var(--display); font-size:14.5px; height:42px; padding:0 14px; transition:.15s; outline:none}
+input.t:focus,select.t:focus{border-color:var(--signal); box-shadow:0 0 0 3px var(--signal-dim)}
+input.mono{font-family:var(--mono); font-size:13px} input.num{width:96px; text-align:right; font-family:var(--mono)} input.wide{width:320px}
+::placeholder{color:#4a5a6e} .unit{color:var(--ink-3); font-size:13.5px}
+
+.sw{width:50px; height:28px; border-radius:20px; background:var(--field); border:1px solid var(--line); position:relative; cursor:pointer; transition:.2s; flex-shrink:0}
+.sw::after{content:""; position:absolute; top:2px; left:2px; width:22px; height:22px; border-radius:50%; background:var(--ink-3); transition:.2s}
+.sw.on{background:var(--signal); border-color:var(--signal)} .sw.on::after{transform:translateX(22px); background:#06120d}
+.seg{display:inline-flex; border:1px solid var(--line); border-radius:22px; overflow:hidden; background:var(--field)}
+.seg button{background:transparent; border:0; color:var(--ink-2); font-family:var(--display); font-size:13.5px; padding:8px 16px; cursor:pointer; transition:.15s; font-weight:500}
+.seg button.sel{background:var(--signal); color:#06120d; font-weight:600}
+
+button.btn{font-family:var(--display); font-size:13.5px; font-weight:600; border-radius:var(--r-sm); padding:9px 16px; cursor:pointer; background:var(--panel-2); border:1px solid var(--line); color:var(--ink); transition:.15s}
+button.btn:hover{border-color:#3a4d63; background:#18222f}
+button.btn.primary{background:var(--signal); color:#06120d; border-color:transparent} button.btn.primary:hover{background:var(--nominal-2)}
+button.btn.sm{padding:7px 13px; font-size:12.5px}
+button.btn.danger{color:var(--critical); border-color:var(--critical-dim)} button.btn.danger:hover{background:var(--critical-dim); border-color:var(--critical)}
+button.btn.cyan{color:var(--cyan); border-color:var(--cyan-dim)} button.btn.cyan:hover{background:var(--cyan-dim); border-color:var(--cyan)}
+
+.tbl{background:var(--panel); border:1px solid var(--line-soft); border-radius:var(--r); overflow:hidden}
+table{width:100%; border-collapse:collapse}
+thead th{font-family:var(--mono); font-size:9.5px; letter-spacing:1.4px; text-transform:uppercase; color:var(--ink-3); text-align:left; padding:13px 18px; border-bottom:1px solid var(--line-soft); font-weight:500}
+tbody td{padding:16px 18px; border-bottom:1px solid var(--line-soft); font-size:14px; vertical-align:middle}
+tbody tr:last-child td{border-bottom:0} tbody tr:hover td{background:#ffffff05} tbody tr.muted td{color:var(--ink-3)}
+.code{font-family:var(--mono); font-size:12.5px; background:var(--field); border:1px solid var(--line-soft); padding:3px 7px; border-radius:6px; color:var(--ink-2)}
+.chip{display:inline-flex; align-items:center; gap:6px; font-family:var(--mono); font-size:10.5px; letter-spacing:.5px; text-transform:uppercase; padding:4px 10px; border-radius:20px; border:1px solid var(--line)}
+.chip.ok{color:var(--nominal); border-color:var(--nominal-dim); background:var(--nominal-dim)} .chip.off{color:var(--ink-3)}
+.chip.def{color:var(--cyan); border-color:var(--cyan-dim); background:var(--cyan-dim)} .chip.warn{color:var(--amber); border-color:var(--amber-dim); background:var(--amber-dim)}
+.led{width:9px; height:9px; border-radius:50%; display:inline-block}
+.led.ok{background:var(--nominal); box-shadow:0 0 7px var(--nominal)} .led.warn{background:var(--amber); box-shadow:0 0 7px var(--amber)} .led.crit{background:var(--critical); box-shadow:0 0 7px var(--critical)}
+.rowacts{display:flex; gap:7px; justify-content:flex-end}
+#backups .led{margin-right:7px}  /* breathing room between the status dot and "Saved" */
+
+.diag{display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--line-soft); border:1px solid var(--line-soft); border-radius:var(--r); overflow:hidden}
+.drow{background:var(--panel); padding:15px 18px}
+.drow label{display:block; font-family:var(--mono); font-size:9.5px; letter-spacing:1.2px; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px}
+.drow .v{font-family:var(--mono); font-size:13px; color:var(--ink)} .drow .v.masked{color:var(--ink-3)} .drow .v .ok{color:var(--nominal)}
+
+.lookfor{margin-top:10px; background:linear-gradient(135deg,var(--panel),#0c1119); border:1px solid var(--line-soft); border-radius:var(--r); padding:20px 24px}
+.lookfor h3{font-size:14px; font-weight:600; color:var(--ink-2); margin-bottom:6px; display:flex; align-items:center; gap:8px}
+.lookfor .grid{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:12px}
+.lookfor .row{padding:4px 0}
+.lookfor .row b{font-size:14px} .lookfor .row span{display:block; font-size:13px; color:var(--ink-3); margin:3px 0 8px; line-height:1.5}
+.lookfor .row a{color:var(--cyan); text-decoration:none; font-weight:600; font-size:13.5px}
+.lookfor .row a:hover{text-decoration:underline}
+
+.overlay{position:fixed; inset:0; z-index:60; background:#040711cc; backdrop-filter:blur(5px); display:none; align-items:center; justify-content:center}
+.overlay.show{display:flex}
+/* standard modal: fixed header + footer, only the body scrolls */
+.modal{width:580px; max-width:94vw; max-height:88vh; display:flex; flex-direction:column; overflow:hidden; background:var(--panel); border:1px solid var(--line); border-radius:18px; box-shadow:0 24px 80px #000c; animation:pop .22s cubic-bezier(.2,.7,.2,1)}
+@keyframes pop{from{opacity:0; transform:translateY(10px) scale(.98)}to{opacity:1; transform:none}}
+.modal-h{padding:20px 24px; border-bottom:1px solid var(--line-soft); display:flex; align-items:center; gap:10px; flex-shrink:0} .modal-h h3{font-size:17px; font-weight:600}
+.modal-b{padding:22px 24px; display:flex; flex-direction:column; gap:20px; overflow-y:auto; flex:1 1 auto; min-height:0}
+.mfield > label{font-size:13.5px; font-weight:600; color:var(--ink); display:block; margin-bottom:9px}
+.mfield .hintx{font-size:13px; color:var(--ink-3); margin-top:7px}
+.pills{display:flex; flex-wrap:wrap; gap:8px}
+.pill{display:inline-flex; align-items:center; gap:7px; border:1px solid var(--line); background:var(--field); color:var(--ink-2); border-radius:20px; padding:8px 14px; font-size:13px; cursor:pointer; user-select:none; transition:.15s}
+.pill.sel{border-color:var(--signal); color:var(--signal); background:var(--signal-dim)}
+.modal-f{padding:18px 24px; border-top:1px solid var(--line-soft); display:flex; justify-content:flex-end; gap:10px; flex-shrink:0}
+
+.toasts{position:fixed; top:18px; right:18px; z-index:80; display:flex; flex-direction:column; gap:10px}
+.toast{display:flex; align-items:center; gap:11px; background:var(--panel-2); border:1px solid var(--line); border-left:3px solid var(--signal); border-radius:12px; padding:13px 17px; min-width:290px; box-shadow:0 12px 40px #000a; animation:slidein .25s ease; font-size:13.5px}
+@keyframes slidein{from{opacity:0; transform:translateX(20px)}to{opacity:1; transform:none}}
+.spin{width:12px;height:12px;border:1.6px solid currentColor;border-top-color:transparent;border-radius:50%;display:inline-block;animation:sp .8s linear infinite;vertical-align:-1px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.tag-proto{position:fixed; bottom:14px; right:16px; z-index:90; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:var(--ink-3); background:#0c1119cc; border:1px solid var(--line); padding:5px 10px; border-radius:20px; backdrop-filter:blur(6px)}
+
+/* ── lockdown banner ── */
+.lock-banner{display:none; align-items:center; gap:12px; background:var(--amber-dim); border:1px solid var(--amber); color:var(--amber); border-radius:var(--r); padding:13px 18px; margin-bottom:20px; font-weight:600; font-size:14px}
+body[data-lock="on"] .lock-banner{display:flex}
+
+/* ── rule editor extras ── */
+.swrow{display:flex; align-items:center; gap:12px}
+.exp-toggle{background:none; border:0; color:var(--cyan); font-size:13px; font-weight:600; cursor:pointer; padding:6px 0; font-family:var(--display)}
+.exp-body{display:none; margin-top:8px} .expander.open .exp-body{display:block}
+.kvrow{display:flex; gap:8px; margin-bottom:8px} .kvrow input{flex:1}
+.modemix{display:flex; gap:20px; margin-bottom:12px}
+.modemix label{display:flex; align-items:center; gap:7px; font-size:13.5px; color:var(--ink-2); cursor:pointer; font-weight:500}
+.modemix input{width:15px; height:15px; accent-color:var(--signal)}
+.evtgroup{margin-bottom:12px} .evtgroup h5{font-family:var(--mono); font-size:10px; letter-spacing:1px; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px}
+.evtitem{display:flex; align-items:center; gap:9px; padding:5px 0; font-size:13.5px; cursor:pointer}
+.evtitem input{width:16px; height:16px; accent-color:var(--signal)}
+.sevtag{font-family:var(--mono); font-size:9.5px; text-transform:uppercase; letter-spacing:.5px; padding:2px 7px; border-radius:10px}
+.sev-critical{color:var(--critical); background:var(--critical-dim)} .sev-warning{color:var(--amber); background:var(--amber-dim)} .sev-info{color:var(--ink-3); background:#ffffff0a}
+.preview{margin-top:4px; background:var(--field); border:1px solid var(--line-soft); border-radius:var(--r-sm); padding:14px 16px}
+.preview .ph{font-size:10px; color:var(--ink-3); margin-bottom:10px; font-family:var(--mono); letter-spacing:1px; text-transform:uppercase}
+.preview ul{list-style:none; display:flex; flex-direction:column; gap:8px}
+.preview li{display:flex; align-items:center; gap:9px; font-size:13.5px; color:var(--ink-2)}
+.preview li .dotc{width:6px; height:6px; border-radius:50%; flex-shrink:0}
+.preview .empty{font-size:13px; color:var(--ink-3)}
+
+/* ── maintenance / lockdown ── */
+.maint{border:1px solid var(--line-soft); border-radius:var(--r); background:var(--panel); padding:18px 22px; display:flex; align-items:center; gap:20px}
+.maint.armed{border-color:var(--amber); background:#171410}
+.maint .mi{flex:1} .maint .mi b{font-size:15px; font-weight:600} .maint .mi span{display:block; font-size:13.5px; color:var(--ink-2); margin-top:4px; line-height:1.55; max-width:680px}
+.shutdown-note{border:1px solid var(--line-soft); border-radius:var(--r); background:var(--panel); padding:16px 22px; margin-top:14px; font-size:13.5px; color:var(--ink-2); line-height:1.65}
+.shutdown-note code{font-family:var(--mono); font-size:12.5px; background:var(--field); border:1px solid var(--line-soft); padding:2px 7px; border-radius:5px; color:var(--ink)}
+
+/* ── danger zone ── */
+.danger-zone{border:1px solid var(--critical-dim); border-radius:var(--r); overflow:hidden}
+.dz-head{background:var(--critical-dim); padding:13px 22px; font-weight:600; color:var(--critical); font-size:14px; display:flex; align-items:center; gap:9px}
+.dz-row{display:flex; align-items:center; gap:20px; padding:16px 22px; border-top:1px solid var(--line-soft); background:var(--panel)}
+.dz-row .di{flex:1} .dz-row .di b{font-size:14px} .dz-row .di span{display:block; font-size:13px; color:var(--ink-3); margin-top:2px; line-height:1.5}
+.btn.solid-danger{background:var(--critical); color:#fff; border-color:transparent} .btn.solid-danger:hover{background:#e0414f}
+
+.store-note{margin-top:6px; font-size:13px; color:var(--ink-3); line-height:1.7} .store-note b{color:var(--ink-2)}
+
+@media(max-width:1040px){ .sidebar{transform:translateX(-100%)} .deck{margin-left:0} .wrap{padding:24px 24px 0} .diag{grid-template-columns:1fr}
+  .ready{grid-template-columns:1fr} .lookfor .grid{grid-template-columns:1fr} .sec-head{flex-direction:column; align-items:flex-start; gap:12px} .field{flex-wrap:wrap; gap:12px} }
+</style>
+</head>
+<body data-state="needs">
+<div class="bg"><div class="bg-glow"></div><div class="bg-stars"></div><div class="bg-vignette"></div></div>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="mark"><svg width="34" height="34" viewBox="0 0 34 34" fill="none">
+        <circle cx="17" cy="17" r="15" stroke="var(--signal)" stroke-width="1.4" opacity=".4"/>
+        <circle cx="17" cy="17" r="9.5" stroke="var(--signal)" stroke-width="1.4" opacity=".7"/>
+        <circle cx="17" cy="17" r="3.6" fill="var(--signal)"/>
+        <g class="orbit-dot"><circle cx="32" cy="17" r="2.3" fill="var(--ink)"/></g></svg></div>
+      <div><div class="brand-name"><b>ASTRO</b><span>DOCK</span></div><div class="brand-sub">control plane</div></div>
+    </div>
+    <nav>
+      <div class="nav-sec">Operate</div>
+      <a class="nav-item" href="#"><svg viewBox="0 0 16 16" fill="none"><path d="M2 9.5 8 3l6 6.5M4 8.5V14h8V8.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Overview</a>
+      <a class="nav-item" href="#"><svg viewBox="0 0 16 16" fill="none"><rect x="1.5" y="1.5" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="9.5" y="1.5" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="1.5" y="9.5" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="9.5" y="9.5" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/></svg>Apps</a>
+      <a class="nav-item" href="#"><svg viewBox="0 0 16 16" fill="none"><path d="M3 1.5h6L13 5v9.5H3z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>Pages</a>
+      <a class="nav-item" href="#"><svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M2 14c0-3 2.5-5 6-5s6 2 6 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Users</a>
+      <div class="nav-sec">Network &amp; access</div>
+      <a class="nav-item" href="#"><svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.3" stroke="currentColor" stroke-width="1.5"/><path d="M1.7 8h12.6M8 1.7c1.8 2 1.8 10.6 0 12.6M8 1.7c-1.8 2-1.8 10.6 0 12.6" stroke="currentColor" stroke-width="1.2"/></svg>Domains</a>
+      <a class="nav-item" href="#"><svg viewBox="0 0 16 16" fill="none"><circle cx="5" cy="8" r="3.2" stroke="currentColor" stroke-width="1.5"/><path d="M8 8h6.5M12.5 8v2.3M10.5 8v1.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Access keys</a>
+      <div class="nav-sec">Observe</div>
+      <a class="nav-item" href="#"><svg viewBox="0 0 16 16" fill="none"><path d="M2 8h2l2-4 4 8 2-4h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Activity</a>
+      <a class="nav-item" href="#"><svg viewBox="0 0 16 16" fill="none"><path d="M8 14s-5.5-3.5-5.5-7.5a3.5 3.5 0 0 1 7 0 3.5 3.5 0 0 1 7 0C13.5 10.5 8 14 8 14z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>Health</a>
+      <a class="nav-item on" href="#"><svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.3 1.3M11.7 11.7 13 13M13 3l-1.3 1.3M4.3 11.7 3 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Settings</a>
+    </nav>
+    <div class="sys-chip"><span class="led ok"></span><div class="t"><b>Nominal</b><span>box-01 · localhost</span></div></div>
+  </aside>
+
+  <main class="deck"><div class="wrap">
+    <div class="topbar">
+      <span class="crumb">Mission · Settings</span><span class="spacer"></span>
+      <span class="clock"><b id="clk">--:--:--</b> UTC</span>
+      <div class="demo-toggle" id="demo"><button data-s="needs" class="sel">Needs setup</button><button data-s="ready">All set</button></div>
+    </div>
+
+    <div class="lock-banner"><svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="3" y="7" width="10" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M5 7V5a3 3 0 0 1 6 0v2" stroke="currentColor" stroke-width="1.5"/></svg> Lockdown is ON — your apps and pages are blocked from the public. Only you can reach the dashboard. <a href="#sec-maint" style="margin-left:auto;color:inherit;font-weight:600">Manage →</a></div>
+    <div class="page-title">Settings</div>
+    <div class="page-desc">How your platform behaves — alerts, email, logs, and backups. Nothing changes until you press <b>Save</b>; the bar below always shows whether you have unsaved edits.</div>
+
+    <div class="ready" id="ready"></div>
+
+    <div class="savebar">
+      <span class="lbl">Platform configuration</span><span class="spacer"></span>
+      <div class="savestate" id="savestate">
+        <span class="clean"><span class="led ok"></span> All changes saved</span>
+        <span class="dirty"><span class="lead"><span class="led"></span><span id="dirtyCount">0 unsaved</span></span>
+          <button class="btn sm" onclick="discard()">Discard</button><button class="btn primary sm" onclick="save()">Save changes</button></span>
+      </div>
+    </div>
+
+    <!-- NOTIFICATIONS -->
+    <section class="section" id="sec-notify">
+      <div class="sec-head"><div class="hg"><h2>Notifications</h2>
+        <p class="blurb">Decide what Astrodock tells you about, and how. If you add no rules, it emails you when an app goes down or a deploy fails.</p></div>
+        <button class="btn primary" onclick="openRule()">+ Add rule</button></div>
+      <div class="tbl"><table>
+        <thead><tr><th>Name</th><th>How</th><th>Where</th><th>About</th><th>Status</th><th></th></tr></thead>
+        <tbody id="rules"></tbody>
+      </table></div>
+    </section>
+
+    <!-- EMAIL -->
+    <section class="section" id="sec-email">
+      <div class="sec-head"><div class="hg"><h2>Email</h2><p class="blurb">The email account Astrodock uses to send you alerts.</p></div></div>
+      <div class="panel">
+        <div class="field"><div class="lab"><b>Who gets alerts <span class="edited-tag">· edited</span></b><span class="desc">The email address Astrodock writes to when something needs your attention — like an app going down.</span></div>
+          <div class="ctl"><input class="t wide mono" value="ops@example.com" oninput="edit(this)"><span class="src">default</span></div></div>
+        <div class="field"><div class="lab"><b>“From” name <span class="edited-tag">· edited</span></b><span class="desc">The name and address your alert emails look like they come from.</span></div>
+          <div class="ctl"><input class="t wide mono" value="Astrodock &lt;noreply@example.com&gt;" oninput="edit(this)"><span class="src">default</span></div></div>
+        <div class="field"><div class="lab"><b>Email service</b><span class="desc">Astrodock sends mail through a service called Resend. Until you add its key, no alert emails can go out.</span></div>
+          <div class="ctl"><span class="chip warn">not set up</span><button class="btn cyan sm" onclick="openEmail()">Set up</button></div></div>
+      </div>
+    </section>
+
+    <!-- LOGGING -->
+    <section class="section" id="sec-logging">
+      <div class="sec-head"><div class="hg"><h2>Logs &amp; privacy</h2><p class="blurb">What gets recorded, how long it’s kept, and how much visitor data you store.</p></div></div>
+      <div class="panel">
+        <div class="field"><div class="lab"><b>Save visitor IP addresses <span class="edited-tag">· edited</span></b><span class="desc">When someone opens one of your Pages, how much of their IP address should we keep? Storing less protects their privacy.</span></div>
+          <div class="ctl"><div class="seg" onclick="segClick(event)"><button class="sel">Full</button><button>Trimmed</button><button>None</button></div></div></div>
+        <div class="field"><div class="lab"><b>Keep sign-in records for <span class="edited-tag">· edited</span></b><span class="desc">How many days to keep the log of who tried to sign in, before it’s deleted automatically.</span></div>
+          <div class="ctl"><input class="t num" value="90" oninput="edit(this)"><span class="unit">days</span></div></div>
+        <div class="field"><div class="lab"><b>Keep Page visit records for <span class="edited-tag">· edited</span></b><span class="desc">How many days to keep the list of visits to your Pages.</span></div>
+          <div class="ctl"><input class="t num" value="90" oninput="edit(this)"><span class="unit">days</span></div></div>
+        <div class="field"><div class="lab"><b>Keep activity &amp; audit records for <span class="edited-tag">· edited</span></b><span class="desc">How long to keep the history of what changed — deploys, setting changes, sign-ins, and alerts.</span></div>
+          <div class="ctl"><input class="t num" value="90" oninput="edit(this)"><span class="unit">days</span></div></div>
+        <div class="field"><div class="lab"><b>Keep deploy logs for <span class="edited-tag">· edited</span></b><span class="desc">How long to keep the build output from each deploy.</span></div>
+          <div class="ctl"><input class="t num" value="30" oninput="edit(this)"><span class="unit">days</span></div></div>
+        <div class="field"><div class="lab"><b>Detailed web logs for apps <span class="edited-tag">· edited</span></b><span class="desc">Record every web request to your apps. It’s off unless you turn it on, so nothing slows down or fills up by surprise. You can also turn this on for just one app from that app’s settings.</span></div>
+          <div class="ctl"><div class="sw" onclick="swClick(this)"></div></div></div>
+        <div class="field"><div class="lab"><b>Send logs off this box</b><span class="desc">Copy logs to an outside service (like a syslog server or log host) so you still have them if this server is lost.</span></div>
+          <div class="ctl"><span class="chip off">not set up</span><button class="btn cyan sm" onclick="openLogfwd()">Configure</button></div></div>
+        <div class="field"><div class="lab"><b>Warn me when disk is full <span class="edited-tag">· edited</span></b><span class="desc">Send a warning once the hard drive reaches this much (a number from 0 to 100), so you don’t run out of space.</span></div>
+          <div class="ctl"><input class="t num" value="85" oninput="edit(this)"><span class="unit">% full</span></div></div>
+      </div>
+      <p class="store-note"><b>Where this lives:</b> sign-in attempts, Page visits, the activity/audit trail, and deploy logs are stored in your <b>database</b>. An app’s own runtime logs sit on the <b>server’s disk</b>. Detailed web logs (if on) are files on disk. Everything stays on your box — nothing is sent out unless you set up forwarding above.</p>
+    </section>
+
+    <!-- BACKUPS -->
+    <section class="section" id="sec-backups">
+      <div class="sec-head"><div class="hg"><h2>Backups</h2>
+        <p class="blurb">A copy of your database is saved automatically every day. Older copies are removed once you’re past the number you keep. Backups live on this server — download one to keep it somewhere safe, or restore to roll back.</p></div>
+        <div style="display:flex;align-items:center;gap:14px;flex-shrink:0">
+          <span style="display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--ink-2)">Keep last <input class="t num" value="7" style="width:62px;height:38px" oninput="edit(this)"></span>
+          <button class="btn cyan" id="bkBtn" onclick="runBackup()">Back up now</button></div></div>
+      <div class="tbl"><table>
+        <thead><tr><th>When</th><th>Result</th><th>Size</th><th>How</th><th></th></tr></thead>
+        <tbody id="backups"></tbody>
+      </table></div>
+    </section>
+
+    <!-- MAINTENANCE & ACCESS -->
+    <section class="section" id="sec-maint">
+      <div class="sec-head"><div class="hg"><h2>Maintenance &amp; access</h2><p class="blurb">Temporarily take everything offline to the public, or fully shut the platform down.</p></div></div>
+      <div class="maint" id="maintBox">
+        <div class="mi"><b>Lockdown mode</b><span>Block the public from reaching any of your apps and pages. Only you — the admin — can still get to this dashboard. Use it during maintenance, or if something looks wrong. Flip it back off any time.</span></div>
+        <div class="sw" id="lockSw" onclick="toggleLock()"></div>
+      </div>
+      <div class="shutdown-note"><b>Shutting the whole platform down.</b> Lockdown still keeps this dashboard reachable for you. To stop <i>everything</i> — the dashboard included — do it from the server where you installed Astrodock:
+        <div style="margin-top:9px"><code>cd astrodock &amp;&amp; docker compose down</code> &nbsp;·&nbsp; bring it back with <code>docker compose up -d</code></div>
+        <div style="margin-top:9px;color:var(--ink-3)">There’s no “destroy everything” button in here on purpose — one click shouldn’t be able to lock you out of the very tool you’d use to recover.</div></div>
+    </section>
+
+    <!-- SYSTEM INFO -->
+    <section class="section" id="sec-diag">
+      <div class="sec-head"><div class="hg"><h2>System info</h2><p class="blurb">Set when Astrodock was installed. You can’t change these here — passwords and keys are hidden for safety.</p></div></div>
+      <div class="diag">
+        <div class="drow"><label>Your main domain</label><div class="v">example.com</div></div>
+        <div class="drow"><label>Mode</label><div class="v">production</div></div>
+        <div class="drow"><label>HTTPS</label><div class="v">automatic (Let’s Encrypt)</div></div>
+        <div class="drow"><label>Object storage</label><div class="v">built-in (S3)</div></div>
+        <div class="drow"><label>Database password</label><div class="v masked">••• set</div></div>
+        <div class="drow"><label>Storage key</label><div class="v masked">••• set</div></div>
+        <div class="drow"><label>Secret encryption</label><div class="v"><span class="ok">on</span></div></div>
+        <div class="drow"><label>Version</label><div class="v">Astrodock 0.6.2</div></div>
+      </div>
+    </section>
+
+    <!-- DANGER ZONE -->
+    <section class="section" id="sec-danger">
+      <div class="sec-head"><div class="hg"><h2>Danger zone</h2><p class="blurb">These can’t be undone. The real app asks you to type to confirm each one.</p></div></div>
+      <div class="danger-zone">
+        <div class="dz-head"><svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M8 2 1.5 13.5h13L8 2z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M8 6.5v3.2M8 11.5v.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> Destructive actions</div>
+        <div class="dz-row"><div class="di"><b>Delete all backups</b><span>Remove every saved database copy. You won’t be able to restore after this.</span></div>
+          <button class="btn solid-danger" onclick="requireConfirm({title:'Delete all backups?',msg:'Every saved database copy will be permanently removed. You won’t be able to restore anything after this.',word:'DELETE',button:'Delete all backups',onConfirm:()=>{BACKUPS.length=0;renderBackups();toast('All backups deleted.');}})">Delete all</button></div>
+        <div class="dz-row"><div class="di"><b>Clear activity &amp; audit logs</b><span>Erase the whole history of sign-ins, deploys, and setting changes.</span></div>
+          <button class="btn solid-danger" onclick="requireConfirm({title:'Clear activity and audit logs?',msg:'The entire history of sign-ins, deploys, and setting changes will be erased.',word:'CLEAR',button:'Clear logs',onConfirm:()=>toast('Logs cleared.')})">Clear logs</button></div>
+        <div class="dz-row"><div class="di"><b>Rotate the secret key</b><span>Replace the key that encrypts your stored secrets. Existing secrets are re-encrypted; a few may need re-entering.</span></div>
+          <button class="btn solid-danger" onclick="requireConfirm({title:'Rotate the secret key?',msg:'Stored secrets are re-encrypted with a new key. A few may need re-entering afterward.',word:'ROTATE',button:'Rotate key',onConfirm:()=>toast('Secret key rotated.')})">Rotate key</button></div>
+        <div class="dz-row"><div class="di"><b>Remove all apps &amp; data</b><span>Delete every app, page, user, and their data. The platform itself stays installed — this is the closest thing to starting fresh.</span></div>
+          <button class="btn solid-danger" onclick="requireConfirm({title:'Remove all apps and data?',msg:'Every app, page, user, and all their data will be deleted. The platform itself stays installed.',word:'REMOVE EVERYTHING',button:'Remove everything',onConfirm:()=>toast('Everything removed.')})">Remove everything</button></div>
+      </div>
+    </section>
+
+    <!-- LOOKING FOR -->
+    <div class="lookfor">
+      <h3><svg width="15" height="15" viewBox="0 0 16 16" fill="none" style="color:var(--ink-3)"><circle cx="7" cy="7" r="5.3" stroke="currentColor" stroke-width="1.5"/><path d="M11 11l3.2 3.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> Looking for something else?</h3>
+      <div class="grid">
+        <div class="row"><b>Set up a domain name</b><span>Domains point at one specific app, so you add them on the app — or see them all in one place.</span><a href="#">Open Domains →</a></div>
+        <div class="row"><b>API / access keys</b><span>Keys that let the command line and AI agents work for you.</span><a href="#">Open Access keys →</a></div>
+        <div class="row"><b>An app’s own secrets or storage keys</b><span>These live on each app — open it and go to the Variables tab.</span><a href="#">Go to Apps →</a></div>
+      </div>
+    </div>
+  </div></main>
+</div>
+
+<!-- rule editor -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-h"><span class="led ok"></span><h3 id="ruleTitle">New notification rule</h3></div>
+    <div class="modal-b">
+      <div class="mfield"><label>Give it a name</label><input class="t" id="rName" placeholder="e.g. Slack #ops when something fails" style="width:100%"></div>
+
+      <div class="mfield swrow"><div class="sw on" id="rEnabled" onclick="this.classList.toggle('on')"></div>
+        <span style="font-size:13.5px">Rule is on <span style="color:var(--ink-3)">— turn off to pause it without deleting</span></span></div>
+
+      <div class="mfield"><label>How should we tell you?</label>
+        <div class="seg" id="rChan"><button class="sel" data-c="email">Email</button><button data-c="webhook">Webhook</button></div></div>
+
+      <div class="mfield" id="rEmailWrap"><label>Email address</label><input class="t mono" placeholder="alerts@example.com" style="width:100%"></div>
+
+      <div id="rWebhookWrap" style="display:none; flex-direction:column; gap:18px">
+        <div class="mfield"><label>Webhook URL</label><input class="t mono" placeholder="https://hooks.slack.com/services/…" style="width:100%"></div>
+        <div class="mfield"><label>Payload format</label>
+          <div class="seg" id="rFmt"><button class="sel">Generic JSON</button><button>Slack</button><button>Discord</button></div></div>
+        <div class="expander" id="rHdrExp">
+          <button type="button" class="exp-toggle" onclick="document.getElementById('rHdrExp').classList.toggle('open')">+ Headers &amp; authentication</button>
+          <div class="exp-body">
+            <div class="hintx" style="margin:0 0 10px">Sent with every request — e.g. an <code>Authorization</code> header if your endpoint needs a token.</div>
+            <div id="rHeaders"></div>
+            <button type="button" class="btn sm" onclick="addHeader()">+ Add header</button>
+            <div class="mfield" style="margin-top:16px"><label>Signing secret <span style="font-weight:400;color:var(--ink-3)">— optional</span></label>
+              <input class="t mono" placeholder="leave blank for none" style="width:100%">
+              <div class="hintx">We’ll add an <code>X-Astrodock-Signature</code> header (HMAC) so your endpoint can confirm the request really came from Astrodock.</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mfield"><label>What should this rule cover?</label>
+        <div class="modemix">
+          <label><input type="radio" name="covmode" value="cat" checked onchange="setCovMode('cat')"> By category</label>
+          <label><input type="radio" name="covmode" value="evt" onchange="setCovMode('evt')"> Choose specific events</label></div>
+        <div id="covCat"><div class="pills" id="rEvents"></div></div>
+        <div id="covEvt" style="display:none"></div></div>
+
+      <div class="mfield" id="rSevWrap"><label>How important does it need to be?</label>
+        <div class="seg" id="rSev"><button data-v="info">Anything</button><button class="sel" data-v="warning">Warnings &amp; up</button><button data-v="critical">Only urgent</button></div>
+        <div class="hintx"><b>Only urgent</b> = app down, deploy failed, backup failed. <b>Warnings &amp; up</b> = also disk filling up, certificate expiring, app recovered. <b>Anything</b> = also routine events like a page published.</div></div>
+
+      <div class="mfield"><label>You’ll be notified about</label>
+        <div class="preview"><div class="ph">Matching events</div><ul id="rPreview"></ul></div></div>
+    </div>
+    <div class="modal-f"><button class="btn" onclick="closeRule()">Cancel</button><button class="btn primary" onclick="saveRule()">Create rule</button></div>
+  </div>
+</div>
+
+<!-- email setup -->
+<div class="overlay" id="emailOverlay">
+  <div class="modal" style="width:520px">
+    <div class="modal-h"><span class="led ok"></span><h3>Set up email</h3></div>
+    <div class="modal-b">
+      <div class="mfield"><label>Email service</label>
+        <div class="seg"><button class="sel">Resend</button></div>
+        <div class="hintx">Resend is the supported provider. Make a free account, create an API key, and paste it below.</div></div>
+      <div class="mfield"><label>API key</label><input class="t mono" type="password" placeholder="re_••••••••••••••••" style="width:100%">
+        <div class="hintx">Stored <b>encrypted</b> on your own server — it’s hidden again after you save.</div></div>
+      <div class="mfield"><label>“From” address</label><input class="t mono" value="Astrodock &lt;noreply@example.com&gt;" style="width:100%">
+        <div class="hintx">Must be a domain you’ve verified inside Resend.</div></div>
+    </div>
+    <div class="modal-f"><button class="btn" onclick="closeEmail()">Cancel</button><button class="btn cyan" onclick="testEmail()">Send test email</button><button class="btn primary" onclick="saveEmail()">Save</button></div>
+  </div>
+</div>
+
+<!-- restore confirm -->
+<div class="overlay" id="restoreOverlay">
+  <div class="modal" style="width:480px">
+    <div class="modal-h"><span class="led crit"></span><h3>Restore this backup?</h3></div>
+    <div class="modal-b">
+      <p style="font-size:14px;color:var(--ink-2);line-height:1.65">This <b style="color:var(--critical)">replaces your live database</b> with the backup from <b id="restoreWhen" style="color:var(--ink)">—</b>. Anything created since then will be lost, and your apps may restart.</p>
+      <div class="mfield"><label>Type <b style="color:var(--ink)">RESTORE</b> to confirm</label>
+        <input class="t mono" id="restoreConfirm" placeholder="RESTORE" oninput="document.getElementById('restoreGo').disabled=this.value!=='RESTORE'" style="width:100%"></div>
+    </div>
+    <div class="modal-f"><button class="btn" onclick="closeRestore()">Cancel</button><button class="btn solid-danger" id="restoreGo" disabled onclick="doRestore()">Restore database</button></div>
+  </div>
+</div>
+
+<!-- reusable typed-confirmation for destructive actions -->
+<div class="overlay" id="confirmOverlay">
+  <div class="modal" style="width:480px">
+    <div class="modal-h"><span class="led crit"></span><h3 id="confirmTitle">Are you sure?</h3></div>
+    <div class="modal-b">
+      <p id="confirmMsg" style="font-size:14px;color:var(--ink-2);line-height:1.65"></p>
+      <div class="mfield"><label>Type <b id="confirmWord" style="color:var(--ink)">DELETE</b> to confirm</label>
+        <input class="t mono" id="confirmInput" oninput="document.getElementById('confirmGo').disabled=this.value!==CONFIRM_WORD" style="width:100%"></div>
+    </div>
+    <div class="modal-f"><button class="btn" onclick="closeConfirm()">Cancel</button><button class="btn solid-danger" id="confirmGo" disabled onclick="runConfirm()">Delete</button></div>
+  </div>
+</div>
+
+<!-- off-box log forwarding -->
+<div class="overlay" id="logfwdOverlay">
+  <div class="modal" style="width:580px">
+    <div class="modal-h"><span class="led ok"></span><h3>Send logs off this box</h3></div>
+    <div class="modal-b">
+      <div class="hintx" style="margin-top:0">Keep a copy of your logs somewhere else, so you still have them if this server is lost — or so you can search everything in one place.</div>
+      <div class="mfield"><label>Where should logs go?</label>
+        <div class="seg" id="lfDest"><button class="sel" data-d="syslog">Syslog server</button><button data-d="http">HTTP endpoint</button><button data-d="s3">S3 bucket</button></div></div>
+
+      <div id="lf-syslog">
+        <div class="mfield"><label>Host</label><input class="t mono" placeholder="logs.example.com" style="width:100%"></div>
+        <div class="kvrow">
+          <div class="mfield" style="flex:1"><label>Port</label><input class="t mono num" value="514" style="width:100%;text-align:left"></div>
+          <div class="mfield" style="flex:2"><label>Protocol</label><div class="seg"><button class="sel" onclick="segPick(this)">TLS</button><button onclick="segPick(this)">TCP</button><button onclick="segPick(this)">UDP</button></div></div>
+        </div>
+      </div>
+      <div id="lf-http" style="display:none">
+        <div class="mfield"><label>Endpoint URL</label><input class="t mono" placeholder="https://logs.example.com/ingest" style="width:100%"></div>
+        <div class="mfield"><label>Auth header <span style="font-weight:400;color:var(--ink-3)">— optional</span></label><input class="t mono" placeholder="Authorization: Bearer …" style="width:100%"></div>
+      </div>
+      <div id="lf-s3" style="display:none">
+        <div class="mfield"><label>Bucket</label><input class="t mono" placeholder="my-logs-bucket" style="width:100%"></div>
+        <div class="kvrow"><div class="mfield" style="flex:1"><label>Region</label><input class="t mono" placeholder="us-east-1" style="width:100%"></div>
+          <div class="mfield" style="flex:1"><label>Folder prefix</label><input class="t mono" placeholder="astrodock/" style="width:100%"></div></div>
+        <div class="kvrow"><div class="mfield" style="flex:1"><label>Access key</label><input class="t mono" style="width:100%"></div>
+          <div class="mfield" style="flex:1"><label>Secret key</label><input class="t mono" type="password" style="width:100%"></div></div>
+      </div>
+
+      <div class="mfield"><label>What to send</label>
+        <div class="pills">
+          <span class="pill sel" onclick="this.classList.toggle('sel')">Sign-ins</span><span class="pill sel" onclick="this.classList.toggle('sel')">Deploys</span>
+          <span class="pill sel" onclick="this.classList.toggle('sel')">Activity &amp; audit</span><span class="pill" onclick="this.classList.toggle('sel')">App web access</span>
+          <span class="pill sel" onclick="this.classList.toggle('sel')">System</span></div>
+        <div class="hintx">Leave them all on to forward everything.</div></div>
+    </div>
+    <div class="modal-f"><button class="btn" onclick="closeLogfwd()">Cancel</button><button class="btn cyan" onclick="testLogfwd()">Test connection</button><button class="btn primary" onclick="saveLogfwd()">Turn on</button></div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+<div class="tag-proto">PROTOTYPE · settings v3 · full-width</div>
+
+<script>
+const READY={
+  needs:[
+    {cls:'ok', t:'Your secrets are locked', s:'Saved passwords and keys are encrypted. Good.'},
+    {cls:'warn', t:'Email isn’t set up yet', s:'Astrodock can’t send you alert emails until you add an email service.', a:'Set up email →'},
+    {cls:'warn', t:'Check who gets alerts', s:'Right now they go to ops@example.com. Make sure that’s you.', a:'Review →'},
+  ],
+  ready:[
+    {cls:'ok', t:'Your secrets are locked', s:'Saved passwords and keys are encrypted.'},
+    {cls:'ok', t:'Email is working', s:'Connected to Resend — a test message went through.'},
+    {cls:'ok', t:'Alerts are flowing', s:'2 rules active · last alert sent 4 minutes ago.'},
+  ]
+};
+const ICON={ok:'<svg width="17" height="17" viewBox="0 0 20 20" fill="none"><path d="M5 10.5 8.5 14 15 6.5" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  warn:'<svg width="17" height="17" viewBox="0 0 20 20" fill="none"><path d="M10 4.5v7M10 15v.4" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"/></svg>'};
+function renderReady(s){ document.getElementById('ready').innerHTML=READY[s].map(c=>`
+  <div class="rcard ${c.cls}"><div class="ic">${ICON[c.cls]}</div><div class="body"><b>${c.t}</b><span>${c.s}</span>${c.a?`<a href="#">${c.a}</a>`:''}</div></div>`).join(''); }
+
+const RULES=[
+  {name:'Default alerts', def:true, chan:'Email', target:'ops@example.com', about:'App health, Deploys'},
+  {name:'Slack #ops — failures', chan:'Webhook', target:'hooks.slack.com/…', about:'Deploys', on:true},
+  {name:'Setting changes → security', chan:'Email', target:'audit@example.com', about:'Setting changes', on:false},
+];
+function renderRules(){ document.getElementById('rules').innerHTML=RULES.map((r,i)=>`
+  <tr class="${r.def?'muted':''}">
+    <td><b style="font-weight:600">${r.name}</b> ${r.def?'<span class="chip def">built-in</span>':''}</td>
+    <td>${r.chan}</td><td><span class="code">${r.target}</span></td><td>${r.about}</td>
+    <td>${r.def?'<span class="chip ok">always on</span>':`<div class="sw ${r.on?'on':''}" title="Turn this rule on or off" onclick="toggleRule(${i})"></div>`}</td>
+    <td><div class="rowacts"><button class="btn cyan sm" onclick="test('${r.chan}','${r.target}')">Test</button>
+      ${r.def?'':`<button class="btn sm" onclick="openRule(${i})">Edit</button><button class="btn danger sm" onclick="del(${i})">Delete</button>`}</div></td></tr>`).join(''); }
+function del(i){ requireConfirm({title:'Delete this rule?', msg:'“<b style="color:var(--ink)">'+RULES[i].name+'</b>” will stop sending. You can always create it again later.', word:'DELETE', button:'Delete rule', onConfirm:()=>{ RULES.splice(i,1); renderRules(); toast('Rule deleted.'); }}); }
+function toggleRule(i){ RULES[i].on=!RULES[i].on; renderRules(); toast(RULES[i].on?'Rule turned on.':'Rule paused.'); }
+
+function toast(msg){ const el=document.createElement('div'); el.className='toast'; el.innerHTML=`<span class="led ok"></span><span>${msg}</span>`;
+  document.getElementById('toasts').appendChild(el); setTimeout(()=>{el.style.transition='opacity .3s';el.style.opacity='0';setTimeout(()=>el.remove(),300);},2600); }
+function test(chan,target){ toast(`<span class="spin" style="color:var(--cyan)"></span> Sending a test…`); setTimeout(()=>toast(`Test sent by ${chan} → ${target}`),750); }
+
+const editedFields=new Set();
+function refreshSave(){ const ss=document.getElementById('savestate'); ss.classList.toggle('on', editedFields.size>0);
+  document.getElementById('dirtyCount').textContent = editedFields.size + (editedFields.size===1?' unsaved change':' unsaved changes'); }
+function markField(el){ const f=el.closest('.field'); if(f&&!f.classList.contains('edited')){ f.classList.add('edited'); editedFields.add(f); refreshSave(); } }
+function edit(el){ markField(el); }
+function swClick(el){ el.classList.toggle('on'); markField(el); }
+function segClick(e){ const b=e.target.closest('button'); if(!b)return; b.parentElement.querySelectorAll('button').forEach(x=>x.classList.remove('sel')); b.classList.add('sel'); markField(b); }
+function save(){ editedFields.forEach(f=>{ f.classList.remove('edited'); const s=f.querySelector('.src'); if(s){s.textContent='override'; s.classList.add('override');} }); editedFields.clear(); refreshSave(); toast('Settings saved.'); }
+function discard(){ editedFields.forEach(f=>f.classList.remove('edited')); editedFields.clear(); refreshSave(); toast('Changes discarded.'); }
+
+const ov=document.getElementById('overlay');
+const EVENTS={
+  'App health':[{t:'app.down',l:'An app goes down',s:'critical'},{t:'app.recovered',l:'An app comes back',s:'warning'}],
+  'Deploys':[{t:'deploy.failed',l:'A deploy fails',s:'critical'},{t:'deploy.succeeded',l:'A deploy succeeds',s:'info'}],
+  'Pages':[{t:'page.published',l:'A page is published',s:'info'},{t:'page.deleted',l:'A page is deleted',s:'info'}],
+  'Sign-ins':[{t:'auth.bruteforce',l:'Repeated failed sign-ins (possible attack)',s:'warning'}],
+  'Setting changes':[{t:'settings.update',l:'A platform setting changes',s:'info'},{t:'domain.added',l:'A custom domain is added',s:'info'},{t:'token.created',l:'An access key is created',s:'info'}],
+  'System':[{t:'backup.failed',l:'A backup fails',s:'critical'},{t:'system.disk_high',l:'Disk is filling up',s:'warning'},{t:'system.dependency_down',l:'A core service is unreachable',s:'critical'},{t:'system.cert_expiring',l:'An HTTPS certificate is expiring',s:'warning'},{t:'domain.dns_drift',l:'A custom domain’s DNS changed',s:'warning'}]
+};
+const SEVRANK={info:0,warning:1,critical:2}, SEVCOLOR={critical:'var(--critical)',warning:'var(--amber)',info:'var(--ink-3)'};
+const sevLabel=s=>s==='critical'?'urgent':s;
+let covMode='cat';
+function buildEditor(){
+  document.getElementById('rEvents').innerHTML=Object.keys(EVENTS).map(c=>`<span class="pill" data-cat="${c}" onclick="this.classList.toggle('sel'); renderPreview()">${c}</span>`).join('');
+  document.getElementById('covEvt').innerHTML=Object.entries(EVENTS).map(([c,evs])=>`<div class="evtgroup"><h5>${c}</h5>${evs.map(e=>`<label class="evtitem"><input type="checkbox" data-evt="${e.t}" onchange="renderPreview()"> ${e.l} <span class="sevtag sev-${e.s}" style="margin-left:auto">${sevLabel(e.s)}</span></label>`).join('')}</div>`).join('');
+  document.getElementById('rHeaders').innerHTML='';
+}
+function setCovMode(m){ covMode=m; document.getElementById('covCat').style.display=m==='cat'?'block':'none'; document.getElementById('covEvt').style.display=m==='evt'?'block':'none'; document.getElementById('rSevWrap').style.display=m==='cat'?'block':'none'; renderPreview(); }
+function minSev(){ const b=document.querySelector('#rSev .sel'); return b?b.dataset.v:'warning'; }
+function renderPreview(){
+  let items=[];
+  if(covMode==='cat'){ const sel=[...document.querySelectorAll('#rEvents .pill.sel')].map(p=>p.dataset.cat); const cats=sel.length?sel:Object.keys(EVENTS); const mr=SEVRANK[minSev()];
+    cats.forEach(c=>EVENTS[c].forEach(e=>{ if(SEVRANK[e.s]>=mr) items.push(e); })); }
+  else { const on=new Set([...document.querySelectorAll('#covEvt input:checked')].map(i=>i.dataset.evt)); Object.values(EVENTS).flat().forEach(e=>{ if(on.has(e.t)) items.push(e); }); }
+  document.getElementById('rPreview').innerHTML = items.length
+    ? items.map(e=>`<li><span class="dotc" style="background:${SEVCOLOR[e.s]}"></span>${e.l}<span style="margin-left:auto;font-family:var(--mono);font-size:10px;text-transform:uppercase;color:${SEVCOLOR[e.s]}">${sevLabel(e.s)}</span></li>`).join('')
+    : '<li class="empty">Nothing yet — pick a category or some events above.</li>';
+}
+function addHeader(){ const d=document.createElement('div'); d.className='kvrow';
+  d.innerHTML='<input class="t mono" placeholder="Header (e.g. Authorization)"><input class="t mono" placeholder="Value (e.g. Bearer …)"><button type="button" class="btn sm" onclick="this.parentElement.remove()">✕</button>';
+  document.getElementById('rHeaders').appendChild(d); }
+function openRule(i){ document.getElementById('ruleTitle').textContent=i==null?'New notification rule':'Edit notification rule'; document.querySelector('#overlay .modal-f .primary').textContent=i==null?'Create rule':'Save'; buildEditor(); setCovMode('cat'); ov.classList.add('show'); }
+function closeRule(){ ov.classList.remove('show'); }
+function saveRule(){ const name=document.getElementById('rName').value||'New rule'; const chan=document.querySelector('#rChan .sel').dataset.c==='email'?'Email':'Webhook'; const on=document.getElementById('rEnabled').classList.contains('on');
+  RULES.push({name, chan, target: chan==='Email'?'new@example.com':'hooks.example.com/…', about:'App health, Deploys', on}); renderRules(); closeRule(); toast('Rule created.'); document.getElementById('rName').value=''; }
+document.querySelectorAll('#rChan button').forEach(b=>b.addEventListener('click',()=>{ document.querySelectorAll('#rChan button').forEach(x=>x.classList.remove('sel')); b.classList.add('sel');
+  const wh=b.dataset.c==='webhook'; document.getElementById('rEmailWrap').style.display=wh?'none':'block'; document.getElementById('rWebhookWrap').style.display=wh?'flex':'none'; }));
+document.querySelectorAll('#rSev button').forEach(b=>b.addEventListener('click',()=>{ document.querySelectorAll('#rSev button').forEach(x=>x.classList.remove('sel')); b.classList.add('sel'); renderPreview(); }));
+document.querySelectorAll('#rFmt button').forEach(b=>b.addEventListener('click',()=>{ document.querySelectorAll('#rFmt button').forEach(x=>x.classList.remove('sel')); b.classList.add('sel'); }));
+ov.addEventListener('click',e=>{ if(e.target===ov) closeRule(); });
+
+let BACKUPS=[
+  {when:'Today, 4:00 AM', size:'24.1 MB', how:'automatic'},
+  {when:'Yesterday, 4:00 AM', size:'23.8 MB', how:'automatic'},
+  {when:'Jun 18, 2:22 PM', size:'23.6 MB', how:'by you'},
+];
+function renderBackups(){ document.getElementById('backups').innerHTML=BACKUPS.map((b,i)=>`
+  <tr><td>${b.when}</td><td><span class="led ok"></span> Saved</td><td class="code">${b.size}</td><td>${b.how}</td>
+    <td><div class="rowacts"><button class="btn sm" onclick="toast('Downloading backup (${b.size})…')">Download</button>
+      <button class="btn sm" onclick="openRestore(${i})">Restore</button><button class="btn danger sm" onclick="delBackup(${i})">Delete</button></div></td></tr>`).join(''); }
+function delBackup(i){ requireConfirm({title:'Delete this backup?', msg:'The copy from <b style="color:var(--ink)">'+BACKUPS[i].when+'</b> will be permanently removed — you won’t be able to restore it after this.', word:'DELETE', button:'Delete backup', onConfirm:()=>{ BACKUPS.splice(i,1); renderBackups(); toast('Backup deleted.'); }}); }
+function runBackup(){ const btn=document.getElementById('bkBtn'); btn.disabled=true; btn.innerHTML='<span class="spin"></span> Saving…';
+  setTimeout(()=>{ BACKUPS.unshift({when:'Just now', size:'24.2 MB', how:'by you'}); renderBackups(); btn.disabled=false; btn.textContent='Back up now'; toast('Backup saved · 24.2 MB'); },1400); }
+
+const restoreOv=document.getElementById('restoreOverlay'); let restoreIdx=null;
+function openRestore(i){ restoreIdx=i; document.getElementById('restoreWhen').textContent=BACKUPS[i].when; document.getElementById('restoreConfirm').value=''; document.getElementById('restoreGo').disabled=true; restoreOv.classList.add('show'); }
+function closeRestore(){ restoreOv.classList.remove('show'); }
+function doRestore(){ const w=BACKUPS[restoreIdx].when; closeRestore(); toast('Restoring database from '+w+'…'); }
+restoreOv.addEventListener('click',e=>{ if(e.target===restoreOv) closeRestore(); });
+
+const emailOv=document.getElementById('emailOverlay');
+function openEmail(){ emailOv.classList.add('show'); }
+function closeEmail(){ emailOv.classList.remove('show'); }
+function testEmail(){ toast('<span class="spin" style="color:var(--cyan)"></span> Sending test email…'); setTimeout(()=>toast('Test email sent — check your inbox.'),800); }
+function saveEmail(){ closeEmail(); toast('Email service connected.'); }
+emailOv.addEventListener('click',e=>{ if(e.target===emailOv) closeEmail(); });
+
+function toggleLock(){ const on=document.body.getAttribute('data-lock')!=='on'; document.body.setAttribute('data-lock', on?'on':'off');
+  document.getElementById('lockSw').classList.toggle('on', on); document.getElementById('maintBox').classList.toggle('armed', on);
+  toast(on?'Lockdown ON — public access blocked.':'Lockdown OFF — apps are public again.'); }
+/* reusable typed confirmation for every destructive action */
+let CONFIRM_WORD='DELETE', confirmFn=null;
+const confirmOv=document.getElementById('confirmOverlay');
+function requireConfirm({title='Are you sure?', msg='', word='DELETE', button='Delete', onConfirm}){
+  CONFIRM_WORD=word; confirmFn=onConfirm;
+  document.getElementById('confirmTitle').textContent=title;
+  document.getElementById('confirmMsg').innerHTML=msg;
+  document.getElementById('confirmWord').textContent=word;
+  const inp=document.getElementById('confirmInput'); inp.value=''; inp.placeholder=word;
+  const go=document.getElementById('confirmGo'); go.textContent=button; go.disabled=true;
+  confirmOv.classList.add('show'); setTimeout(()=>inp.focus(),60);
+}
+function closeConfirm(){ confirmOv.classList.remove('show'); }
+function runConfirm(){ closeConfirm(); if(confirmFn) confirmFn(); }
+confirmOv.addEventListener('click',e=>{ if(e.target===confirmOv) closeConfirm(); });
+
+function segPick(b){ b.parentElement.querySelectorAll('button').forEach(x=>x.classList.remove('sel')); b.classList.add('sel'); }
+
+const logfwdOv=document.getElementById('logfwdOverlay');
+function openLogfwd(){ logfwdOv.classList.add('show'); }
+function closeLogfwd(){ logfwdOv.classList.remove('show'); }
+function testLogfwd(){ toast('<span class="spin" style="color:var(--cyan)"></span> Testing connection…'); setTimeout(()=>toast('Connected — a test log line was delivered.'),800); }
+function saveLogfwd(){ closeLogfwd(); toast('Log forwarding turned on.'); }
+document.querySelectorAll('#lfDest button').forEach(b=>b.addEventListener('click',()=>{ document.querySelectorAll('#lfDest button').forEach(x=>x.classList.remove('sel')); b.classList.add('sel');
+  const d=b.dataset.d; document.getElementById('lf-syslog').style.display=d==='syslog'?'block':'none'; document.getElementById('lf-http').style.display=d==='http'?'block':'none'; document.getElementById('lf-s3').style.display=d==='s3'?'block':'none'; }));
+logfwdOv.addEventListener('click',e=>{ if(e.target===logfwdOv) closeLogfwd(); });
+
+function tick(){ document.getElementById('clk').textContent=new Date().toISOString().slice(11,19); }
+setInterval(tick,1000); tick(); renderReady('needs'); renderRules(); renderBackups();
+</script>
+</body>
+</html>

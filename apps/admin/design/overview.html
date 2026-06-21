@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Astrodock — Overview (prototype)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ════════════════════════════════════════════════════════════════
+   ASTRODOCK · Orbital Mission Control — Overview prototype
+   Dark instrument deck. Calm when green, loud when red.
+   ════════════════════════════════════════════════════════════════ */
+:root{
+  --space-0:#06090f; --space-1:#0a0e15; --panel:#0e131c; --panel-2:#121925;
+  --line:#1d2734; --line-soft:#161e29;
+  --ink:#eef3f9; --ink-2:#aab9cb; --ink-3:#7a8a9e;
+  --nominal:#2fe6a8; --nominal-2:#13c98c; --nominal-dim:rgba(47,230,168,.10);
+  --amber:#ffb24d; --amber-dim:rgba(255,178,77,.10);
+  --critical:#ff5d6c; --critical-dim:rgba(255,93,108,.10);
+  --cyan:#54d2ff; --cyan-dim:rgba(84,210,255,.12);
+  --display:'Saira',system-ui,sans-serif; --mono:'IBM Plex Mono',monospace;
+  --r:14px; --r-sm:9px;
+  /* signal = the dominant status accent for the whole deck; JS swaps it */
+  --signal:var(--nominal); --signal-dim:var(--nominal-dim);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{
+  font-family:var(--display); background:var(--space-1); color:var(--ink);
+  font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased;
+  letter-spacing:.1px; overflow-x:hidden;
+}
+/* ── atmosphere ─────────────────────────────────────────────── */
+.bg{position:fixed; inset:0; z-index:0; pointer-events:none}
+.bg-grid{position:absolute; inset:0;
+  background-image:linear-gradient(var(--line-soft) 1px,transparent 1px),
+                   linear-gradient(90deg,var(--line-soft) 1px,transparent 1px);
+  background-size:46px 46px; opacity:.5;
+  mask-image:radial-gradient(ellipse 90% 80% at 70% 0%,#000 35%,transparent 78%);}
+.bg-stars{position:absolute; inset:0; opacity:.55;
+  background-image:radial-gradient(1px 1px at 20% 30%,#cfe3ff66,transparent),
+    radial-gradient(1px 1px at 80% 20%,#bcd6ff44,transparent),
+    radial-gradient(1px 1px at 65% 60%,#ffffff33,transparent),
+    radial-gradient(1px 1px at 35% 75%,#cfe3ff55,transparent),
+    radial-gradient(1px 1px at 90% 85%,#bcd6ff33,transparent),
+    radial-gradient(1px 1px at 10% 55%,#ffffff22,transparent);}
+.bg-glow{position:absolute; top:-340px; left:50%; transform:translateX(-30%);
+  width:1100px; height:760px; border-radius:50%; filter:blur(90px); opacity:.5;
+  background:radial-gradient(circle,var(--signal-dim),transparent 62%);
+  transition:background .6s ease;}
+.bg-vignette{position:absolute; inset:0;
+  background:radial-gradient(ellipse 120% 90% at 50% -10%,transparent 50%,#000a 100%);}
+
+/* ── shell ──────────────────────────────────────────────────── */
+.app{position:relative; z-index:1; display:flex; min-height:100vh}
+.sidebar{width:236px; flex-shrink:0; position:fixed; inset:0 auto 0 0;
+  background:linear-gradient(180deg,var(--space-0),var(--space-1));
+  border-right:1px solid var(--line); display:flex; flex-direction:column; z-index:20}
+.brand{display:flex; align-items:center; gap:11px; padding:20px 20px 18px}
+.mark{width:34px; height:34px; flex-shrink:0; position:relative}
+.mark svg{display:block}
+.mark .orbit-dot{transform-origin:17px 17px; animation:orbit 6s linear infinite}
+@keyframes orbit{to{transform:rotate(360deg)}}
+.brand-name{font-weight:700; font-size:16px; letter-spacing:.6px}
+.brand-name b{color:var(--ink)}
+.brand-name span{color:var(--ink-3); font-weight:500}
+.brand-sub{font-family:var(--mono); font-size:9.5px; letter-spacing:2.5px;
+  color:var(--ink-3); text-transform:uppercase; margin-top:1px}
+
+nav{padding:8px 12px; display:flex; flex-direction:column; gap:2px; flex:1}
+.nav-sec{font-family:var(--mono); font-size:9px; letter-spacing:2px; color:var(--ink-3);
+  text-transform:uppercase; padding:14px 10px 6px; opacity:.7}
+.nav-item{display:flex; align-items:center; gap:11px; padding:8px 11px; border-radius:var(--r-sm);
+  color:var(--ink-2); text-decoration:none; font-size:13.5px; font-weight:500; position:relative;
+  transition:background .15s,color .15s}
+.nav-item svg{width:16px; height:16px; opacity:.6; flex-shrink:0}
+.nav-item:hover{background:#ffffff09; color:var(--ink)}
+.nav-item.on{background:var(--signal-dim); color:var(--signal)}
+.nav-item.on svg{opacity:1}
+.nav-item.on::before{content:""; position:absolute; left:-12px; top:8px; bottom:8px; width:3px;
+  background:var(--signal); border-radius:0 3px 3px 0; box-shadow:0 0 10px var(--signal)}
+.nav-badge{margin-left:auto; font-family:var(--mono); font-size:10px; font-weight:600;
+  background:var(--critical); color:#1a0408; padding:1px 6px; border-radius:20px}
+
+.sys-chip{margin:12px; padding:12px 14px; border:1px solid var(--line); border-radius:var(--r-sm);
+  background:#0c1119; display:flex; align-items:center; gap:10px}
+.sys-chip .led{width:9px; height:9px}
+.sys-chip .t{font-size:12px}
+.sys-chip .t b{display:block; font-weight:600; letter-spacing:.3px}
+.sys-chip .t span{font-family:var(--mono); font-size:10px; color:var(--ink-3)}
+
+.deck{flex:1; margin-left:236px; padding:22px 30px 60px; max-width:1320px}
+
+/* ── topbar ─────────────────────────────────────────────────── */
+.topbar{display:flex; align-items:center; gap:14px; margin-bottom:22px}
+.crumb{font-family:var(--mono); font-size:11px; letter-spacing:3px; color:var(--ink-3); text-transform:uppercase}
+.topbar .spacer{flex:1}
+.clock{font-family:var(--mono); font-size:12px; color:var(--ink-2); letter-spacing:.5px}
+.clock b{color:var(--ink)}
+.refresh{display:flex; align-items:center; gap:7px; font-family:var(--mono); font-size:11px; color:var(--ink-3)}
+.refresh .spin{width:11px; height:11px; border:1.5px solid var(--signal); border-top-color:transparent;
+  border-radius:50%; animation:spin 2.2s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.demo-toggle{display:flex; border:1px solid var(--line); border-radius:20px; overflow:hidden; font-family:var(--mono); font-size:10px}
+.demo-toggle button{background:transparent; border:0; color:var(--ink-3); padding:5px 11px; cursor:pointer;
+  letter-spacing:1px; text-transform:uppercase; transition:.15s}
+.demo-toggle button.sel{background:var(--signal); color:#06120d}
+
+/* ── reveal animation ───────────────────────────────────────── */
+.rise{opacity:0; transform:translateY(14px); animation:rise .6s cubic-bezier(.2,.7,.2,1) forwards}
+@keyframes rise{to{opacity:1; transform:none}}
+
+/* ── hero status ────────────────────────────────────────────── */
+.hero{position:relative; border:1px solid var(--line); border-radius:var(--r);
+  background:linear-gradient(135deg,var(--panel),#0b0f17); padding:26px 28px; margin-bottom:18px;
+  overflow:hidden; display:flex; align-items:center; gap:26px}
+.hero::after{content:""; position:absolute; inset:0; pointer-events:none;
+  background:radial-gradient(circle at 14% 50%,var(--signal-dim),transparent 45%); transition:background .6s}
+.beacon{width:74px; height:74px; flex-shrink:0; position:relative; display:grid; place-items:center}
+.beacon .ring{position:absolute; inset:0; border-radius:50%; border:2px solid var(--signal);
+  opacity:.35; animation:ping 2.6s ease-out infinite}
+.beacon .ring:nth-child(2){animation-delay:1.3s}
+@keyframes ping{0%{transform:scale(.55); opacity:.6} 100%{transform:scale(1.25); opacity:0}}
+.beacon .core{width:34px; height:34px; border-radius:50%; background:var(--signal);
+  box-shadow:0 0 22px var(--signal); animation:breathe 3s ease-in-out infinite}
+@keyframes breathe{50%{transform:scale(.86); opacity:.82}}
+.hero-text{position:relative; z-index:1}
+.hero-state{font-size:30px; font-weight:700; letter-spacing:-.4px; line-height:1.05}
+.hero-state em{color:var(--signal); font-style:normal}
+.hero-sub{font-family:var(--mono); font-size:12px; color:var(--ink-2); margin-top:8px; letter-spacing:.3px}
+.hero-sub .dot{color:var(--ink-3); margin:0 8px}
+.hero-meta{position:relative; z-index:1; margin-left:auto; text-align:right; display:flex; gap:30px}
+.hero-meta .m{text-align:right}
+.hero-meta .m label{font-family:var(--mono); font-size:9.5px; letter-spacing:1.5px; color:var(--ink-3); text-transform:uppercase; display:block}
+.hero-meta .m b{font-size:19px; font-weight:600; font-variant-numeric:tabular-nums}
+
+/* ── telemetry tiles ────────────────────────────────────────── */
+.telemetry{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:18px}
+.tile{border:1px solid var(--line); border-radius:var(--r); background:var(--panel); padding:16px 18px;
+  position:relative; overflow:hidden; transition:border-color .2s, transform .2s}
+.tile:hover{border-color:#2c3a4c; transform:translateY(-2px)}
+.tile .top{display:flex; align-items:center; justify-content:space-between}
+.tile label{font-family:var(--mono); font-size:9.5px; letter-spacing:1.6px; color:var(--ink-3); text-transform:uppercase}
+.tile .accent{width:7px; height:7px; border-radius:50%; background:var(--nominal); box-shadow:0 0 8px var(--nominal)}
+.tile .accent.amber{background:var(--amber); box-shadow:0 0 8px var(--amber)}
+.tile .accent.crit{background:var(--critical); box-shadow:0 0 8px var(--critical)}
+.tile .val{font-size:34px; font-weight:700; letter-spacing:-1px; margin-top:10px; font-variant-numeric:tabular-nums; line-height:1}
+.tile .val small{font-size:17px; color:var(--ink-3); font-weight:500}
+.tile .foot{font-family:var(--mono); font-size:11px; color:var(--ink-2); margin-top:8px}
+.tile .foot.good{color:var(--nominal)} .tile .foot.bad{color:var(--critical)} .tile .foot.warn{color:var(--amber)}
+.bars{display:flex; gap:3px; align-items:flex-end; height:22px; margin-top:11px}
+.bars i{flex:1; background:var(--cyan-dim); border-radius:2px 2px 0 0; min-height:3px; display:block}
+.bars i.lit{background:var(--cyan)}
+.meter{height:7px; border-radius:4px; background:#0b1018; margin-top:13px; overflow:hidden; border:1px solid var(--line-soft)}
+.meter i{display:block; height:100%; border-radius:4px; background:linear-gradient(90deg,var(--nominal),var(--nominal-2));
+  box-shadow:0 0 10px var(--nominal-dim); transition:width .5s ease}
+.meter i.warn{background:linear-gradient(90deg,var(--amber),#e0902a)}
+.meter i.crit{background:linear-gradient(90deg,var(--critical),#d83a48)}
+
+/* ── lower grid ─────────────────────────────────────────────── */
+.lower{display:grid; grid-template-columns:1.55fr 1fr; gap:16px}
+.panel{border:1px solid var(--line); border-radius:var(--r); background:var(--panel); overflow:hidden}
+.panel-h{display:flex; align-items:center; gap:9px; padding:14px 18px; border-bottom:1px solid var(--line-soft)}
+.panel-h h2{font-size:13px; font-weight:600; letter-spacing:.4px; text-transform:uppercase; color:var(--ink-2)}
+.panel-h .live{margin-left:auto; font-family:var(--mono); font-size:10px; color:var(--nominal); display:flex; align-items:center; gap:6px}
+.panel-h .live::before{content:""; width:6px; height:6px; border-radius:50%; background:var(--nominal); box-shadow:0 0 7px var(--nominal); animation:breathe 2s ease-in-out infinite}
+
+/* feed */
+.feed{display:flex; flex-direction:column}
+.frow{display:flex; align-items:center; gap:13px; padding:12px 18px; border-bottom:1px solid var(--line-soft); transition:background .15s}
+.frow:last-child{border-bottom:0}
+.frow:hover{background:#ffffff05}
+.led{width:9px; height:9px; border-radius:50%; flex-shrink:0; background:var(--ink-3)}
+.led.ok{background:var(--nominal); box-shadow:0 0 8px var(--nominal)}
+.led.warn{background:var(--amber); box-shadow:0 0 8px var(--amber)}
+.led.crit{background:var(--critical); box-shadow:0 0 9px var(--critical); animation:alarm 1.1s ease-in-out infinite}
+.led.run{background:var(--cyan); box-shadow:0 0 8px var(--cyan)}
+@keyframes alarm{50%{opacity:.35}}
+.frow .name{font-weight:600; font-size:14px; min-width:84px}
+.frow .ev{color:var(--ink-2); font-size:13px; flex:1}
+.frow .ev b{color:var(--ink)}
+.runspin{width:11px;height:11px;border:1.5px solid var(--cyan);border-top-color:transparent;border-radius:50%;
+  display:inline-block;animation:spin .8s linear infinite;vertical-align:-1px;margin-right:6px}
+.frow time{font-family:var(--mono); font-size:11px; color:var(--ink-3); flex-shrink:0}
+
+/* attention */
+.side{display:flex; flex-direction:column; gap:16px}
+.att-empty{padding:30px 18px; text-align:center}
+.att-empty .check{width:46px; height:46px; margin:0 auto 12px; border-radius:50%; display:grid; place-items:center;
+  border:2px solid var(--nominal); color:var(--nominal); box-shadow:0 0 24px var(--nominal-dim)}
+.att-empty b{display:block; font-size:15px; color:var(--nominal); font-weight:600}
+.att-empty span{font-size:12.5px; color:var(--ink-3); font-family:var(--mono)}
+.att-item{display:flex; gap:12px; padding:13px 18px; border-bottom:1px solid var(--line-soft); align-items:flex-start}
+.att-item:last-child{border-bottom:0}
+.att-item .body b{display:block; font-size:13.5px; font-weight:600}
+.att-item .body span{font-size:12px; color:var(--ink-2)}
+.att-item .go{margin-left:auto; align-self:center; font-family:var(--mono); font-size:11px; color:var(--cyan); white-space:nowrap}
+
+/* platform deps */
+.deps{display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--line-soft)}
+.dep{background:var(--panel); padding:13px 16px; display:flex; align-items:center; gap:10px}
+.dep label{font-size:12.5px; color:var(--ink-2); flex:1}
+.dep .v{font-family:var(--mono); font-size:11px; color:var(--ink-3)}
+.dep .v.ok{color:var(--nominal)} .dep .v.crit{color:var(--critical)} .dep .v.warn{color:var(--amber)}
+
+.tag-proto{position:fixed; bottom:14px; right:16px; z-index:30; font-family:var(--mono); font-size:10px;
+  letter-spacing:1px; color:var(--ink-3); background:#0c1119cc; border:1px solid var(--line);
+  padding:5px 10px; border-radius:20px; backdrop-filter:blur(6px)}
+
+/* server vitals */
+.vitals{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:18px}
+.vital{border:1px solid var(--line); border-radius:var(--r); background:var(--panel); padding:16px 18px}
+.vital label{display:block; font-family:var(--mono); font-size:9.5px; letter-spacing:1.6px; text-transform:uppercase; color:var(--ink-3)}
+.vital .vv{font-size:26px; font-weight:700; letter-spacing:-.5px; font-variant-numeric:tabular-nums; line-height:1; margin-top:9px}
+.vital .vsub{font-family:var(--mono); font-size:11px; color:var(--ink-3); margin-top:8px}
+.vgauge{height:7px; border-radius:4px; background:#0b1018; margin-top:11px; overflow:hidden; border:1px solid var(--line-soft)}
+.vgauge i{display:block; height:100%; border-radius:4px; background:linear-gradient(90deg,var(--cyan),#2f93cf); transition:width .5s}
+.vgauge i.warn{background:linear-gradient(90deg,var(--amber),#e0902a)} .vgauge i.crit{background:linear-gradient(90deg,var(--critical),#d83a48)}
+.frow .by{font-family:var(--mono); font-size:10.5px; color:var(--ink-3); background:#ffffff08; border:1px solid var(--line-soft); padding:2px 8px; border-radius:20px; flex-shrink:0; white-space:nowrap}
+
+/* needs-attention block — calm when all clear, LOUD when degraded */
+.attn-block{margin-bottom:18px; border-radius:var(--r); overflow:hidden}
+.attn-block.calm{border:1px solid var(--line); background:var(--panel)}
+.attn-block.calm .att-empty{display:flex; align-items:center; gap:13px; padding:15px 20px; text-align:left}
+.attn-block.calm .att-empty .check{width:30px; height:30px; margin:0; flex-shrink:0}
+.attn-block.calm .att-empty b{font-size:14.5px} .attn-block.calm .att-empty span{font-size:12.5px}
+.attn-block.loud{border:1.5px solid var(--critical); background:linear-gradient(135deg,rgba(255,93,108,.11),var(--panel)); box-shadow:0 0 0 4px var(--critical-dim), 0 12px 46px rgba(255,93,108,.15); animation:attnpulse 2.4s ease-in-out infinite}
+@keyframes attnpulse{50%{box-shadow:0 0 0 4px var(--critical-dim), 0 12px 46px rgba(255,93,108,.28)}}
+.attn-head{display:flex; align-items:center; gap:10px; padding:14px 20px; font-weight:700; font-size:15.5px; color:var(--critical); border-bottom:1px solid rgba(255,93,108,.18)}
+.attn-count{margin-left:auto; font-family:var(--mono); font-size:12px; font-weight:600; background:var(--critical); color:#1a0408; padding:2px 11px; border-radius:20px}
+.attn-block .att-item{padding:14px 20px}
+
+/* compact server strip (full metrics live on Health) */
+.server-strip{margin-bottom:18px}
+.srv{display:flex; align-items:center; gap:26px; border:1px solid var(--line); border-radius:var(--r); background:var(--panel); padding:15px 20px; flex-wrap:wrap}
+.srv-mem{flex:1; min-width:240px; max-width:440px}
+.srv-lab{display:flex; align-items:baseline; gap:10px; margin-bottom:9px}
+.srv-lab label{font-family:var(--mono); font-size:9.5px; letter-spacing:1.6px; text-transform:uppercase; color:var(--ink-3)}
+.srv-lab b{font-size:18px; font-weight:700; font-variant-numeric:tabular-nums} .srv-lab b.crit{color:var(--critical)}
+.srv-inline{display:flex; gap:22px; font-family:var(--mono); font-size:12px; color:var(--ink-3)} .srv-inline b{color:var(--ink-2)}
+.srv-link{margin-left:auto; color:var(--cyan); font-size:12.5px; text-decoration:none; font-family:var(--mono); white-space:nowrap}
+.srv-link:hover{text-decoration:underline}
+
+@media(max-width:980px){
+  .vitals{grid-template-columns:1fr}
+  .sidebar{transform:translateX(-100%)} .deck{margin-left:0}
+  .telemetry{grid-template-columns:repeat(2,1fr)} .lower{grid-template-columns:1fr}
+  .hero{flex-wrap:wrap} .hero-meta{margin-left:0; width:100%}
+}
+</style>
+</head>
+<body data-state="nominal">
+<div class="bg">
+  <div class="bg-glow"></div>
+  <div class="bg-grid"></div>
+  <div class="bg-stars"></div>
+  <div class="bg-vignette"></div>
+</div>
+
+<div class="app">
+  <!-- ── sidebar ── -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="mark">
+        <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
+          <circle cx="17" cy="17" r="15" stroke="var(--signal)" stroke-width="1.4" opacity=".4"/>
+          <circle cx="17" cy="17" r="9.5" stroke="var(--signal)" stroke-width="1.4" opacity=".7"/>
+          <circle cx="17" cy="17" r="3.6" fill="var(--signal)"/>
+          <g class="orbit-dot"><circle cx="32" cy="17" r="2.3" fill="var(--ink)"/></g>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-name"><b>ASTRO</b><span>DOCK</span></div>
+        <div class="brand-sub">control plane</div>
+      </div>
+    </div>
+
+    <nav>
+      <div class="nav-sec">Operate</div>
+      <a class="nav-item on" href="#"><svg viewBox="0 0 16 16" fill="none"><path d="M2 9.5 8 3l6 6.5M4 8.5V14h8V8.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Overview</a>
+      <a class="nav-item" href="#"><svg viewBox="0 0 16 16" fill="none"><rect x="1.5" y="1.5" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="9.5" y="1.5" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="1.5" y="9.5" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="9.5" y="9.5" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/></svg>Apps</a>
+      <a class="nav-item" href="#"><svg viewBox="0 0 16 16" fill="none"><path d="M3 1.5h6L13 5v9.5H3z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M9 1.5V5h4" stroke="currentColor" stroke-width="1.5"/></svg>Pages</a>
+      <a class="nav-item" href="#"><svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M2 14c0-3 2.5-5 6-5s6 2 6 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Users</a>
+      <div class="nav-sec">Observe</div>
+      <a class="nav-item" href="#"><svg viewBox="0 0 16 16" fill="none"><path d="M2 8h2l2-4 4 8 2-4h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Activity</a>
+      <a class="nav-item" href="#"><svg viewBox="0 0 16 16" fill="none"><path d="M8 14s-5.5-3.5-5.5-7.5a3.5 3.5 0 0 1 7 0 3.5 3.5 0 0 1 7 0C13.5 10.5 8 14 8 14z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>Health <span class="nav-badge" id="navAlerts" hidden>2</span></a>
+      <a class="nav-item" href="#"><svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Settings</a>
+    </nav>
+
+    <div class="sys-chip">
+      <span class="led ok" id="sysLed"></span>
+      <div class="t"><b id="sysState">Nominal</b><span id="sysHost">box-01 · localhost</span></div>
+    </div>
+  </aside>
+
+  <!-- ── deck ── -->
+  <main class="deck">
+    <div class="topbar">
+      <span class="crumb">Mission · Overview</span>
+      <span class="spacer"></span>
+      <span class="clock"><b id="clk">--:--:--</b> UTC</span>
+      <span class="refresh"><span class="spin"></span> live · 60s</span>
+      <div class="demo-toggle" id="demo">
+        <button data-s="nominal" class="sel">Nominal</button>
+        <button data-s="degraded">Degraded</button>
+      </div>
+    </div>
+
+    <!-- hero -->
+    <section class="hero rise" style="animation-delay:.02s">
+      <div class="beacon"><span class="ring"></span><span class="ring"></span><span class="core"></span></div>
+      <div class="hero-text">
+        <div class="hero-state" id="heroState"><em>All systems nominal</em></div>
+        <div class="hero-sub" id="heroSub">7 of 7 apps online <span class="dot">·</span> no open alerts <span class="dot">·</span> last check 12s ago</div>
+      </div>
+      <div class="hero-meta">
+        <div class="m"><label>Uptime</label><b>18d 04h</b></div>
+        <div class="m"><label>Requests / min</label><b id="rpm">1,284</b></div>
+      </div>
+    </section>
+
+    <!-- needs attention — prominent when degraded -->
+    <section class="attn-block calm rise" id="attention" style="animation-delay:.05s"></section>
+
+    <!-- telemetry -->
+    <section class="telemetry" id="telemetry"></section>
+
+    <!-- compact server snapshot (full metrics on the Health page) -->
+    <section class="server-strip rise" id="server" style="animation-delay:.12s"></section>
+
+    <!-- lower -->
+    <section class="lower">
+      <div class="panel rise" style="animation-delay:.18s">
+        <div class="panel-h"><h2>Live activity</h2><span class="live">streaming</span></div>
+        <div class="feed" id="feed"></div>
+      </div>
+
+      <div class="side">
+        <div class="panel rise" style="animation-delay:.3s">
+          <div class="panel-h"><h2>Platform</h2></div>
+          <div class="deps" id="deps"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="tag-proto">PROTOTYPE · overview · orbital mission control</div>
+
+<script>
+const SCENES = {
+  nominal: {
+    signal:'var(--nominal)', signalDim:'var(--nominal-dim)',
+    sysState:'Nominal', led:'ok',
+    hero:'<em>All systems nominal</em>',
+    heroSub:'7 of 7 apps online <span class="dot">·</span> no open alerts <span class="dot">·</span> last check 12s ago',
+    rpm:'1,284', alerts:0,
+    tiles:[
+      {label:'Apps', val:'7<small> / 7</small>', accent:'', foot:'all online', footCls:'good',
+       extra:'<div class="bars">'+[1,1,1,1,1,1,1].map(()=>'<i class="lit"></i>').join('')+'</div>'},
+      {label:'Deploys · 24h', val:'3', accent:'', foot:'all succeeded', footCls:'good',
+       extra:'<div class="bars">'+[3,5,2,6,4,7,3,5].map(h=>`<i class="lit" style="height:${h*3}px"></i>`).join('')+'</div>'},
+      {label:'Disk', val:'42<small>%</small>', accent:'', foot:'118 GB free', footCls:'',
+       extra:'<div class="meter"><i style="width:42%"></i></div>'},
+      {label:'Alerts', val:'0', accent:'', foot:'all clear', footCls:'good',
+       extra:'<div class="bars" style="opacity:.25">'+[1,1,1,1,1,1,1].map(()=>'<i></i>').join('')+'</div>'},
+    ],
+    feed:[
+      {led:'ok', name:'blog', ev:'deploy <b>succeeded</b> · a1f9c2', by:'GitHub push', t:'2m ago'},
+      {led:'ok', name:'notes', ev:'healthy · 38ms', t:'live'},
+      {led:'run', name:'api', ev:'<span class="runspin"></span>building… step 3/5', by:'claude-agent · CLI', t:'now'},
+      {led:'ok', name:'pages', ev:'page “Q3 report” published', by:'paul@…', t:'14m ago'},
+      {led:'ok', name:'shop', ev:'backup complete · 24.1 MB', by:'system', t:'1h ago'},
+    ],
+    vitals:[
+      {label:'CPU load', val:'0.74', pct:24, sub:'4 cores · 1-min avg'},
+      {label:'Memory', val:'42%', pct:42, sub:'3.4 / 8.0 GB'},
+      {label:'Network out', val:'8.2 MB/s', pct:34, sub:'142 GB this month'},
+    ],
+    attention:'<div class="att-empty"><div class="check"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 10.5 8.5 14 15 6.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><b>All clear</b><span>nothing needs your attention</span></div>',
+    deps:[['Database','ok','12ms'],['Object store','ok','ok'],['Runner','ok','ok'],['TLS cert','ok','61d']]
+  },
+  degraded: {
+    signal:'var(--critical)', signalDim:'var(--critical-dim)',
+    sysState:'Attention', led:'crit',
+    hero:'<em style="color:var(--critical)">2 apps need attention</em>',
+    heroSub:'5 of 7 apps online <span class="dot">·</span> 2 alerts <span class="dot">·</span> disk 91% <span class="dot">·</span> last check 9s ago',
+    rpm:'612', alerts:2,
+    tiles:[
+      {label:'Apps', val:'5<small> / 7</small>', accent:'crit', foot:'2 down', footCls:'bad',
+       extra:'<div class="bars">'+['lit','lit','lit','lit','lit','','' ].map(c=>`<i class="${c}"></i>`).join('')+'</div>'},
+      {label:'Deploys · 24h', val:'4', accent:'amber', foot:'1 failed', footCls:'warn',
+       extra:'<div class="bars">'+[3,5,2,6,4,7,3,5].map((h,i)=>`<i class="lit" style="height:${h*3}px;${i===5?'background:var(--critical)':''}"></i>`).join('')+'</div>'},
+      {label:'Disk', val:'91<small>%</small>', accent:'crit', foot:'9 GB free — low', footCls:'bad',
+       extra:'<div class="meter"><i class="crit" style="width:91%"></i></div>'},
+      {label:'Alerts', val:'2', accent:'crit', foot:'2 critical', footCls:'bad',
+       extra:'<div class="bars">'+['','','','','','crit','crit'].map(c=>`<i class="${c?'lit':''}" style="${c?'background:var(--critical)':''}"></i>`).join('')+'</div>'},
+    ],
+    feed:[
+      {led:'crit', name:'api', ev:'<b>DOWN</b> — 3 failed health checks', by:'system', t:'4m ago'},
+      {led:'crit', name:'shop', ev:'deploy <b>failed</b> — build error', by:'ci-deploy · token', t:'8m ago'},
+      {led:'warn', name:'box', ev:'disk usage 91% (threshold 85%)', by:'system', t:'11m ago'},
+      {led:'ok', name:'notes', ev:'deploy <b>succeeded</b> · 7c2e10', by:'claude-agent · CLI', t:'22m ago'},
+      {led:'ok', name:'blog', ev:'healthy · 41ms', t:'live'},
+    ],
+    vitals:[
+      {label:'CPU load', val:'3.91', pct:94, sub:'4 cores · 1-min avg', cls:'crit'},
+      {label:'Memory', val:'88%', pct:88, sub:'7.0 / 8.0 GB', cls:'crit'},
+      {label:'Network out', val:'2.1 MB/s', pct:11, sub:'171 GB this month'},
+    ],
+    attention:
+      '<div class="att-item"><span class="led crit" style="margin-top:4px"></span><div class="body"><b>api is down</b><span>failed 3 consecutive health checks · since 4m ago</span></div><span class="go">View →</span></div>'+
+      '<div class="att-item"><span class="led crit" style="margin-top:4px"></span><div class="body"><b>shop deploy failed</b><span>build error in server/ · npm ci exited 1</span></div><span class="go">Logs →</span></div>'+
+      '<div class="att-item"><span class="led warn" style="margin-top:4px"></span><div class="body"><b>Disk almost full</b><span>91% used · 9 GB free</span></div><span class="go">Backups →</span></div>',
+    deps:[['Database','ok','14ms'],['Object store','ok','ok'],['Runner','warn','slow'],['TLS cert','warn','9d']]
+  }
+};
+
+function render(name){
+  const s = SCENES[name];
+  document.documentElement.style.setProperty('--signal', s.signal);
+  document.documentElement.style.setProperty('--signal-dim', s.signalDim);
+  document.body.dataset.state = name;
+
+  document.getElementById('sysState').textContent = s.sysState;
+  const sysLed = document.getElementById('sysLed'); sysLed.className = 'led ' + s.led;
+  document.getElementById('heroState').innerHTML = s.hero;
+  document.getElementById('heroSub').innerHTML = s.heroSub;
+  document.getElementById('rpm').textContent = s.rpm;
+  const nb = document.getElementById('navAlerts');
+  if (s.alerts > 0){ nb.hidden = false; nb.textContent = s.alerts; } else nb.hidden = true;
+
+  // recolor the beacon/hero to the signal
+  document.querySelectorAll('.beacon .ring').forEach(r=>r.style.borderColor=s.signal);
+  document.querySelector('.beacon .core').style.background=s.signal;
+  document.querySelector('.beacon .core').style.boxShadow=`0 0 22px ${s.signal}`;
+
+  document.getElementById('telemetry').innerHTML = s.tiles.map(t=>`
+    <div class="tile">
+      <div class="top"><label>${t.label}</label><span class="accent ${t.accent}"></span></div>
+      <div class="val">${t.val}</div>
+      ${t.extra||''}
+      <div class="foot ${t.footCls}">${t.foot}</div>
+    </div>`).join('');
+
+  document.getElementById('feed').innerHTML = s.feed.map(f=>`
+    <div class="frow"><span class="led ${f.led}"></span><span class="name">${f.name}</span>
+      <span class="ev">${f.ev}</span>${f.by?`<span class="by">by ${f.by}</span>`:''}<time>${f.t}</time></div>`).join('');
+
+  const attn = document.getElementById('attention');
+  if (name === 'degraded') {
+    attn.className = 'attn-block loud rise';
+    attn.innerHTML = `<div class="attn-head"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2 1.5 13.5h13L8 2z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M8 6.3v3.4M8 11.5v.3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> Needs attention <span class="attn-count">${s.alerts || 3} items</span></div>` + s.attention;
+  } else {
+    attn.className = 'attn-block calm rise';
+    attn.innerHTML = s.attention;
+  }
+
+  document.getElementById('deps').innerHTML = s.deps.map(([n,st,v])=>`
+    <div class="dep"><span class="led ${st}"></span><label>${n}</label><span class="v ${st}">${v}</span></div>`).join('');
+
+  const v = s.vitals || [];
+  const get = (n) => v.find(x => x.label === n) || {};
+  const mem = get('Memory'), cpu = get('CPU load'), net = get('Network out');
+  document.getElementById('server').innerHTML = `
+    <div class="srv">
+      <div class="srv-mem">
+        <div class="srv-lab"><label>Memory</label><b class="${mem.cls==='crit'?'crit':''}">${mem.val||'—'}</b><span style="font-family:var(--mono);font-size:11px;color:var(--ink-3)">${mem.sub||''}</span></div>
+        <div class="vgauge"><i class="${mem.cls||''}" style="width:${mem.pct||0}%"></i></div>
+      </div>
+      <div class="srv-inline"><span>CPU <b>${cpu.val||'—'}</b></span><span>Network <b>${net.val||'—'}</b></span></div>
+      <a class="srv-link" href="#">Full server metrics → Health</a>
+    </div>`;
+}
+
+document.getElementById('demo').addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  document.querySelectorAll('#demo button').forEach(x=>x.classList.remove('sel'));
+  b.classList.add('sel'); render(b.dataset.s);
+});
+
+function tick(){
+  const d = new Date();
+  document.getElementById('clk').textContent = d.toISOString().slice(11,19);
+}
+setInterval(tick,1000); tick();
+render('nominal');
+</script>
+</body>
+</html>
