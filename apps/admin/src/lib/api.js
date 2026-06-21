@@ -97,6 +97,7 @@ export const rollbackApp = (slug) =>
   request(`/apps/${slug}/rollback`, { method: 'POST' });
 
 // Custom domains
+export const getAllDomains = () => request('/domains');
 export const getDomains = (slug) => request(`/apps/${slug}/domains`);
 export const addDomain = (slug, hostname) =>
   request(`/apps/${slug}/domains`, { method: 'POST', body: JSON.stringify({ hostname }) });

@@ -60,6 +60,7 @@ app.use('/admin', require('./src/routes/admin-auth'));
 app.use('/admin/health', require('./src/routes/admin-health'));
 app.use('/admin/users', require('./src/routes/admin-users'));
 app.use('/admin/apps', require('./src/routes/admin-apps'));
+app.use('/admin/domains', require('./src/routes/admin-domains'));
 app.use('/admin/tokens', require('./src/routes/admin-tokens'));
 app.use('/admin/activity', require('./src/routes/admin-activity'));
 app.use('/admin/settings', require('./src/routes/admin-settings'));

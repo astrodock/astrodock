@@ -3,17 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import * as api from '../lib/api';
 import { appHost, appUrl } from '../lib/appUrl';
 
-const STATUS_CLASSES = {
-  online: 'active',
-  stopped: 'inactive',
-  errored: 'errored'
+const STMAP = {
+  running: { badge: 'Running', cls: 'running', led: 'ok' },
+  down: { badge: 'Down', cls: 'down', led: 'crit' },
+  stopped: { badge: 'Stopped', cls: 'stopped', led: 'inactive' },
+  unprovisioned: { badge: 'Not provisioned', cls: 'stopped', led: 'inactive' }
 };
-
-const STATUS_LABELS = {
-  online: 'Running',
-  stopped: 'Stopped',
-  errored: 'Errored'
-};
+const RANK = { down: 0, running: 1, stopped: 2, unprovisioned: 3 };
+function fmtBytes(b) { if (!b) return '—'; return b < 1073741824 ? `${(b / 1048576).toFixed(0)} MB` : `${(b / 1073741824).toFixed(1)} GB`; }
 
 const BLANK_APP = {
   slug: '',
@@ -31,6 +28,7 @@ const BLANK_APP = {
 export default function AppsPage() {
   const [apps, setApps] = useState([]);
   const [statuses, setStatuses] = useState({});
+  const [health, setHealth] = useState({});
   const [showCreate, setShowCreate] = useState(false);
   const [newApp, setNewApp] = useState(BLANK_APP);
   const [creating, setCreating] = useState(false);
@@ -41,18 +39,30 @@ export default function AppsPage() {
 
   async function load() {
     try {
-      const [appData, statusData] = await Promise.all([
+      const [appData, statusData, healthData] = await Promise.all([
         api.getApps(),
-        api.getAllAppStatuses().catch(() => ({ statuses: {} }))
+        api.getAllAppStatuses().catch(() => ({ statuses: {} })),
+        api.getHealth().catch(() => ({ apps: [] }))
       ]);
       setApps(appData.apps);
       setStatuses(statusData.statuses || {});
+      const hmap = {};
+      (healthData.apps || []).forEach((a) => { hmap[a.slug] = a; });
+      setHealth(hmap);
     } catch (err) {
       setError(err.message);
     }
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); const t = setInterval(load, 15000); return () => clearInterval(t); }, []);
+
+  function statusOf(app) {
+    if (!app.provisioned) return 'unprovisioned';
+    const s = statuses[app.slug];
+    if (s === 'online') return 'running';
+    if (s === 'errored') return 'down';
+    return 'stopped';
+  }
 
   async function handleCreate(e) {
     e.preventDefault();
@@ -90,22 +100,24 @@ export default function AppsPage() {
     });
   }
 
-  function getAppStatus(app) {
-    const status = statuses[app.slug];
-    if (!app.provisioned) return { label: 'Not provisioned', className: 'inactive' };
-    if (!status || status === 'unavailable') return { label: 'Not running', className: 'inactive' };
-    return {
-      label: STATUS_LABELS[status] || status,
-      className: STATUS_CLASSES[status] || 'inactive'
-    };
-  }
+  const sorted = [...apps].sort((a, b) => RANK[statusOf(a)] - RANK[statusOf(b)]);
+  const counts = apps.reduce((m, a) => { const s = statusOf(a); m[s] = (m[s] || 0) + 1; return m; }, {});
 
   return (
     <div>
       <div className="page-header">
         <h1>Apps</h1>
-        <button onClick={() => setShowCreate(true)}>Register App</button>
+        <button onClick={() => setShowCreate(true)}>Register app</button>
       </div>
+
+      {apps.length > 0 && (
+        <div className="apps-summary">
+          <b>{apps.length}</b> apps
+          <span className="sep">·</span><b style={{ color: counts.down ? 'var(--danger)' : 'var(--text-2)' }}>{counts.down || 0}</b> down
+          <span className="sep">·</span><b>{counts.running || 0}</b> running
+          <span className="sep">·</span><b>{(counts.stopped || 0) + (counts.unprovisioned || 0)}</b> stopped
+        </div>
+      )}
 
       {error && <div className="error">{error}</div>}
 
@@ -121,55 +133,38 @@ export default function AppsPage() {
         </div>
       )}
 
-      <table className="data-table clickable">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Subdomain</th>
-            <th>Port</th>
-            <th>Process</th>
-            <th>Repository</th>
-          </tr>
-        </thead>
-        <tbody>
-          {apps.map(app => {
-            const status = getAppStatus(app);
+      {apps.length === 0 ? (
+        <p className="empty-state">No apps yet. Register one to deploy it.</p>
+      ) : (
+        <div className="app-grid">
+          {sorted.map((app) => {
+            const st = statusOf(app);
+            const m = STMAP[st];
+            const h = health[app.slug] || {};
             return (
-              <tr key={app.id} onClick={() => navigate(`/apps/${app.slug}`)}>
-                <td>
-                  <strong>{app.name}</strong>
-                  <span className="row-subtitle">{app.slug}</span>
-                </td>
-                <td>
-                  <a
-                    href={appUrl(app.subdomain)}
-                    className="app-link"
-                    target="_blank"
-                    rel="noopener"
-                    onClick={e => e.stopPropagation()}
-                  >
+              <div className={`appcard ${m.cls}`} key={app.id} onClick={() => navigate(`/apps/${app.slug}`)}>
+                <div className="ac-top">
+                  <span className={`led ${m.led}`} />
+                  <span className="ac-name">{app.name}</span>
+                  <span className={`statusbadge ${m.cls}`}>{m.badge}</span>
+                </div>
+                <div className="ac-hostrow">
+                  <span className="ac-rt">{app.runtime?.type === 'docker' ? 'Docker' : 'Node'}</span>
+                  <a href={appUrl(app.subdomain)} className="ac-host" target="_blank" rel="noopener" onClick={(e) => e.stopPropagation()}>
                     {appHost(app.subdomain)}
-                    <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M6 3H3a1 1 0 00-1 1v9a1 1 0 001 1h9a1 1 0 001-1v-3M9 2h5v5M15 1L8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M6 3H3a1 1 0 00-1 1v9a1 1 0 001 1h9a1 1 0 001-1v-3M9 2h5v5M15 1L8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
                   </a>
-                </td>
-                <td><code>{app.port}</code></td>
-                <td>
-                  <span className="process-status-inline">
-                    <span className={`process-dot-sm ${status.className}`} />
-                    {status.label}
-                  </span>
-                </td>
-                <td>
-                  {app.source?.githubRepo
-                    ? <code>{app.source.githubRepo}</code>
-                    : <span className="text-muted">Not connected</span>
-                  }
-                </td>
-              </tr>
+                </div>
+                <div className="ac-stats">
+                  <div><label>Response</label><b>{h.responseTime != null ? `${h.responseTime} ms` : '—'}</b></div>
+                  <div><label>Memory</label><b>{h.proc ? fmtBytes(h.proc.memory) : '—'}</b></div>
+                  <div><label>Repo</label><b style={{ fontWeight: 500, fontSize: 13 }}>{app.source?.githubRepo ? app.source.githubRepo.split('/').pop() : 'none'}</b></div>
+                </div>
+              </div>
             );
           })}
-        </tbody>
-      </table>
+        </div>
+      )}
 
       {showCreate && (
         <div className="modal-overlay" onClick={() => setShowCreate(false)}>

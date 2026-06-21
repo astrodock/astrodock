@@ -12,6 +12,7 @@ import UserDetailPage from './pages/UserDetailPage';
 import ActivityPage from './pages/ActivityPage';
 import HealthPage from './pages/HealthPage';
 import TokensPage from './pages/TokensPage';
+import DomainsPage from './pages/DomainsPage';
 import SettingsPage from './pages/SettingsPage';
 import './App.css';
 
@@ -98,6 +99,12 @@ export default function App() {
           </li>
           <li className="nav-sec">Network &amp; access</li>
           <li>
+            <NavLink to="/domains" className={({ isActive }) => isActive ? 'active' : ''}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.3" stroke="currentColor" strokeWidth="1.5"/><path d="M1.7 8h12.6M8 1.7c1.8 2 1.8 10.6 0 12.6M8 1.7c-1.8 2-1.8 10.6 0 12.6" stroke="currentColor" strokeWidth="1.2"/></svg>
+              Domains
+            </NavLink>
+          </li>
+          <li>
             <NavLink to="/tokens" className={({ isActive }) => isActive ? 'active' : ''}>
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10.5 5.5a3 3 0 1 0-3.2 3l-.8.8v1.2H5.3v1.5H3.8V14H1.5v-2.2l4-4a3 3 0 0 1 5-2.3z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/><circle cx="11" cy="5" r="1" fill="currentColor"/></svg>
               Access keys
@@ -154,6 +161,7 @@ export default function App() {
           <Route path="/pages" element={<PagesPage />} />
           <Route path="/pages/:pageId" element={<PageDetailPage />} />
           <Route path="/tokens" element={<TokensPage />} />
+          <Route path="/domains" element={<DomainsPage />} />
           <Route path="/activity" element={<ActivityPage />} />
           <Route path="/health" element={<HealthPage />} />
           <Route path="/settings" element={<SettingsPage />} />
