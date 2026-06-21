@@ -175,6 +175,7 @@ export default function TerminalTab({ app }) {
           <button onClick={handleClear}>Clear</button>
         </div>
       </div>
+      <p className="hint">Run shell commands inside this app’s container — handy for one-off jobs like database migrations or seeds, and quick debugging. <b style={{ color: 'var(--warning)' }}>Whatever you type runs live on the server</b>, so take care.</p>
 
       {/* Output area */}
       <div className="terminal-output" ref={outputRef} onClick={() => inputRef.current?.focus()}>

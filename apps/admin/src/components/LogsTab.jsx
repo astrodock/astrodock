@@ -60,6 +60,9 @@ export default function LogsTab({ app }) {
           <button onClick={load}>Refresh</button>
         </div>
       </div>
+      <p className="hint">{view === 'runtime'
+        ? 'What your app prints while it runs — its own output and any errors. Useful for debugging.'
+        : 'The web requests your app received (who hit it, and what came back). Turn this on in Settings if it’s empty.'}</p>
 
       {error && <div className="error">{error}</div>}
 

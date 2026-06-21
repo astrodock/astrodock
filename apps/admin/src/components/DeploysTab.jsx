@@ -1,14 +1,15 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import * as api from '../lib/api';
 
-const STATUS_COLORS = {
-  pending: 'var(--text-muted)',
-  cloning: 'var(--info)',
-  building: 'var(--info)',
-  deploying: 'var(--info)',
-  success: 'var(--accent)',
-  failed: 'var(--danger)'
+const STATUS = {
+  pending: { led: 'run', label: 'Queued' },
+  cloning: { led: 'run', label: 'Cloning' },
+  building: { led: 'run', label: 'Building' },
+  deploying: { led: 'run', label: 'Deploying' },
+  success: { led: 'ok', label: 'Live' },
+  failed: { led: 'crit', label: 'Failed' }
 };
+const TRIGGER = { webhook: 'GitHub push', manual: 'manual', cli: 'CLI · agent', rollback: 'rollback', local: 'local upload' };
 
 const IN_PROGRESS = ['pending', 'cloning', 'building', 'deploying'];
 
@@ -213,34 +214,29 @@ export default function DeploysTab({ app, missingRequired = [], onRefresh }) {
       )}
 
       {deployments.length === 0 ? (
-        <p className="empty-state">No deployments yet. Connect a repo and click Deploy Now.</p>
+        <p className="empty-state">No deploys yet. Connect a repo in Settings, then deploy.</p>
       ) : (
         <div className="deploy-list">
           {deployments.map(d => {
             const isActive = IN_PROGRESS.includes(d.status);
+            const st = STATUS[d.status] || { led: '', label: d.status };
+            const expanded = expandedId === d.id;
             return (
-              <div key={d.id} className={`deploy-item ${isActive ? 'deploy-active' : ''}`}>
-                <div className="deploy-row" onClick={() => handleExpand(d.id)}>
-                  <span className="deploy-status" style={{ color: STATUS_COLORS[d.status] }}>
-                    {isActive && <span className="deploy-spinner" />}
-                    {d.status}
+              <div key={d.id} className={`dep-item ${isActive ? 'active' : ''} ${d.status === 'failed' ? 'failed' : ''}`}>
+                <div className="dep-row" onClick={() => handleExpand(d.id)}>
+                  <span className="dep-st">{isActive ? <span className="runspin" /> : <span className={`led ${st.led}`} />}<b>{st.label}</b></span>
+                  <span className="dep-commit">
+                    <code className={d.commitHash ? '' : 'muted'}>{d.commitHash || '—'}</code>
+                    {d.commitMessage && <span className="dep-msg">{d.commitMessage}</span>}
                   </span>
-                  <span className="deploy-commit">
-                    {d.commitHash && <code>{d.commitHash}</code>}
-                    {d.commitMessage && <span className="deploy-msg">{d.commitMessage}</span>}
-                  </span>
-                  <span className="deploy-meta">
-                    <span className="deploy-trigger">{d.trigger}</span>
-                    <span>{formatTime(d.startedAt || d.createdAt)}</span>
-                    {d.finishedAt && (
-                      <span className="deploy-duration">
-                        {formatDuration(d.startedAt || d.createdAt, d.finishedAt)}
-                      </span>
-                    )}
-                  </span>
+                  <span className="dep-trigger">{TRIGGER[d.trigger] || d.trigger}</span>
+                  <span className="dep-time">{formatTime(d.startedAt || d.createdAt)}{d.finishedAt && ` · ${formatDuration(d.startedAt || d.createdAt, d.finishedAt)}`}</span>
+                  <svg className={`dep-chev ${expanded ? 'open' : ''}`} width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
                 </div>
-                {expandedId === d.id && (
-                  <pre className="deploy-log" ref={logRef}>{expandedLog}</pre>
+                {expanded && (
+                  <div className="dep-detail">
+                    <pre className="deploy-log" ref={logRef}>{expandedLog}</pre>
+                  </div>
                 )}
               </div>
             );

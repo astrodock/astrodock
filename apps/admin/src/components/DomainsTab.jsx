@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import * as api from '../lib/api';
 
-const STATUS_COLOR = { active: 'var(--accent)', pending: 'var(--warning)', failed: 'var(--danger)' };
+const STC = { active: 'ok', pending: 'warn', failed: 'crit' };
+const STLABEL = { active: 'live', pending: 'waiting for DNS', failed: 'not connected' };
 
 export default function DomainsTab({ app }) {
   const [domains, setDomains] = useState([]);
@@ -31,11 +32,8 @@ export default function DomainsTab({ app }) {
   }
   async function verify(id) {
     setError(''); setMsg('');
-    try {
-      const r = await api.verifyDomain(app.slug, id);
-      await load();
-      flash(r.verified ? 'Verified — now serving over HTTPS.' : (r.error || 'Not verified yet.'));
-    } catch (err) { setError(err.message); }
+    try { const r = await api.verifyDomain(app.slug, id); await load(); flash(r.verified ? 'Connected — now serving over HTTPS.' : (r.error || 'Not found yet — give DNS a little longer.')); }
+    catch (err) { setError(err.message); }
   }
   async function remove(id, host) {
     if (!confirm(`Remove ${host}? It will stop routing to this app.`)) return;
@@ -53,57 +51,51 @@ export default function DomainsTab({ app }) {
   return (
     <div>
       <div className="tab-header"><h2>Custom domains</h2></div>
-      <p className="hint">
-        Serve this app at your own domain (e.g. <code>app.example.com</code>) alongside its
-        <code> {app.subdomain}.&lt;base&gt;</code> address. Add the DNS records shown, then click Verify.
-      </p>
+      <p className="hint">Serve this app at your own domain (like <code>app.example.com</code>) on top of its built-in <code>{app.subdomain}.&lt;base&gt;</code> address. Add the domain, then add the two DNS records we show you.</p>
 
       {error && <div className="error">{error}</div>}
-      {msg && <div className="secret-banner" style={{ padding: '8px 12px' }}>{msg}</div>}
+      {msg && <div className="provision-banner"><strong>{msg}</strong></div>}
 
-      <form onSubmit={add} style={{ display: 'flex', gap: 8, margin: '10px 0' }}>
-        <input value={hostname} onChange={(e) => setHostname(e.target.value)} placeholder="app.example.com" style={{ flex: 1 }} />
+      <form onSubmit={add} className="dom-add">
+        <input className="mono" value={hostname} onChange={(e) => setHostname(e.target.value)} placeholder="app.example.com" />
         <button type="submit" disabled={busy}>{busy ? 'Adding…' : 'Add domain'}</button>
       </form>
 
       {domains.length === 0 ? (
         <p className="empty-state">No custom domains yet.</p>
       ) : domains.map((d) => (
-        <div className="card" key={d.id}>
-          <div className="page-header" style={{ marginBottom: 8 }}>
-            <div>
-              <h2 style={{ margin: 0, fontSize: 16 }}>
-                {d.hostname} {d.isPrimary && <span className="pill">primary</span>}
-              </h2>
-              <span style={{ color: STATUS_COLOR[d.status] || 'var(--text-muted)' }}>{d.status}</span>
-            </div>
-            <div className="modal-actions" style={{ margin: 0, alignItems: 'center' }}>
-              {d.status !== 'active' && <button onClick={() => verify(d.id)}>Verify</button>}
-              {d.status === 'active' && !d.isPrimary && hasPrimary && (
-                <label className="checkbox-pill">
-                  <input type="checkbox" checked={!!d.redirectToCanonical} onChange={(e) => toggleRedirect(d.id, e.target.checked)} /> redirect to primary
-                </label>
-              )}
-              {d.status === 'active' && !d.isPrimary && <button className="secondary" onClick={() => makePrimary(d.id)}>Make primary</button>}
+        <div className={`dom-card ${d.status}`} key={d.id}>
+          <div className="dom-top">
+            <span className="host">
+              {d.isPrimary && <span className="star" title="Main address">★</span>}
+              {d.status === 'active'
+                ? <a className="link" href={`https://${d.hostname}`} target="_blank" rel="noopener">{d.hostname} ↗</a>
+                : <span className="mono">{d.hostname}</span>}
+            </span>
+            <span className={`chip ${STC[d.status]}`}>{STLABEL[d.status]}</span>
+            <div className="dom-actions">
+              {d.status !== 'active' && <button className="primary" onClick={() => verify(d.id)}>Check DNS</button>}
+              {d.status === 'active' && !d.isPrimary && <button onClick={() => makePrimary(d.id)}>Make primary</button>}
+              {d.status === 'active' && !d.isPrimary && hasPrimary && <button onClick={() => toggleRedirect(d.id, !d.redirectToCanonical)}>{d.redirectToCanonical ? 'Redirect: on' : 'Redirect: off'}</button>}
               <button className="danger" onClick={() => remove(d.id, d.hostname)}>Remove</button>
             </div>
           </div>
-          {d.status === 'active' && d.redirectToCanonical && hasPrimary && (
-            <p className="hint">Redirects (301) to the primary domain, preserving the path.</p>
-          )}
           {d.status !== 'active' && (
-            <>
-              <p className="hint">Add these records at your DNS provider:</p>
-              <table className="data-table">
-                <thead><tr><th>Type</th><th>Name</th><th>Value</th></tr></thead>
-                <tbody>
-                  {(d.records || []).map((r, i) => (
-                    <tr key={i}><td>{r.type}</td><td><code>{r.name}</code></td><td><code>{r.value}</code></td></tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="dom-dns">
+              <div className="callout">Add these two records at the company where you bought your domain (GoDaddy, Namecheap, Cloudflare…), then click <b>Check DNS</b>.</div>
+              {(d.records || []).map((r, i) => (
+                <div className="dns-rec" key={i}>
+                  <div><span className="rk">Type</span><b>{r.type}</b></div>
+                  <div><span className="rk">Name</span><span className="rv">{r.name}</span></div>
+                  <div><span className="rk">Value</span><span className="rv" style={{ color: 'var(--info)' }}>{r.value}</span></div>
+                  {r.purpose && <div className="rp">{r.purpose}</div>}
+                </div>
+              ))}
               {!publicIp && <p className="hint">Tip: set <code>ASTRODOCK_PUBLIC_IP</code> so the A-record value is filled in for you.</p>}
-            </>
+            </div>
+          )}
+          {d.status === 'active' && d.redirectToCanonical && hasPrimary && (
+            <p className="hint" style={{ marginTop: 10 }}>Visitors here are redirected to the primary domain, keeping the path.</p>
           )}
         </div>
       ))}
