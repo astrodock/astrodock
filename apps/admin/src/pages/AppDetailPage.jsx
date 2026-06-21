@@ -10,6 +10,7 @@ import TerminalTab from '../components/TerminalTab';
 import DomainsTab from '../components/DomainsTab';
 
 const TABS = ['deploys', 'env', 'domains', 'logs', 'terminal', 'settings'];
+const TAB_LABELS = { deploys: 'Deploys', env: 'Variables', domains: 'Domains', logs: 'Logs', terminal: 'Terminal', settings: 'Settings' };
 
 const STATUS_LABELS = {
   online: { label: 'Running', className: 'active' },
@@ -88,55 +89,44 @@ export default function AppDetailPage() {
   if (!app) return <p style={{ color: 'var(--text-muted)' }}>Loading...</p>;
 
   const statusInfo = STATUS_LABELS[procStatus?.status] || STATUS_LABELS.unavailable;
+  const ledClass = procStatus?.status === 'online' ? 'ok' : (procStatus?.status === 'errored' ? 'crit' : '');
 
   return (
     <div>
-      <div className="detail-header">
-        <Link to="/apps" className="back-link">Apps</Link>
-        <span className="back-sep">/</span>
-        <h1>{app.name}</h1>
-        <div className="detail-meta">
-          <a href={appUrl(app.subdomain)} className="app-link" target="_blank" rel="noopener">
-            {appHost(app.subdomain)}
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M6 3H3a1 1 0 00-1 1v9a1 1 0 001 1h9a1 1 0 001-1v-3M9 2h5v5M15 1L8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-          </a>
-          <span className={`badge ${app.provisioned ? 'active' : 'inactive'}`}>
-            {app.provisioned ? 'Provisioned' : 'Not provisioned'}
-          </span>
-          <span className="badge repo-badge">{app.runtime?.type === 'docker' ? 'Docker' : 'Node'}</span>
-          {app.source?.githubRepo && (
-            <span className="badge repo-badge">{app.source.githubRepo}</span>
-          )}
+      <div className="app-detail-head">
+        <Link to="/apps" className="adh-back">← Apps</Link>
+        <div className="adh-main">
+          <div className="adh-id">
+            <h1>{app.name}</h1>
+            <div className="adh-sub">
+              <span className="stt"><span className={`led ${ledClass}`} />{statusInfo.label}</span>
+              <a href={appUrl(app.subdomain)} className="ac-host" target="_blank" rel="noopener">
+                {appHost(app.subdomain)}
+                <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M6 3H3a1 1 0 00-1 1v9a1 1 0 001 1h9a1 1 0 001-1v-3M9 2h5v5M15 1L8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </a>
+              <span className="badge repo-badge">{app.runtime?.type === 'docker' ? 'Docker' : 'Node'}</span>
+              <span className={`badge ${app.provisioned ? 'active' : 'inactive'}`}>{app.provisioned ? 'Provisioned' : 'Not provisioned'}</span>
+              {app.repoConnected && app.source?.githubRepo && <span className="badge repo-badge">{app.source.githubRepo}</span>}
+            </div>
+            {app.description && <p className="adh-desc">{app.description}</p>}
+          </div>
+          <div className="adh-actions">
+            <a href={appUrl(app.subdomain)} target="_blank" rel="noopener">Open ↗</a>
+            {procStatus && procStatus.status !== 'unavailable' && <button onClick={handleRestart}>Restart</button>}
+            {procStatus?.status === 'online' && <button className="danger" onClick={handleStop}>Stop</button>}
+          </div>
         </div>
+        {procStatus?.status === 'online' && (
+          <div className="adh-stats">
+            <span className="adh-stat">Uptime <b>{formatUptime(procStatus.uptime)}</b></span>
+            <span className="adh-stat">Memory <b>{formatMemory(procStatus.memory)}</b></span>
+            <span className="adh-stat">CPU <b>{procStatus.cpu}%</b></span>
+            {procStatus.restarts > 0 && <span className="adh-stat">Restarts <b>{procStatus.restarts}</b></span>}
+          </div>
+        )}
       </div>
 
       {error && <div className="error">{error}</div>}
-
-      {/* Process status bar */}
-      {procStatus && procStatus.status !== 'unavailable' && (
-        <div className="process-bar">
-          <div className="process-info">
-            <span className={`process-dot ${statusInfo.className}`} />
-            <span className="process-label">{statusInfo.label}</span>
-            {procStatus.status === 'online' && (
-              <>
-                <span className="process-stat">Uptime: {formatUptime(procStatus.uptime)}</span>
-                <span className="process-stat">Memory: {formatMemory(procStatus.memory)}</span>
-                <span className="process-stat">CPU: {procStatus.cpu}%</span>
-                {procStatus.restarts > 0 && (
-                  <span className="process-stat">Restarts: {procStatus.restarts}</span>
-                )}
-              </>
-            )}
-          </div>
-          <div className="process-actions">
-            <button onClick={handleRestart}>Restart</button>
-            {procStatus.status === 'online' && (
-              <button className="danger" onClick={handleStop}>Stop</button>
-            )}
-          </div>
-        </div>
-      )}
 
       <div className="tabs">
         {TABS.map(tab => (
@@ -145,7 +135,7 @@ export default function AppDetailPage() {
             className={`tab ${activeTab === tab ? 'active' : ''}`}
             onClick={() => setActiveTab(tab)}
           >
-            {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            {TAB_LABELS[tab] || tab}
           </button>
         ))}
       </div>

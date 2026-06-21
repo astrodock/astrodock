@@ -183,16 +183,17 @@ export default function DeploysTab({ app, missingRequired = [], onRefresh }) {
   return (
     <div>
       <div className="tab-header">
-        <h2>Deployments</h2>
+        <h2>Deploys</h2>
         <div className="modal-actions" style={{ margin: 0 }}>
           {deployments.some(d => d.status === 'success') && (
             <button className="secondary" onClick={handleRollback} disabled={deploying}>Roll back</button>
           )}
           <button onClick={handleDeploy} disabled={deploying}>
-            {deploying ? 'Deploying...' : 'Deploy Now'}
+            {deploying ? 'Deploying...' : 'Deploy now'}
           </button>
         </div>
       </div>
+      <p className="hint">A deploy pulls your latest code, builds it, and puts it live. Pushing to your connected branch deploys automatically; or click <b>Deploy now</b>. <b>Roll back</b> redeploys the last build that worked.</p>
 
       {error && <div className="error">{error}</div>}
 

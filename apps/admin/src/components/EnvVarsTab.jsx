@@ -86,13 +86,14 @@ export default function EnvVarsTab({ app, onRefresh }) {
   return (
     <div>
       <div className="tab-header">
-        <h2>Environment Variables</h2>
+        <h2>Variables</h2>
         <button onClick={() => setShowBulk(true)}>Import .env</button>
       </div>
       <p className="hint">
-        <span className="env-badge env-badge-reserved">reserved</span> vars are managed by the platform.
-        <span className="env-badge env-badge-declared">declared</span> vars come from the app's <code>app.json</code>.
-        Changes take effect on next deploy.
+        Settings and secrets your app reads while it runs — things like API keys and connection strings.{' '}
+        <span className="env-badge env-badge-reserved">reserved</span> ones Astrodock fills in for you;{' '}
+        <span className="env-badge env-badge-declared">declared</span> ones come from your app’s <code>app.json</code>.
+        Changes apply on the next deploy.
       </p>
 
       {error && <div className="error">{error}</div>}
