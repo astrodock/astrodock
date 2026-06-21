@@ -27,7 +27,14 @@ export default function LoginPage({ onLogin }) {
       <div className="login-bg-grid" />
       <form className="login-form" onSubmit={handleSubmit}>
         <div className="login-logo">
-          <div className="logo-mark">TS</div>
+          <div className="logo-mark">
+            <svg width="38" height="38" viewBox="0 0 34 34" fill="none">
+              <circle cx="17" cy="17" r="15" stroke="var(--accent)" strokeWidth="1.4" opacity=".4"/>
+              <circle cx="17" cy="17" r="9.5" stroke="var(--accent)" strokeWidth="1.4" opacity=".7"/>
+              <circle cx="17" cy="17" r="3.6" fill="var(--accent)"/>
+              <g className="orbit-dot"><circle cx="32" cy="17" r="2.3" fill="var(--text)"/></g>
+            </svg>
+          </div>
           <span className="logo-text-lg">Astrodock</span>
         </div>
         <p className="login-subtitle">Admin Control Plane</p>

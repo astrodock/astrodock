@@ -16,7 +16,15 @@ import './App.css';
 
 export default function App() {
   const [isAuthed, setIsAuthed] = useState(!!getToken());
+  const [theme, setTheme] = useState(() => document.documentElement.dataset.theme || 'dark');
   const navigate = useNavigate();
+
+  function toggleTheme() {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    document.documentElement.dataset.theme = next;
+    try { localStorage.setItem('astrodock_theme', next); } catch { /* ignore */ }
+  }
 
   useEffect(() => {
     if (!getToken() && window.location.pathname !== '/login') {
@@ -48,8 +56,18 @@ export default function App() {
     <div className="app">
       <nav className="sidebar">
         <div className="sidebar-header">
-          <div className="logo-mark">TS</div>
-          <span className="logo-text">Astrodock</span>
+          <div className="logo-mark">
+            <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
+              <circle cx="17" cy="17" r="15" stroke="var(--accent)" strokeWidth="1.4" opacity=".4"/>
+              <circle cx="17" cy="17" r="9.5" stroke="var(--accent)" strokeWidth="1.4" opacity=".7"/>
+              <circle cx="17" cy="17" r="3.6" fill="var(--accent)"/>
+              <g className="orbit-dot"><circle cx="32" cy="17" r="2.3" fill="var(--text)"/></g>
+            </svg>
+          </div>
+          <div className="logo-wrap">
+            <span className="logo-text">ASTRO<span className="logo-text-dim">DOCK</span></span>
+            <span className="logo-sub">control plane</span>
+          </div>
         </div>
         <ul className="nav-links">
           <li>
@@ -96,10 +114,24 @@ export default function App() {
           </li>
         </ul>
         <div className="sidebar-footer">
-          <button className="logout-btn" onClick={handleLogout}>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 2H3a1 1 0 00-1 1v10a1 1 0 001 1h3M11 11l3-3-3-3M6 8h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            Log out
-          </button>
+          <div className="sys-chip">
+            <span className="process-dot active" />
+            <div className="t"><b>System nominal</b><span>localhost</span></div>
+          </div>
+          <div className="sidebar-actions">
+            <button className="theme-toggle" onClick={toggleTheme} title="Toggle light / dark">
+              {theme === 'dark' ? (
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="3.4" stroke="currentColor" strokeWidth="1.5"/><path d="M8 1v1.6M8 13.4V15M1 8h1.6M13.4 8H15M3 3l1.1 1.1M11.9 11.9 13 13M13 3l-1.1 1.1M4.1 11.9 3 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+              ) : (
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M13.5 9.3A5.6 5.6 0 0 1 6.7 2.5 5.6 5.6 0 1 0 13.5 9.3z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"/></svg>
+              )}
+              <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
+            </button>
+            <button className="logout-btn" onClick={handleLogout}>
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M6 2H3a1 1 0 00-1 1v10a1 1 0 001 1h3M11 11l3-3-3-3M6 8h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              Log out
+            </button>
+          </div>
         </div>
       </nav>
       <main className="content">
