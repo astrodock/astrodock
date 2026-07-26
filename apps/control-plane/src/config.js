@@ -65,6 +65,11 @@ const config = {
   secretKey: process.env.ASTRODOCK_SECRET_KEY || '',
   adminEmail: process.env.ASTRODOCK_ADMIN_EMAIL || '',
   adminPassword: process.env.ASTRODOCK_ADMIN_PASSWORD || '',
+  // Operator-chosen first-run setup token. Set this at install time (e.g. a cloud
+  // provider's user-data field) and you never have to read the container logs to
+  // claim the admin account — which is what makes a terminal-free install possible.
+  // Unset = one is generated and printed at boot, as before.
+  setupToken: process.env.ASTRODOCK_SETUP_TOKEN || '',
 
   // ── Bundled Postgres (control-plane store + internal app DBs) ──
   pg: {

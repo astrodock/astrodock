@@ -14,6 +14,19 @@
 #   ASTRODOCK_IMAGE     image repository            (default ghcr.io/astrodock/astrodock)
 #   ASTRODOCK_REF       git ref to fetch files from (default main)
 #   ASTRODOCK_NO_START  set to 1 to write files but not start
+#
+# Unattended / cloud-init use (see docs/install-digitalocean.html):
+#   ASTRODOCK_SETUP_TOKEN     choose the first-run token yourself, so you never
+#                             have to read it out of the container logs — this is
+#                             what lets a cloud install skip SSH entirely
+#   ASTRODOCK_ADMIN_EMAIL     seed the admin account directly and skip the
+#   ASTRODOCK_ADMIN_PASSWORD  claim step (see the caveat in .env.example)
+#
+# Deliberately NOT supported here: presetting the base domain. If DNS is not live
+# yet, a configured domain means Caddy serves only that hostname and cannot get a
+# certificate for it — leaving the box unreachable at both the domain AND the IP,
+# with no wizard to fix it from. Set the domain in the browser, where DNS can be
+# checked first.
 set -eu
 
 DIR="${ASTRODOCK_DIR:-/opt/astrodock}"
@@ -76,6 +89,11 @@ while IFS= read -r line || [ -n "$line" ]; do
     ASTRODOCK_RUNNER_TOKEN=*)           printf 'ASTRODOCK_RUNNER_TOKEN=%s\n' "$RUNNER" ;;
     ASTRODOCK_PG_PASSWORD=*)            printf 'ASTRODOCK_PG_PASSWORD=%s\n' "$PGPW" ;;
     ASTRODOCK_OBJECTSTORE_SECRET_KEY=*) printf 'ASTRODOCK_OBJECTSTORE_SECRET_KEY=%s\n' "$OBJ" ;;
+    # Unattended passthrough: only written when actually supplied, so the template's
+    # blank line (and the browser-setup default) survives otherwise.
+    ASTRODOCK_SETUP_TOKEN=*)            printf 'ASTRODOCK_SETUP_TOKEN=%s\n' "${ASTRODOCK_SETUP_TOKEN:-}" ;;
+    ASTRODOCK_ADMIN_EMAIL=*)            printf 'ASTRODOCK_ADMIN_EMAIL=%s\n' "${ASTRODOCK_ADMIN_EMAIL:-}" ;;
+    ASTRODOCK_ADMIN_PASSWORD=*)         printf 'ASTRODOCK_ADMIN_PASSWORD=%s\n' "${ASTRODOCK_ADMIN_PASSWORD:-}" ;;
     *)                                  printf '%s\n' "$line" ;;
   esac
 done < "$DIR/.env.example" > "$tmp"
@@ -115,7 +133,14 @@ say "  │  Finish setup there: create the administrator account,"
 say "  │  choose your domain, add the DNS record it shows you,"
 say "  │  and switch on HTTPS."
 say "  │"
-say "  │  The one-time setup token is in the logs:"
-say "  │    cd $DIR && docker compose logs api | grep -A2 'first-run setup'"
+if [ -n "${ASTRODOCK_ADMIN_EMAIL:-}" ]; then
+  say "  │  The administrator account was seeded at install time —"
+  say "  │  sign in as ${ASTRODOCK_ADMIN_EMAIL}."
+elif [ -n "${ASTRODOCK_SETUP_TOKEN:-}" ]; then
+  say "  │  Use the setup token you supplied at install time."
+else
+  say "  │  The one-time setup token is in the logs:"
+  say "  │    cd $DIR && docker compose logs api | grep -A2 'first-run setup'"
+fi
 say "  └───────────────────────────────────────────────────────────"
 say ""

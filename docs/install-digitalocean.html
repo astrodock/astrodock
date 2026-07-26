@@ -35,8 +35,22 @@
             (1&nbsp;vCPU). Astrodock itself is comfortable in less, but it <em>builds your apps on the
             box</em>, and 1&nbsp;GB can run out of memory during a build.</li>
           <li><strong>Authentication:</strong> add your <strong>SSH key</strong> (recommended over a password).</li>
+          <li><strong>Advanced options → Add Initialization scripts (user data):</strong> paste the
+            two lines below. This installs Astrodock while the droplet boots, so you never have to
+            open a terminal at all. Replace the token with any string of your own — 16+ characters,
+            no spaces.
+            <pre><code>#!/bin/sh
+ASTRODOCK_SETUP_TOKEN='pick-your-own-long-token' sh -c "$(curl -fsSL https://raw.githubusercontent.com/astrodock/astrodock/main/scripts/install.sh)"</code></pre>
+            <p>Choosing the token here is what removes the log-reading step — you already know it,
+            so you can go straight to the browser. It stops working the moment you claim the account.</p>
+          </li>
         </ul>
         <p>Create it, and note the droplet's <strong>public IP address</strong>.</p>
+        <div class="callout note">
+          <p class="ct">Prefer to install by hand?</p>
+          <p>Skip the user-data box and follow steps 5–6 below over SSH instead. Same result — the
+            script is identical, it just runs when you say so rather than at boot.</p>
+        </div>
       </li>
 
       <li>
@@ -99,11 +113,14 @@
 
       <li>
         <h3>Finish setup in your browser</h3>
+        <p><em>If you used the user-data box in Step 1, skip Steps 4–6 entirely — Astrodock is already
+        installing itself. Give it about two minutes from droplet creation, then come straight here.</em></p>
         <p>Open <strong>http://&lt;your droplet IP&gt;</strong>. Astrodock starts up unconfigured and
         serves a short setup wizard there, which walks you through the rest:</p>
         <ol>
-          <li><strong>Create your administrator account.</strong> It asks for a one-time token that
-          Astrodock printed to its log — this is what stops anyone else claiming your server. Get it with:
+          <li><strong>Create your administrator account</strong>, using the setup token. If you set one
+          in user-data, that's the one. If you installed by hand without choosing a token, Astrodock
+          generated one and printed it to its log:
           <pre><code>cd /opt/astrodock &amp;&amp; docker compose logs api | grep -A2 'first-run setup'</code></pre></li>
           <li><strong>Enter your domain.</strong> The wizard shows you the exact DNS record to create,
           filled in with your server's IP, and a <strong>Check DNS</strong> button that tells you
@@ -117,6 +134,20 @@
         <figure class="shot" data-file="login.png" data-caption="The Astrodock dashboard, served over automatic HTTPS."></figure>
       </li>
     </ol>
+
+    <div class="callout note">
+      <p class="ct">A note on the setup token and instance metadata</p>
+      <p>Anything you put in user data stays readable from the droplet's metadata service for the
+      life of the droplet. That's fine for the setup token — it is worthless the moment you claim
+      the account. It is <em>not</em> fine for a password, which is why we suggest choosing a token
+      here and picking your password in the browser, rather than seeding
+      <code>ASTRODOCK_ADMIN_PASSWORD</code> (which <code>install.sh</code> also accepts, and which
+      would stay valid forever).</p>
+      <p>Note also that the wizard runs over plain HTTP, because at that point the server has no
+      domain and so cannot have a certificate. Your password crosses the wire unencrypted during
+      that brief window. If that matters for your threat model, change it from Settings once HTTPS
+      is live.</p>
+    </div>
 
     <div class="callout">
       <p class="ct">Would rather not use the browser at all?</p>

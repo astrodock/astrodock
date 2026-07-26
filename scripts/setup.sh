@@ -17,6 +17,7 @@
 #   ./scripts/setup.sh --up                        # ...and then `docker compose up -d`
 #
 # Flags: --domain D  --email E  --admin-email E  --admin-password P  --tls auto|internal|off
+#        --setup-token T (choose the first-run token instead of reading it from the logs)
 #        --local  --up  --force (overwrite an existing .env)  -h/--help
 set -eu
 
@@ -26,6 +27,7 @@ TEMPLATE="$REPO/.env.example"
 OUT="$REPO/.env"
 
 DOMAIN=""; EMAIL=""; ADMIN_EMAIL=""; ADMIN_PASSWORD=""; TLS=""; LOCAL=0; FORCE=0; UP=0
+SETUP_TOKEN="${ASTRODOCK_SETUP_TOKEN:-}"
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -33,6 +35,7 @@ while [ $# -gt 0 ]; do
     --email) EMAIL="$2"; shift 2 ;;
     --admin-email) ADMIN_EMAIL="$2"; shift 2 ;;
     --admin-password) ADMIN_PASSWORD="$2"; shift 2 ;;
+    --setup-token) SETUP_TOKEN="$2"; shift 2 ;;
     --tls) TLS="$2"; shift 2 ;;
     --local) LOCAL=1; shift ;;
     --up) UP=1; shift ;;
@@ -87,6 +90,7 @@ while IFS= read -r line || [ -n "$line" ]; do
     ASTRODOCK_ACME_EMAIL=*)             printf 'ASTRODOCK_ACME_EMAIL=%s\n' "$EMAIL" ;;
     ASTRODOCK_ADMIN_EMAIL=*)            printf 'ASTRODOCK_ADMIN_EMAIL=%s\n' "$ADMIN_EMAIL" ;;
     ASTRODOCK_ADMIN_PASSWORD=*)         printf 'ASTRODOCK_ADMIN_PASSWORD=%s\n' "$ADMIN_PASSWORD" ;;
+    ASTRODOCK_SETUP_TOKEN=*)            printf 'ASTRODOCK_SETUP_TOKEN=%s\n' "$SETUP_TOKEN" ;;
     ASTRODOCK_ADMIN_JWT_SECRET=*)       printf 'ASTRODOCK_ADMIN_JWT_SECRET=%s\n' "$JWT" ;;
     ASTRODOCK_SECRET_KEY=*)             printf 'ASTRODOCK_SECRET_KEY=%s\n' "$SECRET" ;;
     ASTRODOCK_RUNNER_TOKEN=*)           printf 'ASTRODOCK_RUNNER_TOKEN=%s\n' "$RUNNER" ;;
@@ -117,7 +121,12 @@ else
   echo "  account, choosing a domain, showing you the exact DNS record to add,"
   echo "  checking that record, and switching on HTTPS."
 fi
-if [ -z "$ADMIN_EMAIL" ]; then
+if [ -n "$ADMIN_EMAIL" ]; then
+  :
+elif [ -n "$SETUP_TOKEN" ]; then
+  echo ""
+  echo "  Claim the dashboard with the setup token you supplied."
+else
   echo ""
   echo "  The first-run setup token is printed by the control plane on boot:"
   echo "    docker compose logs api | grep -A2 'first-run setup'"

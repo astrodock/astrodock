@@ -159,6 +159,33 @@ test('CORS opens only while unconfigured, then closes to the base domain', () =>
   }
 });
 
+console.log('\npreset setup token');
+
+const { validatePresetToken, MIN_PRESET_TOKEN_LENGTH } = require('../src/routes/setup.js');
+
+test('a short operator-supplied token is refused, not silently accepted', () => {
+  // It would be brute-forceable over the open internet in the window before the
+  // account is claimed. Falling back to a generated token is the safe failure.
+  assert.strictEqual(validatePresetToken('short').ok, false);
+  assert.strictEqual(validatePresetToken('a'.repeat(MIN_PRESET_TOKEN_LENGTH - 1)).ok, false);
+  assert.strictEqual(validatePresetToken('a'.repeat(MIN_PRESET_TOKEN_LENGTH)).ok, true);
+});
+
+test('empty / whitespace tokens are refused', () => {
+  assert.strictEqual(validatePresetToken('').ok, false);
+  assert.strictEqual(validatePresetToken(null).ok, false);
+  assert.strictEqual(validatePresetToken(undefined).ok, false);
+  // A pasted cloud-init value can pick up stray whitespace; that would silently
+  // never match what the operator thinks they typed.
+  assert.strictEqual(validatePresetToken('has space in it here').ok, false);
+});
+
+test('a valid token is trimmed, not rejected, for stray edge whitespace', () => {
+  const r = validatePresetToken('  my-really-long-setup-token  ');
+  assert.strictEqual(r.ok, true);
+  assert.strictEqual(r.value, 'my-really-long-setup-token');
+});
+
 console.log('\nport exposure');
 
 const { parsePorts } = require('../src/runner/exposure.js');

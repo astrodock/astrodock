@@ -31,11 +31,41 @@ const router = express.Router();
 // Held in memory only. A restart mints a new one and reprints it, which is the
 // behaviour we want: the token is a proof-of-log-access credential, not a secret
 // worth persisting. Cleared for good once an admin exists.
+//
+// It can also be supplied at install time via ASTRODOCK_SETUP_TOKEN. That is what
+// removes the log-reading step — and with it the only reason to open a terminal on
+// a cloud install: you put a token you already know into the provider's user-data
+// field, and go straight to the browser. It stops being a secret the moment the
+// account is claimed, which is why this is preferable to seeding a password that
+// stays valid forever in instance metadata.
 let setupToken = null;
 
+// A short operator-supplied token would be brute-forceable over the open internet
+// in the window before the account is claimed, which the generated 48-char one is
+// not. Reject rather than silently accept a weak one.
+const MIN_PRESET_TOKEN_LENGTH = 16;
+
+function validatePresetToken(value) {
+  const v = String(value || '').trim();
+  if (!v) return { ok: false, reason: 'empty' };
+  if (v.length < MIN_PRESET_TOKEN_LENGTH) {
+    return { ok: false, reason: `shorter than ${MIN_PRESET_TOKEN_LENGTH} characters` };
+  }
+  if (/\s/.test(v)) return { ok: false, reason: 'contains whitespace' };
+  return { ok: true, value: v };
+}
+
 function mintSetupToken() {
+  const preset = validatePresetToken(config.setupToken);
+  if (preset.ok) {
+    setupToken = preset.value;
+    return { token: setupToken, preset: true };
+  }
+  if (config.setupToken) {
+    console.warn(`WARNING: ASTRODOCK_SETUP_TOKEN ignored (${preset.reason}) — generating one instead.`);
+  }
   setupToken = crypto.randomBytes(24).toString('hex');
-  return setupToken;
+  return { token: setupToken, preset: false };
 }
 
 function clearSetupToken() {
@@ -62,20 +92,28 @@ async function initSetup({ log = console.log } = {}) {
     clearSetupToken();
     return { needed: false };
   }
-  const token = mintSetupToken();
+  const { token, preset } = mintSetupToken();
   const where = config.isConfigured()
     ? `https://${config.adminSubdomain}.${config.baseDomain}`
     : 'http://<this-server-ip>';
   log('');
   log('  ┌─ Astrodock first-run setup ───────────────────────────────');
   log(`  │  Open   ${where}`);
-  log(`  │  Token  ${token}`);
-  log('  │');
-  log('  │  The token proves you own this server. It is not stored,');
-  log('  │  and a new one is printed if this container restarts.');
+  if (preset) {
+    // Deliberately not echoed: an operator-supplied token is already known to
+    // whoever needs it, and logs get shipped to places the token shouldn't reach.
+    log('  │  Token  (the one you set at install time)');
+    log('  │');
+    log('  │  It stops working the moment the account is claimed.');
+  } else {
+    log(`  │  Token  ${token}`);
+    log('  │');
+    log('  │  The token proves you own this server. It is not stored,');
+    log('  │  and a new one is printed if this container restarts.');
+  }
   log('  └───────────────────────────────────────────────────────────');
   log('');
-  return { needed: true, token };
+  return { needed: true, token, preset };
 }
 
 // ── routes ────────────────────────────────────────────────────────────────────
@@ -231,3 +269,5 @@ router.post('/domain', requireAdmin, async (req, res) => {
 module.exports = router;
 module.exports.initSetup = initSetup;
 module.exports.adminExists = adminExists;
+module.exports.validatePresetToken = validatePresetToken;
+module.exports.MIN_PRESET_TOKEN_LENGTH = MIN_PRESET_TOKEN_LENGTH;
