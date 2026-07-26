@@ -282,11 +282,21 @@ external domain**, with a guided add → verify → activate flow in the admin U
 
 ---
 
+## Decisions — settled (do not re-litigate)
+_Last reconciled 2026-07-26 against the code, not from memory._
+- **License:** MIT. (`LICENSE`)
+- **Postgres layer:** Drizzle. (Stage 3)
+- **Custom domains** per app with Caddy on-demand TLS: **built**. (Stage 16)
+- **Non-GitHub deploy:** **built** — `astrodock deploy --local` tars a local build and hands
+  it to the runner. (Hardening pass #12)
+- **Terminal endpoint:** kept and gated. `ASTRODOCK_ENABLE_TERMINAL`, default **false**; the
+  routes are only registered when it is on. (`config.js:136`, `admin-apps.js:524`)
+- **Name:** Astrodock. Env prefix `ASTRODOCK_`, CLI `astrodock`/`adock`, npm `@astrodock`.
+  Folder renamed from `Toolstead` on 2026-07-26.
+
 ## Open decisions — surface to the user when you reach them
-- **License:** MIT (recommended) vs Apache-2.0.
-- **Internal backups:** local-only vs optional off-box to an external object store.
-- **Postgres layer:** Drizzle (recommended) vs Prisma — confirm before Stage 3.
-- **Custom domains** per app (Caddy on-demand TLS) — additive, likely post-v1.
-- **Non-GitHub deploy** (CLI push of a local build) — post-v1.
-- **Terminal endpoint:** keep, but gate behind an `ENABLE_TERMINAL` env flag (recommended).
-- Whether to revisit the **name** (Astrodock is a working placeholder).
+- **Internal backups:** local-only (current behaviour) vs optional off-box copy to an external
+  object store. Explicitly flagged as a follow-up in `src/lib/backups.js:7`.
+- **Publishing:** the repo has no git remote and has never been pushed. Choosing a host, an
+  org/account, and whether the first push is public or private is still outstanding — and is
+  the last thing standing between this and being an actual open-source project.

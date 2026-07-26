@@ -4,7 +4,12 @@
 // environment with the reserved ASTRODOCK_ prefix. No org-specific defaults —
 // the only baked-in fallbacks are safe local-dev values.
 
-require('dotenv').config();
+// Load the repo-root .env regardless of cwd. npm workspaces run package scripts
+// with cwd set to the package directory, so a bare dotenv.config() would look for
+// apps/control-plane/.env and silently find nothing — leaving the process on
+// built-in defaults. Under Docker, compose's env_file has already populated the
+// environment (dotenv never overrides what is set) and this path doesn't exist.
+require('dotenv').config({ path: require('path').resolve(__dirname, '../../../.env') });
 
 function bool(v, def = false) {
   if (v == null || v === '') return def;

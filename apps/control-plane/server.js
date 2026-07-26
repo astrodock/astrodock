@@ -80,6 +80,14 @@ async function start() {
     process.exit(1);
   }
 
+  // The bundled Postgres password has a local-dev default so the stack boots on a
+  // laptop, but shipping that default to a real deploy would mean a guessable DB
+  // credential. Refuse to start in production without an explicit value.
+  if (config.env === 'production' && !process.env.ASTRODOCK_PG_PASSWORD) {
+    console.error('FATAL: ASTRODOCK_PG_PASSWORD is required in production (refusing to fall back to the built-in dev default).');
+    process.exit(1);
+  }
+
   if (!secretEncryptionEnabled()) {
     console.warn('WARNING: ASTRODOCK_SECRET_KEY is not set — secrets are stored in PLAINTEXT. Set it to encrypt secrets at rest (see SECURITY.md).');
   }

@@ -117,3 +117,129 @@ on the full Docker stack. Summary:
 Tests after the pass: **15 control-plane integration + 6 unit + 7 CLI** (the integration/CLI
 suites now start an in-process runner, exercising the api↔runner split). Remaining known
 limitations are documented in `SECURITY.md` (runner is the trust boundary; no multi-admin RBAC).
+
+---
+
+## Phase 6 — production hardening (Stages 10–16) ✅
+
+All seven stages are implemented and committed. The pattern throughout: **record an event,
+then optionally route it** — alerts, access logs, and the audit trail all hang off the one
+spine rather than being three systems.
+
+### Stage 10 — event & settings spine ✅
+`events` table + `emitEvent()` (record a row, deliver any attached notification); existing
+health down/recovery alerts rewired through it. `platform_settings` + a settings accessor
+(env default → DB override) and `/admin/settings` exposing operational settings, masked infra
+diagnostics, and readiness checks.
+
+### Stage 11 — notification routing & channels ✅
+`notification_rules` + `notification_deliveries` (send log, dedup/rate-limit generalising the
+old `alertSent` latch). Channels: email + generic outbound webhook. New emit sites: deploy
+started/succeeded/failed, pages published/deleted, auth anomaly, audit, system.
+
+### Stage 12 — settings & notifications UI ✅
+Global Settings nav: Notifications · Email · Logging & Retention · Feature flags · read-only
+Diagnostics + readiness banner. Secret-typed settings reuse the AES-GCM at-rest path.
+
+### Stage 13 — logging ✅
+`page_views` (per request, IP per the retention knob) with views-over-time + referrers;
+per-app Caddy access logs surfaced (status histogram + recent requests); per-app runtime log
+tail via the runner; audit log surfaced in Activity.
+
+### Stage 14 — durability: backups & disk ✅
+Runner executes `pg_dumpall` against the bundled Postgres, gzipped to a backups volume on a
+configurable interval (default 24h, keep 7). Each run records a row and emits
+`backup.succeeded` / `backup.failed`, so a failed backup alerts (deduped). Manual "Back up
+now". Disk checked every 5m → `system.disk_high` past a configurable threshold (default 85%).
+
+### Stage 15 — deploy safety & platform self-health ✅
+Rollback: the worker can check out a specific `targetCommit`; `POST /apps/:slug/rollback`
+finds the last good build and redeploys it. Build timeouts made configurable. A control-plane
+checker probes DB / object store / runner reachability + admin-host TLS cert every 2m,
+emitting `system.dependency_down`/`_up` and `system.cert_expiring` (≤14d, deduped).
+📦 The cert probe and dependency probes need a live stack; logic is unit-load-verified.
+
+### Stage 16 — custom domains & DNS ✅
+`custom_domains`: add a hostname → the UI shows the exact DNS records (A to the server IP +
+TXT challenge) → "Verify" resolves the TXT and activates. Active domains get a Caddy site
+block mirroring the app's routing; with `tlsMode=auto`, on-demand TLS is gated by a public
+`/_caddy/ask` endpoint that authorises only registered+active hostnames. **With zero custom
+domains the Caddyfile is byte-for-byte unchanged** (safe default). Canonical redirects
+(`redirectToCanonical` → 301 preserving path + query). Health loop re-resolves active domains
+every 30m, emitting `domain.dns_drift`. Reserved-subdomain fix pulled forward — apps can no
+longer claim `admin`/`pages`/the configured platform subdomains, and subdomains must be valid
+DNS labels.
+📦 DNS resolution + on-demand TLS need a live stack; generation logic and wiring verified here.
+
+---
+
+## Admin UI — "Orbital Mission Control" redesign ✅
+
+Six commits, built screen by screen from self-contained HTML prototypes (`ea0c29c`) that
+served as the design spec.
+
+- **Foundation** (`348851e`): `App.css` rewritten as a CSS-variable design system; dark
+  (default) + light are two token sets switched via `<html data-theme>`. Saira + IBM Plex
+  Mono, flash-free theme init. Orbital logomark replaced the leftover "TS" mark.
+- **Overview** (`95e4b42`): new landing page after login — system-state hero (calm green /
+  loud red), a "Needs attention" block prominent only when something is wrong, telemetry,
+  live activity feed, platform-dependency grid, polling every 15s. Nav regrouped into
+  Operate / Network & access / Observe; "Tokens" → "Access keys".
+- **Apps + Domains** (`4630875`): Apps rebuilt as status-driven cards (problems sorted
+  first); new global Domains roll-up page + `GET /admin/domains`.
+- **Settings + Health** (`dc73b93`): Settings rebuilt to field rows with readiness cards and
+  a sticky save bar; Health became the detailed metrics page with live sparklines
+  (accumulated client-side — **no faked history**). Fixed `.data-table` corner clipping.
+- **App-manage page** (`6bc056f`, `c596964`): every tab brought to the same design +
+  explanation bar — Deploys (status LED, trigger attribution, expand-to-log), Variables
+  (split "Your variables" vs "Provided by Astrodock"), Logs, Terminal (explicit danger note),
+  and the Custom-domains tab reworked to match the Domains roll-up idiom.
+
+Not-yet-backed pieces are deliberately marked "soon" in the UI rather than faked: in-UI email
+key, off-box log forwarding, backup download/restore, lockdown, danger zone.
+
+---
+
+## Rename: Toolstead → Astrodock ✅ (2026-07-26)
+
+The working name changed and the folder was renamed `Toolstead` → `Astrodock`. The repo
+content had already been migrated (package name, compose project name, all source) — this was
+the folder and the last stragglers. Compose is unaffected because `docker-compose.yml` pins
+`name: astrodock`, so volumes were never keyed to the directory name.
+
+### Config/env fix pass — the de-brand did not reach gitignored files ⚠️→✅
+
+Standing up the host-side dev path after the rename surfaced four related defects. All four
+are fixed; **the root cause in three of them was that the de-brand swept tracked files only,
+so gitignored config kept the dead `TOOLSTEAD_` prefix and silently stopped being read.**
+
+| # | Defect | Fix |
+|---|--------|-----|
+| 1 | `apps/control-plane/.env` was a stale Toolstead-era file — all 20 vars `TOOLSTEAD_*`, ignored by `ASTRODOCK_*` code | renamed to `.env.toolstead-era.disabled` (preserved, still gitignored) |
+| 2 | Root `.env` never loaded in host-side dev: `config.js` called `dotenv.config()` with no path, and npm workspaces set cwd to the *package* dir, so it looked for `apps/control-plane/.env` and found nothing | `dotenv.config({ path: resolve(__dirname, '../../../.env') })` — cwd-independent. Docker unaffected (compose `env_file` already populates the env; dotenv never overrides) |
+| 3 | `ASTRODOCK_ENV` absent from `.env.example`, so it defaulted to `production`, where the CORS matcher rejects `http://localhost:<port>`. Surfaced only as a generic **500 "Not allowed by CORS"** with no hint at the cause | added to `.env.example` with an explanation; `dev` script now sets `ASTRODOCK_ENV=development` so `npm run dev:api` is correct by construction |
+| 4 | `config.js` fell back to `PG_PASSWORD \|\| 'astrodock'` — a real deploy missing the var would connect with a guessable credential instead of failing loudly (`ADMIN_JWT_SECRET` correctly fatals; this silently did not) | startup guard: refuses to boot when `env === 'production'` and `ASTRODOCK_PG_PASSWORD` is unset. Dev default retained so a laptop still boots |
+
+**Verified:** ✅ plain `npm run dev:api` now boots on the root `.env` (previously died on a
+missing JWT secret) and reports `env=development`; CORS preflight from the Vite origin returns
+204 with a matching `Access-Control-Allow-Origin`; admin login returns a JWT **with an `Origin`
+header set** — the earlier check missed this because node's `fetch` sends no `Origin`, so it
+passed while the browser was rejected. Production guard exercised directly (FATAL as intended).
+30 unit tests still pass (schema 14, control-plane 6+6, cli 4).
+
+### Host-side dev quickstart (what actually works)
+
+The compose stack publishes only Caddy's 80/443, so host-side dev needs its own Postgres:
+
+```bash
+docker run -d --name astrodock-pg -p 5432:5432 \
+  -e POSTGRES_USER=astrodock -e POSTGRES_PASSWORD=<ASTRODOCK_PG_PASSWORD> \
+  -e POSTGRES_DB=astrodock postgres:16-alpine
+npm run migrate && npm run seed     # seed needs ADMIN_EMAIL/PASSWORD set in the root .env
+npm run dev:api                     # :3100, development mode
+npm run dev:admin                   # :5173 (use `-- --port N` if 5173 is taken)
+python3 -m http.server 8080 --directory docs   # the public docs site (pure static)
+```
+
+Caveat: no Caddy and no object store on this path, so the API logs `[caddy] reload error` on a
+loop and routing/storage/domain panels are empty. Use the full compose stack to exercise those.
