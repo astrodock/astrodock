@@ -71,6 +71,14 @@ say "Fetching Astrodock…"
 fetch "$RAW/docker-compose.yml" "$DIR/docker-compose.yml" || die "Could not download docker-compose.yml from $RAW"
 fetch "$RAW/.env.example" "$DIR/.env.example" || die "Could not download .env.example from $RAW"
 
+# The bootstrap Caddyfile is bind-mounted by the caddy service, so it must exist on
+# disk before `docker compose up`. Without it Docker helpfully creates a DIRECTORY
+# at that path and then fails to mount it over a file, with an error that says
+# nothing about the real cause. It is the only host path the compose file needs —
+# keep this in step with the `./` bind mounts in docker-compose.yml.
+mkdir -p "$DIR/infra/caddy"
+fetch "$RAW/infra/caddy/Caddyfile" "$DIR/infra/caddy/Caddyfile" || die "Could not download infra/caddy/Caddyfile from $RAW"
+
 # ── configure ─────────────────────────────────────────────────────────────────
 # Same managed-key substitution as scripts/setup.sh, kept promptless on purpose:
 # the only values a human must choose (domain, admin account) are collected by the
