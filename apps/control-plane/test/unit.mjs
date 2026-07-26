@@ -111,6 +111,26 @@ test('unconfigured: pages host does not swallow every request', () => {
   }
 });
 
+test('configured admin host still routes /setup/* to the API', () => {
+  // Regression: the admin block proxied /admin, /verify, /webhooks, /health and
+  // /account but not /setup — so once a domain was set, GET /setup/status fell
+  // through to the SPA catch-all and returned HTML. The admin UI calls it on every
+  // mount, so it silently degraded instead of failing loudly. Caught end-to-end,
+  // not by any unit test, which is why this one exists.
+  const saved = config.baseDomain;
+  try {
+    config.applyRuntimeDomain({ baseDomain: 'apps.example.com' });
+    const cfg = generateCaddyfile([]);
+    assert.ok(cfg.includes('handle /setup/*'), '/setup/* must be proxied on the admin host');
+    const adminIdx = cfg.indexOf('admin.apps.example.com');
+    const setupIdx = cfg.indexOf('handle /setup/*', adminIdx);
+    const spaIdx = cfg.indexOf('try_files {path} /index.html', adminIdx);
+    assert.ok(setupIdx > adminIdx && setupIdx < spaIdx, '/setup/* must come before the SPA catch-all');
+  } finally {
+    config.applyRuntimeDomain({ baseDomain: saved });
+  }
+});
+
 test('setting a domain at runtime re-keys routing and the pages host', () => {
   const saved = config.baseDomain;
   try {

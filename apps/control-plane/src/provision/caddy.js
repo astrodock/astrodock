@@ -112,6 +112,9 @@ ${site(host)} {
 \thandle /admin/* {
 \t\treverse_proxy ${API}
 \t}
+\thandle /setup/* {
+\t\treverse_proxy ${API}
+\t}
 \thandle /verify {
 \t\treverse_proxy ${API}
 \t}
