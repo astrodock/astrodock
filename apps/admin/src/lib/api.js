@@ -53,6 +53,26 @@ async function request(path, options = {}) {
 export const login = (email, password) =>
   request('/login', { method: 'POST', body: JSON.stringify({ email, password }) });
 
+// ── First-run setup ───────────────────────────────────────────────────────────
+// Lives outside /admin: /setup/status has to answer before an admin exists, and
+// before the platform has a domain at all (it is served over http://<server-ip>).
+async function setupRequest(path, options = {}) {
+  const headers = { 'Content-Type': 'application/json', ...options.headers };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(`/setup${path}`, { ...options, headers });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new ApiError(data.error || 'Request failed', { status: res.status, body: data });
+  return data;
+}
+
+export const getSetupStatus = () => setupRequest('/status');
+export const claimAdmin = (token_, email, password, name) =>
+  setupRequest('/claim', { method: 'POST', body: JSON.stringify({ token: token_, email, password, name }) });
+export const checkSetupDns = (baseDomain, observedIp) =>
+  setupRequest('/check-dns', { method: 'POST', body: JSON.stringify({ baseDomain, observedIp }) });
+export const setSetupDomain = (baseDomain, tlsMode, acmeEmail) =>
+  setupRequest('/domain', { method: 'POST', body: JSON.stringify({ baseDomain, tlsMode, acmeEmail }) });
+
 // Users
 export const getUsers = () => request('/users');
 export const getUser = (id) => request(`/users/${id}`);

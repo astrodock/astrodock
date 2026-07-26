@@ -45,7 +45,11 @@ const config = {
   env: process.env.ASTRODOCK_ENV || process.env.NODE_ENV || 'production',
 
   // ── Domain / routing ──
-  baseDomain: process.env.ASTRODOCK_BASE_DOMAIN || 'localhost',
+  // Empty = UNCONFIGURED. The stack is designed to boot with no domain at all and
+  // serve the first-run wizard over the server's IP (see provision/caddy.js
+  // setupBlock), so `docker compose up -d` is the only command an operator runs.
+  // The wizard sets this at runtime via applyRuntimeDomain().
+  baseDomain: process.env.ASTRODOCK_BASE_DOMAIN || '',
   adminSubdomain: process.env.ASTRODOCK_ADMIN_SUBDOMAIN || 'admin',
   tlsMode: (process.env.ASTRODOCK_TLS_MODE || 'internal').toLowerCase(), // auto | internal | off
   acmeEmail: process.env.ASTRODOCK_ACME_EMAIL || '',
@@ -154,9 +158,36 @@ const config = {
 // The internal /verify address apps use (compose-network address of this service).
 config.internalAuthUrl = process.env.ASTRODOCK_INTERNAL_AUTH_URL || `http://api:${config.port}`;
 
+// ── Setup state + runtime domain ──────────────────────────────────────────────
+// The base domain is the ONE bootstrap value a human must supply, and the wizard
+// collects it after boot. Every consumer reads config.baseDomain at call time, so
+// the only thing that has to be refreshed when it changes is the derived Pages
+// host below. (BUILD_PLAN.md re-pins this: domain/TLS are runtime-settable; the
+// rest of the bootstrap tier — PG creds, secret key, runner token — stays env-only.)
+function recomputeDerived() {
+  config.pages.host = `${config.pages.subdomain}.${config.baseDomain}`;
+}
+
+config.isConfigured = function isConfigured() {
+  return !!config.baseDomain;
+};
+
+// Apply a domain/TLS change in place. Callers are responsible for persisting it
+// (lib/settings setBootstrap) and for regenerating routing afterwards.
+config.applyRuntimeDomain = function applyRuntimeDomain({ baseDomain, tlsMode, acmeEmail } = {}) {
+  if (baseDomain != null) config.baseDomain = String(baseDomain).trim().toLowerCase();
+  if (tlsMode != null) config.tlsMode = String(tlsMode).trim().toLowerCase();
+  if (acmeEmail != null) config.acmeEmail = String(acmeEmail).trim();
+  recomputeDerived();
+  return { baseDomain: config.baseDomain, tlsMode: config.tlsMode, acmeEmail: config.acmeEmail };
+};
+
 // The host Pages are served on, e.g. pages.example.com.
-config.pages.host = `${config.pages.subdomain}.${config.baseDomain}`;
+recomputeDerived();
 config.isPagesHost = function isPagesHost(hostname) {
+  // Before setup there is no Pages host; an empty base domain would make this
+  // match "pages." and hijack every request.
+  if (!config.isConfigured()) return false;
   return (hostname || '').toLowerCase() === config.pages.host.toLowerCase();
 };
 
@@ -171,6 +202,12 @@ config.isAllowedOrigin = function isAllowedOrigin(origin) {
   if (config.allowedOriginPattern) {
     try { return new RegExp(config.allowedOriginPattern).test(origin); } catch { /* fall through */ }
   }
+  // Before setup the wizard is reached at http://<server-ip>, which we cannot know
+  // in advance, and a same-origin POST still carries an Origin header — so a strict
+  // matcher would block the very flow that sets the domain. Nothing here is
+  // protected by CORS anyway: /setup/claim is guarded by the setup token, and CORS
+  // never applied to non-browser callers. Once a domain is set this closes.
+  if (!config.isConfigured()) return true;
   const d = config.baseDomain.replace(/\./g, '\\.');
   return new RegExp(`^https?://(.*\\.)?${d}$`).test(origin);
 };

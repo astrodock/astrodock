@@ -45,8 +45,11 @@
       <tr>
         <td><code>ASTRODOCK_BASE_DOMAIN</code></td>
         <td>The base domain every app lives under: <code>&lt;subdomain&gt;.&lt;base-domain&gt;</code>.
-          Use <code>localhost</code> locally; your real domain on a server.</td>
-        <td><span class="pill">localhost</span> (template ships <code>example.com</code>)</td>
+          Use <code>localhost</code> locally; your real domain on a server.
+          <strong>Leave blank to set it in the browser</strong> — with no domain, Astrodock boots into
+          first-run setup and serves the wizard over plain HTTP at <code>http://&lt;server-ip&gt;</code>.
+          Once set there it is stored in the database, and that stored value wins over this variable.</td>
+        <td><span class="pill">blank — first-run setup</span></td>
       </tr>
       <tr>
         <td><code>ASTRODOCK_ADMIN_SUBDOMAIN</code></td>

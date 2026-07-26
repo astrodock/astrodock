@@ -37,6 +37,37 @@ function askUrl() {
   return `${config.internalAuthUrl}/_caddy/ask`;
 }
 
+// Pre-configuration routing. With no base domain there is no hostname to key a
+// site block on and no way to get a real certificate, so we serve the admin SPA
+// (which renders the first-run wizard) and the /setup API over plain HTTP on
+// whatever address the operator reaches the box by — normally http://<server-ip>.
+// This is what lets `docker compose up -d` be the only command.
+function setupGlobalOptions() {
+  return `{\n\tadmin 0.0.0.0:2019 {\n\t\torigins ${adminOrigin()} http://localhost:2019 http://127.0.0.1:2019\n\t}\n\tauto_https off\n}\n`;
+}
+
+function setupBlock() {
+  const staticRoot = `${config.paths.caddyStatic}/__admin`;
+  return `
+:80 {
+\thandle /setup/* {
+\t\treverse_proxy ${API}
+\t}
+\thandle /admin/* {
+\t\treverse_proxy ${API}
+\t}
+\thandle /health {
+\t\treverse_proxy ${API}
+\t}
+\thandle {
+\t\troot * ${staticRoot}
+\t\ttry_files {path} /index.html
+\t\tfile_server
+\t}
+}
+`;
+}
+
 function globalOptions(onDemand) {
   // Keep the admin API reachable from the api container; the origins list must
   // include the Origin the control plane POSTs from, or Caddy returns 403.
@@ -144,6 +175,8 @@ ${site(host)} {
 }
 
 function generateCaddyfile(apps, opts = {}) {
+  // Unconfigured: nothing can be routed by hostname yet. Serve only the wizard.
+  if (!config.isConfigured()) return setupGlobalOptions() + setupBlock();
   const accessLogs = !!opts.accessLogs;
   const domains = opts.domains || [];
   const onDemand = config.tlsMode === 'auto' && domains.length > 0;

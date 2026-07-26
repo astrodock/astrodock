@@ -24,6 +24,10 @@ const require = createRequire(path.join(cpDir, 'server.js'));
 // load control-plane env explicitly (so this test works from repo root too)
 require('dotenv').config({ path: path.join(cpDir, '.env') });
 
+// Pin a base domain before config loads: empty now means "first-run setup pending",
+// and these tests drive a configured platform (apps, deploys, app URLs).
+process.env.ASTRODOCK_BASE_DOMAIN ||= 'localhost';
+
 const { app } = require(path.join(cpDir, 'server.js'));
 const { migrate } = require(path.join(cpDir, 'src/db/migrate.js'));
 const { seedAdmin } = require(path.join(cpDir, 'src/seed.js'));

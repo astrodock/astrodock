@@ -4,8 +4,15 @@ import assert from 'node:assert';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 
+// A base domain is no longer defaulted — empty means "first-run setup pending", and
+// the Caddy generator then emits the wizard site instead of hostname-keyed blocks.
+// Set one before loading config so these tests exercise the CONFIGURED path; the
+// unconfigured path gets its own tests at the bottom.
+process.env.ASTRODOCK_BASE_DOMAIN = 'localhost';
+
 const { computeEnv, computeMissingRequired } = require('../src/lib/env-compute.js');
 const { generateCaddyfile } = require('../src/provision/caddy.js');
+const config = require('../src/config.js');
 
 let passed = 0, failed = 0;
 function test(name, fn) {
@@ -73,6 +80,87 @@ test('docker app block whole-proxies the subdomain', () => {
   const cfg = generateCaddyfile([{ ...internalApp, slug: 'pytool', subdomain: 'pytool', runtimeType: 'docker', port: 3102 }]);
   assert.ok(/reverse_proxy app-pytool:3102/.test(cfg), 'whole-proxy to sibling container');
   assert.ok(!/handle \/api\/\*[\s\S]*app-pytool/.test(cfg), 'docker app has no /api split');
+});
+
+console.log('\nfirst-run setup mode');
+
+test('unconfigured: serves the wizard on :80 with auto_https off', () => {
+  const saved = config.baseDomain;
+  try {
+    config.applyRuntimeDomain({ baseDomain: '' });
+    assert.strictEqual(config.isConfigured(), false);
+    const cfg = generateCaddyfile([internalApp]);
+    assert.ok(cfg.includes(':80 {'), 'listens on plain :80 (reachable by IP)');
+    assert.ok(cfg.includes('auto_https off'), 'no cert attempt without a domain');
+    assert.ok(cfg.includes('handle /setup/*'), 'setup API is reachable');
+    assert.ok(cfg.includes('try_files {path} /index.html'), 'admin SPA is served');
+    assert.ok(!cfg.includes('notes.'), 'no hostname-keyed app blocks before a domain exists');
+  } finally {
+    config.applyRuntimeDomain({ baseDomain: saved });
+  }
+});
+
+test('unconfigured: pages host does not swallow every request', () => {
+  const saved = config.baseDomain;
+  try {
+    config.applyRuntimeDomain({ baseDomain: '' });
+    assert.strictEqual(config.isPagesHost('pages.'), false);
+    assert.strictEqual(config.isPagesHost('anything'), false);
+  } finally {
+    config.applyRuntimeDomain({ baseDomain: saved });
+  }
+});
+
+test('setting a domain at runtime re-keys routing and the pages host', () => {
+  const saved = config.baseDomain;
+  try {
+    config.applyRuntimeDomain({ baseDomain: 'apps.example.com', tlsMode: 'auto', acmeEmail: 'ops@example.com' });
+    assert.strictEqual(config.pages.host, 'pages.apps.example.com');
+    assert.strictEqual(config.isPagesHost('pages.apps.example.com'), true);
+    const cfg = generateCaddyfile([internalApp]);
+    assert.ok(cfg.includes('admin.apps.example.com'), 'admin block picks up the new domain');
+    assert.ok(cfg.includes('notes.apps.example.com'), 'app block picks up the new domain');
+    assert.ok(cfg.includes('email ops@example.com'), 'ACME contact flows into the global block');
+  } finally {
+    config.applyRuntimeDomain({ baseDomain: saved, tlsMode: 'internal', acmeEmail: '' });
+  }
+});
+
+test('CORS opens only while unconfigured, then closes to the base domain', () => {
+  const saved = config.baseDomain;
+  try {
+    config.applyRuntimeDomain({ baseDomain: '' });
+    assert.strictEqual(config.isAllowedOrigin('http://203.0.113.10'), true, 'wizard reachable by IP');
+    config.applyRuntimeDomain({ baseDomain: 'apps.example.com' });
+    assert.strictEqual(config.isAllowedOrigin('http://203.0.113.10'), false, 'closes once configured');
+    assert.strictEqual(config.isAllowedOrigin('https://admin.apps.example.com'), true);
+  } finally {
+    config.applyRuntimeDomain({ baseDomain: saved });
+  }
+});
+
+console.log('\nport exposure');
+
+const { parsePorts } = require('../src/runner/exposure.js');
+
+test('0.0.0.0 and [::] bindings count as internet-facing; 127.0.0.1 does not', () => {
+  const p = parsePorts('0.0.0.0:443->443/tcp, [::]:443->443/tcp, 127.0.0.1:5432->5432/tcp');
+  assert.strictEqual(p.length, 3);
+  assert.deepStrictEqual(p.map((x) => x.public), [true, true, false]);
+  assert.strictEqual(p[2].hostPort, '5432');
+});
+
+test('container-internal ports (no ->) are not published at all', () => {
+  assert.deepStrictEqual(parsePorts('8333/tcp, 9333/tcp'), []);
+  assert.strictEqual(parsePorts('').length, 0);
+  assert.strictEqual(parsePorts(null).length, 0);
+});
+
+test('host port is read, not the container port', () => {
+  const [p] = parsePorts('0.0.0.0:15432->5432/tcp');
+  assert.strictEqual(p.hostPort, '15432');
+  assert.strictEqual(p.containerPort, '5432');
+  assert.strictEqual(p.proto, 'tcp');
 });
 
 console.log(`\n${passed} passed, ${failed} failed`);

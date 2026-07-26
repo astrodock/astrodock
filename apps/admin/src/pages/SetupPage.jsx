@@ -1,0 +1,298 @@
+import { useState } from 'react';
+import { claimAdmin, checkSetupDns, setSetupDomain, login, setToken } from '../lib/api';
+
+// First-run setup. This is what replaces hand-editing .env before the first boot:
+// the stack comes up with no domain and no administrator, serves this page over
+// http://<server-ip>, and the operator finishes here.
+//
+// Two steps, in this order for a reason — claiming the admin account first means
+// the domain step can be protected by ordinary admin auth rather than by the
+// setup token, so the token is used exactly once and never for anything else.
+
+// The A-record value to show. ASTRODOCK_PUBLIC_IP wins if the operator set it;
+// otherwise the address in the URL bar IS this server's public IP, since that is
+// how the operator reached the page. No "what is my IP" service involved.
+function serverAddress(publicIp) {
+  if (publicIp) return publicIp;
+  const h = window.location.hostname;
+  const isIpv4 = /^\d{1,3}(\.\d{1,3}){3}$/.test(h);
+  const isIpv6 = h.includes(':');
+  return isIpv4 || isIpv6 ? h : '';
+}
+
+function Stepper({ step, needsClaim }) {
+  const steps = needsClaim ? ['Administrator', 'Domain & HTTPS'] : ['Domain & HTTPS'];
+  const offset = needsClaim ? 0 : 1;
+  return (
+    <div className="setup-steps">
+      {steps.map((label, i) => {
+        const n = i + 1 + offset;
+        const state = n < step ? 'done' : n === step ? 'current' : 'todo';
+        return (
+          <div key={label} className={`setup-step ${state}`}>
+            <span className="setup-step-num">{state === 'done' ? '✓' : n - offset}</span>
+            <span>{label}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+export default function SetupPage({ status }) {
+  const needsClaim = status.needsClaim;
+  const [step, setStep] = useState(needsClaim ? 1 : 2);
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  // Step 1 — claim
+  const [setupToken, setSetupToken] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+
+  // Step 2 — domain
+  const [baseDomain, setBaseDomain] = useState(status.baseDomain || '');
+  const [tlsMode, setTlsMode] = useState(status.tlsMode === 'off' ? 'off' : 'auto');
+  const [acmeEmail, setAcmeEmail] = useState(status.acmeEmail || '');
+  const [dns, setDns] = useState(null);
+  const [done, setDone] = useState(null);
+
+  const ip = serverAddress(status.publicIp);
+
+  async function handleClaim(e) {
+    e.preventDefault();
+    setError('');
+    if (password !== confirm) return setError('The two passwords do not match.');
+    setBusy(true);
+    try {
+      await claimAdmin(setupToken.trim(), email, password, 'Admin');
+      // Sign straight in with the credentials just created, so the domain step is
+      // authenticated normally and the operator never sees a login screen mid-flow.
+      const data = await login(email, password);
+      setToken(data.token);
+      if (!acmeEmail) setAcmeEmail(email);
+      setStep(2);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleCheckDns() {
+    setError(''); setBusy(true); setDns(null);
+    try {
+      setDns(await checkSetupDns(baseDomain.trim(), ip));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleSaveDomain(e) {
+    e.preventDefault();
+    setError(''); setBusy(true);
+    try {
+      setDone(await setSetupDomain(baseDomain.trim(), tlsMode, acmeEmail.trim()));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="login-page">
+      <div className="login-bg-grid" />
+      <div className="setup-card">
+        <div className="login-logo">
+          <div className="logo-mark">
+            <svg width="38" height="38" viewBox="0 0 34 34" fill="none">
+              <circle cx="17" cy="17" r="15" stroke="var(--accent)" strokeWidth="1.4" opacity=".4"/>
+              <circle cx="17" cy="17" r="9.5" stroke="var(--accent)" strokeWidth="1.4" opacity=".7"/>
+              <circle cx="17" cy="17" r="3.6" fill="var(--accent)"/>
+              <g className="orbit-dot"><circle cx="32" cy="17" r="2.3" fill="var(--text)"/></g>
+            </svg>
+          </div>
+          <span className="logo-text-lg">Astrodock</span>
+        </div>
+        <p className="login-subtitle">Set up your platform</p>
+
+        {!done && <Stepper step={step} needsClaim={needsClaim} />}
+        {error && <div className="error">{error}</div>}
+
+        {/* ── done ─────────────────────────────────────────────────────────── */}
+        {done && (
+          <div className="setup-body">
+            <div className="callout ok">
+              <b>That's it — Astrodock is configured.</b>
+              <p>
+                Your dashboard has moved to its real address. This page, on the server's IP,
+                stops being the way in.
+              </p>
+            </div>
+            <a className="login-btn" href={done.adminUrl} style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>
+              Go to {done.adminUrl}
+            </a>
+            {tlsMode === 'auto' && (
+              <p className="field-help" style={{ marginTop: 12 }}>
+                The certificate is issued on your first visit, so the very first load can take a few
+                seconds. If you see a warning, wait a moment and reload — that is the certificate
+                still being fetched, not a misconfiguration.
+              </p>
+            )}
+            {!done.routed && (
+              <p className="field-help">
+                Routing hasn't reloaded yet. It retries automatically, so give it a minute before
+                worrying.
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* ── step 1: claim the administrator ──────────────────────────────── */}
+        {!done && step === 1 && (
+          <form className="setup-body" onSubmit={handleClaim}>
+            <div className="callout">
+              <b>First, prove this server is yours.</b>
+              <p>
+                Astrodock printed a one-time token to its log when it started. Anyone who could
+                reach this page before you shouldn't be able to claim it, which is what the token
+                prevents. Fetch it on the server with:
+              </p>
+              <code className="setup-cmd">docker compose logs api | grep -A2 'first-run setup'</code>
+            </div>
+            <label>
+              Setup token
+              <input value={setupToken} onChange={(e) => setSetupToken(e.target.value)}
+                required autoFocus placeholder="Paste the token from the log" spellCheck="false" />
+            </label>
+            <label>
+              Your email
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                required placeholder="you@example.com" />
+              <span className="field-help">This becomes the administrator sign-in for the dashboard.</span>
+            </label>
+            <label>
+              Password
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+                required minLength={12} placeholder="At least 12 characters" />
+            </label>
+            <label>
+              Confirm password
+              <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)}
+                required minLength={12} placeholder="Type it again" />
+            </label>
+            <button type="submit" className="login-btn" disabled={busy}>
+              {busy ? 'Creating…' : 'Create administrator'}
+            </button>
+          </form>
+        )}
+
+        {/* ── step 2: domain + HTTPS ───────────────────────────────────────── */}
+        {!done && step === 2 && (
+          <form className="setup-body" onSubmit={handleSaveDomain}>
+            <div className="callout">
+              <b>Where should your apps live?</b>
+              <p>
+                Pick a domain you control. Every app you deploy gets its own name under it —
+                an app called <code>invoices</code> would be served at{' '}
+                <code>invoices.{baseDomain || 'your-domain.com'}</code>, and this dashboard moves to{' '}
+                <code>{status.adminSubdomain}.{baseDomain || 'your-domain.com'}</code>.
+              </p>
+            </div>
+
+            <label>
+              Base domain
+              <input value={baseDomain} onChange={(e) => { setBaseDomain(e.target.value); setDns(null); }}
+                required placeholder="apps.example.com" spellCheck="false" autoFocus />
+              <span className="field-help">
+                A subdomain like <code>apps.example.com</code> keeps your main website free for
+                something else. Using the bare domain works too.
+              </span>
+            </label>
+
+            {baseDomain.trim().includes('.') && (
+              <>
+                <p className="setup-section-label">Add this DNS record at your registrar</p>
+                <div className="dns-rec">
+                  <div><span className="rk">Type</span><b>A</b></div>
+                  <div><span className="rk">Name</span><span className="rv">*.{baseDomain.trim()}</span></div>
+                  <div><span className="rk">Value</span>
+                    <span className="rv" style={{ color: 'var(--info)' }}>{ip || '<your server IP>'}</span>
+                  </div>
+                  <div className="rp">
+                    One wildcard record covers this dashboard and every app you will ever deploy —
+                    you won't need to touch DNS again.
+                  </div>
+                </div>
+                {!ip && (
+                  <p className="field-help">
+                    Couldn't detect this server's IP from your browser. Use the address you SSH to,
+                    or set <code>ASTRODOCK_PUBLIC_IP</code>.
+                  </p>
+                )}
+
+                <div className="setup-check">
+                  <button type="button" className="pillbtn" onClick={handleCheckDns} disabled={busy}>
+                    {busy ? 'Checking…' : 'Check DNS'}
+                  </button>
+                  {dns && (
+                    <span className={`chip ${dns.ok ? 'ok' : 'warn'}`}>
+                      {dns.ok ? 'Record is live' : 'Not resolving yet'}
+                    </span>
+                  )}
+                </div>
+                {dns && <p className="field-help">{dns.message}</p>}
+              </>
+            )}
+
+            <label>
+              HTTPS
+              <select value={tlsMode} onChange={(e) => setTlsMode(e.target.value)}>
+                <option value="auto">Automatic — free certificate from Let's Encrypt</option>
+                <option value="internal">Self-signed — private network, no public DNS</option>
+                <option value="off">Off — plain HTTP, behind another proxy</option>
+              </select>
+              <span className="field-help">
+                Automatic is what you want for a public server. It needs the DNS record above to be
+                live first, because the certificate authority checks it.
+              </span>
+            </label>
+
+            {tlsMode === 'auto' && (
+              <label>
+                Certificate contact email
+                <input type="email" value={acmeEmail} onChange={(e) => setAcmeEmail(e.target.value)}
+                  required placeholder="you@example.com" />
+                <span className="field-help">
+                  Let's Encrypt uses this only to warn you if a renewal ever fails.
+                </span>
+              </label>
+            )}
+
+            {dns && !dns.ok && tlsMode === 'auto' && (
+              <div className="callout warn">
+                <b>DNS isn't pointing here yet.</b>
+                <p>
+                  You can save anyway — nothing breaks, and the certificate will be issued as soon
+                  as the record goes live. But you won't be able to reach the dashboard at the new
+                  address until it does.
+                </p>
+              </div>
+            )}
+
+            <button type="submit" className="login-btn" disabled={busy}>
+              {busy ? 'Applying…' : 'Save and switch over'}
+            </button>
+            <p className="field-help">
+              You can change this later in Settings — it isn't a one-way door.
+            </p>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}

@@ -35,7 +35,8 @@ const runner = {
   stop: (slug) => call('POST', `/apps/${slug}/stop`),
   remove: (slug) => call('POST', `/apps/${slug}/remove`),
   logs: (slug, lines) => call('GET', `/apps/${slug}/logs`, { query: { lines: lines || 100 } }),
-  backup: (trigger = 'manual') => call('POST', '/backup', { json: { trigger } })
+  backup: (trigger = 'manual') => call('POST', '/backup', { json: { trigger } }),
+  exposure: () => call('GET', '/exposure')
 };
 
 module.exports = { runner };

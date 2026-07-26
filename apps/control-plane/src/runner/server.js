@@ -106,13 +106,30 @@ app.get('/apps/status-all', async (req, res) => {
   res.json({ statuses: pc.statusAll(apps) });
 });
 
+// What ports this host publishes to the world. Lives on the runner because only
+// the runner holds the Docker socket. Read-only: see runner/exposure.js for why
+// Astrodock reports on the firewall rather than managing it.
+app.get('/exposure', async (req, res) => {
+  res.json(await require('./exposure').checkExposure());
+});
+
 // Trigger a backup on demand (the api proxies POST /admin/backups here).
 app.post('/backup', express.json(), async (req, res) => {
   const result = await runBackup({ trigger: req.body?.trigger || 'manual' });
   res.status(result.ok ? 200 : 500).json(result);
 });
 
-function start() {
+// The base domain can change at runtime (first-run wizard, or an operator moving
+// domains later), and this process renders hostnames for health probes and env
+// injection. It has no way to be notified, so it re-reads the stored value on an
+// interval — the same eventual-consistency approach settings.js already uses for
+// its 15s cache. Cheap: one indexed select per pass.
+const BOOTSTRAP_REFRESH_MS = 60_000;
+
+async function start() {
+  const { applyBootstrapSettings } = require('../lib/settings');
+  await applyBootstrapSettings().catch(() => {});
+  setInterval(() => { applyBootstrapSettings().catch(() => {}); }, BOOTSTRAP_REFRESH_MS).unref();
   startHealthChecker(); // the runner owns app health (it can probe + read pm2/docker)
   startBackupScheduler(); // the runner owns the Docker socket + backups volume
   app.listen(config.runnerPort, () => console.log(`Astrodock runner listening on :${config.runnerPort}`));
@@ -120,4 +137,6 @@ function start() {
 
 module.exports = { app, start };
 
-if (require.main === module) start();
+if (require.main === module) {
+  start().catch((err) => { console.error('Failed to start runner:', err); process.exit(1); });
+}

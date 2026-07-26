@@ -54,6 +54,10 @@ app.get('/_caddy/ask', async (req, res) => {
 // Hosted end-user account page.
 app.get('/account', (req, res) => res.sendFile(path.join(__dirname, 'public', 'account.html')));
 
+// First-run setup. Mounted unconditionally: /setup/status is how the admin SPA
+// decides whether to render the wizard or the login page, on every boot.
+app.use('/setup', require('./src/routes/setup'));
+
 app.use('/verify', require('./src/routes/verify'));
 app.use('/account', require('./src/routes/account'));
 app.use('/admin', require('./src/routes/admin-auth'));
@@ -95,7 +99,15 @@ async function start() {
   await migrate();          // bring the schema up to date
   await ping();             // verify DB connectivity
   await lockdownControlPlaneDb(); // app roles can't connect to the control-plane DB
-  await seedAdmin();        // idempotent admin seed
+
+  // Load the persisted base domain / TLS mode over the env defaults BEFORE anything
+  // renders a hostname (Caddy generation, health probes, env injection all read it).
+  await require('./src/lib/settings').applyBootstrapSettings();
+
+  await seedAdmin();        // idempotent admin seed (no-op unless ADMIN_EMAIL/PASSWORD are set)
+  // Mint + print a setup token when no admin exists yet, so a fresh install can be
+  // claimed from the browser without ever hand-editing .env.
+  await require('./src/routes/setup').initSetup();
 
   // Push current routing to Caddy (retried; reconciler keeps it healed).
   reloadCaddyWithRetry().catch(() => {});
@@ -105,7 +117,8 @@ async function start() {
   // (app health monitoring runs in the runner container; this api reads app_health from the DB)
 
   app.listen(config.port, () => {
-    console.log(`Astrodock control plane listening on :${config.port} (env=${config.env}, base=${config.baseDomain})`);
+    const base = config.isConfigured() ? config.baseDomain : 'unconfigured — first-run setup pending';
+    console.log(`Astrodock control plane listening on :${config.port} (env=${config.env}, base=${base})`);
   });
 }
 

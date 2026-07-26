@@ -174,10 +174,17 @@ optionally route it*. Build the event/audit spine first; alerts, access logs, an
 trail all hang off it instead of being three systems.
 
 ### Pinned decisions (defaults for this phase)
-- **Settings precedence:** infra/bootstrap config (PG, secret key, domain, ports, object-store
-  creds) stays **env-only**, surfaced **read-only** as Diagnostics. Operational settings (alert
+- **Settings precedence:** infra/bootstrap config (PG, secret key, ports, object-store creds)
+  stays **env-only**, surfaced **read-only** as Diagnostics. Operational settings (alert
   routing, retention, thresholds, email-from, feature flags) take env as default + a **DB
   override**, applied live where safe.
+  - **Amended 2026-07-26 (Stage 17):** *base domain, TLS mode and ACME email moved out of the
+    env-only tier* into a third "bootstrap routing" tier that is runtime-settable and DB-backed
+    (`platform.base_domain` / `.tls_mode` / `.acme_email`, `lib/settings.js` `BOOTSTRAP_REGISTRY`).
+    The domain is the one bootstrap value a human must supply, and keeping it env-only is what
+    forced a hand-edited `.env` before the first boot. Safe to change live: every consumer reads
+    `config.baseDomain` at call time, and Caddy is reconfigured by hot reload. PG creds, secret
+    key and runner token stay env-only — those genuinely are read once, at boot.
 - **Page-view IP retention:** store the full IP + prune on the retention window by default;
   knob `ASTRODOCK_PAGE_LOG_IP=full|truncated|off` (operator/GDPR choice).
 - **v1 alert channels:** email (exists) + a generic **outbound webhook** (JSON; Slack/Discord
@@ -282,6 +289,33 @@ external domain**, with a guided add → verify → activate flow in the admin U
 
 ---
 
+## Stage 17 — Zero-touch install (first-run setup)
+The install was seven steps, three of them ours: acquire the source, run a config generator,
+build images on the box. All three traced to one decision — **shipping source instead of
+images** — plus one constraint: the base domain was env-only, so it had to be decided before
+the first boot, before anything could ask for it.
+
+- **Prebuilt images.** `docker-compose.yml` pulls `${ASTRODOCK_IMAGE}:${ASTRODOCK_VERSION}`;
+  `docker-compose.build.yml` is an 8-line overlay that restores building from source.
+  `.github/workflows/release.yml` publishes amd64+arm64 to GHCR on a version tag.
+- **Promptless secrets.** `scripts/setup.sh` asks nothing — it only generates what the stack
+  cannot invent for itself. `scripts/install.sh` does the same for the `curl | sh` path.
+- **Domainless boot.** Empty `ASTRODOCK_BASE_DOMAIN` = unconfigured; the Caddy generator emits a
+  plain `:80` wizard site instead of hostname-keyed blocks, so the platform is reachable at
+  `http://<server-ip>` before it has a domain or a certificate.
+- **First-run wizard.** Claim the admin account with a one-time token printed to the container
+  log, then set the domain — showing the DNS record (A-record value taken from the browser's own
+  URL, so no "what is my IP" call) and checking it before committing.
+- **Firewall: verify, don't manage.** A readiness card reports host-published ports beyond 80/443
+  via the runner's Docker socket. Deliberately not a firewall — Docker's iptables rules bypass
+  `ufw`, so managing it would report protection it isn't providing, and a bug would lock the
+  operator out through the only interface they have. Rationale is in `runner/exposure.js`.
+
+**Done when:** `curl -fsSL … | sh` → open the server IP → wizard → working HTTPS dashboard, with
+no file hand-edited and nothing built on the box. ✅ (see BUILD_NOTES for what is verified.)
+
+---
+
 ## Decisions — settled (do not re-litigate)
 _Last reconciled 2026-07-26 against the code, not from memory._
 - **License:** MIT. (`LICENSE`)
@@ -300,3 +334,9 @@ _Last reconciled 2026-07-26 against the code, not from memory._
 - **Publishing:** the repo has no git remote and has never been pushed. Choosing a host, an
   org/account, and whether the first push is public or private is still outstanding — and is
   the last thing standing between this and being an actual open-source project.
+  **Stage 17 raised the stakes:** the one-line install pulls images from
+  `ghcr.io/astrodock/astrodock` and fetches files from `raw.githubusercontent.com/astrodock/astrodock`,
+  and `get.astrodock.dev` needs to exist and serve `scripts/install.sh`. Both are parameterised
+  (`ASTRODOCK_IMAGE`, `ASTRODOCK_RAW_BASE`) so nothing is hard-baked, but **the default install
+  path does not work until the repo is published and one release tag is pushed.** Building from
+  source still works today.

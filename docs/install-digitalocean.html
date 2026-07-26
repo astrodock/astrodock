@@ -29,11 +29,11 @@
         <p>In DigitalOcean, choose <strong>Create → Droplets</strong>:</p>
         <ul>
           <li><strong>Image:</strong> pick the <em>Docker</em> image under the <strong>Marketplace</strong>
-            tab. (That comes with Docker already installed, so you can skip Step 4. If you'd rather use
+            tab. (That comes with Docker already installed, so you can skip Step 5. If you'd rather use
             a plain <strong>Ubuntu 24.04 LTS</strong> image, that's fine too.)</li>
           <li><strong>Size:</strong> a Basic plan with at least <strong>2&nbsp;GB RAM</strong>
-            (1&nbsp;vCPU). Astrodock builds your apps on the box, and 1&nbsp;GB can run out of memory
-            during the first build.</li>
+            (1&nbsp;vCPU). Astrodock itself is comfortable in less, but it <em>builds your apps on the
+            box</em>, and 1&nbsp;GB can run out of memory during a build.</li>
           <li><strong>Authentication:</strong> add your <strong>SSH key</strong> (recommended over a password).</li>
         </ul>
         <p>Create it, and note the droplet's <strong>public IP address</strong>.</p>
@@ -52,6 +52,9 @@
         domain's nameservers to DigitalOcean's, or skip DO DNS and add the same wildcard <code>A</code>
         record at your registrar instead.) Full details and other registrars:
         <a href="custom-domains.html">Custom domains &amp; DNS</a>.</p>
+        <p>Do this now if you can — DNS changes take a few minutes to spread, so starting early means
+        it's usually ready by the time you need it. If you'd rather not, that's fine: the setup wizard
+        in step 7 shows you this same record and checks it for you.</p>
       </li>
 
       <li>
@@ -59,6 +62,11 @@
         <p>Under <strong>Networking → Firewalls</strong>, create a firewall and attach it to your
         droplet, allowing inbound <strong>SSH (22)</strong>, <strong>HTTP (80)</strong>, and
         <strong>HTTPS (443)</strong>. Only those three need to be open.</p>
+        <p>Use your provider's firewall rather than <code>ufw</code> on the droplet: Docker inserts its
+        own routing rules ahead of <code>ufw</code>'s, so a <code>ufw deny</code> on a published port
+        doesn't actually block it. Astrodock doesn't manage the firewall for you, but
+        <strong>Settings → Readiness</strong> warns you if anything beyond 80/443 ends up published to
+        the internet.</p>
       </li>
 
       <li>
@@ -75,48 +83,48 @@
       </li>
 
       <li>
-        <h3>Get Astrodock</h3>
-        <pre><code>git clone https://github.com/your-org/astrodock.git
-cd astrodock</code></pre>
-        <p>(If <code>git</code> is missing: <code>apt-get update &amp;&amp; apt-get install -y git</code>.)</p>
-      </li>
-
-      <li>
-        <h3>Configure — one command</h3>
-        <p>Run the setup script. It writes your config and <strong>generates every secret for you</strong>,
-        asking only for your domain, email, and an admin password:</p>
-        <pre><code>./scripts/setup.sh</code></pre>
-        <p>Or pass them as flags to skip the questions:</p>
-        <pre><code>./scripts/setup.sh --domain apps.example.com --email you@example.com</code></pre>
-        <p>It sets HTTPS to automatic, fills in the five secret keys, writes a locked-down
-        <code>.env</code>, and prints your dashboard URL and admin login. <strong>If it auto-generates
-        the admin password, copy it from the output.</strong></p>
+        <h3>Install Astrodock — one line</h3>
+        <pre><code>curl -fsSL https://get.astrodock.dev | sh</code></pre>
+        <p>That is the whole install. It downloads the compose file, generates every secret for you,
+        pulls the prebuilt images, and starts the stack. There is no source code to clone and nothing
+        to build on the droplet, so it finishes in about a minute.</p>
+        <p>When it's done it prints the address to open — your droplet's IP.</p>
         <div class="callout tip">
-          <p class="ct">Prefer to edit it by hand?</p>
-          <p>Run <code>cp .env.example .env</code> and fill it in yourself (generate each secret with
-          <code>openssl rand -hex 32</code>) — every setting is in the
-          <a href="configuration.html">Configuration reference</a>. Either way, never commit <code>.env</code>.</p>
+          <p class="ct">Prefer to build from source?</p>
+          <p>Clone the repository instead, then run <code>./scripts/setup.sh</code> and
+          <code>docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build</code>.
+          Same result; it just builds the images on the droplet rather than pulling them.</p>
         </div>
       </li>
 
       <li>
-        <h3>Start Astrodock</h3>
-        <p>Bring up the stack (or add <code>--up</code> to the setup command above to do both at once):</p>
-        <pre><code>docker compose up -d</code></pre>
-        <p>The first run downloads and <strong>builds</strong> the images, which can take a few minutes
-        on a small droplet. Watch progress with <code>docker compose logs -f api</code>, and check that
-        everything is up with <code>docker compose ps</code>.</p>
-      </li>
-
-      <li>
-        <h3>Log in</h3>
-        <p>Open <strong>https://admin.apps.example.com</strong> and sign in with the
-        <code>ASTRODOCK_ADMIN_EMAIL</code> / <code>ASTRODOCK_ADMIN_PASSWORD</code> you set. The HTTPS
-        certificate is issued automatically on the first visit — if you see a brief error, wait a few
-        seconds and reload (and make sure DNS has propagated).</p>
+        <h3>Finish setup in your browser</h3>
+        <p>Open <strong>http://&lt;your droplet IP&gt;</strong>. Astrodock starts up unconfigured and
+        serves a short setup wizard there, which walks you through the rest:</p>
+        <ol>
+          <li><strong>Create your administrator account.</strong> It asks for a one-time token that
+          Astrodock printed to its log — this is what stops anyone else claiming your server. Get it with:
+          <pre><code>cd /opt/astrodock &amp;&amp; docker compose logs api | grep -A2 'first-run setup'</code></pre></li>
+          <li><strong>Enter your domain.</strong> The wizard shows you the exact DNS record to create,
+          filled in with your server's IP, and a <strong>Check DNS</strong> button that tells you
+          whether it's live yet — so you find out here rather than after a certificate has failed.</li>
+          <li><strong>Turn on HTTPS.</strong> Give it a contact email and save. Astrodock republishes
+          its routing and hands you the link to your real dashboard.</li>
+        </ol>
+        <p>From then on your dashboard lives at <strong>https://admin.apps.example.com</strong> and the
+        IP address stops being the way in. The certificate is issued on your first visit, so that very
+        first load can take a few seconds.</p>
         <figure class="shot" data-file="login.png" data-caption="The Astrodock dashboard, served over automatic HTTPS."></figure>
       </li>
     </ol>
+
+    <div class="callout">
+      <p class="ct">Would rather not use the browser at all?</p>
+      <p>Every step of the wizard has a flag. <code>./scripts/setup.sh --domain apps.example.com
+      --email you@example.com --admin-email you@example.com --admin-password '…'</code> configures the
+      lot up front, and the platform boots straight to a login page. The wizard exists because it can
+      check your DNS for you; it is not the only way in.</p>
+    </div>
 
     <h2>Other beginner-friendly hosts</h2>
     <p>Prefer somewhere else? The steps are nearly identical on any provider — create an Ubuntu server,

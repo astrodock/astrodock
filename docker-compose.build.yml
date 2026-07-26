@@ -1,0 +1,20 @@
+# Build Astrodock from this source tree instead of pulling the published image.
+# For contributors, and for anyone who would rather not trust a prebuilt image.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
+#
+# Or set it once, in .env or your shell, and keep using plain `docker compose`:
+#   COMPOSE_FILE=docker-compose.yml:docker-compose.build.yml
+#
+# Deliberately minimal: it adds build context and nothing else, so there is no
+# second copy of the service definitions to drift out of sync with the real one.
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/control-plane/Dockerfile
+
+  runner:
+    build:
+      context: .
+      dockerfile: apps/control-plane/Dockerfile

@@ -1,0 +1,70 @@
+# Publish the Astrodock image so a server can run the platform without a source
+# tree or a build toolchain (see scripts/install.sh). One image serves both the
+# api and runner roles — they differ only by ASTRODOCK_ROLE at runtime.
+#
+# Triggered by a version tag (v1.2.3) or by hand. Nothing is published on a normal
+# push to main: `latest` should mean "the last release", not "the last commit".
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Image tag to publish (e.g. v0.1.0)'
+        required: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: v
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "version=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/control-plane/Dockerfile
+          # arm64 matters here: Ampere/Graviton droplets are the cheap tier, and a
+          # single-arch image would silently exclude them.
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:${{ steps.v.outputs.version }}
+            ghcr.io/${{ github.repository }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke-test the published image
+        # Catches the failure mode that matters most for a one-line installer: an
+        # image that pulls fine but cannot start. Runs the real entrypoint far
+        # enough to prove the app loads, without needing Postgres.
+        run: |
+          docker run --rm --entrypoint node \
+            ghcr.io/${{ github.repository }}:${{ steps.v.outputs.version }} \
+            -e "require('/app/apps/control-plane/server.js');
+                require('/app/apps/control-plane/src/runner/server.js');
+                console.log('image OK: control plane + runner both load')"

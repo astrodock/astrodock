@@ -32,27 +32,32 @@
       </li>
       <li>
         <h3>Get Astrodock</h3>
-        <pre><code>git clone https://github.com/your-org/astrodock.git
+        <p>Clone the repository (locally you probably want the source anyway):</p>
+        <pre><code>git clone https://github.com/astrodock/astrodock.git
 cd astrodock</code></pre>
       </li>
       <li>
         <h3>Configure for local — one command</h3>
-        <p>The setup script generates a local <code>.env</code> for you (localhost, plain HTTP) with all
-        secrets filled in and an admin password printed at the end:</p>
+        <p>This generates a local <code>.env</code> (localhost, plain HTTP) with every secret filled in.
+        It asks nothing:</p>
         <pre><code>./scripts/setup.sh --local</code></pre>
-        <p>Copy the admin email + password it prints — that's your dashboard login. (Want to set your
-        own password? add <code>--admin-password yourpass</code>.)</p>
       </li>
       <li>
         <h3>Start it</h3>
         <pre><code>docker compose up -d</code></pre>
-        <p>The first run builds the images, which takes a few minutes. (Tip: <code>./scripts/setup.sh
-        --local --up</code> configures <em>and</em> starts it in one go.)</p>
+        <p>This pulls the prebuilt images. To build from your working copy instead — which is what you
+        want if you're changing Astrodock itself:</p>
+        <pre><code>docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build</code></pre>
+        <p>(Tip: <code>./scripts/setup.sh --local --up</code> configures <em>and</em> starts in one go.)</p>
       </li>
       <li>
-        <h3>Open the dashboard</h3>
-        <p>Go to <strong><a href="http://admin.localhost">http://admin.localhost</a></strong> and log
-        in. Your apps will live at <code>http://&lt;subdomain&gt;.localhost</code>.</p>
+        <h3>Create your account and open the dashboard</h3>
+        <p>Go to <strong><a href="http://admin.localhost">http://admin.localhost</a></strong>. On a fresh
+        install you'll get the setup wizard, which asks for a one-time token printed in the log:</p>
+        <pre><code>docker compose logs api | grep -A2 'first-run setup'</code></pre>
+        <p>Paste it, pick an email and password, and you're in. Because <code>--local</code> already set
+        the domain, the wizard skips straight past the domain step. Your apps will live at
+        <code>http://&lt;subdomain&gt;.localhost</code>.</p>
         <div class="callout tip">
           <p class="ct">Why <code>.localhost</code> just works</p>
           <p>Browsers automatically resolve any <code>*.localhost</code> name to your own computer, so

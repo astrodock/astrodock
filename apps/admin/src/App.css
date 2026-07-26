@@ -114,6 +114,27 @@ code, .mono { font-family:var(--mono); }
 .login-btn { width:100%; padding:.75rem; margin-top:.4rem; font-size:14px; background:var(--accent); color:var(--accent-ink); font-weight:700; border-radius:var(--r-sm); border:0; cursor:pointer; transition:.15s; }
 .login-btn:hover { background:var(--accent-2); }
 
+/* ── First-run setup ────────────────────────────────────────
+   Shares the login backdrop, but wider: this screen carries DNS records and
+   explanation, not two fields. */
+.setup-card { position:relative; background:var(--surface); border:1px solid var(--line); padding:2.4rem; border-radius:var(--r-lg); width:100%; max-width:560px; margin:40px 20px; box-shadow:var(--shadow); animation:fadeUp .5s ease; }
+.setup-steps { display:flex; gap:8px; justify-content:center; margin-bottom:1.6rem; flex-wrap:wrap; }
+.setup-step { display:flex; align-items:center; gap:7px; font-size:12px; font-weight:600; color:var(--text-3); padding:5px 12px 5px 6px; border:1px solid var(--line); border-radius:20px; }
+.setup-step-num { display:inline-flex; align-items:center; justify-content:center; width:19px; height:19px; border-radius:50%; background:var(--field); font-family:var(--mono); font-size:11px; }
+.setup-step.current { color:var(--text); border-color:var(--accent-dim); background:var(--accent-dim); }
+.setup-step.current .setup-step-num { background:var(--accent); color:var(--accent-ink); }
+.setup-step.done { color:var(--accent); border-color:var(--accent-dim); }
+.setup-step.done .setup-step-num { background:var(--accent-dim); color:var(--accent); }
+.setup-body { animation:fadeUp .3s ease; }
+.setup-cmd { display:block; margin-top:8px; padding:8px 10px; background:var(--field); border:1px solid var(--line); border-radius:var(--r-sm); font-family:var(--mono); font-size:11.5px; color:var(--text-2); overflow-x:auto; white-space:nowrap; }
+.setup-section-label { font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--text-3); font-family:var(--mono); margin:1.2rem 0 .6rem; }
+.setup-check { display:flex; align-items:center; gap:10px; margin:12px 0 4px; }
+.callout.ok { background:var(--accent-dim); border-color:var(--accent-dim); }
+.callout.warn { background:var(--warning-dim); border-color:var(--warning-dim); }
+.callout b { color:var(--text); display:block; margin-bottom:4px; }
+.callout p { margin:0; }
+.callout p + code, .callout code { font-family:var(--mono); font-size:12px; }
+
 /* ── Forms ──────────────────────────────────────────────── */
 label { display:block; margin-bottom:1rem; font-size:12px; font-weight:600; color:var(--text-2); }
 label input[type="text"], label input[type="email"], label input[type="password"],

@@ -243,3 +243,80 @@ python3 -m http.server 8080 --directory docs   # the public docs site (pure stat
 
 Caveat: no Caddy and no object store on this path, so the API logs `[caddy] reload error` on a
 loop and routing/storage/domain panels are empty. Use the full compose stack to exercise those.
+
+---
+
+## Stage 17 — Zero-touch install ✅ (code) / 📦 (end-to-end)
+
+The install was seven steps and ~25 minutes; three of those steps were ours. Working backwards
+from "why", all three came from **shipping source instead of images** — the box needed git, a
+source tree, and a build toolchain — plus one constraint: the **base domain was env-only**, so it
+had to be chosen before the first boot, before any UI could ask for it.
+
+The unlock was that the pieces to fix the second half already existed. The bootstrap `Caddyfile`
+already served `:80` before any config; the control plane already **hot-pushes a whole new
+Caddyfile at runtime**; on-demand TLS + the `/_caddy/ask` gate were already built for custom
+domains. Setting the domain at runtime was re-use, not new capability.
+
+### What changed
+
+| Area | Change |
+|---|---|
+| Images | `docker-compose.yml` pulls `${ASTRODOCK_IMAGE:-ghcr.io/astrodock/astrodock}:${ASTRODOCK_VERSION:-latest}`; **`docker-compose.build.yml`** is an 8-line overlay restoring `build:` (nothing else, so there's no second copy of the service definitions to drift) |
+| Release | `.github/workflows/release.yml` — buildx amd64+**arm64** (the cheap droplet tier is Ampere; single-arch would have silently excluded it) → GHCR on a `v*` tag, then a smoke test that both roles load inside the published image |
+| Install | **`scripts/install.sh`** for `curl \| sh`: preflights docker, fetches compose + env template, generates secrets, pulls, ups, prints the address. Detects the server IP from `ip route get`, not an external service |
+| Secrets | `scripts/setup.sh` **asks nothing now**. Also switched its staging file from `mktemp` to `$OUT.tmp.$$` — same filesystem, so the `mv` is a real atomic rename (a half-written `.env` full of secrets would be nasty) |
+| Domainless boot | `ASTRODOCK_BASE_DOMAIN=''` ⇒ unconfigured. `generateCaddyfile` short-circuits to a `:80` wizard site with `auto_https off`. `config.isConfigured()` / `applyRuntimeDomain()` |
+| Runtime domain | Third settings tier `BOOTSTRAP_REGISTRY` (`platform.base_domain`/`.tls_mode`/`.acme_email`), applied over env at boot in **both** roles. The runner re-reads every 60s since it can't be notified |
+| Setup API | `src/routes/setup.js` — `/status`, `/claim` (setup-token-gated), `/check-dns`, `/domain` |
+| Wizard UI | `apps/admin/src/pages/SetupPage.jsx` + `.setup-*` styles; `App.jsx` asks `/setup/status` before choosing what to render |
+| Firewall | `src/runner/exposure.js` + a readiness card |
+
+### Decisions worth remembering
+
+- **The setup token is in-memory, printed at boot, and cleared once an admin exists.** It's a
+  proof-of-log-access credential, not a secret worth persisting; a restart reprinting a fresh one
+  is the correct behaviour, not a bug.
+- **Claim the admin *before* the domain.** That way the domain step is protected by ordinary admin
+  auth and the token is used exactly once, for exactly one thing.
+- **The A-record value comes from `window.location.hostname`.** The operator reached the wizard by
+  typing the server's IP, so the browser already knows it — no "what is my IP" service, no
+  outbound call, no new dependency.
+- **CORS opens while unconfigured and closes on setup.** A same-origin POST still carries an
+  `Origin`, and the server's IP can't be known in advance, so a strict matcher would block the very
+  flow that sets the domain. Nothing there is protected by CORS anyway — `/claim` is token-gated.
+- **The firewall is reported, not managed** — reasoning recorded in `runner/exposure.js`: Docker's
+  iptables rules sit ahead of `ufw`'s chains, so a naive implementation would claim protection it
+  wasn't providing, and a bug would lock the operator out through the only door they have.
+
+### Verified ✅
+- **37 unit tests pass** (schema 14, control-plane 13+6, cli 4) — up from 30. New coverage: setup-mode
+  Caddyfile generation, runtime domain re-keying, the CORS open/close transition, the empty-domain
+  Pages-host trap, and the `docker ps` port parser (IPv6 `[::]` duplicates, loopback binds,
+  container-internal ports, host≠container port).
+- `scripts/setup.sh` exercised in a temp tree across all three paths (default / `--domain` /
+  `--local`): zero prompts, `.env` at 600, no leftover temp file.
+- `scripts/install.sh` run end-to-end against a local file source with a stubbed `docker` — fetch,
+  secret generation, version pinning, `pull`/`up`, and the re-run "already installed" guard.
+- Admin SPA builds clean (`vite build`); control plane, runner, and all changed modules load.
+
+### Not verified 📦 — needs a real Docker host
+1. **The whole flow end to end.** Boot unconfigured → wizard at `http://<ip>` → claim → domain →
+   Caddy hot-reload → HTTPS at the new host. Every part is unit-tested or read-reviewed; the
+   sequence has never run.
+2. **Caddy accepting the setup-mode Caddyfile.** Generation is tested; Caddy has not parsed it.
+3. **`/setup/check-dns`** against real DNS.
+4. **The exposure check** — `docker ps` output is parsed by tested code, but the runner endpoint
+   has not been called against a live socket.
+5. **The release workflow.** Never run: it needs a repository and a tag. The compose and workflow
+   YAML could not even be lint-parsed here (no yaml module available, docker socket blocked), so
+   treat both as unproven syntax.
+6. **The published-image install path does not work yet** — `ghcr.io/astrodock/astrodock` and
+   `get.astrodock.dev` don't exist until the repo is published and a release is tagged. Both are
+   parameterised (`ASTRODOCK_IMAGE`, `ASTRODOCK_RAW_BASE`), and the build-from-source path works
+   today, but the README's headline command is *aspirational until then*.
+
+### Fixed in passing
+`App.jsx`'s sidebar footer rendered a hardcoded `localhost` as the system-chip subtitle
+(pre-existing, but newly wrong now that the domain is chosen at runtime). It reads the effective
+base domain from `/setup/status`, which `App.jsx` already fetches.

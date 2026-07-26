@@ -44,15 +44,38 @@ Deploy your first app**, then the topic guides (custom domains & DNS, email noti
 database/storage, users, secrets, backups…). The quickstart below is the short version.
 
 ## Quickstart
+On a fresh server:
 ```bash
-./scripts/setup.sh --domain apps.example.com --email you@example.com   # generates .env + all secrets
-docker compose up -d
+curl -fsSL https://get.astrodock.dev | sh
 ```
-`setup.sh` writes `.env` and fills in every secret for you (run it with no flags for interactive
-prompts, or `--local` to try it on your machine). That's the whole platform: control plane + admin
-UI + auto-HTTPS routing + bundled Postgres + bundled object storage. The admin UI is at
-`https://admin.<your-base-domain>` (log in with the admin it prints). Prefer to configure by hand?
-`cp .env.example .env` and edit it (`openssl rand -hex 32` for secrets).
+Then open `http://<your-server-ip>` and finish in the browser. That one line downloads the compose
+file, generates every secret, pulls the images, and starts the stack — no source tree, no build, no
+config to hand-edit. The setup wizard creates your administrator account (using a one-time token
+printed to the log), takes your domain, **shows you the exact DNS record to add and checks it for
+you**, then switches on HTTPS and hands you your real dashboard URL.
+
+That's the whole platform: control plane + admin UI + auto-HTTPS routing + bundled Postgres +
+bundled object storage.
+
+<details>
+<summary>Prefer the shell, or building from source?</summary>
+
+Every wizard step has a flag, and nothing forces you to trust a prebuilt image:
+
+```bash
+git clone https://github.com/astrodock/astrodock.git && cd astrodock
+
+./scripts/setup.sh                       # generate .env — asks nothing, browser setup
+./scripts/setup.sh --domain apps.example.com --email you@example.com \
+                   --admin-email you@example.com --admin-password '…'   # skip the wizard entirely
+./scripts/setup.sh --local               # localhost, plain HTTP, for a try-out
+
+docker compose up -d                                  # run the published images
+docker compose -f docker-compose.yml \
+               -f docker-compose.build.yml up -d --build   # build from this source tree
+```
+Or `cp .env.example .env` and edit it by hand (`openssl rand -hex 32` for secrets).
+</details>
 
 ## Launch your first app
 From an app repo (start from [`examples/starter-app`](examples/starter-app)):

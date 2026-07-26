@@ -1,14 +1,23 @@
 #!/bin/sh
-# Astrodock setup — generates a ready-to-use .env (auto-filling all secrets) so you
-# never hand-edit config or paste random strings. Dependency-free POSIX shell.
+# Astrodock setup — writes a .env with every secret generated for you. Dependency-free POSIX shell.
 #
-#   ./scripts/setup.sh                         # interactive (asks domain/email/password)
-#   ./scripts/setup.sh --domain apps.example.com --email you@example.com
-#   ./scripts/setup.sh --local                 # local testing (localhost, plain HTTP)
-#   ./scripts/setup.sh --domain x --email y --up   # ...and then `docker compose up -d`
+# By default this asks NOTHING. It only creates the secrets the stack cannot invent
+# for itself, and leaves the domain and the administrator account blank on purpose:
+# the platform boots into first-run setup and you finish in the browser, where it
+# can show you the DNS record to create and check it for you. So the whole install is:
+#
+#   ./scripts/setup.sh && docker compose up -d      # then open http://<your-server-ip>
+#
+# If you would rather configure from the shell, the flags below skip the matching
+# step of the wizard:
+#
+#   ./scripts/setup.sh --domain apps.example.com --email you@example.com   # skip the domain step
+#   ./scripts/setup.sh --admin-email you@example.com --admin-password '…'  # skip the account step
+#   ./scripts/setup.sh --local                     # localhost, plain HTTP (testing)
+#   ./scripts/setup.sh --up                        # ...and then `docker compose up -d`
 #
 # Flags: --domain D  --email E  --admin-email E  --admin-password P  --tls auto|internal|off
-#        --local  --up  --force (overwrite an existing .env)  -y/--yes (no prompts)  -h/--help
+#        --local  --up  --force (overwrite an existing .env)  -h/--help
 set -eu
 
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
@@ -16,7 +25,7 @@ REPO=$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)
 TEMPLATE="$REPO/.env.example"
 OUT="$REPO/.env"
 
-DOMAIN=""; EMAIL=""; ADMIN_EMAIL=""; ADMIN_PASSWORD=""; TLS=""; LOCAL=0; FORCE=0; UP=0; YES=0
+DOMAIN=""; EMAIL=""; ADMIN_EMAIL=""; ADMIN_PASSWORD=""; TLS=""; LOCAL=0; FORCE=0; UP=0
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -28,8 +37,8 @@ while [ $# -gt 0 ]; do
     --local) LOCAL=1; shift ;;
     --up) UP=1; shift ;;
     --force) FORCE=1; shift ;;
-    -y|--yes) YES=1; shift ;;
-    -h|--help) sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -y|--yes) shift ;;   # accepted for compatibility; there are no prompts to skip
+    -h|--help) sed -n '2,22p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "unknown option: $1" >&2; exit 2 ;;
   esac
 done
@@ -41,13 +50,6 @@ rand() {
   if command -v openssl >/dev/null 2>&1; then openssl rand -hex 32
   else head -c 32 /dev/urandom | od -An -v -tx1 | tr -d ' \n'; fi
 }
-prompt() { # prompt VAR "question" "default"
-  _q="$2"; _def="${3:-}"
-  if [ "$YES" = 1 ]; then printf '%s' "$_def"; return; fi
-  if [ -n "$_def" ]; then printf '%s [%s]: ' "$_q" "$_def" >&2; else printf '%s: ' "$_q" >&2; fi
-  IFS= read -r _ans < /dev/tty || _ans=""
-  [ -n "$_ans" ] && printf '%s' "$_ans" || printf '%s' "$_def"
-}
 
 if [ -f "$OUT" ] && [ "$FORCE" != 1 ]; then
   echo "An .env already exists at $OUT." >&2
@@ -57,43 +59,32 @@ if [ -f "$OUT" ] && [ "$FORCE" != 1 ]; then
   exit 1
 fi
 
-# ── decide mode ──
-if [ "$LOCAL" != 1 ] && [ -z "$DOMAIN" ] && [ "$YES" != 1 ] && [ -e /dev/tty ]; then
-  echo "Where will this run?"
-  echo "  1) A public server  (you have a domain; real HTTPS)"
-  echo "  2) Locally          (this machine only; for testing)"
-  case "$(prompt _ 'Choose 1 or 2' '1')" in 2) LOCAL=1 ;; *) LOCAL=0 ;; esac
-fi
-
+# ── mode ──
+# --local is the one case where we pick a domain for you, because "localhost" is
+# not something a wizard could verify by DNS anyway.
 if [ "$LOCAL" = 1 ]; then
-  DOMAIN="localhost"; TLS="${TLS:-off}"
+  DOMAIN="${DOMAIN:-localhost}"
+  TLS="${TLS:-off}"
 else
-  [ -n "$DOMAIN" ] || DOMAIN=$(prompt _ "Base domain (apps live at <name>.<domain>, e.g. apps.example.com)")
-  [ -n "$DOMAIN" ] || { echo "error: a base domain is required for a server install (or use --local)." >&2; exit 1; }
   TLS="${TLS:-auto}"
-  [ -n "$EMAIL" ] || EMAIL=$(prompt _ "Email for HTTPS certificates")
-fi
-
-[ -n "$ADMIN_EMAIL" ] || ADMIN_EMAIL="${EMAIL:-admin@$DOMAIN}"
-GENERATED_PW=0
-if [ -z "$ADMIN_PASSWORD" ]; then
-  if [ "$YES" = 1 ] || [ ! -e /dev/tty ]; then ADMIN_PASSWORD=$(rand | cut -c1-24); GENERATED_PW=1
-  else
-    ADMIN_PASSWORD=$(prompt _ "Admin dashboard password (blank = auto-generate)")
-    [ -n "$ADMIN_PASSWORD" ] || { ADMIN_PASSWORD=$(rand | cut -c1-24); GENERATED_PW=1; }
-  fi
 fi
 
 # ── generate secrets ──
 JWT=$(rand); SECRET=$(rand); RUNNER=$(rand); PGPW=$(rand); OBJ=$(rand)
 
 # ── write .env from the template, overriding the managed keys, keeping comments ──
-tmp=$(mktemp)
+# Staged beside the target rather than in TMPDIR: same filesystem means the mv is a
+# real atomic rename (a half-written .env with secrets in it would be nasty), and it
+# sidesteps mktemp's platform differences.
+tmp="$OUT.tmp.$$"
+trap 'rm -f "$tmp"' EXIT INT TERM
+: > "$tmp"
+chmod 600 "$tmp"
 while IFS= read -r line || [ -n "$line" ]; do
   case "$line" in
     ASTRODOCK_BASE_DOMAIN=*)            printf 'ASTRODOCK_BASE_DOMAIN=%s\n' "$DOMAIN" ;;
     ASTRODOCK_TLS_MODE=*)               printf 'ASTRODOCK_TLS_MODE=%s\n' "$TLS" ;;
-    ASTRODOCK_ACME_EMAIL=*)             printf 'ASTRODOCK_ACME_EMAIL=%s\n' "${EMAIL:-}" ;;
+    ASTRODOCK_ACME_EMAIL=*)             printf 'ASTRODOCK_ACME_EMAIL=%s\n' "$EMAIL" ;;
     ASTRODOCK_ADMIN_EMAIL=*)            printf 'ASTRODOCK_ADMIN_EMAIL=%s\n' "$ADMIN_EMAIL" ;;
     ASTRODOCK_ADMIN_PASSWORD=*)         printf 'ASTRODOCK_ADMIN_PASSWORD=%s\n' "$ADMIN_PASSWORD" ;;
     ASTRODOCK_ADMIN_JWT_SECRET=*)       printf 'ASTRODOCK_ADMIN_JWT_SECRET=%s\n' "$JWT" ;;
@@ -108,21 +99,35 @@ mv "$tmp" "$OUT"
 chmod 600 "$OUT"
 
 # ── summary ──
-ADMIN_URL=$([ "$LOCAL" = 1 ] && echo "http://admin.$DOMAIN" || echo "https://admin.$DOMAIN")
 echo ""
-echo "✓ Wrote $OUT (secrets generated; permissions set to 600)."
+echo "✓ Wrote $OUT — five secrets generated, permissions set to 600."
 echo ""
-echo "  Dashboard:  $ADMIN_URL"
-echo "  Admin login: $ADMIN_EMAIL"
-[ "$GENERATED_PW" = 1 ] && echo "  Admin password (save this!): $ADMIN_PASSWORD"
+if [ "$UP" != 1 ]; then
+  echo "Next:  docker compose up -d"
+  echo ""
+fi
+if [ -n "$DOMAIN" ]; then
+  SCHEME=$([ "$TLS" = "off" ] && echo http || echo https)
+  echo "  Dashboard:  $SCHEME://admin.$DOMAIN"
+  [ "$LOCAL" != 1 ] && echo "  DNS:        point a wildcard record  *.$DOMAIN  at this server, and allow ports 80/443."
+else
+  echo "  Then open   http://<your-server-ip>"
+  echo ""
+  echo "  Finish setup there: it walks you through creating the administrator"
+  echo "  account, choosing a domain, showing you the exact DNS record to add,"
+  echo "  checking that record, and switching on HTTPS."
+fi
+if [ -z "$ADMIN_EMAIL" ]; then
+  echo ""
+  echo "  The first-run setup token is printed by the control plane on boot:"
+  echo "    docker compose logs api | grep -A2 'first-run setup'"
+fi
 echo ""
+
 if [ "$UP" = 1 ]; then
   echo "Starting the stack…"
   ( cd "$REPO" && docker compose up -d )
   echo ""
-  echo "Done. Open $ADMIN_URL once the services are healthy (docker compose ps)."
-else
-  echo "Next:  docker compose up -d      # then open $ADMIN_URL"
+  echo "Done. Check progress with:  docker compose ps"
 fi
-[ "$LOCAL" != 1 ] && echo "Reminder: point a wildcard DNS record  *.$DOMAIN  at this server, and allow ports 80/443."
 exit 0

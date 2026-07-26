@@ -83,47 +83,46 @@
       </li>
 
       <li>
-        <h3>Get Astrodock</h3>
-        <pre><code>git clone https://github.com/your-org/astrodock.git
-cd astrodock</code></pre>
-        <p>(Install git first if needed: <code>apt-get update &amp;&amp; apt-get install -y git</code>.)</p>
+        <h3>Install Astrodock</h3>
+        <pre><code>curl -fsSL https://get.astrodock.dev | sh</code></pre>
+        <p>Downloads the compose file, generates every secret, pulls the prebuilt images, and starts
+        the stack in <code>/opt/astrodock</code>. Nothing is cloned and nothing is built on the server.</p>
+        <p>Check on it with <code>cd /opt/astrodock &amp;&amp; docker compose ps</code>.</p>
+        <div class="callout tip">
+          <p class="ct">Prefer to build from source?</p>
+          <p>Clone the repository, run <code>./scripts/setup.sh</code>, then
+          <code>docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build</code>.
+          Slower on a small box, but nothing prebuilt is trusted.</p>
+        </div>
       </li>
 
       <li>
-        <h3>Configure — one command</h3>
-        <p>Run the setup script. It generates your <code>.env</code> with all secrets filled in,
-        asking only for your domain, email, and an admin password:</p>
-        <pre><code>./scripts/setup.sh --domain apps.example.com --email you@example.com</code></pre>
-        <p>(Run it with no flags for interactive prompts.) It sets HTTPS to automatic, generates the
-        five secret keys, writes a locked-down <code>.env</code>, and prints your dashboard URL and
-        admin login — <strong>copy the admin password if it auto-generates one</strong>.</p>
+        <h3>Finish setup in your browser</h3>
+        <p>Open <strong>http://&lt;your server IP&gt;</strong>. Astrodock boots unconfigured and serves
+        a setup wizard there:</p>
+        <ol>
+          <li><strong>Create your administrator account</strong>, using the one-time token from the log
+          (<code>docker compose logs api | grep -A2 'first-run setup'</code>). The token is what stops
+          anyone else claiming your server first.</li>
+          <li><strong>Enter your domain.</strong> The wizard shows the DNS record to create, prefilled
+          with your server's IP, and checks whether it's live before you commit.</li>
+          <li><strong>Turn on HTTPS</strong> with a contact email, and it hands you the link to your
+          real dashboard at <code>https://admin.apps.example.com</code>.</li>
+        </ol>
         <div class="callout note">
           <p class="ct">Running on a LAN / homelab without a public domain?</p>
-          <p>Generate config for a private network with <code>./scripts/setup.sh --domain home.lan --tls internal</code>
-          (Astrodock issues its own certificates; your browser warns once). See
+          <p>In the wizard, pick <strong>Self-signed</strong> for HTTPS and use an internal name like
+          <code>home.lan</code> — Astrodock issues its own certificates and your browser warns once.
+          From the shell that's <code>./scripts/setup.sh --domain home.lan --tls internal</code>. See
           <a href="custom-domains.html">Custom domains &amp; DNS</a>.</p>
         </div>
         <div class="callout tip">
-          <p class="ct">Prefer to edit by hand?</p>
-          <p>Run <code>cp .env.example .env</code> and fill it in (secrets via <code>openssl rand -hex 32</code>);
-          see the <a href="configuration.html">Configuration reference</a>. Never commit <code>.env</code>.</p>
+          <p class="ct">Prefer to configure from the shell?</p>
+          <p><code>./scripts/setup.sh --domain apps.example.com --email you@example.com --admin-email
+          you@example.com --admin-password '…'</code> sets everything up front and skips the wizard
+          entirely. Or <code>cp .env.example .env</code> and edit by hand — see the
+          <a href="configuration.html">Configuration reference</a>. Never commit <code>.env</code>.</p>
         </div>
-      </li>
-
-      <li>
-        <h3>Start Astrodock</h3>
-        <p>Bring up the stack (or add <code>--up</code> to the setup command above to do both):</p>
-        <pre><code>docker compose up -d</code></pre>
-        <p>First run builds the images (a few minutes). Check status and logs:</p>
-        <pre><code>docker compose ps
-docker compose logs -f api</code></pre>
-      </li>
-
-      <li>
-        <h3>Log in</h3>
-        <p>Visit <strong>https://admin.apps.example.com</strong> and sign in with the admin email and
-        password from your <code>.env</code>. HTTPS certificates are obtained automatically on first
-        visit (give DNS a minute to propagate if it errors).</p>
       </li>
     </ol>
 

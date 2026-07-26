@@ -45,9 +45,10 @@ services:
     restart: unless-stopped
 
   api:
-    build:
-      context: .
-      dockerfile: apps/control-plane/Dockerfile
+    # Prebuilt image, so a fresh server never needs the source tree or a toolchain.
+    # Building from source instead:
+    #   docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
+    image: ${ASTRODOCK_IMAGE:-ghcr.io/astrodock/astrodock}:${ASTRODOCK_VERSION:-latest}
     env_file:
       - .env
     environment:
@@ -80,9 +81,8 @@ services:
   # The runner: owns the Docker socket, the GitHub PAT, PM2, and the build volumes.
   # Same image as api, started in the runner role. Reachable only on the internal network.
   runner:
-    build:
-      context: .
-      dockerfile: apps/control-plane/Dockerfile
+    # Same image as api, started in the runner role (see ASTRODOCK_ROLE below).
+    image: ${ASTRODOCK_IMAGE:-ghcr.io/astrodock/astrodock}:${ASTRODOCK_VERSION:-latest}
     env_file:
       - .env
     environment:

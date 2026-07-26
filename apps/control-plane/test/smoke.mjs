@@ -6,6 +6,12 @@ import assert from 'node:assert';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 
+// Pin a base domain before config loads. An empty ASTRODOCK_BASE_DOMAIN now means
+// "first-run setup pending", which changes routing generation and app URLs — these
+// tests exercise a CONFIGURED platform, so say so rather than inheriting whatever
+// the ambient environment happens to have.
+process.env.ASTRODOCK_BASE_DOMAIN ||= 'localhost';
+
 const { app } = require('../server.js');
 const { migrate } = require('../src/db/migrate.js');
 const { seedAdmin } = require('../src/seed.js');

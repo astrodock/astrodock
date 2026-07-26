@@ -1,7 +1,8 @@
 import { Routes, Route, Navigate, NavLink, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { getToken, clearToken } from './lib/api';
+import { getToken, clearToken, getSetupStatus } from './lib/api';
 import LoginPage from './pages/LoginPage';
+import SetupPage from './pages/SetupPage';
 import OverviewPage from './pages/OverviewPage';
 import UsersPage from './pages/UsersPage';
 import AppsPage from './pages/AppsPage';
@@ -19,6 +20,9 @@ import './App.css';
 export default function App() {
   const [isAuthed, setIsAuthed] = useState(!!getToken());
   const [theme, setTheme] = useState(() => document.documentElement.dataset.theme || 'dark');
+  // null = still asking. Until we know, render nothing rather than flashing the
+  // login form at an operator who has not created an account yet.
+  const [setup, setSetup] = useState(null);
   const navigate = useNavigate();
 
   function toggleTheme() {
@@ -29,10 +33,20 @@ export default function App() {
   }
 
   useEffect(() => {
+    // Ask whether the platform has been set up before deciding what to render.
+    // A failure here (API down mid-boot) falls through to the normal login page
+    // rather than stranding the operator on a blank screen.
+    getSetupStatus()
+      .then(setSetup)
+      .catch(() => setSetup({ complete: true }));
+  }, []);
+
+  useEffect(() => {
+    if (setup && !setup.complete) return; // the wizard owns the screen
     if (!getToken() && window.location.pathname !== '/login') {
       navigate('/login');
     }
-  }, [navigate]);
+  }, [navigate, setup]);
 
   function handleLogin() {
     setIsAuthed(true);
@@ -43,6 +57,16 @@ export default function App() {
     clearToken();
     setIsAuthed(false);
     navigate('/login');
+  }
+
+  if (setup === null) return null; // one paint, not a flash of the wrong screen
+
+  // Unconfigured platform: the wizard takes over regardless of route or session.
+  // It covers both halves of a fresh install — no administrator yet, and/or no
+  // domain yet — so an operator who set ADMIN_EMAIL in .env still lands on the
+  // domain step rather than a dashboard pointing at nowhere.
+  if (!setup.complete) {
+    return <SetupPage status={setup} />;
   }
 
   if (!isAuthed) {
@@ -133,7 +157,7 @@ export default function App() {
         <div className="sidebar-footer">
           <div className="sys-chip">
             <span className="process-dot active" />
-            <div className="t"><b>System nominal</b><span>localhost</span></div>
+            <div className="t"><b>System nominal</b><span>{setup?.baseDomain || 'localhost'}</span></div>
           </div>
           <div className="sidebar-actions">
             <button className="theme-toggle" onClick={toggleTheme} title="Toggle light / dark">

@@ -20,7 +20,9 @@ router.get('/', async (req, res, next) => {
     res.json({
       settings: await settings.effective(),
       diagnostics: settings.diagnostics(),
-      readiness: settings.readiness()
+      // The port-exposure card needs a round-trip to the runner (only it can see
+      // the Docker socket), so it is appended to the synchronous checks.
+      readiness: [...settings.readiness(), await settings.exposureCheck()]
     });
   } catch (err) { next(err); }
 });
