@@ -71,6 +71,11 @@ export const claimAdmin = (token_, email, password, name) =>
 export const checkSetupDns = (baseDomain, observedIp) =>
   setupRequest('/check-dns', { method: 'POST', body: JSON.stringify({ baseDomain, observedIp }) });
 export const deferSetupDomain = () => setupRequest('/defer', { method: 'POST' });
+export const exchangeHandoff = (nonce) =>
+  setupRequest('/handoff', { method: 'POST', body: JSON.stringify({ nonce }) });
+export const getDnsProviders = () => setupRequest('/dns/providers');
+export const createDnsRecord = (provider, token, baseDomain, observedIp) =>
+  setupRequest('/dns/create', { method: 'POST', body: JSON.stringify({ provider, token, baseDomain, observedIp }) });
 export const setSetupDomain = (baseDomain, tlsMode, acmeEmail) =>
   setupRequest('/domain', { method: 'POST', body: JSON.stringify({ baseDomain, tlsMode, acmeEmail }) });
 

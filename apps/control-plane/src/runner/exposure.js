@@ -90,4 +90,57 @@ async function checkExposure() {
   return { available: true, ports, findings };
 }
 
-module.exports = { checkExposure, parsePorts, EXPECTED_PUBLIC };
+// ── cloud metadata reachability ───────────────────────────────────────────────
+//
+// Cloud providers serve instance metadata over HTTP at the link-local address
+// 169.254.169.254. Containers can normally reach it, because link-local traffic
+// routes out through the host — which means a DEPLOYED APP can read it. On
+// DigitalOcean that exposes the droplet's user-data (where an install may have put
+// a setup token, or worse, credentials), its SSH public keys and its tags. On AWS
+// the same endpoint hands out IAM role credentials. This is the classic
+// SSRF-to-metadata problem, and Astrodock's whole job is running other people's
+// code on this box.
+//
+// Reported, not blocked — same reasoning as the firewall above. Fixing it means
+// writing a DOCKER-USER iptables rule on the host, which can collide with the
+// operator's own rules and is hard to undo remotely. The operator gets told, with
+// the one-line fix, and decides.
+const METADATA_IP = '169.254.169.254';
+
+// Spawning a container is far too expensive to do on every settings page load, and
+// the answer only changes when someone edits the host's firewall. Cache it.
+const METADATA_TTL_MS = 10 * 60 * 1000;
+let metadataCache = null;
+
+async function checkMetadataReachable() {
+  if (metadataCache && Date.now() - metadataCache.at < METADATA_TTL_MS) return metadataCache.result;
+
+  // Probe from a THROWAWAY CONTAINER, not from this process: the runner is
+  // privileged in ways an app is not, so testing from here would answer a
+  // different question than "can a deployed app reach it?".
+  //
+  // caddy:2-alpine because the stack already has it — pulling an image just to run
+  // a health check would make this fail on an air-gapped box and cost a download on
+  // every cache miss. It is Alpine-based, so busybox wget is present.
+  let result;
+  try {
+    await docker([
+      'run', '--rm', '--network', 'bridge', '--entrypoint', 'wget',
+      'caddy:2-alpine', '-q', '-T', '3', '-O', '-', `http://${METADATA_IP}/metadata/v1/id`
+    ]);
+    result = { available: true, reachable: true };
+  } catch (err) {
+    // A non-zero exit is the GOOD outcome — but only if the container really ran.
+    // Anything that means "we never got to make the request" is unknown, not safe.
+    const msg = String((err && err.message) || '');
+    if (/Unable to find image|pull access denied|Cannot connect to the Docker daemon|permission denied/i.test(msg)) {
+      result = { available: false, reason: msg.slice(0, 160) };
+    } else {
+      result = { available: true, reachable: false };
+    }
+  }
+  metadataCache = { at: Date.now(), result };
+  return result;
+}
+
+module.exports = { checkExposure, parsePorts, checkMetadataReachable, EXPECTED_PUBLIC, METADATA_IP };

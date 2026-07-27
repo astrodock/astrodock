@@ -15,6 +15,7 @@
 
 const express = require('express');
 const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
 const dns = require('dns').promises;
 const { eq } = require('drizzle-orm');
 const config = require('../config');
@@ -224,6 +225,75 @@ router.post('/check-dns', requireAdmin, async (req, res) => {
   }
 });
 
+// ── DNS automation ────────────────────────────────────────────────────────────
+// Creating the wildcard record is the one step of the install that is genuinely
+// manual, unbounded in time, and easy to get subtly wrong. If the operator's DNS
+// lives somewhere with an API, we can just do it.
+
+router.get('/dns/providers', requireAdmin, (req, res) => {
+  res.json({ providers: require('../lib/dns-providers').list() });
+});
+
+router.post('/dns/create', requireAdmin, async (req, res) => {
+  const { provider, token } = req.body || {};
+  const baseDomain = normalizeHostname((req.body || {}).baseDomain);
+  const observed = String((req.body || {}).observedIp || '').trim();
+  const isIpLiteral = /^\d{1,3}(\.\d{1,3}){3}$/.test(observed);
+  const ip = config.publicIp || (isIpLiteral ? observed : '');
+  try {
+    if (!validHostname(baseDomain)) {
+      return res.status(400).json({ error: 'Enter a valid domain first, e.g. apps.example.com' });
+    }
+    const result = await require('../lib/dns-providers').createWildcard({ provider, token, baseDomain, ip });
+    // The token is deliberately not persisted, and not echoed back.
+    await emitEvent({
+      category: 'audit', type: 'setup.dns_record_created', severity: 'info',
+      message: `Wildcard DNS record ${result.record} created via ${provider} for ${baseDomain}`,
+      ...actorFromAuth(req.auth), targetType: 'platform', targetId: baseDomain, ip: req.ip || ''
+    }).catch(() => {});
+    res.json({ ok: true, ...result, ip });
+  } catch (err) {
+    // Provider messages are written to be read by the operator; pass them through.
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// ── session handoff across the domain switch ─────────────────────────────────
+// Setting the domain moves the operator from http://<ip> to https://admin.<domain>.
+// That is a different ORIGIN, so the browser's sessionStorage — and with it their
+// login — does not follow. Being bounced to a login screen as the last act of setup
+// reads like something broke.
+//
+// So: mint a nonce here, hand it over in the URL FRAGMENT (fragments are not sent
+// to servers and stay out of access logs, unlike a query string), and let the new
+// origin trade it for a real token. The nonce is single-use and short-lived, and it
+// is not itself a credential — it only names an entry in this map.
+const handoffs = new Map();
+const HANDOFF_TTL_MS = 5 * 60 * 1000;
+
+function mintHandoff(user) {
+  for (const [k, v] of handoffs) if (v.expires < Date.now()) handoffs.delete(k);
+  const nonce = crypto.randomBytes(24).toString('hex');
+  handoffs.set(nonce, { user, expires: Date.now() + HANDOFF_TTL_MS });
+  return nonce;
+}
+
+router.post('/handoff', async (req, res) => {
+  const nonce = String((req.body || {}).nonce || '');
+  const entry = handoffs.get(nonce);
+  // Consume on lookup, valid or not — a nonce gets exactly one attempt.
+  handoffs.delete(nonce);
+  if (!entry || entry.expires < Date.now()) {
+    return res.status(401).json({ error: 'That sign-in link has expired. Please sign in.' });
+  }
+  const token = jwt.sign(
+    { sub: entry.user.id, email: entry.user.email, isAdmin: true },
+    config.adminJwtSecret,
+    { expiresIn: '8h' }
+  );
+  res.json({ token, user: { id: entry.user.id, email: entry.user.email } });
+});
+
 // Skip the domain step for now. Nothing is configured — this only records that the
 // operator made the choice, so the wizard stops blocking the dashboard. Setting a
 // domain later clears it.
@@ -281,10 +351,19 @@ router.post('/domain', requireAdmin, async (req, res) => {
     }).catch(() => {});
 
     const scheme = mode === 'off' ? 'http' : 'https';
+    // Look up the acting admin so the new origin can be handed a real session.
+    let handoff = null;
+    try {
+      const rows = await db.select({ id: schema.users.id, email: schema.users.email })
+        .from(schema.users).where(eq(schema.users.email, req.auth.email)).limit(1);
+      if (rows[0]) handoff = mintHandoff(rows[0]);
+    } catch { /* a failed handoff just means one extra sign-in */ }
+
     res.json({
       ok: true,
       ...applied,
       routed,
+      handoff,
       adminUrl: `${scheme}://${config.adminSubdomain}.${baseDomain}`,
       message: routed
         ? 'Routing published.'

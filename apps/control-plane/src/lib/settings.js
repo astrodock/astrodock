@@ -239,6 +239,17 @@ async function exposureCheck() {
         message: 'Could not read the port list from Docker, so open-port checking is unavailable.'
       };
     }
+    const meta = body.metadata || {};
+    if (meta.available && meta.reachable) {
+      // Ranked above the port findings: an app reading instance metadata is a
+      // credential-disclosure path, not just a wider attack surface.
+      return {
+        key: 'port_exposure', ok: false, level: 'warning',
+        message: 'Deployed apps can reach the cloud metadata service (169.254.169.254) and read this '
+          + "server's instance data — on some providers that includes credentials. Block it with: "
+          + 'iptables -I DOCKER-USER -d 169.254.169.254 -j DROP'
+      };
+    }
     const n = (body.findings || []).length;
     if (!n) {
       return {

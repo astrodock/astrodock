@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate, NavLink, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { getToken, clearToken, getSetupStatus } from './lib/api';
+import { getToken, clearToken, getSetupStatus, exchangeHandoff, setToken } from './lib/api';
 import LoginPage from './pages/LoginPage';
 import SetupPage from './pages/SetupPage';
 import OverviewPage from './pages/OverviewPage';
@@ -35,12 +35,22 @@ export default function App() {
   }
 
   useEffect(() => {
-    // Ask whether the platform has been set up before deciding what to render.
-    // A failure here (API down mid-boot) falls through to the normal login page
-    // rather than stranding the operator on a blank screen.
-    getSetupStatus()
-      .then(setSetup)
-      .catch(() => setSetup({ complete: true }));
+    // Arriving from the setup wizard at a brand-new origin: the fragment carries a
+    // one-shot nonce to trade for a session, because sessionStorage did not follow
+    // us across the hostname change. Consume it before anything else decides we are
+    // logged out, and strip it from the URL either way so a reload cannot replay it.
+    const m = window.location.hash.match(/(?:^|[#&])handoff=([a-f0-9]+)/);
+    const finish = () => getSetupStatus().then(setSetup).catch(() => setSetup({ complete: true }));
+
+    if (!m) { finish(); return; }
+
+    const clearHash = () =>
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+
+    exchangeHandoff(m[1])
+      .then((data) => { setToken(data.token); setIsAuthed(true); })
+      .catch(() => { /* expired or already used — the login page is the right landing */ })
+      .finally(() => { clearHash(); finish(); });
   }, []);
 
   useEffect(() => {

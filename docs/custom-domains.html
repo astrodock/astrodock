@@ -59,6 +59,69 @@
         brand-new app's subdomain resolves the moment you deploy it — no DNS change, no waiting.</p>
     </div>
 
+    <h3>Let Astrodock create the record for you</h3>
+    <p>If your DNS is hosted at <strong>DigitalOcean</strong> or <strong>Cloudflare</strong>, the setup
+      wizard can add the wildcard record itself — choose <em>"or let Astrodock create it"</em> on the
+      domain step and paste an API token. It finds the zone your domain belongs to, creates the
+      record, and re-checks DNS.</p>
+    <p><strong>The token is used once and never stored.</strong> Astrodock has no ongoing need for DNS
+      write access, and keeping a token that can repoint your entire domain would be a bigger prize
+      than anything else on the box. Create one scoped as narrowly as your provider allows, and revoke
+      it afterwards if you like.</p>
+
+    <h3>Adding the record by hand, per registrar</h3>
+    <p>Every provider words this differently, and the two things people get wrong are always the same:
+      whether the <strong>Name</strong> field wants the full hostname or just the part in front of your
+      domain, and whether proxying/forwarding has to be off.</p>
+    <p>Assuming your domain is <code>example.com</code> and you want apps under
+      <code>apps.example.com</code>:</p>
+    <table>
+      <tr><th>Provider</th><th>What to enter</th><th>Watch out for</th></tr>
+      <tr>
+        <td><strong>Cloudflare</strong></td>
+        <td>Type <code>A</code>, Name <code>*.apps</code>, IPv4 address <code>&lt;your IP&gt;</code></td>
+        <td><strong>Turn the proxy off</strong> (grey cloud, not orange). Proxied records terminate TLS
+          at Cloudflare, so Astrodock can never complete the certificate challenge for its own domain.</td>
+      </tr>
+      <tr>
+        <td><strong>DigitalOcean</strong></td>
+        <td>Networking → Domains → Type <code>A</code>, Hostname <code>*.apps</code>, Will direct to
+          <code>&lt;your IP&gt;</code></td>
+        <td>Your registrar's nameservers must point at DigitalOcean first, or this zone is ignored.</td>
+      </tr>
+      <tr>
+        <td><strong>Namecheap</strong></td>
+        <td>Advanced DNS → Add New Record → <code>A Record</code>, Host <code>*.apps</code>, Value
+          <code>&lt;your IP&gt;</code></td>
+        <td>Make sure the domain is on <em>Namecheap BasicDNS</em>, not "Custom DNS" or their web
+          forwarding, which silently ignores A records.</td>
+      </tr>
+      <tr>
+        <td><strong>GoDaddy</strong></td>
+        <td>DNS → Add → Type <code>A</code>, Name <code>*.apps</code>, Value <code>&lt;your IP&gt;</code></td>
+        <td>GoDaddy accepts wildcards but hides them behind "Add More Records". Remove any parked/
+          forwarding record for the same name first.</td>
+      </tr>
+      <tr>
+        <td><strong>AWS Route 53</strong></td>
+        <td>Hosted zone → Create record → Record name <code>*.apps</code>, Type <code>A</code>, Value
+          <code>&lt;your IP&gt;</code></td>
+        <td>Route 53 shows the full name as <code>*.apps.example.com</code> — that's the same thing, not
+          a duplicate prefix.</td>
+      </tr>
+      <tr>
+        <td><strong>Google Domains / Squarespace</strong></td>
+        <td>DNS → Custom records → Host <code>*.apps</code>, Type <code>A</code>, Data
+          <code>&lt;your IP&gt;</code></td>
+        <td>Turn off any "forwarding" for the domain, which overrides DNS records.</td>
+      </tr>
+    </table>
+    <p>Using the bare domain (apps at <code>&lt;name&gt;.example.com</code>) instead of a subdomain?
+      Then the Name/Host field is just <code>*</code>.</p>
+    <p>To check it took effect, from any machine:</p>
+    <pre><code>dig +short admin.apps.example.com
+# should print your server's IP</code></pre>
+
     <h3>The admin subdomain</h3>
     <p>By default the dashboard is at <code>admin.&lt;base-domain&gt;</code>. If <code>admin</code>
       clashes with something, change it with <code>ASTRODOCK_ADMIN_SUBDOMAIN</code> in <code>.env</code>

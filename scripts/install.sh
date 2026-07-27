@@ -183,10 +183,36 @@ if [ "${ASTRODOCK_NO_START:-0}" = "1" ]; then
 fi
 
 # ── start ─────────────────────────────────────────────────────────────────────
+# Pulling images takes a couple of minutes, and until Caddy is up port 80 refuses
+# connections. Someone who was told "open http://<your-ip> when it's ready" sees a
+# browser error and reasonably concludes the install failed — which is exactly what
+# happened the first time this was tried on a real droplet. So hold the port with a
+# placeholder that says what is going on.
+#
+# Entirely best-effort: an install must never fail because the reassurance failed.
+PLACEHOLDER=astrodock-installing
+stop_placeholder() { docker rm -f "$PLACEHOLDER" >/dev/null 2>&1 || true; }
+
 say "Pulling images…"
-docker compose pull -q || die "Image pull failed. Check the tag/repository, or build from source (see docker-compose.build.yml)."
+if docker pull -q caddy:2-alpine >/dev/null 2>&1; then
+  stop_placeholder
+  docker run -d --name "$PLACEHOLDER" -p 80:80 caddy:2-alpine \
+    caddy respond --listen :80 --status 200 --header "Content-Type: text/html; charset=utf-8" \
+    '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="10"><title>Astrodock is installing</title><style>body{font-family:system-ui,sans-serif;background:#f4f6fa;color:#1a2233;display:grid;place-items:center;height:100vh;margin:0}div{max-width:34rem;padding:2rem;text-align:center}h1{font-weight:650;font-size:1.4rem;margin:0 0 .6rem}p{margin:.4rem 0;color:#556}</style><div><h1>Astrodock is installing</h1><p>Downloading and starting the platform. This usually takes a minute or two on a small server.</p><p>This page refreshes itself — setup will appear here when it is ready.</p></div>' \
+    >/dev/null 2>&1 || true
+fi
+
+if ! docker compose pull -q; then
+  stop_placeholder
+  die "Image pull failed. Check the tag/repository, or build from source (see docker-compose.build.yml)."
+fi
+
 say "Starting…"
-docker compose up -d || die "The stack failed to start. Inspect it with:  cd $DIR && docker compose logs"
+# Free port 80 for Caddy before compose claims it.
+stop_placeholder
+if ! docker compose up -d; then
+  die "The stack failed to start. Inspect it with:  cd $DIR && docker compose logs"
+fi
 
 # Best-effort: the address the operator should open. We ask the routing table which
 # source address reaches the internet — no external service, no outbound request.

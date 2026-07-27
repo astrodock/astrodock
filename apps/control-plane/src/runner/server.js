@@ -110,7 +110,9 @@ app.get('/apps/status-all', async (req, res) => {
 // the runner holds the Docker socket. Read-only: see runner/exposure.js for why
 // Astrodock reports on the firewall rather than managing it.
 app.get('/exposure', async (req, res) => {
-  res.json(await require('./exposure').checkExposure());
+  const e = require('./exposure');
+  const [ports, metadata] = await Promise.all([e.checkExposure(), e.checkMetadataReachable()]);
+  res.json({ ...ports, metadata });
 });
 
 // Trigger a backup on demand (the api proxies POST /admin/backups here).

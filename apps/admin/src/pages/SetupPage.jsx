@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { claimAdmin, checkSetupDns, setSetupDomain, deferSetupDomain, login, setToken } from '../lib/api';
+import { useState, useEffect } from 'react';
+import { claimAdmin, checkSetupDns, setSetupDomain, deferSetupDomain, getDnsProviders, createDnsRecord, login, setToken } from '../lib/api';
 
 // First-run setup. This is what replaces hand-editing .env before the first boot:
 // the stack comes up with no domain and no administrator, serves this page over
@@ -58,6 +58,21 @@ export default function SetupPage({ status }) {
   const [dns, setDns] = useState(null);
   const [done, setDone] = useState(null);
 
+  // Optional "create the record for me" path.
+  const [providers, setProviders] = useState([]);
+  const [autoDns, setAutoDns] = useState(false);
+  const [dnsProvider, setDnsProvider] = useState('digitalocean');
+  const [dnsToken, setDnsToken] = useState('');
+  const [dnsCreated, setDnsCreated] = useState(null);
+
+  useEffect(() => {
+    // Needs admin auth, so only once we are past the claim step.
+    if (step !== 2) return;
+    getDnsProviders()
+      .then((d) => { setProviders(d.providers || []); if (d.providers?.[0]) setDnsProvider(d.providers[0].key); })
+      .catch(() => setProviders([]));
+  }, [step]);
+
   const ip = serverAddress(status.publicIp);
 
   async function handleClaim(e) {
@@ -104,6 +119,20 @@ export default function SetupPage({ status }) {
     }
   }
 
+  async function handleCreateDns() {
+    setError(''); setBusy(true); setDnsCreated(null);
+    try {
+      const r = await createDnsRecord(dnsProvider, dnsToken.trim(), baseDomain.trim(), ip);
+      setDnsCreated(r);
+      setDnsToken(''); // spent — do not keep it sitting in component state
+      setDns(await checkSetupDns(baseDomain.trim(), ip));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function handleSaveDomain(e) {
     e.preventDefault();
     setError(''); setBusy(true);
@@ -146,7 +175,9 @@ export default function SetupPage({ status }) {
                 stops being the way in.
               </p>
             </div>
-            <a className="login-btn" href={done.adminUrl} style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>
+            <a className="login-btn"
+               href={done.handoff ? `${done.adminUrl}/#handoff=${done.handoff}` : done.adminUrl}
+               style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>
               Go to {done.adminUrl}
             </a>
             {tlsMode === 'auto' && (
@@ -269,6 +300,11 @@ export default function SetupPage({ status }) {
                   <button type="button" className="pillbtn" onClick={handleCheckDns} disabled={busy}>
                     {busy ? 'Checking…' : 'Check DNS'}
                   </button>
+                  {providers.length > 0 && !autoDns && (
+                    <button type="button" className="link-btn" onClick={() => setAutoDns(true)}>
+                      or let Astrodock create it
+                    </button>
+                  )}
                   {dns && (
                     <span className={`chip ${dns.ok ? 'ok' : 'warn'}`}>
                       {dns.ok ? 'Record is live' : 'Not resolving yet'}
@@ -276,6 +312,47 @@ export default function SetupPage({ status }) {
                   )}
                 </div>
                 {dns && <p className="field-help">{dns.message}</p>}
+
+                {autoDns && (
+                  <div className="callout">
+                    <b>Create the record for me</b>
+                    <p>
+                      If your DNS is hosted somewhere with an API, paste a token and Astrodock will add
+                      the record above. <strong>The token is used once and never stored</strong> — it
+                      isn't saved, logged, or needed again.
+                    </p>
+                    <label>
+                      DNS provider
+                      <select value={dnsProvider} onChange={(e) => setDnsProvider(e.target.value)}>
+                        {providers.map((p) => <option key={p.key} value={p.key}>{p.label}</option>)}
+                      </select>
+                    </label>
+                    <label>
+                      API token
+                      <input type="password" value={dnsToken} spellCheck="false"
+                        onChange={(e) => setDnsToken(e.target.value)} placeholder="Paste the token" />
+                      <span className="field-help">
+                        {providers.find((p) => p.key === dnsProvider)?.tokenHint}
+                      </span>
+                    </label>
+                    <div className="setup-check">
+                      <button type="button" className="pillbtn" onClick={handleCreateDns}
+                        disabled={busy || !dnsToken.trim()}>
+                        {busy ? 'Creating…' : 'Create the record'}
+                      </button>
+                      <button type="button" className="link-btn" onClick={() => setAutoDns(false)}>
+                        I'll add it myself
+                      </button>
+                    </div>
+                    {dnsCreated && (
+                      <p className="field-help">
+                        Created <code>{dnsCreated.record}</code> in zone <code>{dnsCreated.zone}</code> →{' '}
+                        <code>{dnsCreated.ip}</code>. It can take a few minutes to spread — use Check DNS
+                        above to confirm.
+                      </p>
+                    )}
+                  </div>
+                )}
               </>
             )}
 

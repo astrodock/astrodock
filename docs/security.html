@@ -87,6 +87,30 @@
       unless you understand and accept this.</p>
     </div>
 
+    <h2>Cloud metadata and your apps</h2>
+    <p>Cloud providers serve information about the machine over HTTP at
+      <code>169.254.169.254</code>. Containers can usually reach it, because that traffic routes out
+      through the host — which means <strong>an app you deploy can read it too</strong>.</p>
+    <p>What that discloses depends on the provider. On DigitalOcean it's the droplet's user-data
+      (including anything you put in an initialization script), its SSH public keys and its tags. On
+      AWS the same endpoint hands out <strong>IAM role credentials</strong>, which is considerably
+      worse. Since Astrodock's entire job is running code you or an AI agent wrote on this box, it's
+      worth closing.</p>
+    <p>Astrodock checks this for you — <strong>Settings → Readiness</strong> probes it from a
+      throwaway container and warns if it's reachable. It does not block it automatically, for the
+      same reason it doesn't manage your firewall: the fix means writing host firewall rules that can
+      collide with your own and are awkward to undo on a remote machine.</p>
+    <p>To close it:</p>
+    <pre><code>iptables -I DOCKER-USER -d 169.254.169.254 -j DROP</code></pre>
+    <p>It has to go in the <code>DOCKER-USER</code> chain — Docker inserts its own rules ahead of the
+      usual ones, so a plain <code>ufw</code> or <code>INPUT</code> rule won't take effect. Make it
+      persist across reboots with <code>iptables-persistent</code>, or your distribution's equivalent.</p>
+    <div class="callout note">
+      <p class="ct">If you use the metadata service yourself</p>
+      <p>Some setups legitimately read metadata from within containers. If yours does, scope the rule
+        to the app containers rather than dropping it wholesale.</p>
+    </div>
+
     <h2>Operator checklist</h2>
     <p>A short list to get the protections that aren't automatic:</p>
     <ol class="steps">

@@ -186,6 +186,33 @@ test('a valid token is trimmed, not rejected, for stray edge whitespace', () => 
   assert.strictEqual(r.value, 'my-really-long-setup-token');
 });
 
+console.log('\nDNS zone matching');
+
+const { pickZone, wildcardRecordName } = require('../src/lib/dns-providers.js');
+
+test('picks the longest matching zone, not the first', () => {
+  const zones = [{ name: 'example.com' }, { name: 'apps.example.com' }, { name: 'other.com' }];
+  // A delegated subdomain zone must win, or the record lands in the parent where
+  // it will never be served.
+  assert.strictEqual(pickZone(zones, 'apps.example.com').name, 'apps.example.com');
+  assert.strictEqual(pickZone(zones, 'deep.apps.example.com').name, 'apps.example.com');
+  assert.strictEqual(pickZone([{ name: 'example.com' }], 'apps.example.com').name, 'example.com');
+});
+
+test('does not match a zone that merely shares a suffix string', () => {
+  // "notexample.com".endsWith("example.com") is true — matching on raw string
+  // suffix would hand someone else's zone the record.
+  assert.strictEqual(pickZone([{ name: 'example.com' }], 'notexample.com'), null);
+  assert.strictEqual(pickZone([{ name: 'example.com' }], 'other.com'), null);
+});
+
+test('record name is relative to the zone', () => {
+  assert.strictEqual(wildcardRecordName({ name: 'example.com' }, 'apps.example.com'), '*.apps');
+  assert.strictEqual(wildcardRecordName({ name: 'example.com' }, 'a.b.example.com'), '*.a.b');
+  // Base domain IS the zone: a bare wildcard, not "*." with an empty label.
+  assert.strictEqual(wildcardRecordName({ name: 'example.com' }, 'example.com'), '*');
+});
+
 console.log('\nport exposure');
 
 const { parsePorts } = require('../src/runner/exposure.js');

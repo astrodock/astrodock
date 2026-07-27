@@ -13,14 +13,15 @@
     <h1>Run on DigitalOcean</h1>
     <p class="lead">
       The friendliest way to get Astrodock online if you don't already have a server. We'll create a
-      small machine (a "droplet"), point your domain at it, install Docker, and start Astrodock. Plan
-      for about 20–30 minutes the first time.
+      small machine (a "droplet"), point your domain at it, and finish setup in your browser. About
+      ten minutes, most of it waiting for DNS.
     </p>
     <div class="callout note">
       <p class="ct">You'll need</p>
       <p>A <a href="https://www.digitalocean.com">DigitalOcean</a> account, a <strong>domain name</strong>
-      (from any registrar), and an SSH key (DigitalOcean will help you add one). Rough cost: a suitable
-      droplet is about $12/month.</p>
+      (from any registrar). Rough cost: a suitable droplet is about $12/month. You do not need to SSH
+      in at any point — DigitalOcean asks for an SSH key when creating a droplet, but the install
+      runs itself.</p>
     </div>
 
     <ol class="steps">
@@ -62,7 +63,7 @@ ASTRODOCK_SETUP_TOKEN='<span data-setup-token>REPLACE-THIS-WITH-A-LONG-RANDOM-ST
         <p>Create it, and note the droplet's <strong>public IP address</strong>.</p>
         <div class="callout note">
           <p class="ct">Prefer to install by hand?</p>
-          <p>Skip the user-data box and follow steps 5–6 below over SSH instead. Same result — the
+          <p>Skip the user-data box and follow the SSH steps below instead. Same result — the
             script is identical, it just runs when you say so rather than at boot.</p>
         </div>
       </li>
@@ -82,20 +83,9 @@ ASTRODOCK_SETUP_TOKEN='<span data-setup-token>REPLACE-THIS-WITH-A-LONG-RANDOM-ST
         <a href="custom-domains.html">Custom domains &amp; DNS</a>.</p>
         <p>Do this now if you can — DNS changes take a few minutes to spread, so starting early means
         it's usually ready by the time you need it. If you'd rather not, that's fine: the setup wizard
-        in step 7 shows you this same record and checks it for you.</p>
+        shows you this same record and checks it for you.</p>
       </li>
 
-      <li>
-        <h3>Open the firewall</h3>
-        <p>Under <strong>Networking → Firewalls</strong>, create a firewall and attach it to your
-        droplet, allowing inbound <strong>SSH (22)</strong>, <strong>HTTP (80)</strong>, and
-        <strong>HTTPS (443)</strong>. Only those three need to be open.</p>
-        <p>Use your provider's firewall rather than <code>ufw</code> on the droplet: Docker inserts its
-        own routing rules ahead of <code>ufw</code>'s, so a <code>ufw deny</code> on a published port
-        doesn't actually block it. Astrodock doesn't manage the firewall for you, but
-        <strong>Settings → Readiness</strong> warns you if anything beyond 80/443 ends up published to
-        the internet.</p>
-      </li>
 
       <li>
         <h3>Connect to the droplet</h3>
@@ -128,7 +118,7 @@ ASTRODOCK_SETUP_TOKEN='<span data-setup-token>REPLACE-THIS-WITH-A-LONG-RANDOM-ST
 
       <li>
         <h3>Finish setup in your browser</h3>
-        <p><em>If you used the user-data box in Step 1, skip Steps 4–6 entirely — Astrodock is already
+        <p><em>If you used the user-data box when creating the droplet, skip straight past the SSH steps — Astrodock is already
         installing itself. Give it about two minutes from droplet creation, then come straight here.</em></p>
         <p>Open <strong>http://&lt;your droplet IP&gt;</strong>. Astrodock starts up unconfigured and
         serves a short setup wizard there, which walks you through the rest:</p>
@@ -172,9 +162,28 @@ ASTRODOCK_SETUP_TOKEN='<span data-setup-token>REPLACE-THIS-WITH-A-LONG-RANDOM-ST
       check your DNS for you; it is not the only way in.</p>
     </div>
 
+    <h2>Optional: add a firewall</h2>
+    <p>Astrodock publishes exactly two ports, <strong>80</strong> and <strong>443</strong>. Its
+    database, object store, control plane and runner are all on an internal Docker network and are
+    not reachable from outside the machine — so a fresh droplet is not sitting there with an exposed
+    database, and a firewall allowing 80/443 changes very little on day one.</p>
+    <p>It is still worth adding as defence in depth, because it protects you from a <em>future</em>
+    mistake — something else installed later that publishes a port without you noticing. Under
+    <strong>Networking → Firewalls</strong>, create one allowing inbound <strong>SSH (22)</strong>,
+    <strong>HTTP (80)</strong> and <strong>HTTPS (443)</strong>, then attach your droplet. Leave
+    outbound on its default allow-all: builds fetch packages, and certificates need Let's Encrypt.</p>
+    <div class="callout note">
+      <p class="ct">Use the provider firewall, not <code>ufw</code></p>
+      <p>Docker inserts its own routing rules ahead of <code>ufw</code>'s chains, so a
+      <code>ufw deny</code> on a published port does not actually block it — you get the appearance
+      of protection without the protection. That is also why Astrodock reports on exposure rather
+      than managing it: <strong>Settings → Readiness</strong> warns you if anything beyond 80/443
+      ends up published to the internet.</p>
+    </div>
+
     <h2>Other beginner-friendly hosts</h2>
     <p>Prefer somewhere else? The steps are nearly identical on any provider — create an Ubuntu server,
-      point a wildcard DNS record at it, then follow Steps 4–10 above. Good options include
+      point a wildcard DNS record at it, then follow the install and setup steps above. Good options include
       <strong>Hetzner Cloud</strong> (very cheap), <strong>Linode/Akamai</strong>, <strong>Vultr</strong>,
       and <strong>AWS Lightsail</strong>. See <a href="install-vps.html">Your own server / any VPS</a>
       for the provider-agnostic version.</p>

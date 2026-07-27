@@ -25,7 +25,7 @@
       <tr><td><strong>DigitalOcean</strong></td><td>Very beginner-friendly — see the dedicated <a href="install-digitalocean.html">DigitalOcean guide</a>.</td></tr>
       <tr><td><strong>Linode (Akamai)</strong>, <strong>Vultr</strong>, <strong>OVH</strong></td><td>Standard VPS providers; create an Ubuntu instance.</td></tr>
       <tr><td><strong>AWS Lightsail</strong></td><td>The simplest AWS option — a fixed-price VM. Easier than EC2 for this.</td></tr>
-      <tr><td><strong>AWS EC2 / Google Compute Engine / Azure VM</strong></td><td>Work fine; you'll set firewall rules in the provider's console (see Step 3).</td></tr>
+      <tr><td><strong>AWS EC2 / Google Compute Engine / Azure VM</strong></td><td>Work fine; you'll set any firewall rules in the provider's console.</td></tr>
       <tr><td><strong>Your own hardware / homelab</strong></td><td>Works too. If it isn't publicly reachable, use <code>ASTRODOCK_TLS_MODE=internal</code> (Astrodock's own certificates) instead of <code>auto</code>.</td></tr>
     </table>
     <p><strong>Recommended specs:</strong> Ubuntu 22.04 or 24.04 LTS, at least <strong>2&nbsp;GB RAM</strong>
@@ -46,20 +46,6 @@
         <pre><code>Type: A    Name: *.apps    Value: &lt;your server's IP&gt;</code></pre>
         <p>That one record covers the dashboard and every app. More detail and edge cases (apex
         domains, internal/LAN setups) in <a href="custom-domains.html">Custom domains &amp; DNS</a>.</p>
-      </li>
-
-      <li>
-        <h3>Allow web traffic</h3>
-        <p>Make sure inbound <strong>80</strong> and <strong>443</strong> (and <strong>22</strong> for
-        SSH) are open. There are two layers to check:</p>
-        <ul>
-          <li><strong>The provider's network firewall</strong> — AWS <em>Security Groups</em>, Google
-            Cloud <em>firewall rules</em>, Azure <em>Network Security Groups</em>, or DigitalOcean/Vultr
-            <em>Cloud Firewalls</em>. Add inbound rules for 22, 80, 443.</li>
-          <li><strong>The server's own firewall</strong> (if enabled), e.g. <code>ufw</code>:
-            <pre><code>ufw allow 22 &amp;&amp; ufw allow 80 &amp;&amp; ufw allow 443 &amp;&amp; ufw enable</code></pre>
-          </li>
-        </ul>
       </li>
 
       <li>
@@ -125,6 +111,24 @@
         </div>
       </li>
     </ol>
+
+    <h2>Optional: add a firewall</h2>
+    <p>Astrodock publishes only <strong>80</strong> and <strong>443</strong> — its database, object
+    store, control plane and runner all sit on an internal Docker network, unreachable from outside
+    the machine. So make sure 80, 443 and 22 are open at your provider, but a firewall that allows
+    exactly those adds little on day one.</p>
+    <p>It earns its keep against a <em>future</em> mistake: something installed later that publishes
+    a port you didn't intend. Add inbound rules for 22, 80 and 443 in your provider's console — AWS
+    <em>Security Groups</em>, Google Cloud <em>firewall rules</em>, Azure <em>Network Security
+    Groups</em>, DigitalOcean/Vultr <em>Cloud Firewalls</em> — and leave outbound on allow-all, since
+    builds fetch packages and certificates need Let's Encrypt.</p>
+    <div class="callout note">
+      <p class="ct">Prefer the provider firewall to <code>ufw</code></p>
+      <p>Docker writes its own routing rules ahead of <code>ufw</code>'s chains, so a
+      <code>ufw deny</code> on a published port does not actually block it. Astrodock therefore
+      reports on exposure rather than managing it — <strong>Settings → Readiness</strong> warns if
+      anything beyond 80/443 becomes reachable.</p>
+    </div>
 
     <h2>What's next</h2>
     <ul>
