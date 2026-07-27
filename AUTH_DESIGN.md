@@ -328,14 +328,49 @@ api_tokens
 5. MFA is opt-in per account, with a readiness nudge once HTTPS is live — **passkey enrolment cannot
    happen during first-run setup**, since WebAuthn requires HTTPS and setup runs over `http://<ip>`.
 
+## Decisions
+
+_Settled in review. Do not re-litigate without a reason that has changed._
+
+**Scope of `v0.1.0`.** Hosted login gates it, because that version implies the app-facing contract
+is stable. **MFA ships with it too** — once hosted login exists, operator login and app login are the
+same page, so building the second factor there covers both populations at once. Deferring it saves
+nothing and makes it a retrofit.
+
+| In `v0.1.0` | Follows in `v0.1.1`+ |
+|---|---|
+| Hosted login (redirect flow) | `resource:action` scopes, delegation, expiry |
+| `operator_role` — the login page needs it | `GET /whoami` |
+| Passkeys, TOTP, recovery codes | Session revocation UI |
+| `/verify` retained as legacy | Structured operations replacing `exec` |
+| **`exec` route deleted** (see below) | MFA enforcement policy |
+
+**Delete `exec` in `v0.1.0` rather than ship it.** It does not work — it spawns in the API container,
+where the app's files are not mounted — so nothing can depend on it. Leaving it in means shipping a
+documented flag that grants full platform compromise. Removing it costs a route; the rebuild lands
+later on its own merits.
+
+**`viewer` sees the audit trail.** It is a read-only role and the trail is how an operator
+understands their own platform. Withholding it would make the role near-useless while protecting
+nothing a viewer cannot already infer from apps, deploys and events.
+
+**An owner may mandate MFA for all operators**, as a platform setting. Two guards, because this is a
+lockout waiting to happen:
+- the owner enabling it must already have a factor enrolled, or the setting is refused
+- operators without a factor are not locked out immediately; they are required to enrol at next
+  sign-in, with the grace window itself a setting
+
+**Warn, do not block, on a base-domain change with passkeys enrolled.** Blocking would let an
+enrolled credential hold the platform's routing hostage, which is the wrong trade. The change
+proceeds with an explicit warning naming how many credentials will be invalidated, emits an audit
+event, and every affected operator is prompted to re-enrol at next sign-in. Password and TOTP are
+unaffected, so nobody with those is locked out; anyone who is passwordless-with-passkeys-only must
+re-enrol via recovery codes — which is precisely what they exist for.
+
 ## Open questions
 
-- **Sequencing against `v0.1.0`.** Hosted login gates it, since that version implies a stable app
-  contract. MFA, scopes and roles are additive and could follow — but shipping "auth included" with
-  no MFA at all invites the obvious question.
-- **Should `viewer` see the audit trail?** It contains who-did-what across the platform. Currently
-  assumed yes; arguably a separate grant.
-- **MFA enforcement policy.** Can an owner require MFA for all operators? Probably yes, eventually,
-  but it needs a "you will lock yourself out" guard.
-- **Base-domain change vs passkeys.** Re-enrolment is the honest answer; whether to hard-block a
-  domain change while passkeys exist, or warn and proceed, is undecided.
+- Whether `operator` (the role) should be able to manage end users, or whether that stays with
+  `admin` and above. Leaning toward yes, since deploying an app and granting access to it are the
+  same job in practice.
+- Whether app `redirect_uri` allowlists should permit a single wildcard for local development
+  (`http://localhost:*`). Convenient, and a place mistakes hide.
