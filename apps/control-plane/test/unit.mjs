@@ -213,6 +213,48 @@ test('record name is relative to the zone', () => {
   assert.strictEqual(wildcardRecordName({ name: 'example.com' }, 'example.com'), '*');
 });
 
+console.log('\nTOTP (RFC 6238)');
+
+const totp = require('../src/lib/totp.js');
+
+test('matches the RFC 6238 test vectors', () => {
+  // Appendix B, SHA-1. The RFC prints 8 digits; we emit 6, so compare the tail.
+  const seed = totp.base32Encode(Buffer.from('12345678901234567890'));
+  const vectors = [[59, '287082'], [1111111109, '081804'], [1111111111, '050471'],
+    [1234567890, '005924'], [2000000000, '279037'], [20000000000, '353130']];
+  for (const [unix, expected] of vectors) {
+    assert.strictEqual(totp.codeForStep(seed, Math.floor(unix / 30)), expected.slice(-6), `t=${unix}`);
+  }
+});
+
+test('base32 round-trips', () => {
+  const buf = Buffer.from('a slightly awkward length');
+  assert.strictEqual(totp.base32Decode(totp.base32Encode(buf)).toString(), buf.toString());
+});
+
+test('a spent step cannot be reused', () => {
+  const secret = totp.generateSecret();
+  const step = totp.stepFor();
+  const code = totp.codeForStep(secret, step);
+  assert.strictEqual(totp.verify(secret, code).ok, true);
+  // Same code, but the step is now recorded as spent.
+  assert.strictEqual(totp.verify(secret, code, { lastStep: step }).ok, false);
+});
+
+test('accepts one step of clock drift either side, and nothing further', () => {
+  const secret = totp.generateSecret();
+  const now = totp.stepFor();
+  assert.strictEqual(totp.verify(secret, totp.codeForStep(secret, now - 1)).ok, true);
+  assert.strictEqual(totp.verify(secret, totp.codeForStep(secret, now + 1)).ok, true);
+  assert.strictEqual(totp.verify(secret, totp.codeForStep(secret, now + 3)).ok, false);
+});
+
+test('malformed input is rejected before any crypto runs', () => {
+  const secret = totp.generateSecret();
+  ['', '12345', '1234567', 'abcdef', null].forEach((bad) =>
+    assert.strictEqual(totp.verify(secret, bad).ok, false));
+});
+
 console.log('\nport exposure');
 
 const { parsePorts } = require('../src/runner/exposure.js');
