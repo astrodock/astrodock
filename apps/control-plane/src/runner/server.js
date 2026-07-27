@@ -115,6 +115,35 @@ app.get('/exposure', async (req, res) => {
   res.json({ ...ports, metadata });
 });
 
+// Structured operations on an app's deployed files — what the removed terminal was
+// used for, as named actions. Lives on the runner because that is where the app's
+// files and process actually are; the API container never had them.
+app.get('/apps/:slug/ops/list', async (req, res) => {
+  const a = await loadApp(req.params.slug); if (!a) return res.status(404).json({ error: 'App not found' });
+  try { res.json({ entries: require('./app-ops').listDirectory(a.slug, req.query.path || '.') }); }
+  catch (e) { res.status(400).json({ error: e.message }); }
+});
+app.get('/apps/:slug/ops/file', async (req, res) => {
+  const a = await loadApp(req.params.slug); if (!a) return res.status(404).json({ error: 'App not found' });
+  try { res.json(require('./app-ops').readFile(a.slug, req.query.path)); }
+  catch (e) { res.status(400).json({ error: e.message }); }
+});
+app.get('/apps/:slug/ops/env', async (req, res) => {
+  const a = await loadApp(req.params.slug); if (!a) return res.status(404).json({ error: 'App not found' });
+  const vars = await db.select().from(schema.appEnvVars).where(eq(schema.appEnvVars.appId, a.id));
+  res.json({ env: require('./app-ops').runtimeEnv(a, vars) });
+});
+app.get('/apps/:slug/ops/commands', async (req, res) => {
+  const a = await loadApp(req.params.slug); if (!a) return res.status(404).json({ error: 'App not found' });
+  res.json({ commands: require('./app-ops').declaredCommands(a) });
+});
+app.post('/apps/:slug/ops/run', express.json(), async (req, res) => {
+  const a = await loadApp(req.params.slug); if (!a) return res.status(404).json({ error: 'App not found' });
+  const vars = await db.select().from(schema.appEnvVars).where(eq(schema.appEnvVars.appId, a.id));
+  try { res.json(await require('./app-ops').runDeclared(a, vars, req.body?.name)); }
+  catch (e) { res.status(400).json({ error: e.message }); }
+});
+
 // Trigger a backup on demand (the api proxies POST /admin/backups here).
 app.post('/backup', express.json(), async (req, res) => {
   const result = await runBackup({ trigger: req.body?.trigger || 'manual' });

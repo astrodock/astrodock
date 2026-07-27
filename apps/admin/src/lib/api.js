@@ -159,6 +159,14 @@ export const stopApp = (slug) =>
 export const getAppLogs = (slug, lines = 100) =>
   request(`/apps/${slug}/logs?lines=${lines}`);
 
+// Structured operations on a deployed app (replaces the removed terminal)
+export const opsList = (slug, path) => request(`/apps/${slug}/ops/list?path=${encodeURIComponent(path || '.')}`);
+export const opsFile = (slug, path) => request(`/apps/${slug}/ops/file?path=${encodeURIComponent(path)}`);
+export const opsEnv = (slug) => request(`/apps/${slug}/ops/env`);
+export const opsCommands = (slug) => request(`/apps/${slug}/ops/commands`);
+export const opsRun = (slug, name) =>
+  request(`/apps/${slug}/ops/run`, { method: 'POST', body: JSON.stringify({ name }) });
+
 // Health
 export const getHealth = () => request('/health');
 export const getPlatformHealth = () => request('/health/platform');

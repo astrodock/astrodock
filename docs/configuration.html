@@ -193,17 +193,10 @@
     <h2>Feature flags</h2>
     <table>
       <tr><th>Variable</th><th>What it does</th><th>Default / required</th></tr>
-      <tr>
-        <td><code>ASTRODOCK_ENABLE_TERMINAL</code></td>
-        <td>Turns on the per-app terminal. <strong>This is arbitrary remote code execution by design</strong>
-          — leave it off unless you understand the threat model.</td>
-        <td><span class="pill">false</span></td>
-      </tr>
     </table>
     <div class="callout danger">
       <p class="ct">Leave the terminal off</p>
       <p>The per-app terminal runs shell commands inside an app's context — effectively full access. Keep
-      <code>ASTRODOCK_ENABLE_TERMINAL=false</code> unless you've read <a href="security.html">Security</a>
       and accept the risk.</p>
     </div>
 

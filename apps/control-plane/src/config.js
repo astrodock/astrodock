@@ -141,9 +141,6 @@ const config = {
     pgContainer: process.env.ASTRODOCK_PG_CONTAINER || 'astrodock-postgres-1'
   },
 
-  // ── Feature flags ──
-  enableTerminal: bool(process.env.ASTRODOCK_ENABLE_TERMINAL, false),
-
   // Deploy build timeouts (per command). A hung build fails instead of wedging the runner.
   deploy: {
     buildTimeoutMs: int(process.env.ASTRODOCK_BUILD_TIMEOUT_MS, 300000),

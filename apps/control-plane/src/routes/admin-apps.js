@@ -520,31 +520,44 @@ router.get('/:slug/access-logs', async (req, res) => {
   res.json({ enabled: true, count: entries.length, statusCounts, recent });
 });
 
-// ── terminal (gated behind ASTRODOCK_ENABLE_TERMINAL; arbitrary RCE by design) ──
-if (config.enableTerminal) {
-  router.get('/:slug/exec', async (req, res) => {
-    const command = req.query.command;
-    if (!command || !command.trim()) return res.status(400).json({ error: 'command query parameter is required' });
-    const app = await getAppBySlug(req.params.slug);
-    if (!app) return res.status(404).json({ error: 'App not found' });
+// ── structured operations ────────────────────────────────────────────────────
+// Reading files and inspecting state need logs:read — they disclose, they do not
+// change. Running a declared command needs runtime:write, because it does.
+router.get('/:slug/ops/list', async (req, res) => {
+  const { status, body } = await runner.opsList(req.params.slug, req.query.path);
+  res.status(status).json(body);
+});
+router.get('/:slug/ops/file', async (req, res) => {
+  const { status, body } = await runner.opsFile(req.params.slug, req.query.path);
+  res.status(status).json(body);
+});
+router.get('/:slug/ops/env', async (req, res) => {
+  const { status, body } = await runner.opsEnv(req.params.slug);
+  res.status(status).json(body);
+});
+router.get('/:slug/ops/commands', async (req, res) => {
+  const { status, body } = await runner.opsCommands(req.params.slug);
+  res.status(status).json(body);
+});
+router.post('/:slug/ops/run', async (req, res) => {
+  const app = await getAppBySlug(req.params.slug);
+  if (!app) return res.status(404).json({ error: 'App not found' });
+  const { status, body } = await runner.opsRun(req.params.slug, req.body?.name);
+  // Recorded as an event: a shell command was unauditable, a named one is not.
+  await emitEvent({
+    category: 'audit', type: 'app.command_run', severity: 'info',
+    message: `Ran declared command "${req.body?.name}" for ${app.slug} (exit ${body?.exitCode})`,
+    ...actorFromAuth(req.auth), targetType: 'app', targetId: app.slug, appSlug: app.slug, ip: req.ip || ''
+  }).catch(() => {});
+  res.status(status).json(body);
+});
 
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-    res.setHeader('X-Accel-Buffering', 'no');
-    res.flushHeaders();
-
-    const envVars = await getAppEnvVars(app.id);
-    const env = { PATH: process.env.PATH, HOME: process.env.HOME, NODE_ENV: config.env, ...computeEnv(app, envVars) };
-    const cwd = path.join(config.paths.apps, app.slug);
-    const child = spawn('sh', ['-c', command], { cwd, env, timeout: 5 * 60 * 1000 });
-    const send = (event, data) => res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
-    child.stdout.on('data', (c) => send('stdout', c.toString()));
-    child.stderr.on('data', (c) => send('stderr', c.toString()));
-    child.on('close', (code) => { send('exit', { code }); res.end(); });
-    child.on('error', (err) => { send('error', err.message); res.end(); });
-    req.on('close', () => { if (!child.killed) child.kill('SIGTERM'); });
-  });
-}
+// The terminal used to live here. It spawned `sh -c` in the API container, which
+// holds the key that decrypts every app's secret, the admin JWT signing secret and
+// the runner token — and it did not work anyway, because the app's files are on the
+// runner, which this container does not mount. Removed rather than gated: shipping
+// a flag that grants full platform compromise, to enable something broken, is not a
+// trade worth making. Replaced by structured operations (runner/app-ops.js), which
+// cover what it was used for without arbitrary execution. See AUTH_DESIGN.md.
 
 module.exports = router;

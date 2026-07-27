@@ -36,7 +36,12 @@ const runner = {
   remove: (slug) => call('POST', `/apps/${slug}/remove`),
   logs: (slug, lines) => call('GET', `/apps/${slug}/logs`, { query: { lines: lines || 100 } }),
   backup: (trigger = 'manual') => call('POST', '/backup', { json: { trigger } }),
-  exposure: () => call('GET', '/exposure')
+  exposure: () => call('GET', '/exposure'),
+  opsList: (slug, p) => call('GET', `/apps/${slug}/ops/list`, { query: { path: p || '.' } }),
+  opsFile: (slug, p) => call('GET', `/apps/${slug}/ops/file`, { query: { path: p } }),
+  opsEnv: (slug) => call('GET', `/apps/${slug}/ops/env`),
+  opsCommands: (slug) => call('GET', `/apps/${slug}/ops/commands`),
+  opsRun: (slug, name) => call('POST', `/apps/${slug}/ops/run`, { json: { name } })
 };
 
 module.exports = { runner };

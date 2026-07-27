@@ -80,11 +80,13 @@
       <code>/var/run/docker.sock</code>, which is <strong>≈ root on the host</strong>. Put only
       trusted Dockerfile apps on the box.</p>
     </div>
-    <div class="callout danger">
-      <p class="ct">The per-app terminal is arbitrary RCE — off by default</p>
-      <p>The per-app terminal runs shell commands in an app's context. It is
-      <strong>OFF unless you set <code>ASTRODOCK_ENABLE_TERMINAL=true</code></strong>. Leave it off
-      unless you understand and accept this.</p>
+    <div class="callout note">
+      <p class="ct">There is no shell into your apps</p>
+      <p>Earlier versions had a per-app terminal. It ran commands inside the control plane — the one
+      container holding the key that decrypts every app's secrets — so it has been removed rather
+      than fixed. The <strong>Operations</strong> tab replaces it: browse the deployed files, see
+      which configuration reached the running process, and run the commands the app declares in its
+      <code>app.json</code>. Those are code you committed, not a string composed at runtime.</p>
     </div>
 
     <h2>Cloud metadata and your apps</h2>
@@ -134,7 +136,6 @@
       </li>
       <li>
         <h3>Keep the terminal off</h3>
-        <p>Leave <code>ASTRODOCK_ENABLE_TERMINAL=false</code> unless you genuinely need it.</p>
       </li>
       <li>
         <h3>Back up your data</h3>

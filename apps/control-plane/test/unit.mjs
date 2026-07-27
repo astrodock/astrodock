@@ -255,6 +255,43 @@ test('malformed input is rejected before any crypto runs', () => {
     assert.strictEqual(totp.verify(secret, bad).ok, false));
 });
 
+console.log('\nstructured app operations');
+
+const ops = require('../src/runner/app-ops.js');
+
+test('paths are contained to the app directory', () => {
+  // The whole safety property: a caller names a path, so it must not be able to
+  // name one outside the app — the runner's own filesystem holds the Docker socket
+  // and every app's build.
+  assert.doesNotThrow(() => ops.resolveInApp('notes', 'server/server.js'));
+  assert.doesNotThrow(() => ops.resolveInApp('notes', '.'));
+  ['../', '../../etc/passwd', 'a/../../..//etc/shadow', '/etc/passwd'].forEach((bad) =>
+    assert.throws(() => ops.resolveInApp('notes', bad), /outside the app/, `should refuse ${bad}`));
+});
+
+test('a sibling app directory is not reachable by prefix', () => {
+  // "notes-evil" starts with "notes"; a naive startsWith check would allow it.
+  assert.throws(() => ops.resolveInApp('notes', '../notes-evil/secret'), /outside the app/);
+});
+
+test('only commands declared in app.json can be run', async () => {
+  const app = { slug: 'notes', manifest: { scripts: { migrate: 'echo migrated' } } };
+  assert.deepStrictEqual(ops.declaredCommands(app), ['migrate']);
+  await assert.rejects(() => ops.runDeclared(app, [], 'rm -rf /'), /No such command/);
+  await assert.rejects(() => ops.runDeclared({ slug: 'x', manifest: {} }, [], 'anything'), /declares no commands/);
+});
+
+test('runtime env reports whether secrets are set, never their values', () => {
+  const vars = [{ key: 'OPENAI_API_KEY', kind: 'declared', value: 'sk-realvalue', isSecret: true }];
+  const rows = ops.runtimeEnv({ ...internalApp, databaseMode: 'none', storageMode: 'none' }, vars);
+  const secret = rows.find((r) => r.key === 'OPENAI_API_KEY');
+  assert.strictEqual(secret.isSet, true, 'reports that it is set');
+  assert.strictEqual(secret.value, null, 'never returns the value');
+  assert.ok(secret.length > 0, 'length is useful for "did the whole thing paste"');
+  const appSecret = rows.find((r) => r.key === 'ASTRODOCK_APP_SECRET');
+  if (appSecret) assert.strictEqual(appSecret.value, null, 'platform secrets masked too');
+});
+
 console.log('\nport exposure');
 
 const { parsePorts } = require('../src/runner/exposure.js');

@@ -221,7 +221,7 @@ function diagnostics() {
     email: { from: config.email.from, resendConfigured: !!config.email.resendApiKey, alertTo: config.email.alertTo || '(unset)' },
     github: { owner: config.github.owner || '(unset)', pat: mask(config.github.pat) },
     runner: { url: config.runnerUrl, token: mask(config.runnerToken) },
-    features: { terminal: config.enableTerminal, secretEncryption: isEnabled() }
+    features: { secretEncryption: isEnabled() }
   };
 }
 

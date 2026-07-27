@@ -6,11 +6,11 @@ import DeploysTab from '../components/DeploysTab';
 import EnvVarsTab from '../components/EnvVarsTab';
 import LogsTab from '../components/LogsTab';
 import SettingsTab from '../components/SettingsTab';
-import TerminalTab from '../components/TerminalTab';
+import OperationsTab from '../components/OperationsTab';
 import DomainsTab from '../components/DomainsTab';
 
-const TABS = ['deploys', 'env', 'domains', 'logs', 'terminal', 'settings'];
-const TAB_LABELS = { deploys: 'Deploys', env: 'Variables', domains: 'Domains', logs: 'Logs', terminal: 'Terminal', settings: 'Settings' };
+const TABS = ['deploys', 'env', 'domains', 'logs', 'operations', 'settings'];
+const TAB_LABELS = { deploys: 'Deploys', env: 'Variables', domains: 'Domains', logs: 'Logs', operations: 'Operations', settings: 'Settings' };
 
 const STATUS_LABELS = {
   online: { label: 'Running', className: 'active' },
@@ -145,7 +145,7 @@ export default function AppDetailPage() {
         {activeTab === 'env' && <EnvVarsTab app={app} onRefresh={load} />}
         {activeTab === 'domains' && <DomainsTab app={app} />}
         {activeTab === 'logs' && <LogsTab app={app} />}
-        {activeTab === 'terminal' && <TerminalTab app={app} />}
+        {activeTab === 'operations' && <OperationsTab app={app} />}
         {activeTab === 'settings' && <SettingsTab app={app} onRefresh={load} />}
       </div>
     </div>

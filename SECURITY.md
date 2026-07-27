@@ -20,7 +20,6 @@ plainly rather than pretending they aren't there.
   sibling containers via `/var/run/docker.sock`, which is **root-equivalent on the host**. This is
   accepted under the trusted-operator model.
 - **The per-app terminal is arbitrary RCE.** The `/exec` SSE endpoint runs shell commands in an
-  app's context. It is **OFF by default** and only mounted when `ASTRODOCK_ENABLE_TERMINAL=true`.
   Leave it off unless you understand and accept this.
 - **GitHub PAT in clone URLs.** The runner clones with `https://x-access-token:<PAT>@…`. The token
   is not written to stored deploy logs, but treat the runner host as holding that credential.
@@ -73,13 +72,11 @@ plainly rather than pretending they aren't there.
   app could reach internal services (objectstore, caddy admin, runner) on that network. Put only
   trusted Dockerfile apps on the box, or segment the network.
 - No multi-admin RBAC — admins are all-powerful (per-app scoping exists only for API tokens).
-- The optional terminal (`ASTRODOCK_ENABLE_TERMINAL`) remains arbitrary RCE and off by default.
 
 ## Operator guidance
 - Put the box behind a firewall; expose only 80/443.
 - Use strong, unique values for `ASTRODOCK_ADMIN_JWT_SECRET`, `ASTRODOCK_PG_PASSWORD`,
   `ASTRODOCK_OBJECTSTORE_SECRET_KEY`, and the admin password. Never commit `.env`.
-- Keep `ASTRODOCK_ENABLE_TERMINAL=false` unless you need it.
 - Connect only repos you control. Review `buildCommand` and dependencies.
 - Back up `pgdata` and `objectdata` (see `scripts/backup.sh`).
 
