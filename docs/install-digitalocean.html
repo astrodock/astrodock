@@ -42,6 +42,14 @@
             open a terminal at all.
             <pre><code>#!/bin/sh
 ASTRODOCK_SETUP_TOKEN='<span data-setup-token>REPLACE-THIS-WITH-A-LONG-RANDOM-STRING</span>' sh -c "$(curl -fsSL https://raw.githubusercontent.com/astrodock/astrodock/main/scripts/install.sh)"</code></pre>
+            <div class="callout note">
+              <p class="ct">Running against private images?</p>
+              <p>Add <code>ASTRODOCK_REGISTRY_USER</code> and <code>ASTRODOCK_REGISTRY_TOKEN</code> to
+              the same line. Do <strong>not</strong> put a separate <code>docker login</code> command
+              above it — on a stock image Docker is not installed yet at that point, so the login
+              fails silently and the install only discovers it minutes later when the pull is
+              refused.</p>
+            </div>
             <p style="margin-top:-4px">
               <button type="button" class="pillbtn" data-setup-token-regen hidden>Generate a different token</button>
             </p>

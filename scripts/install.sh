@@ -26,6 +26,10 @@
 #                             what lets a cloud install skip SSH entirely
 #   ASTRODOCK_ADMIN_EMAIL     seed the admin account directly and skip the
 #   ASTRODOCK_ADMIN_PASSWORD  claim step (see the caveat in .env.example)
+#   ASTRODOCK_REGISTRY_USER   sign in to the image registry, for private images.
+#   ASTRODOCK_REGISTRY_TOKEN  Use these rather than a `docker login` line ahead of
+#                             this script: on a stock image Docker does not exist
+#                             yet at that point, so the login silently fails.
 #
 # Deliberately NOT supported here: presetting the base domain. If DNS is not live
 # yet, a configured domain means Caddy serves only that hostname and cannot get a
@@ -193,18 +197,46 @@ fi
 PLACEHOLDER=astrodock-installing
 stop_placeholder() { docker rm -f "$PLACEHOLDER" >/dev/null 2>&1 || true; }
 
-say "Pulling images…"
-if docker pull -q caddy:2-alpine >/dev/null 2>&1; then
+serve_page() { # serve_page <html> — best-effort, replaces any existing placeholder
   stop_placeholder
   docker run -d --name "$PLACEHOLDER" -p 80:80 caddy:2-alpine \
-    caddy respond --listen :80 --status 200 --header "Content-Type: text/html; charset=utf-8" \
-    '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="10"><title>Astrodock is installing</title><style>body{font-family:system-ui,sans-serif;background:#f4f6fa;color:#1a2233;display:grid;place-items:center;height:100vh;margin:0}div{max-width:34rem;padding:2rem;text-align:center}h1{font-weight:650;font-size:1.4rem;margin:0 0 .6rem}p{margin:.4rem 0;color:#556}</style><div><h1>Astrodock is installing</h1><p>Downloading and starting the platform. This usually takes a minute or two on a small server.</p><p>This page refreshes itself — setup will appear here when it is ready.</p></div>' \
+    caddy respond --listen :80 --status 200 --header "Content-Type: text/html; charset=utf-8" "$1" \
     >/dev/null 2>&1 || true
+}
+
+page() { # page <title> <body-html>
+  printf '%s' "<!doctype html><meta charset=\"utf-8\"><title>$1</title><style>body{font-family:system-ui,sans-serif;background:#f4f6fa;color:#1a2233;display:grid;place-items:center;height:100vh;margin:0}div{max-width:38rem;padding:2rem}h1{font-weight:650;font-size:1.4rem;margin:0 0 .8rem}p{margin:.5rem 0;color:#556;line-height:1.5}code{background:#e6e9f0;padding:.15rem .4rem;border-radius:4px;font-size:.9em}</style><div><h1>$1</h1>$2</div>"
+}
+
+# Fail LOUDLY on the port the operator is watching. Tearing the placeholder down on
+# failure — which is what this used to do — turns a diagnosable error into a bare
+# connection-refused, and the real reason ends up buried in cloud-init's log on a
+# box the operator may never have opened a terminal on.
+fail_with_page() {
+  serve_page "$(page 'Astrodock could not finish installing' \
+    "<p>$1</p><p>The full log is on the server at <code>/var/log/cloud-init-output.log</code>, or from <code>cd $DIR &amp;&amp; docker compose logs</code>.</p>")"
+  die "$1"
+}
+
+say "Pulling images…"
+if docker pull -q caddy:2-alpine >/dev/null 2>&1; then
+  serve_page '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="10"><title>Astrodock is installing</title><style>body{font-family:system-ui,sans-serif;background:#f4f6fa;color:#1a2233;display:grid;place-items:center;height:100vh;margin:0}div{max-width:34rem;padding:2rem;text-align:center}h1{font-weight:650;font-size:1.4rem;margin:0 0 .6rem}p{margin:.4rem 0;color:#556}</style><div><h1>Astrodock is installing</h1><p>Downloading and starting the platform. This usually takes a minute or two on a small server.</p><p>This page refreshes itself — setup will appear here when it is ready.</p></div>'
+fi
+
+# Registry sign-in, for private images. Done HERE rather than by the caller: a
+# `docker login` line in a user-data script runs BEFORE this script has had the
+# chance to install Docker, so on a stock image it fails with "docker: not found"
+# and nothing notices until the pull below dies minutes later.
+if [ -n "${ASTRODOCK_REGISTRY_TOKEN:-}" ]; then
+  REG_HOST=$(printf '%s' "${ASTRODOCK_IMAGE:-ghcr.io/astrodock/astrodock}" | cut -d/ -f1)
+  say "Signing in to $REG_HOST…"
+  printf '%s' "$ASTRODOCK_REGISTRY_TOKEN" \
+    | docker login "$REG_HOST" -u "${ASTRODOCK_REGISTRY_USER:-oauth2}" --password-stdin >/dev/null 2>&1 \
+    || fail_with_page "Could not sign in to $REG_HOST. Check ASTRODOCK_REGISTRY_USER and ASTRODOCK_REGISTRY_TOKEN."
 fi
 
 if ! docker compose pull -q; then
-  stop_placeholder
-  die "Image pull failed. Check the tag/repository, or build from source (see docker-compose.build.yml)."
+  fail_with_page "Could not download the Astrodock images. If they are private, set ASTRODOCK_REGISTRY_USER and ASTRODOCK_REGISTRY_TOKEN. Otherwise check the image name and tag, or build from source using docker-compose.build.yml."
 fi
 
 say "Starting…"
