@@ -10,7 +10,7 @@
     "dev": "ASTRODOCK_ENV=development node --watch server.js",
     "migrate": "node src/db/migrate.js",
     "seed": "node src/seed.js",
-    "test": "node test/unit.mjs && node test/scopes.mjs && node test/pages-unit.mjs && node test/smoke.mjs && node test/pages.test.mjs"
+    "test": "node test/unit.mjs && node test/scopes.mjs && node test/pages-unit.mjs && node test/smoke.mjs && node test/auth-factors.test.mjs && node test/oauth.test.mjs && node test/pages.test.mjs"
   },
   "dependencies": {
     "@astrodock/schema": "*",

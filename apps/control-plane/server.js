@@ -58,6 +58,10 @@ app.get('/account', (req, res) => res.sendFile(path.join(__dirname, 'public', 'a
 // decides whether to render the wizard or the login page, on every boot.
 app.use('/setup', require('./src/routes/setup'));
 
+// Hosted login: the platform collects credentials on its own origin, so apps
+// never see them. /verify stays for existing apps and non-browser clients.
+app.use('/', require('./src/routes/oauth'));
+
 app.use('/verify', require('./src/routes/verify'));
 app.use('/account', require('./src/routes/account'));
 app.use('/admin', require('./src/routes/admin-auth'));
