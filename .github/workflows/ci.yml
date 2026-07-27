@@ -68,21 +68,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: compose file is valid and network naming is consistent
+      - name: compose keeps per-project network isolation
         run: |
           set -eu
-          check() {
-            project="$1"
-            rendered=$(ASTRODOCK_PROJECT="$project" docker compose config)
-            declared=$(printf '%s' "$rendered" | awk '/^networks:/{n=1} n&&/name:/{print $2; exit}')
-            told=$(printf '%s' "$rendered" | grep -m1 'ASTRODOCK_DOCKER_NETWORK:' | awk '{print $2}')
-            echo "project=$project  network=$declared  runner-told=$told"
-            [ -n "$declared" ] || { echo "no network name rendered"; exit 1; }
-            [ "$declared" = "$told" ] || {
-              echo "MISMATCH: compose creates '$declared' but the runner is told '$told'"; exit 1; }
-          }
-          check astrodock
-          check renamed-project
+          net() { docker compose -p "$1" config | awk '/^networks:/{n=1} n&&/name:/{print $2; exit}'; }
+          a=$(net astrodock)
+          b=$(net second-stack)
+          echo "astrodock -> $a"
+          echo "second-stack -> $b"
+          # Naming the network explicitly (or deriving it from a variable that -p does
+          # not set) makes a second stack silently JOIN the first one's network and
+          # collide on service names: two containers answering to "postgres", "api",
+          # "caddy". Compose's per-project default is what prevents that.
+          [ "$a" != "$b" ] || { echo "network name does not follow the project — -p no longer isolates"; exit 1; }
+
+          # And the runner must not be handed a hardcoded network name, or it will
+          # attach app containers to whatever that string says rather than to the
+          # network it is really on. It detects this at runtime instead.
+          if docker compose config | grep -q 'ASTRODOCK_DOCKER_NETWORK:'; then
+            echo "docker-compose.yml pins ASTRODOCK_DOCKER_NETWORK; runtime detection should decide it"
+            exit 1
+          fi
+          echo "ok: isolation preserved, network resolved at runtime"
 
       - name: installer fetches every host path the compose file mounts
         run: |

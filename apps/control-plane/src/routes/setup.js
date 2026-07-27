@@ -21,7 +21,7 @@ const config = require('../config');
 const { db, schema } = require('../db');
 const { hashPassword } = require('../lib/passwords');
 const { requireAdmin } = require('../middleware/auth');
-const { setBootstrap } = require('../lib/settings');
+const { setBootstrap, isSetupDeferred, setSetupDeferred } = require('../lib/settings');
 const { normalizeHostname, validHostname } = require('../lib/domains');
 const { emitEvent, actorFromAuth } = require('../lib/events');
 
@@ -127,12 +127,21 @@ router.get('/status', async (req, res) => {
       configured: config.isConfigured(),
       hasAdmin,
       needsClaim: !hasAdmin,
+      // Lets the wizard say "the token you chose at install time" instead of
+      // telling someone to SSH in and grep logs for a token they already have.
+      // Safe to expose: knowing a token was operator-chosen doesn't help guess it,
+      // and this only ever answers before an admin exists.
+      tokenSource: hasAdmin ? null : (validatePresetToken(config.setupToken).ok ? 'preset' : 'generated'),
       baseDomain: config.baseDomain || '',
       adminSubdomain: config.adminSubdomain,
       tlsMode: config.tlsMode,
       acmeEmail: config.acmeEmail || '',
       publicIp: config.publicIp || '',
-      complete: config.isConfigured() && hasAdmin
+      deferred: await isSetupDeferred(),
+      // "Complete" means "stop showing the wizard", not "fully configured". Someone
+      // who chose to set their domain later gets the dashboard over the server's IP
+      // instead of being held at a form they cannot fill in yet.
+      complete: hasAdmin && (config.isConfigured() || await isSetupDeferred())
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -215,6 +224,24 @@ router.post('/check-dns', requireAdmin, async (req, res) => {
   }
 });
 
+// Skip the domain step for now. Nothing is configured — this only records that the
+// operator made the choice, so the wizard stops blocking the dashboard. Setting a
+// domain later clears it.
+router.post('/defer', requireAdmin, async (req, res) => {
+  try {
+    const actor = actorFromAuth(req.auth);
+    await setSetupDeferred(true, actor.actor);
+    await emitEvent({
+      category: 'audit', type: 'setup.domain_deferred', severity: 'info',
+      message: 'Domain setup deferred — the platform is reachable only by IP until one is set',
+      ...actor, targetType: 'platform', ip: req.ip || ''
+    }).catch(() => {});
+    res.json({ ok: true, deferred: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Commit the domain. Persists it, applies it to the live config, and republishes
 // routing — after which the operator is redirected to the real admin host.
 router.post('/domain', requireAdmin, async (req, res) => {
@@ -236,6 +263,8 @@ router.post('/domain', requireAdmin, async (req, res) => {
     const previous = config.baseDomain;
     const actor = actorFromAuth(req.auth);
     const applied = await setBootstrap({ baseDomain, tlsMode: mode, acmeEmail: email }, actor.actor);
+    // A domain now exists, so the "I'll do it later" state is no longer meaningful.
+    await setSetupDeferred(false, actor.actor).catch(() => {});
 
     // Republish routing under the new hostnames. Two attempts, not the default
     // five: the operator is waiting on this response, and the full backoff is ~15s

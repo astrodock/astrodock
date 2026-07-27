@@ -20,6 +20,7 @@
 // like log retention). The cache is per-process; with a short TTL a write in one
 // process (api vs runner) becomes visible to the other within TTL.
 
+const { eq } = require('drizzle-orm');
 const { db, schema } = require('../db');
 const config = require('../config');
 
@@ -141,6 +142,29 @@ async function setBootstrap(values, actor) {
   return config.applyRuntimeDomain(values);
 }
 
+// "I'll pick a domain later." Setup is otherwise only considered finished once a
+// base domain exists, which would trap anyone who wants to look around first — or
+// who is standing the box up before their DNS is ready. Deferring lets the
+// dashboard open over the server's IP; the readiness card keeps nagging.
+const DEFERRED_KEY = 'platform.setup_deferred';
+
+async function isSetupDeferred() {
+  try {
+    const rows = await db.select().from(schema.platformSettings)
+      .where(eq(schema.platformSettings.key, DEFERRED_KEY)).limit(1);
+    return rows[0]?.value === true || rows[0]?.value === 'true';
+  } catch {
+    return false;
+  }
+}
+
+async function setSetupDeferred(value, actor) {
+  const row = { key: DEFERRED_KEY, value: !!value, updatedBy: actor || '', updatedAt: new Date() };
+  await db.insert(schema.platformSettings).values(row)
+    .onConflictDoUpdate({ target: schema.platformSettings.key, set: row });
+  cache = null;
+}
+
 // Load persisted bootstrap routing over the env defaults. Called once at boot,
 // BEFORE anything generates a hostname, in both the api and runner roles.
 async function applyBootstrapSettings() {
@@ -242,7 +266,14 @@ function readiness() {
   const enc = isEnabled();
   const hasAlert = !!config.email.alertTo;
   const hasEmail = !!config.email.resendApiKey;
+  const configured = config.isConfigured();
   return [
+    // First card on purpose: without a domain nothing can be published, and this is
+    // the only reminder someone who deferred the domain step will ever see.
+    { key: 'base_domain', ok: configured, level: configured ? 'ok' : 'warning',
+      message: configured
+        ? `Apps are published under ${config.baseDomain}.`
+        : 'No domain set — the dashboard is only reachable by IP over plain HTTP, and apps cannot be published. Finish setup to add one.' },
     { key: 'secret_encryption', ok: enc, level: enc ? 'ok' : 'critical',
       message: enc ? 'Secrets are encrypted at rest.' : 'ASTRODOCK_SECRET_KEY is not set — secrets are stored in plaintext.' },
     { key: 'alert_email', ok: hasAlert, level: hasAlert ? 'ok' : 'warning',
@@ -254,5 +285,6 @@ function readiness() {
 
 module.exports = {
   getSetting, setSetting, effective, diagnostics, readiness, exposureCheck, REGISTRY,
-  setBootstrap, applyBootstrapSettings, BOOTSTRAP_REGISTRY
+  setBootstrap, applyBootstrapSettings, BOOTSTRAP_REGISTRY,
+  isSetupDeferred, setSetupDeferred
 };

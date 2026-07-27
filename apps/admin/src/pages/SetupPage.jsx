@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { claimAdmin, checkSetupDns, setSetupDomain, login, setToken } from '../lib/api';
+import { claimAdmin, checkSetupDns, setSetupDomain, deferSetupDomain, login, setToken } from '../lib/api';
 
 // First-run setup. This is what replaces hand-editing .env before the first boot:
 // the stack comes up with no domain and no administrator, serves this page over
@@ -91,6 +91,19 @@ export default function SetupPage({ status }) {
     }
   }
 
+  async function handleDefer() {
+    setError(''); setBusy(true);
+    try {
+      await deferSetupDomain();
+      // Full reload rather than a route change: App.jsx decides between the wizard
+      // and the dashboard from /setup/status at mount, so it has to ask again.
+      window.location.assign('/');
+    } catch (err) {
+      setError(err.message);
+      setBusy(false);
+    }
+  }
+
   async function handleSaveDomain(e) {
     e.preventDefault();
     setError(''); setBusy(true);
@@ -157,17 +170,34 @@ export default function SetupPage({ status }) {
           <form className="setup-body" onSubmit={handleClaim}>
             <div className="callout">
               <b>First, prove this server is yours.</b>
-              <p>
-                Astrodock printed a one-time token to its log when it started. Anyone who could
-                reach this page before you shouldn't be able to claim it, which is what the token
-                prevents. Fetch it on the server with:
-              </p>
-              <code className="setup-cmd">docker compose logs api | grep -A2 'first-run setup'</code>
+              {status.tokenSource === 'preset' ? (
+                <p>
+                  Enter the setup token you chose when you installed Astrodock — the one you put in
+                  your server's startup script. It's what stops anyone who found this page before
+                  you from claiming it, and it stops working the moment you're done here.
+                </p>
+              ) : (
+                <>
+                  <p>
+                    Astrodock generated a one-time token and printed it to its log when it started.
+                    It's what stops anyone who found this page before you from claiming it. Fetch it
+                    over SSH with:
+                  </p>
+                  <code className="setup-cmd">
+                    cd /opt/astrodock && docker compose logs api | grep -A2 'first-run setup'
+                  </code>
+                  <p style={{ marginTop: 8 }}>
+                    Next time, you can skip this: set <code>ASTRODOCK_SETUP_TOKEN</code> to a token
+                    of your own when you install, and there's nothing to look up.
+                  </p>
+                </>
+              )}
             </div>
             <label>
               Setup token
               <input value={setupToken} onChange={(e) => setSetupToken(e.target.value)}
-                required autoFocus placeholder="Paste the token from the log" spellCheck="false" />
+                required autoFocus spellCheck="false"
+                placeholder={status.tokenSource === 'preset' ? 'The token you chose at install time' : 'Paste the token from the log'} />
             </label>
             <label>
               Your email
@@ -287,9 +317,16 @@ export default function SetupPage({ status }) {
             <button type="submit" className="login-btn" disabled={busy}>
               {busy ? 'Applying…' : 'Save and switch over'}
             </button>
-            <p className="field-help">
-              You can change this later in Settings — it isn't a one-way door.
-            </p>
+            <div className="setup-skip">
+              <button type="button" className="link-btn" onClick={handleDefer} disabled={busy}>
+                I'll do this later
+              </button>
+              <p className="field-help">
+                Takes you straight to the dashboard, reachable at this server's IP over plain HTTP.
+                You can't publish apps until a domain is set, and Astrodock will keep reminding you —
+                but nothing here is a one-way door.
+              </p>
+            </div>
           </form>
         )}
       </div>

@@ -288,10 +288,14 @@ async function deployDocker(app, deployRoot, env, { appendLog, setStatus, commit
   fs.writeFileSync(envFile, envText, { mode: 0o600 });
 
   const name = `app-${app.slug}`;
+  // Ask Docker which network we are on rather than trusting a configured name —
+  // see runner/network.js. Getting this wrong produces an app that starts fine and
+  // then cannot reach its own database.
+  const network = await require('./network').resolveDockerNetwork();
   try { exec(`docker rm -f ${name} 2>&1`); } catch { /* not running */ }
-  await appendLog(`docker run ${name} on network ${config.dockerNetwork}`);
+  await appendLog(`docker run ${name} on network ${network}`);
   await appendLog(exec(
-    `docker run -d --name ${name} --network ${config.dockerNetwork} --restart unless-stopped --env-file "${envFile}" "${tag}" 2>&1`
+    `docker run -d --name ${name} --network ${network} --restart unless-stopped --env-file "${envFile}" "${tag}" 2>&1`
   ) || 'container started');
 }
 

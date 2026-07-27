@@ -98,12 +98,12 @@ services:
       ASTRODOCK_OBJECTSTORE_APP_ENDPOINT: http://objectstore:8333
       ASTRODOCK_OBJECTSTORE_CONTAINER: astrodock-objectstore-1
       ASTRODOCK_INTERNAL_AUTH_URL: http://api:3100
-      # Must name the SAME network the `networks:` block below creates. Both read
-      # one variable so they cannot drift: this used to be the literal string
-      # "astrodock_default", which silently stopped being correct the moment the
-      # project was renamed — and Dockerfile-app deploys attached to a network
-      # that did not exist.
-      ASTRODOCK_DOCKER_NETWORK: ${ASTRODOCK_PROJECT:-astrodock}_default
+      # Deliberately NOT set. The runner asks Docker which network it is actually on
+      # (see src/runner/network.js) instead of being told a name that has to be kept
+      # in step with the project name by hand. Naming the network here — or in a
+      # `networks:` block — also breaks `docker compose -p` isolation: a second stack
+      # would silently join the first one's network and collide on service names.
+      # Set ASTRODOCK_DOCKER_NETWORK in .env only to override that detection.
       ASTRODOCK_STATIC_DIR: /data/static
       ASTRODOCK_APPS_DIR: /data/apps
       ASTRODOCK_REPOS_DIR: /data/repos
@@ -121,13 +121,6 @@ services:
       objectstore:
         condition: service_started
     restart: unless-stopped
-
-networks:
-  # Named explicitly rather than left to Compose's "<project>_default" convention,
-  # so the name is a fact this file states once and the runner is told the same
-  # value above — instead of two places independently assuming a naming rule.
-  default:
-    name: ${ASTRODOCK_PROJECT:-astrodock}_default
 
 volumes:
   pgdata:

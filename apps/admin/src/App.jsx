@@ -19,7 +19,9 @@ import './App.css';
 
 export default function App() {
   const [isAuthed, setIsAuthed] = useState(!!getToken());
-  const [theme, setTheme] = useState(() => document.documentElement.dataset.theme || 'dark');
+  // index.html always stamps data-theme before paint; 'light' here only matters if
+  // that somehow did not run, and must match the default it uses.
+  const [theme, setTheme] = useState(() => document.documentElement.dataset.theme || 'light');
   // null = still asking. Until we know, render nothing rather than flashing the
   // login form at an operator who has not created an account yet.
   const [setup, setSetup] = useState(null);
@@ -189,6 +191,8 @@ export default function App() {
           <Route path="/activity" element={<ActivityPage />} />
           <Route path="/health" element={<HealthPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          {/* Reachable after setup so a deferred domain can still be finished. */}
+          <Route path="/setup" element={<SetupPage status={setup} />} />
           <Route path="*" element={<Navigate to="/overview" />} />
         </Routes>
       </main>

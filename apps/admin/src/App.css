@@ -129,6 +129,9 @@ code, .mono { font-family:var(--mono); }
 .setup-cmd { display:block; margin-top:8px; padding:8px 10px; background:var(--field); border:1px solid var(--line); border-radius:var(--r-sm); font-family:var(--mono); font-size:11.5px; color:var(--text-2); overflow-x:auto; white-space:nowrap; }
 .setup-section-label { font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--text-3); font-family:var(--mono); margin:1.2rem 0 .6rem; }
 .setup-check { display:flex; align-items:center; gap:10px; margin:12px 0 4px; }
+.setup-skip { margin-top:1.1rem; padding-top:1rem; border-top:1px solid var(--line); text-align:center; }
+.setup-skip .link-btn { font-size:13px; font-weight:600; }
+.setup-skip .field-help { margin-top:6px; }
 .callout.ok { background:var(--accent-dim); border-color:var(--accent-dim); }
 .callout.warn { background:var(--warning-dim); border-color:var(--warning-dim); }
 .callout b { color:var(--text); display:block; margin-bottom:4px; }
