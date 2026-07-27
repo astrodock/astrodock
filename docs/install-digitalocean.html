@@ -28,9 +28,10 @@
         <h3>Create a droplet</h3>
         <p>In DigitalOcean, choose <strong>Create → Droplets</strong>:</p>
         <ul>
-          <li><strong>Image:</strong> pick the <em>Docker</em> image under the <strong>Marketplace</strong>
-            tab. (That comes with Docker already installed, so you can skip Step 5. If you'd rather use
-            a plain <strong>Ubuntu 24.04 LTS</strong> image, that's fine too.)</li>
+          <li><strong>Image:</strong> plain <strong>Ubuntu 24.04 LTS</strong> is fine — the installer
+            installs Docker itself if the machine doesn't have it. Picking the <em>Docker</em> image
+            under the <strong>Marketplace</strong> tab just makes the first boot a little quicker,
+            since Docker is already there.</li>
           <li><strong>Size:</strong> a Basic plan with at least <strong>2&nbsp;GB RAM</strong>
             (1&nbsp;vCPU). Astrodock itself is comfortable in less, but it <em>builds your apps on the
             box</em>, and 1&nbsp;GB can run out of memory during a build.</li>
@@ -90,7 +91,8 @@ ASTRODOCK_SETUP_TOKEN='pick-your-own-long-token' sh -c "$(curl -fsSL https://raw
 
       <li>
         <h3>Install Docker</h3>
-        <p><em>Skip this if you used the Docker Marketplace image.</em> On a plain Ubuntu droplet:</p>
+        <p><em>Only if you're installing by hand and want it done separately — the installer in the
+        next step does this for you when Docker is missing.</em></p>
         <pre><code>curl -fsSL https://get.docker.com | sh</code></pre>
         <p>Confirm it's ready:</p>
         <pre><code>docker compose version</code></pre>

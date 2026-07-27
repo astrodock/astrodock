@@ -3,10 +3,11 @@
 #
 #   curl -fsSL https://get.astrodock.dev | sh
 #
-# It installs no source tree and builds nothing: it fetches the compose file and
-# the env template, generates every secret, pulls the prebuilt images, and starts
-# the stack. The domain and the administrator account are then set in the browser
-# at http://<this-server-ip> — that is the entire install.
+# It installs no source tree and builds nothing: it installs Docker if the machine
+# does not have it, fetches the compose file and the env template, generates every
+# secret, pulls the prebuilt images, and starts the stack. The domain and the
+# administrator account are then set in the browser at http://<this-server-ip> —
+# that is the entire install.
 #
 # Environment overrides (all optional):
 #   ASTRODOCK_DIR       install location            (default /opt/astrodock)
@@ -16,6 +17,8 @@
 #   ASTRODOCK_IMAGE     image repository            (default ghcr.io/astrodock/astrodock)
 #   ASTRODOCK_REF       git ref to fetch files from (default main)
 #   ASTRODOCK_NO_START  set to 1 to write files but not start
+#   ASTRODOCK_INSTALL_DOCKER  set to 0 to refuse rather than install Docker when
+#                       it is missing (default: install it, via get.docker.com)
 #
 # Unattended / cloud-init use (see docs/install-digitalocean.html):
 #   ASTRODOCK_SETUP_TOKEN     choose the first-run token yourself, so you never
@@ -45,9 +48,37 @@ die()  { printf 'error: %s\n' "$*" >&2; exit 1; }
 have() { command -v "$1" >/dev/null 2>&1; }
 
 # ── preflight ─────────────────────────────────────────────────────────────────
-have docker || die "Docker is not installed. Install it first:  curl -fsSL https://get.docker.com | sh"
+# Install Docker if it is missing. This matters most in the flow that has no
+# terminal: pasting this into a cloud provider's user-data field, on a stock
+# Ubuntu image, where telling the operator to "install Docker first" is advice
+# nobody is present to read. Set ASTRODOCK_INSTALL_DOCKER=0 to refuse instead.
+if ! have docker; then
+  if [ "${ASTRODOCK_INSTALL_DOCKER:-1}" = "0" ]; then
+    die "Docker is not installed, and ASTRODOCK_INSTALL_DOCKER=0. Install it with:  curl -fsSL https://get.docker.com | sh"
+  fi
+  [ "$(id -u)" = "0" ] || die "Docker is not installed and this is not running as root. Either run as root, or install Docker first:  curl -fsSL https://get.docker.com | sh"
+  say "Docker is not installed — installing it from get.docker.com…"
+  if have curl; then curl -fsSL https://get.docker.com | sh
+  elif have wget; then wget -qO- https://get.docker.com | sh
+  else die "Need curl or wget to install Docker."
+  fi
+  have docker || die "Docker installation did not produce a working 'docker' command. Install it manually and re-run."
+fi
+
 docker compose version >/dev/null 2>&1 || die "The Docker Compose plugin is missing. Install Docker v2+ (curl -fsSL https://get.docker.com | sh)."
-docker info >/dev/null 2>&1 || die "Cannot talk to the Docker daemon. Start it, or re-run this as root."
+
+# A just-installed daemon can take a moment to accept connections, and on a
+# cloud-init run there is nobody watching to retry.
+if ! docker info >/dev/null 2>&1; then
+  have systemctl && systemctl start docker >/dev/null 2>&1 || true
+  i=0
+  while [ "$i" -lt 15 ]; do
+    docker info >/dev/null 2>&1 && break
+    i=$((i + 1))
+    sleep 2
+  done
+fi
+docker info >/dev/null 2>&1 || die "Cannot talk to the Docker daemon. Start it (systemctl start docker), or re-run this as root."
 
 if have curl; then fetch() { curl -fsSL "$1" -o "$2"; }
 elif have wget; then fetch() { wget -qO "$2" "$1"; }
