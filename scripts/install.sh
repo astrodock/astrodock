@@ -51,6 +51,38 @@ say()  { printf '%s\n' "$*"; }
 die()  { printf 'error: %s\n' "$*" >&2; exit 1; }
 have() { command -v "$1" >/dev/null 2>&1; }
 
+# ── "installing" page, as early as possible ───────────────────────────────────
+# The Docker-based placeholder further down cannot start until Docker is installed
+# and an image is pulled — which on a stock image is the LONGEST part of the wait,
+# and used to pass in silence. Someone told to "open http://<ip> when it's ready"
+# sees a refused connection and concludes it failed, which is precisely what
+# happened on a real droplet.
+#
+# So hold the port with whatever the machine already has. python3 is on every
+# mainstream cloud image; if it is missing we simply skip this and the Docker
+# placeholder takes over later. Best-effort throughout: an install must never fail
+# because the reassurance failed.
+EARLY_DIR=/tmp/astrodock-installing
+EARLY_PID=""
+
+start_early_page() {
+  have python3 || return 0
+  mkdir -p "$EARLY_DIR" 2>/dev/null || return 0
+  printf '%s' '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="5"><title>Astrodock is installing</title><style>body{font-family:system-ui,sans-serif;background:#f4f6fa;color:#1a2233;display:grid;place-items:center;height:100vh;margin:0}div{max-width:34rem;padding:2rem;text-align:center}h1{font-weight:650;font-size:1.4rem;margin:0 0 .6rem}p{margin:.4rem 0;color:#556}</style><div><h1>Astrodock is installing</h1><p>Setting up Docker and downloading the platform. On a small server this usually takes two or three minutes.</p><p>This page refreshes itself — setup will appear here when it is ready.</p></div>' \
+    > "$EARLY_DIR/index.html" 2>/dev/null || return 0
+  python3 -m http.server 80 --directory "$EARLY_DIR" >/dev/null 2>&1 &
+  EARLY_PID=$!
+}
+
+stop_early_page() {
+  [ -n "$EARLY_PID" ] && kill "$EARLY_PID" >/dev/null 2>&1 || true
+  EARLY_PID=""
+  rm -rf "$EARLY_DIR" >/dev/null 2>&1 || true
+}
+
+trap 'stop_early_page' EXIT INT TERM
+start_early_page
+
 # ── preflight ─────────────────────────────────────────────────────────────────
 # Install Docker if it is missing. This matters most in the flow that has no
 # terminal: pasting this into a cloud provider's user-data field, on a stock
@@ -100,12 +132,32 @@ if ! mkdir -p "$DIR" 2>/dev/null; then
 fi
 cd "$DIR"
 
+# Does a stack for this project actually exist, running or stopped?
+stack_exists() {
+  docker ps -a --filter "label=com.docker.compose.project=$PROJECT" --format '{{.Names}}' 2>/dev/null | grep -q .
+}
+
+# An install writes .env BEFORE it pulls images, so a run that dies at the pull
+# leaves a complete config and no containers. Treating "the file exists" as "we are
+# done here" then makes every retry a silent no-op — the script prints a cheerful
+# "already installed" and exits 0, which in a user-data script nobody ever sees.
+# That turns one recoverable failure into an install that can never retry itself.
+#
+# So distinguish the two: config PLUS containers is a real install and must not be
+# clobbered; config with no containers is wreckage from a failed attempt, and the
+# right move is to carry on from it. The existing secrets are reused — nothing has
+# consumed them, and regenerating would be gratuitous.
+RESUME=0
 if [ -f "$DIR/.env" ]; then
-  say ""
-  say "Astrodock is already installed in $DIR."
-  say "To upgrade:   cd $DIR && docker compose pull && docker compose up -d"
-  say "To start over, remove $DIR first (this deletes your configuration)."
-  exit 0
+  if stack_exists; then
+    say ""
+    say "Astrodock is already installed in $DIR."
+    say "To upgrade:   cd $DIR && docker compose pull && docker compose up -d"
+    say "To start over, remove $DIR first (this deletes your configuration)."
+    exit 0
+  fi
+  say "Found an unfinished install in $DIR — resuming it (keeping the existing secrets)."
+  RESUME=1
 fi
 
 # Compose identifies a stack by PROJECT NAME, not by directory. Installing while a
@@ -117,7 +169,7 @@ fi
 #
 # Refusing outright would leave someone with an existing install unable to stand up
 # a second one at all, so instead: refuse the COLLISION, and offer the way round it.
-if docker ps -a --filter "label=com.docker.compose.project=$PROJECT" --format '{{.Names}}' 2>/dev/null | grep -q .; then
+if stack_exists; then
   say "" >&2
   say "error: a Compose stack named '$PROJECT' already exists on this machine." >&2
   say "" >&2
@@ -148,11 +200,14 @@ fetch "$RAW/infra/caddy/Caddyfile" "$DIR/infra/caddy/Caddyfile" || die "Could no
 # Same managed-key substitution as scripts/setup.sh, kept promptless on purpose:
 # the only values a human must choose (domain, admin account) are collected by the
 # first-run wizard, which can also verify DNS — a shell script cannot.
+if [ "$RESUME" = 1 ]; then
+  say "Reusing the configuration already in $DIR."
+else
 say "Generating secrets…"
 JWT=$(rand); SECRET=$(rand); RUNNER=$(rand); PGPW=$(rand); OBJ=$(rand)
 
 tmp="$DIR/.env.tmp.$$"
-trap 'rm -f "$tmp"' EXIT INT TERM
+trap 'rm -f "$tmp"; stop_early_page' EXIT INT TERM
 : > "$tmp"
 chmod 600 "$tmp"
 while IFS= read -r line || [ -n "$line" ]; do
@@ -179,7 +234,8 @@ printf 'ASTRODOCK_PROJECT=%s\n' "$PROJECT" >> "$tmp"
 
 mv "$tmp" "$DIR/.env"
 chmod 600 "$DIR/.env"
-trap - EXIT INT TERM
+trap 'stop_early_page' EXIT INT TERM
+fi
 
 if [ "${ASTRODOCK_NO_START:-0}" = "1" ]; then
   say "Wrote $DIR/.env and $DIR/docker-compose.yml. Start it with:  cd $DIR && docker compose up -d"
@@ -198,6 +254,7 @@ PLACEHOLDER=astrodock-installing
 stop_placeholder() { docker rm -f "$PLACEHOLDER" >/dev/null 2>&1 || true; }
 
 serve_page() { # serve_page <html> — best-effort, replaces any existing placeholder
+  stop_early_page   # release :80 from the python server before Docker binds it
   stop_placeholder
   docker run -d --name "$PLACEHOLDER" -p 80:80 caddy:2-alpine \
     caddy respond --listen :80 --status 200 --header "Content-Type: text/html; charset=utf-8" "$1" \
@@ -240,7 +297,9 @@ if ! docker compose pull -q; then
 fi
 
 say "Starting…"
-# Free port 80 for Caddy before compose claims it.
+# Free port 80 for Caddy before compose claims it — from BOTH placeholders, since
+# the Docker one is skipped when its image could not be pulled.
+stop_early_page
 stop_placeholder
 if ! docker compose up -d; then
   die "The stack failed to start. Inspect it with:  cd $DIR && docker compose logs"
