@@ -6,17 +6,31 @@ export default function LoginPage({ onLogin }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  // Only revealed once the server says this account has one — asking everyone for
+  // a code they may not have would be worse than one extra round trip.
+  const [needsCode, setNeedsCode] = useState(false);
+  const [code, setCode] = useState('');
+  const [useRecovery, setUseRecovery] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
-      const data = await login(email, password);
+      const extra = code ? (useRecovery ? { recoveryCode: code } : { totp: code }) : {};
+      const data = await login(email, password, extra);
       setToken(data.token);
       onLogin();
     } catch (err) {
-      setError(err.message);
+      if (err.body?.code === 'totp_required') {
+        setNeedsCode(true);
+        // Don't shout "wrong code" at someone who has not been asked for one yet.
+        setError(code ? err.message : '');
+      } else if (err.body?.code === 'mfa_enrolment_required') {
+        setError(err.message);
+      } else {
+        setError(err.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -60,6 +74,22 @@ export default function LoginPage({ onLogin }) {
             placeholder="Enter password"
           />
         </label>
+        {needsCode && (
+          <label>
+            {useRecovery ? 'Recovery code' : 'Authenticator code'}
+            <input
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              autoFocus
+              inputMode={useRecovery ? 'text' : 'numeric'}
+              autoComplete="one-time-code"
+              placeholder={useRecovery ? 'xxxxx-xxxxx' : '123456'}
+            />
+            <button type="button" className="link-btn" onClick={() => { setUseRecovery(!useRecovery); setCode(''); }}>
+              {useRecovery ? 'Use my authenticator app instead' : "I've lost my authenticator — use a recovery code"}
+            </button>
+          </label>
+        )}
         <button type="submit" className="login-btn" disabled={loading}>
           {loading ? 'Authenticating...' : 'Sign In'}
         </button>

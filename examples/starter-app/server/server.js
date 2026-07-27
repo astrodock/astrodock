@@ -21,6 +21,7 @@ const jwt = require('jsonwebtoken');
 
 const PORT = process.env.ASTRODOCK_PORT || process.env.PORT || 3000;
 const AUTH_URL = (process.env.ASTRODOCK_AUTH_URL || '').replace(/\/$/, '');
+const APP_URL = process.env.ASTRODOCK_APP_URL || 'http://localhost:3000';
 const APP_ID = process.env.ASTRODOCK_APP_ID;
 const APP_SECRET = process.env.ASTRODOCK_APP_SECRET;
 const APP_JWT_SECRET = process.env.ASTRODOCK_APP_JWT_SECRET || 'dev-secret';
@@ -33,7 +34,54 @@ app.use(cookieParser());
 // Health probe the platform uses to mark the deploy healthy.
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
-// Ask the platform to verify end-user credentials, then mint our own session.
+// Sign-in goes through the platform: we never see the user's password.
+//
+//   GET /api/login     -> redirect the browser to Astrodock
+//   GET /auth/callback -> exchange the one-time code for who they are
+//
+// The legacy /verify flow (POST the password here, forward it) still works, but
+// this way the password never touches this server, and the platform can offer
+// passkeys and two-factor on our behalf.
+const crypto = require('crypto');
+const pendingStates = new Map(); // state -> expiry; in a real app use your session store
+
+app.get('/api/login', (req, res) => {
+  const state = crypto.randomBytes(16).toString('hex');
+  pendingStates.set(state, Date.now() + 10 * 60 * 1000);
+  const params = new URLSearchParams({
+    app_id: APP_ID,
+    redirect_uri: `${APP_URL}/auth/callback`,
+    state
+  });
+  res.redirect(`${AUTH_URL}/authorize?${params}`);
+});
+
+app.get('/auth/callback', async (req, res) => {
+  const { code, state } = req.query;
+  // Compare the state we stored. Without this, anyone could hand a user a
+  // callback URL and sign them in as somebody else.
+  const expiry = pendingStates.get(state);
+  pendingStates.delete(state);
+  if (!expiry || expiry < Date.now()) return res.status(400).send('Sign-in expired. Please try again.');
+
+  const r = await fetch(`${AUTH_URL}/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      code, app_id: APP_ID, app_secret: APP_SECRET, redirect_uri: `${APP_URL}/auth/callback`
+    })
+  });
+  if (!r.ok) return res.status(401).send('Could not complete sign-in.');
+  const user = await r.json();
+
+  // Mint OUR session — unchanged from before. The platform never issues app sessions.
+  const token = jwt.sign({ sub: user.userId, email: user.email }, APP_JWT_SECRET, { expiresIn: '7d' });
+  res.cookie('session', token, { httpOnly: true, sameSite: 'lax', secure: true });
+  res.redirect('/');
+});
+
+// LEGACY: collect the password ourselves and ask the platform to check it. Kept so
+// existing clients keep working — prefer the redirect flow above for browsers.
 app.post('/api/login', async (req, res) => {
   const { email, password } = req.body || {};
   if (!email || !password) return res.status(400).json({ error: 'email and password required' });

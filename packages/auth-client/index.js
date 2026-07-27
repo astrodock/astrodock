@@ -11,6 +11,20 @@
  *
  * Reads its config from the platform-injected environment by default:
  *   ASTRODOCK_AUTH_URL, ASTRODOCK_APP_ID, ASTRODOCK_APP_SECRET
+ *
+ * TWO WAYS TO SIGN SOMEONE IN
+ *
+ *   HOSTED (recommended) — send the browser to `authorizeUrl()`, and exchange the
+ *   code it comes back with via `exchange()`. Your app never touches the user's
+ *   password, so it cannot leak one; the platform can offer passkeys and two-factor
+ *   on your behalf; and one platform session signs the user into every app they
+ *   have access to.
+ *
+ *   VERIFY (legacy) — your app collects the password and calls `verify()`. Still
+ *   supported and still works. Be aware of what it means: your server handles that
+ *   user's platform password in plaintext, and if the person is also an operator,
+ *   that same password opens the dashboard. It also cannot support a second factor,
+ *   because there is nowhere in this flow to ask for one.
  */
 
 class AuthError extends Error {
@@ -42,7 +56,49 @@ class AstrodockAuth {
   }
 
   /**
-   * Verify end-user credentials.
+   * Where to send the browser to sign in.
+   *
+   * `redirectUri` must EXACTLY match one registered for this app — the platform
+   * refuses anything else, which is what stops a stolen code being delivered
+   * somewhere it shouldn't.
+   *
+   * `state` is echoed back untouched. Generate it per attempt, store it in your
+   * own session, and compare on return: that is what stops a forged callback.
+   */
+  authorizeUrl({ redirectUri, state, nonce } = {}) {
+    if (!redirectUri) throw new Error('redirectUri is required');
+    const p = new URLSearchParams({ app_id: this.appId, redirect_uri: redirectUri });
+    if (state) p.set('state', state);
+    if (nonce) p.set('nonce', nonce);
+    return `${this.authUrl}/authorize?${p}`;
+  }
+
+  /**
+   * Exchange the code from the callback for the user's identity.
+   *
+   * Server-side only — it sends your app secret. Single-use, and valid for about a
+   * minute, so exchange it as soon as the callback arrives.
+   *
+   * @returns {Promise<{userId: string, email: string, name: string}>}
+   */
+  async exchange(code, { redirectUri } = {}) {
+    let res;
+    try {
+      res = await fetch(`${this.authUrl}/token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, app_id: this.appId, app_secret: this.appSecret, redirect_uri: redirectUri })
+      });
+    } catch (err) {
+      throw new AuthError(`Auth service unavailable: ${err.message}`, 503);
+    }
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new AuthError(data.error || 'Could not complete sign-in', res.status);
+    return data;
+  }
+
+  /**
+   * Verify end-user credentials. LEGACY — see the note at the top of this file.
    * @returns {Promise<{userId: string, email: string, name: string}>}
    * @throws {AuthError} 401 invalid credentials, 403 no access, 503 unavailable
    */

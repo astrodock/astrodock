@@ -50,8 +50,8 @@ async function request(path, options = {}) {
 }
 
 // Auth
-export const login = (email, password) =>
-  request('/login', { method: 'POST', body: JSON.stringify({ email, password }) });
+export const login = (email, password, extra = {}) =>
+  request('/login', { method: 'POST', body: JSON.stringify({ email, password, ...extra }) });
 
 // ── First-run setup ───────────────────────────────────────────────────────────
 // Lives outside /admin: /setup/status has to answer before an admin exists, and
@@ -158,6 +158,24 @@ export const stopApp = (slug) =>
 // Logs
 export const getAppLogs = (slug, lines = 100) =>
   request(`/apps/${slug}/logs?lines=${lines}`);
+
+// Your own account: factors, sessions, step-up
+export const getAccount = () => request('/account');
+export const reauth = (proof) => request('/account/reauth', { method: 'POST', body: JSON.stringify(proof) });
+export const setPassword = (password) => request('/account/password', { method: 'PUT', body: JSON.stringify({ password }) });
+export const removePassword = () => request('/account/password', { method: 'DELETE' });
+export const passkeyOptions = () => request('/account/passkeys/options', { method: 'POST' });
+export const passkeyRegister = (body) => request('/account/passkeys', { method: 'POST', body: JSON.stringify(body) });
+export const passkeyRemove = (id) => request(`/account/passkeys/${id}`, { method: 'DELETE' });
+export const totpBegin = () => request('/account/totp/begin', { method: 'POST' });
+export const totpConfirm = (code) => request('/account/totp/confirm', { method: 'POST', body: JSON.stringify({ code }) });
+export const totpRemove = () => request('/account/totp', { method: 'DELETE' });
+export const generateRecoveryCodes = () => request('/account/recovery-codes', { method: 'POST' });
+export const revokeSession = (id) => request(`/account/sessions/${id}`, { method: 'DELETE' });
+export const revokeOtherSessions = () => request('/account/sessions/revoke-others', { method: 'POST' });
+
+// Access keys: what this caller may hand out
+export const getTokenOptions = () => request('/tokens/options');
 
 // Structured operations on a deployed app (replaces the removed terminal)
 export const opsList = (slug, path) => request(`/apps/${slug}/ops/list?path=${encodeURIComponent(path || '.')}`);

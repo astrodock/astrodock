@@ -77,16 +77,37 @@ Reserved vars injected (depends on modes) — see `docs/building-apps.md` for th
 The single documented unprefixed alias is `PORT = ASTRODOCK_PORT`.
 
 ## 5. Auth integration (`auth.mode = platform`)
-The platform answers "are these end-user credentials valid for this app?". Your app mints its own
-session. Flow:
-1. Frontend → your `POST /api/login` with `{email, password}`.
-2. Server → `POST ${ASTRODOCK_AUTH_URL}/verify` with `appId=ASTRODOCK_APP_ID`,
-   `appSecret=ASTRODOCK_APP_SECRET`. Returns `{userId, email, name}` (or 401 invalid / 403 no-access).
-3. Server signs its own session (e.g. JWT with `ASTRODOCK_APP_JWT_SECRET`), sets a cookie.
+**Send the user to the platform to sign in. Never collect their password yourself.**
 
-Use `@astrodock/auth-client` (`new AstrodockAuth().verify(email, password)`) or call `/verify`
-directly (see `examples/starter-app/server/server.js`). A user must be granted access to the
-app's slug (admin UI) to log in.
+1. Register your callback URL for the app (admin UI → the app → Sign-in). It is matched exactly.
+2. Redirect the browser to the platform, with a `state` you generate and store:
+   `${ASTRODOCK_AUTH_URL}/authorize?app_id=…&redirect_uri=…&state=…`
+3. The platform authenticates them — password, passkey, second factor, its problem not yours —
+   checks they have access to your app, and redirects back with `?code=…&state=…`.
+4. **Compare the returned `state` to the one you stored.** If it differs, abandon the sign-in.
+5. Server-side, exchange the code: `POST ${ASTRODOCK_AUTH_URL}/token`
+   with `{code, app_id, app_secret, redirect_uri}` → `{userId, email, name}`.
+6. Mint your own session as you always did (e.g. a JWT with `ASTRODOCK_APP_JWT_SECRET`).
+
+```js
+const { AstrodockAuth } = require('@astrodock/auth-client');
+const auth = new AstrodockAuth();
+// step 2
+res.redirect(auth.authorizeUrl({ redirectUri: CB, state }));
+// step 5
+const user = await auth.exchange(req.query.code, { redirectUri: CB });
+```
+
+Why it is this way: your app never handles a password, so it cannot leak one; the platform can
+offer passkeys and two-factor for you; and one platform session signs a user into every app they
+can reach.
+
+**Legacy: `/verify`.** Posting `{email, password, appId, appSecret}` still works and is fine for
+scripts and non-browser clients. Understand the trade before using it in a browser app — your
+server sees the user's platform password in plaintext, and if that person is also an operator, the
+same password opens the dashboard. It also cannot support a second factor.
+
+A user must be granted access to the app's slug (admin UI) before they can sign in either way.
 
 ## 6. Deploy lifecycle (the CLI you drive)
 Set `ASTRODOCK_URL` (the admin host, e.g. `https://admin.example.com`) and `ASTRODOCK_TOKEN`
