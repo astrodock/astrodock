@@ -2,9 +2,10 @@
 # a control plane + admin UI + auto-HTTPS routing + bundled Postgres + bundled
 # object storage, with zero external dependencies.
 #
-# The project name `astrodock` fixes the default network name `astrodock_default`,
-# which the runner attaches Dockerfile-app sibling containers to.
-name: astrodock
+# The project name. Override with ASTRODOCK_PROJECT to run more than one Astrodock
+# on a host — but note this also namespaces the VOLUMES, so a second project starts
+# with an empty database. It is not a way to rename an existing install.
+name: ${ASTRODOCK_PROJECT:-astrodock}
 
 services:
   postgres:
@@ -97,7 +98,12 @@ services:
       ASTRODOCK_OBJECTSTORE_APP_ENDPOINT: http://objectstore:8333
       ASTRODOCK_OBJECTSTORE_CONTAINER: astrodock-objectstore-1
       ASTRODOCK_INTERNAL_AUTH_URL: http://api:3100
-      ASTRODOCK_DOCKER_NETWORK: astrodock_default
+      # Must name the SAME network the `networks:` block below creates. Both read
+      # one variable so they cannot drift: this used to be the literal string
+      # "astrodock_default", which silently stopped being correct the moment the
+      # project was renamed — and Dockerfile-app deploys attached to a network
+      # that did not exist.
+      ASTRODOCK_DOCKER_NETWORK: ${ASTRODOCK_PROJECT:-astrodock}_default
       ASTRODOCK_STATIC_DIR: /data/static
       ASTRODOCK_APPS_DIR: /data/apps
       ASTRODOCK_REPOS_DIR: /data/repos
@@ -115,6 +121,13 @@ services:
       objectstore:
         condition: service_started
     restart: unless-stopped
+
+networks:
+  # Named explicitly rather than left to Compose's "<project>_default" convention,
+  # so the name is a fact this file states once and the runner is told the same
+  # value above — instead of two places independently assuming a naming rule.
+  default:
+    name: ${ASTRODOCK_PROJECT:-astrodock}_default
 
 volumes:
   pgdata:

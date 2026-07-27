@@ -57,3 +57,44 @@ jobs:
         run: node packages/cli/test/cli.test.mjs
       - name: admin build
         run: npm run build -w @astrodock/admin
+
+  # The compose file states the docker network name, and separately tells the runner
+  # what that name is. Those two used to be independent literals, and the moment the
+  # project was renamed they disagreed — Dockerfile-app deploys then attached to a
+  # network that did not exist, silently, because nothing checks until you deploy
+  # one. Assert they agree, at the default project name and at a renamed one.
+  compose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: compose file is valid and network naming is consistent
+        run: |
+          set -eu
+          check() {
+            project="$1"
+            rendered=$(ASTRODOCK_PROJECT="$project" docker compose config)
+            declared=$(printf '%s' "$rendered" | awk '/^networks:/{n=1} n&&/name:/{print $2; exit}')
+            told=$(printf '%s' "$rendered" | grep -m1 'ASTRODOCK_DOCKER_NETWORK:' | awk '{print $2}')
+            echo "project=$project  network=$declared  runner-told=$told"
+            [ -n "$declared" ] || { echo "no network name rendered"; exit 1; }
+            [ "$declared" = "$told" ] || {
+              echo "MISMATCH: compose creates '$declared' but the runner is told '$told'"; exit 1; }
+          }
+          check astrodock
+          check renamed-project
+
+      - name: installer fetches every host path the compose file mounts
+        run: |
+          set -eu
+          # A bind mount whose source is missing makes Docker create a DIRECTORY and
+          # then fail to mount it over a file. install.sh must fetch each one.
+          missing=0
+          for path in $(grep -oE '\./[A-Za-z0-9._/-]+:' docker-compose.yml | tr -d ':' | sed 's|^\./||'); do
+            if ! grep -q "$path" scripts/install.sh; then
+              echo "install.sh never fetches '$path', which docker-compose.yml bind-mounts"
+              missing=1
+            fi
+          done
+          [ "$missing" = 0 ] || exit 1
+          echo "all bind-mounted host paths are fetched by the installer"

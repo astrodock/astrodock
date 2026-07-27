@@ -10,6 +10,8 @@
 #
 # Environment overrides (all optional):
 #   ASTRODOCK_DIR       install location            (default /opt/astrodock)
+#   ASTRODOCK_PROJECT   compose project name        (default astrodock) — set this
+#                       AND ASTRODOCK_DIR to run a second, independent stack
 #   ASTRODOCK_VERSION   image tag to run            (default latest)
 #   ASTRODOCK_IMAGE     image repository            (default ghcr.io/astrodock/astrodock)
 #   ASTRODOCK_REF       git ref to fetch files from (default main)
@@ -30,6 +32,11 @@
 set -eu
 
 DIR="${ASTRODOCK_DIR:-/opt/astrodock}"
+# Compose project name. Namespaces containers, volumes AND the docker network the
+# runner attaches Dockerfile apps to (see docker-compose.yml) — so it is exported,
+# not just passed to `up`, or the two would disagree.
+PROJECT="${ASTRODOCK_PROJECT:-astrodock}"
+export ASTRODOCK_PROJECT="$PROJECT"
 REF="${ASTRODOCK_REF:-main}"
 RAW="${ASTRODOCK_RAW_BASE:-https://raw.githubusercontent.com/astrodock/astrodock}/$REF"
 
@@ -66,20 +73,26 @@ if [ -f "$DIR/.env" ]; then
   exit 0
 fi
 
-# docker-compose.yml pins `name: astrodock`, so `docker compose up` here would ADOPT
-# any existing stack of that name — recreating its containers against this install's
-# freshly generated secrets. The database volume keeps the old password, so the
-# result is a crash-looping api and a broken install, with nothing saying why.
-# The check above misses it whenever the other stack lives in a different directory.
-if docker ps -a --filter "label=com.docker.compose.project=astrodock" --format '{{.Names}}' 2>/dev/null | grep -q .; then
-  say ""
-  say "error: an Astrodock stack already exists on this machine." >&2
+# Compose identifies a stack by PROJECT NAME, not by directory. Installing while a
+# stack of the same name exists would adopt its containers and restart them against
+# the secrets generated below — and since the database volume keeps the password it
+# was initialised with, the api then crash-loops on an auth error that says nothing
+# about the cause. The $DIR/.env check above misses this whenever the other stack
+# lives in a different directory, which is the normal case.
+#
+# Refusing outright would leave someone with an existing install unable to stand up
+# a second one at all, so instead: refuse the COLLISION, and offer the way round it.
+if docker ps -a --filter "label=com.docker.compose.project=$PROJECT" --format '{{.Names}}' 2>/dev/null | grep -q .; then
   say "" >&2
-  say "Installing here would take over its containers and restart them with new" >&2
-  say "secrets, which breaks it — the database keeps the old password." >&2
+  say "error: a Compose stack named '$PROJECT' already exists on this machine." >&2
   say "" >&2
-  say "  Find it with:  docker compose ls" >&2
-  say "  Upgrade that one instead, or remove it first: docker compose -p astrodock down" >&2
+  say "Installing over it would restart its containers with the new secrets this" >&2
+  say "script generates, which breaks it — the database keeps the old password." >&2
+  say "" >&2
+  say "  See it with:            docker compose ls" >&2
+  say "  Upgrade that one:       cd <its dir> && docker compose pull && docker compose up -d" >&2
+  say "  Or install alongside:   ASTRODOCK_PROJECT=astrodock2 ASTRODOCK_DIR=/opt/astrodock2 …" >&2
+  say "                          (a separate stack with its own empty database)" >&2
   exit 1
 fi
 
@@ -125,6 +138,7 @@ done < "$DIR/.env.example" > "$tmp"
 
 # Pin the image tag that was actually installed, so a later `docker compose up`
 # on this box can't silently jump versions.
+printf 'ASTRODOCK_PROJECT=%s\n' "$PROJECT" >> "$tmp"
 [ -n "${ASTRODOCK_VERSION:-}" ] && printf 'ASTRODOCK_VERSION=%s\n' "$ASTRODOCK_VERSION" >> "$tmp"
 [ -n "${ASTRODOCK_IMAGE:-}" ] && printf 'ASTRODOCK_IMAGE=%s\n' "$ASTRODOCK_IMAGE" >> "$tmp"
 
