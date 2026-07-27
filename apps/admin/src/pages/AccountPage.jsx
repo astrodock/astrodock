@@ -1,86 +1,111 @@
 import { useState, useEffect } from 'react';
 import * as api from '../lib/api';
 
-// How you sign in, and where you are signed in from.
+// How you sign in, and where you're signed in from.
 //
-// Everything that changes a credential is behind step-up re-auth — the server
-// enforces it; this page just makes the prompt bearable by asking once and
-// carrying on.
+// Built on the same field-panel / seg / chip vocabulary as Settings, so this reads
+// as part of the dashboard rather than a bolted-on security page.
 
 export default function AccountPage() {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
-  const [reauth, setReauth] = useState(null); // pending action, awaiting confirmation
+  const [msg, setMsg] = useState('');
+  const [reauth, setReauth] = useState(null);
 
   const load = () => api.getAccount().then(setData).catch((e) => setError(e.message));
   useEffect(() => { load(); }, []);
 
-  // Wrap any protected action: run it, and if the server wants a fresh factor,
-  // ask for one and retry rather than dumping the user back at a login screen.
-  async function guarded(fn, successMessage) {
-    setError(''); setNotice('');
+  // Any protected action: run it, and if the server wants a fresh factor, ask once
+  // and retry — rather than dropping the operator back at a sign-in screen.
+  async function guarded(fn, success) {
+    setError(''); setMsg('');
     try {
       await fn();
-      if (successMessage) setNotice(successMessage);
+      if (success) setMsg(success);
       await load();
     } catch (e) {
-      if (e.body?.code === 'reauth_required') setReauth(() => () => guarded(fn, successMessage));
+      if (e.body?.code === 'reauth_required') setReauth(() => () => guarded(fn, success));
       else setError(e.message);
     }
   }
 
-  if (!data) return <div className="content-head"><h1>Your account</h1>{error && <div className="error">{error}</div>}</div>;
+  if (!data) {
+    return (
+      <div className="settings-page">
+        <div className="page-header"><h1>Your account</h1></div>
+        {error && <div className="error">{error}</div>}
+      </div>
+    );
+  }
 
   const f = data.factors;
-  const onlyWayIn = (f.password ? 1 : 0) + (f.passkeys.length ? 1 : 0) <= 1;
+  const secure = f.totp || f.passkeys.length > 0;
 
   return (
-    <div>
-      <div className="content-head">
+    <div className="settings-page">
+      <div className="page-header">
         <h1>Your account</h1>
-        <p className="sub">{data.email} · {data.role}</p>
       </div>
 
       {error && <div className="error">{error}</div>}
-      {notice && <div className="callout ok"><b>{notice}</b></div>}
-      {reauth && <ReauthPrompt onDone={() => { const go = reauth; setReauth(null); go(); }} onCancel={() => setReauth(null)} />}
+      {msg && <div className="provision-banner"><strong>{msg}</strong></div>}
+      {reauth && <Reauth onDone={() => { const go = reauth; setReauth(null); go(); }} onCancel={() => setReauth(null)} />}
 
-      {!f.totp && !f.passkeys.length && (
-        <div className="callout warn">
-          <b>Your account has one factor.</b>
-          <p>
-            A password alone can be phished or reused. Add a passkey — it cannot be phished, because
-            it only works on this exact site — or an authenticator app.
-          </p>
+      <div className="basecard">
+        <svg className="globe" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2.6 4.5 6v5.2c0 4.5 3.2 8.5 7.5 10 4.3-1.5 7.5-5.5 7.5-10V6L12 2.6z"
+            stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+          <path d="M8.7 12.1l2.3 2.3 4.4-4.7" stroke="currentColor" strokeWidth="1.7"
+            strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        <div>
+          <h2>Signed in as</h2>
+          <div className="dom">{data.email}</div>
+          <div className="meta">
+            <span className="chip ok">{data.role}</span>{' '}
+            {secure
+              ? 'Two factors protect this account.'
+              : 'A password is the only thing protecting this account — add a passkey below.'}
+            {data.lastLoginAt && ` Last signed in ${new Date(data.lastLoginAt).toLocaleString()}.`}
+          </div>
+        </div>
+      </div>
+
+      {!secure && (
+        <div className="rcard warn" style={{ marginBottom: 16 }}>
+          <span className="led warn" />
+          <span>
+            <b>Add a second way to prove it's you.</b> A password can be phished or reused elsewhere.
+            A passkey can't — it only works on this exact site, and there's no shared secret for a
+            breach to leak.
+          </span>
         </div>
       )}
 
-      <Passkeys data={data} guarded={guarded} onlyWayIn={onlyWayIn} />
+      <Passkeys data={data} guarded={guarded} />
       <Totp data={data} guarded={guarded} />
       <Recovery data={data} guarded={guarded} />
-      <Password data={data} guarded={guarded} />
+      <PasswordSection data={data} guarded={guarded} />
       <Sessions data={data} guarded={guarded} />
     </div>
   );
 }
 
-function ReauthPrompt({ onDone, onCancel }) {
+function Reauth({ onDone, onCancel }) {
   const [password, setPassword] = useState('');
   const [err, setErr] = useState('');
   return (
-    <div className="callout">
+    <div className="rcard warn" style={{ marginBottom: 16, display: 'block' }}>
       <b>Confirm it's you</b>
-      <p>Changing how you sign in needs your password again, even though you're already signed in.</p>
+      <p className="hint" style={{ margin: '6px 0 12px' }}>
+        Changing how you sign in needs your password again, even though you're already signed in.
+      </p>
       {err && <div className="error">{err}</div>}
-      <label>
-        Password
-        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoFocus />
-      </label>
-      <div className="setup-check">
-        <button className="pillbtn" onClick={async () => {
-          try { await api.reauth({ password }); onDone(); }
-          catch (e) { setErr(e.message); }
+      <div className="seg-pills" style={{ alignItems: 'center' }}>
+        <input type="password" value={password} autoFocus placeholder="Password"
+          onChange={(e) => setPassword(e.target.value)} style={{ width: 240, marginTop: 0 }} />
+        <button className="pillbtn sel" onClick={async () => {
+          try { await api.reauth({ password }); onDone(); } catch (e) { setErr(e.message); }
         }}>Confirm</button>
         <button className="link-btn" onClick={onCancel}>Cancel</button>
       </div>
@@ -98,9 +123,25 @@ const b64uToBuf = (s) => {
 const bufToB64u = (b) => btoa(String.fromCharCode(...new Uint8Array(b)))
   .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
-function Passkeys({ data, guarded, onlyWayIn }) {
+function Section({ title, description, children, action }) {
+  return (
+    <>
+      <div className="sec-head" style={{ marginTop: 26 }}>
+        <div>
+          <h2>{title}</h2>
+          <p>{description}</p>
+        </div>
+        {action}
+      </div>
+      {children}
+    </>
+  );
+}
+
+function Passkeys({ data, guarded }) {
   const [label, setLabel] = useState('');
   const supported = typeof window !== 'undefined' && !!window.PublicKeyCredential;
+  const list = data.factors.passkeys;
 
   async function add() {
     const options = await api.passkeyOptions();
@@ -128,194 +169,234 @@ function Passkeys({ data, guarded, onlyWayIn }) {
   }
 
   return (
-    <section className="basecard">
-      <h2>Passkeys</h2>
-      <p className="field-help">
-        Sign in with Touch ID, Windows Hello or a security key. A passkey cannot be phished — it only
-        works on this exact site — and there is no shared secret for a database breach to leak.
-      </p>
-      {!supported && <div className="callout warn"><b>This browser doesn't support passkeys.</b></div>}
-
-      {data.factors.passkeys.map((p) => (
-        <div className="dns-rec" key={p.id}>
-          <div><b>{p.label}</b>{p.stale && <span className="chip warn" style={{ marginLeft: 8 }}>needs re-adding</span>}</div>
-          <div className="rp">
-            Added {new Date(p.createdAt).toLocaleDateString()}
-            {p.lastUsedAt ? ` · last used ${new Date(p.lastUsedAt).toLocaleDateString()}` : ' · never used'}
-          </div>
-          {p.stale && (
-            <div className="rp">
-              This was added under a different domain, so it no longer works. Remove it and add it again.
+    <Section
+      title="Passkeys"
+      description="Sign in with Touch ID, Windows Hello or a security key. A passkey can't be phished — it only works on this exact site — and there's no shared secret stored here for a breach to leak."
+    >
+      <div className="field-panel">
+        {list.map((p) => (
+          <div className="field" key={p.id}>
+            <div className="lab">
+              <b>{p.label}</b>
+              <span className="desc">
+                Added {new Date(p.createdAt).toLocaleDateString()}
+                {p.lastUsedAt ? ` · last used ${new Date(p.lastUsedAt).toLocaleDateString()}` : ' · never used'}
+                {p.stale && ' · added under a previous domain, so it no longer works'}
+              </span>
             </div>
-          )}
-          <button className="link-btn" onClick={() => guarded(() => api.passkeyRemove(p.id), 'Passkey removed.')}>
-            Remove
-          </button>
-        </div>
-      ))}
+            <div className="ctl">
+              {p.stale
+                ? <span className="chip warn">re-add</span>
+                : <span className="chip ok">active</span>}
+              <button className="link-btn" onClick={() => guarded(() => api.passkeyRemove(p.id), 'Passkey removed.')}>
+                Remove
+              </button>
+            </div>
+          </div>
+        ))}
 
-      {supported && (
-        <div className="setup-check">
-          <input placeholder="Name it — e.g. work laptop" value={label} onChange={(e) => setLabel(e.target.value)} />
-          <button className="pillbtn" onClick={() => guarded(add, 'Passkey added.')}>Add a passkey</button>
+        <div className="field">
+          <div className="lab">
+            <b>Add a passkey</b>
+            <span className="desc">
+              {supported
+                ? 'Name it so you can tell your devices apart later.'
+                : 'This browser does not support passkeys.'}
+            </span>
+          </div>
+          <div className="ctl">
+            <input value={label} placeholder="e.g. work laptop" disabled={!supported}
+              onChange={(e) => setLabel(e.target.value)} style={{ width: 200 }} />
+            <button className="pillbtn sel" disabled={!supported} onClick={() => guarded(add, 'Passkey added.')}>
+              Add
+            </button>
+          </div>
         </div>
-      )}
-      {onlyWayIn && data.factors.passkeys.length === 1 && !data.factors.password && (
-        <p className="field-help">This is your only way in, so it can't be removed until you set a password.</p>
-      )}
-    </section>
+      </div>
+    </Section>
   );
 }
 
 function Totp({ data, guarded }) {
   const [setup, setSetup] = useState(null);
   const [code, setCode] = useState('');
-
-  if (data.factors.totp) {
-    return (
-      <section className="basecard">
-        <h2>Authenticator app</h2>
-        <p className="field-help">Enabled. You're asked for a code each time you sign in.</p>
-        <button className="link-btn" onClick={() => guarded(() => api.totpRemove(), 'Authenticator app removed.')}>
-          Remove
-        </button>
-      </section>
-    );
-  }
+  const on = data.factors.totp;
 
   return (
-    <section className="basecard">
-      <h2>Authenticator app</h2>
-      <p className="field-help">
-        A six-digit code from an app like 1Password or Google Authenticator. Useful where passkeys
-        don't travel — a shared machine, or a device that can't sync them.
-      </p>
-      {!setup ? (
-        <button className="pillbtn" onClick={() => guarded(async () => setSetup(await api.totpBegin()))}>
-          Set up
-        </button>
-      ) : (
-        <>
-          <p className="setup-section-label">Add this to your authenticator app</p>
-          <code className="setup-cmd">{setup.secret}</code>
-          <p className="field-help">
-            Most apps can scan a QR code; if yours can't, type the key above. Then enter the code it
-            shows to confirm it's working — nothing is switched on until you do.
-          </p>
-          <div className="setup-check">
-            <input inputMode="numeric" placeholder="123456" value={code} onChange={(e) => setCode(e.target.value)} />
-            <button className="pillbtn" onClick={() => guarded(async () => {
-              await api.totpConfirm(code); setSetup(null); setCode('');
-            }, 'Authenticator app enabled.')}>Confirm</button>
+    <Section
+      title="Authenticator app"
+      description="A six-digit code from an app like 1Password or Google Authenticator. Useful where passkeys don't travel — a shared machine, or a device that can't sync them."
+    >
+      <div className="field-panel">
+        <div className="field">
+          <div className="lab">
+            <b>Authenticator app</b>
+            <span className="desc">
+              {on ? "You're asked for a code each time you sign in."
+                : 'Not set up. Scan a code once, then confirm it works.'}
+            </span>
           </div>
-        </>
-      )}
-    </section>
+          <div className="ctl">
+            <span className={`mini-toggle ${on ? 'on' : ''}`} title={on ? 'Turn off' : 'Set up'}
+              onClick={() => {
+                if (on) guarded(() => api.totpRemove(), 'Authenticator app removed.');
+                else guarded(async () => setSetup(await api.totpBegin()));
+              }} />
+          </div>
+        </div>
+
+        {setup && !on && (
+          <div className="field" style={{ display: 'block' }}>
+            <div className="lab" style={{ marginBottom: 12 }}>
+              <b>Add this key to your authenticator app</b>
+              <span className="desc">
+                Most apps scan a QR code; if yours can't, type the key. Nothing is switched on until
+                you enter a working code below.
+              </span>
+            </div>
+            <div className="preview-box" style={{ marginBottom: 12 }}>
+              <span className="prow"><code>{setup.secret}</code></span>
+            </div>
+            <div className="seg-pills" style={{ alignItems: 'center' }}>
+              <input inputMode="numeric" placeholder="123456" value={code}
+                onChange={(e) => setCode(e.target.value)} style={{ width: 130, marginTop: 0 }} />
+              <button className="pillbtn sel" onClick={() => guarded(async () => {
+                await api.totpConfirm(code); setSetup(null); setCode('');
+              }, 'Authenticator app enabled.')}>Confirm</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </Section>
   );
 }
 
 function Recovery({ data, guarded }) {
   const [codes, setCodes] = useState(null);
   const n = data.factors.recoveryCodesRemaining;
+  const needed = data.factors.totp || data.factors.passkeys.length > 0;
+
   return (
-    <section className="basecard">
-      <h2>Recovery codes</h2>
-      <p className="field-help">
-        Single-use codes for when you lose your phone or your passkey. They are the only way back
-        into a locked-out account, so keep them somewhere other than the device you sign in with.
-      </p>
-      {n > 0 && <p className="field-help"><b>{n}</b> unused code{n === 1 ? '' : 's'} remaining.</p>}
-      {n === 0 && (data.factors.totp || data.factors.passkeys.length > 0) && (
-        <div className="callout warn"><b>You have no recovery codes.</b>
-          <p>If you lose your second factor you will not be able to get back in.</p></div>
+    <Section
+      title="Recovery codes"
+      description="Single-use codes for when you lose your phone or your passkey. They're the only way back into a locked-out account, so keep them somewhere other than the device you sign in with."
+    >
+      {needed && n === 0 && (
+        <div className="rcard crit" style={{ marginBottom: 12 }}>
+          <span className="led crit" />
+          <span><b>You have no recovery codes.</b> Lose your second factor and you'll be locked out.</span>
+        </div>
       )}
-      {codes ? (
-        <>
-          <div className="callout warn">
-            <b>Save these now — they are not shown again.</b>
-            <p>Generating a new set invalidates any previous codes.</p>
+      <div className="field-panel">
+        <div className="field">
+          <div className="lab">
+            <b>Unused codes</b>
+            <span className="desc">Generating a new set invalidates any codes you already have.</span>
           </div>
-          <pre className="setup-cmd">{codes.join('\n')}</pre>
+          <div className="ctl">
+            <span className={`chip ${n > 0 ? 'ok' : 'warn'}`}>{n} left</span>
+            <button className="pillbtn" onClick={() => guarded(async () => {
+              const r = await api.generateRecoveryCodes(); setCodes(r.codes);
+            })}>{n > 0 ? 'Generate new' : 'Generate'}</button>
+          </div>
+        </div>
+      </div>
+      {codes && (
+        <>
+          <div className="rcard warn" style={{ marginTop: 12 }}>
+            <span className="led warn" />
+            <span><b>Save these now.</b> They aren't shown again.</span>
+          </div>
+          <div className="preview-box" style={{ marginTop: 10 }}>
+            {codes.map((c) => <span className="prow" key={c}><code>{c}</code></span>)}
+          </div>
         </>
-      ) : (
-        <button className="pillbtn" onClick={() => guarded(async () => {
-          const r = await api.generateRecoveryCodes(); setCodes(r.codes);
-        })}>{n > 0 ? 'Generate new codes' : 'Generate codes'}</button>
       )}
-    </section>
+    </Section>
   );
 }
 
-function Password({ data, guarded }) {
+function PasswordSection({ data, guarded }) {
   const [pw, setPw] = useState('');
-  const canGoPasswordless = data.factors.passkeys.length > 0 && data.factors.password;
+  const has = data.factors.password;
+  const canDrop = has && data.factors.passkeys.length > 0;
+
   return (
-    <section className="basecard">
-      <h2>Password</h2>
-      {data.factors.password ? (
-        <>
-          <div className="setup-check">
-            <input type="password" placeholder="New password (12+ characters)" value={pw}
-              onChange={(e) => setPw(e.target.value)} />
-            <button className="pillbtn" onClick={() => guarded(async () => {
-              await api.setPassword(pw); setPw('');
-            }, 'Password changed.')}>Change</button>
+    <Section
+      title="Password"
+      description={has
+        ? 'Used alongside your other factors. With a passkey set up you can remove it entirely.'
+        : "You sign in with a passkey only. Setting a password adds a fallback."}
+    >
+      <div className="field-panel">
+        <div className="field">
+          <div className="lab">
+            <b>{has ? 'Change password' : 'Set a password'}</b>
+            <span className="desc">At least 12 characters.</span>
           </div>
-          {canGoPasswordless && (
-            <>
-              <p className="field-help">
-                You have a passkey, so you can drop the password entirely and sign in with the passkey
-                alone. Nothing left to phish, reuse or forget.
-              </p>
-              <button className="link-btn" onClick={() => guarded(() => api.removePassword(), 'Password removed — passkey only.')}>
+          <div className="ctl">
+            <input type="password" value={pw} placeholder="New password"
+              onChange={(e) => setPw(e.target.value)} style={{ width: 220 }} />
+            <button className="pillbtn sel" disabled={!pw} onClick={() => guarded(async () => {
+              await api.setPassword(pw); setPw('');
+            }, has ? 'Password changed.' : 'Password set.')}>Save</button>
+          </div>
+        </div>
+
+        {canDrop && (
+          <div className="field">
+            <div className="lab">
+              <b>Go passwordless</b>
+              <span className="desc">
+                Sign in with your passkey alone. Nothing left to phish, reuse or forget.
+              </span>
+            </div>
+            <div className="ctl">
+              <button className="link-btn danger"
+                onClick={() => guarded(() => api.removePassword(), 'Password removed — passkey only.')}>
                 Remove my password
               </button>
-            </>
-          )}
-        </>
-      ) : (
-        <>
-          <p className="field-help">You sign in with a passkey only. Setting a password adds a fallback.</p>
-          <div className="setup-check">
-            <input type="password" placeholder="New password (12+ characters)" value={pw}
-              onChange={(e) => setPw(e.target.value)} />
-            <button className="pillbtn" onClick={() => guarded(async () => {
-              await api.setPassword(pw); setPw('');
-            }, 'Password set.')}>Set a password</button>
+            </div>
           </div>
-        </>
-      )}
-    </section>
+        )}
+      </div>
+    </Section>
   );
 }
 
 function Sessions({ data, guarded }) {
   return (
-    <section className="basecard">
-      <h2>Where you're signed in</h2>
-      <p className="field-help">If you don't recognise one, sign it out — it takes effect immediately.</p>
-      <table className="data-table">
-        <thead><tr><th>Device</th><th>IP</th><th>Last seen</th><th /></tr></thead>
-        <tbody>
-          {data.sessions.map((s) => (
-            <tr key={s.id}>
-              <td>{(s.userAgent || 'Unknown').slice(0, 60)}{s.current && <span className="chip ok" style={{ marginLeft: 8 }}>this one</span>}</td>
-              <td><code>{s.ip || '—'}</code></td>
-              <td>{new Date(s.lastSeenAt).toLocaleString()}</td>
-              <td>{!s.current && (
-                <button className="link-btn" onClick={() => guarded(() => api.revokeSession(s.id), 'Signed out.')}>
-                  Sign out
-                </button>
-              )}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      {data.sessions.length > 1 && (
+    <Section
+      title="Where you're signed in"
+      description="If you don't recognise one, sign it out — it takes effect immediately."
+      action={data.sessions.length > 1 && (
         <button className="pillbtn" onClick={() => guarded(() => api.revokeOtherSessions(), 'Other sessions signed out.')}>
           Sign out everywhere else
         </button>
       )}
-    </section>
+    >
+      <table className="data-table">
+        <thead><tr><th>Device</th><th>IP address</th><th>Last seen</th><th /></tr></thead>
+        <tbody>
+          {data.sessions.map((s) => (
+            <tr key={s.id}>
+              <td>
+                {(s.userAgent || 'Unknown device').slice(0, 54)}
+                {s.current && <span className="chip ok" style={{ marginLeft: 8 }}>this device</span>}
+              </td>
+              <td><code>{s.ip || '—'}</code></td>
+              <td>{new Date(s.lastSeenAt).toLocaleString()}</td>
+              <td style={{ textAlign: 'right' }}>
+                {!s.current && (
+                  <button className="link-btn danger" onClick={() => guarded(() => api.revokeSession(s.id), 'Signed out.')}>
+                    Sign out
+                  </button>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </Section>
   );
 }

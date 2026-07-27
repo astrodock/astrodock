@@ -7,7 +7,10 @@ export default function UserModal({ user, onClose, onSave }) {
     name: user?.name || '',
     email: user?.email || '',
     password: '',
-    isAdmin: user?.isAdmin || false
+    // '' means "not an operator" — an end user who can sign into apps but has no
+    // dashboard access. The two are independent, which is why this is a role and
+    // not a checkbox.
+    operatorRole: user?.operatorRole || ''
   });
   const [resetPw, setResetPw] = useState('');
   const [showReset, setShowReset] = useState(false);
@@ -20,7 +23,7 @@ export default function UserModal({ user, onClose, onSave }) {
     setLoading(true);
     try {
       if (isEdit) {
-        await api.updateUser(user.id, { name: form.name, isAdmin: form.isAdmin });
+        await api.updateUser(user.id, { name: form.name, operatorRole: form.operatorRole || null });
       } else {
         await api.createUser({ email: form.email, name: form.name, password: form.password });
       }
@@ -87,14 +90,22 @@ export default function UserModal({ user, onClose, onSave }) {
           </label>
         )}
 
-        <label className="checkbox-label">
-          <input
-            type="checkbox"
-            checked={form.isAdmin}
-            onChange={e => setForm({ ...form, isAdmin: e.target.checked })}
-          />
-          Admin
-        </label>
+        <div className="field" style={{ display: 'block', padding: '14px 0' }}>
+          <div className="lab" style={{ marginBottom: 8 }}>
+            <b>Dashboard access</b>
+            <span className="desc">
+              Separate from which apps they can sign in to. "App user" means they can use apps you
+              grant them, but cannot open this dashboard.
+            </span>
+          </div>
+          <div className="seg">
+            {[['', 'App user'], ['viewer', 'Viewer'], ['operator', 'Operator'], ['admin', 'Admin'], ['owner', 'Owner']]
+              .map(([v, label]) => (
+                <button type="button" key={label} className={(form.operatorRole || '') === v ? 'sel' : ''}
+                  onClick={() => setForm({ ...form, operatorRole: v })}>{label}</button>
+              ))}
+          </div>
+        </div>
 
         <div className="modal-actions">
           <button type="button" onClick={onClose}>Cancel</button>

@@ -53,7 +53,11 @@ export default function UsersPage() {
                   {user.isActive ? 'Active' : 'Inactive'}
                 </span>
               </td>
-              <td>{user.isAdmin ? 'Admin' : 'User'}</td>
+              <td>
+                {user.operatorRole
+                  ? <span className="chip ok">{user.operatorRole}</span>
+                  : <span style={{ color: 'var(--text-3)' }}>app user</span>}
+              </td>
               <td>
                 <div className="access-pills">
                   {user.appAccess.length === 0 && (

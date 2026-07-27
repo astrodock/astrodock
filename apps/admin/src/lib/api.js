@@ -177,6 +177,13 @@ export const revokeOtherSessions = () => request('/account/sessions/revoke-other
 // Access keys: what this caller may hand out
 export const getTokenOptions = () => request('/tokens/options');
 
+// Hosted-login callbacks (exact-match allowlist per app)
+export const getRedirectUris = (slug) => request(`/apps/${slug}/redirect-uris`);
+export const addRedirectUri = (slug, uri) =>
+  request(`/apps/${slug}/redirect-uris`, { method: 'POST', body: JSON.stringify({ uri }) });
+export const removeRedirectUri = (slug, id) =>
+  request(`/apps/${slug}/redirect-uris/${id}`, { method: 'DELETE' });
+
 // Structured operations on a deployed app (replaces the removed terminal)
 export const opsList = (slug, path) => request(`/apps/${slug}/ops/list?path=${encodeURIComponent(path || '.')}`);
 export const opsFile = (slug, path) => request(`/apps/${slug}/ops/file?path=${encodeURIComponent(path)}`);
@@ -219,8 +226,8 @@ export const runBackup = () => request('/backups', { method: 'POST' });
 
 // API Tokens (scoped tokens for the CLI / agents)
 export const getTokens = () => request('/tokens');
-export const createToken = (name, scopes = ['deploy']) =>
-  request('/tokens', { method: 'POST', body: JSON.stringify({ name, scopes }) });
+// Takes the whole request now: preset OR explicit scopes, app scope, expiry.
+export const createToken = (body) => request('/tokens', { method: 'POST', body: JSON.stringify(body) });
 export const deleteToken = (id) =>
   request(`/tokens/${id}`, { method: 'DELETE' });
 

@@ -12,7 +12,7 @@ export default function UserDetailPage() {
 
   // Editable fields
   const [name, setName] = useState('');
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [operatorRole, setOperatorRole] = useState('');
   const [saving, setSaving] = useState(false);
 
   // Password reset
@@ -27,7 +27,7 @@ export default function UserDetailPage() {
       ]);
       setUser(userData.user);
       setName(userData.user.name);
-      setIsAdmin(userData.user.isAdmin);
+      setOperatorRole(userData.user.operatorRole || '');
       setApps(appData.apps);
     } catch (err) {
       setError(err.message);
@@ -42,7 +42,7 @@ export default function UserDetailPage() {
     setError('');
     setSuccess('');
     try {
-      await api.updateUser(id, { name, isAdmin });
+      await api.updateUser(id, { name, operatorRole: operatorRole || null });
       setSuccess('User updated');
       load();
     } catch (err) {
@@ -114,7 +114,7 @@ export default function UserDetailPage() {
           <span className={`badge ${user.isActive ? 'active' : 'inactive'}`}>
             {user.isActive ? 'Active' : 'Inactive'}
           </span>
-          {user.isAdmin && <span className="badge admin-badge">Admin</span>}
+          {user.operatorRole && <span className="chip ok">{user.operatorRole}</span>}
         </div>
       </div>
 
@@ -139,14 +139,22 @@ export default function UserDetailPage() {
               <input value={user.email} disabled />
             </label>
           </div>
-          <label className="checkbox-label">
-            <input
-              type="checkbox"
-              checked={isAdmin}
-              onChange={e => setIsAdmin(e.target.checked)}
-            />
-            Administrator
-          </label>
+        <div className="field" style={{ display: 'block', padding: '14px 0' }}>
+          <div className="lab" style={{ marginBottom: 8 }}>
+            <b>Dashboard access</b>
+            <span className="desc">
+              Separate from which apps they can sign in to. "App user" means they can use apps you
+              grant them, but cannot open this dashboard.
+            </span>
+          </div>
+          <div className="seg">
+            {[['', 'App user'], ['viewer', 'Viewer'], ['operator', 'Operator'], ['admin', 'Admin'], ['owner', 'Owner']]
+              .map(([v, label]) => (
+                <button type="button" key={label} className={(operatorRole || '') === v ? 'sel' : ''}
+                  onClick={() => setOperatorRole(v)}>{label}</button>
+              ))}
+          </div>
+        </div>
           <div>
             <button type="submit" className="primary" disabled={saving}>
               {saving ? 'Saving...' : 'Save Changes'}

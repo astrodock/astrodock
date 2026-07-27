@@ -19,6 +19,7 @@ const { dropDatabase } = require('../provision/database');
 const { listRepos, createWebhook, deleteWebhook } = require('../lib/github');
 const domainsLib = require('../lib/domains');
 const { emitEvent, actorFromAuth } = require('../lib/events');
+const oauth = require('../lib/oauth');
 
 // Subdomains may not collide with platform hosts or be invalid DNS labels.
 const RESERVED_SUBDOMAINS = new Set(['admin', 'pages', 'api', 'www', 'mail', 'ftp', config.adminSubdomain, config.pages.subdomain].filter(Boolean));
@@ -518,6 +519,38 @@ router.get('/:slug/access-logs', requirePermission('logs:read'), async (req, res
     ip: e.request && (e.request.client_ip || e.request.remote_ip), duration: e.duration
   }));
   res.json({ enabled: true, count: entries.length, statusCounts, recent });
+});
+
+// ── hosted-login callbacks ───────────────────────────────────────────────────
+// Where the platform may send a user back after signing in. Matched EXACTLY, so
+// every callback an app uses has to be registered — including local development.
+router.get('/:slug/redirect-uris', requirePermission('apps:read'), async (req, res) => {
+  const app = await getAppBySlug(req.params.slug);
+  if (!app) return res.status(404).json({ error: 'App not found' });
+  res.json({ uris: await oauth.listRedirectUris(app.id) });
+});
+
+router.post('/:slug/redirect-uris', requirePermission('apps:write'), async (req, res) => {
+  const app = await getAppBySlug(req.params.slug);
+  if (!app) return res.status(404).json({ error: 'App not found' });
+  try {
+    const row = await oauth.addRedirectUri(app.id, (req.body || {}).uri);
+    await emitEvent({
+      category: 'audit', type: 'app.redirect_uri_added', severity: 'info',
+      message: `Sign-in callback ${row.uri} allowed for ${app.slug}`,
+      ...actorFromAuth(req.auth), targetType: 'app', targetId: app.slug, appSlug: app.slug, ip: req.ip || ''
+    }).catch(() => {});
+    res.status(201).json({ uri: row });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+router.delete('/:slug/redirect-uris/:id', requirePermission('apps:write'), async (req, res) => {
+  const app = await getAppBySlug(req.params.slug);
+  if (!app) return res.status(404).json({ error: 'App not found' });
+  await oauth.removeRedirectUri(app.id, req.params.id);
+  res.json({ ok: true });
 });
 
 // ── structured operations ────────────────────────────────────────────────────
