@@ -38,8 +38,9 @@ to boot.
 - **Hybrid compute.** Node buildpack by default (PM2), or ship a `Dockerfile` for any runtime.
 
 ## Documentation
-Full, beginner-friendly docs live in [`docs/`](docs/index.html) — a small static site you can open
-locally (`open docs/index.html`) or host anywhere. Start with **Introduction → Install & run →
+Full, beginner-friendly docs are published at **https://astrodock.github.io/astrodock/** and live in
+[`docs/`](docs/index.html) — a static site you can also open locally (`open docs/index.html`) or host
+anywhere. Start with **Introduction → Install & run →
 Deploy your first app**, then the topic guides (custom domains & DNS, email notifications, external
 database/storage, users, secrets, backups…). The quickstart below is the short version.
 
