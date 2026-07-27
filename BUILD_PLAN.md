@@ -328,6 +328,19 @@ _Last reconciled 2026-07-26 against the code, not from memory._
 - **Name:** Astrodock. Env prefix `ASTRODOCK_`, CLI `astrodock`/`adock`, npm `@astrodock`.
   Folder renamed from `Toolstead` on 2026-07-26.
 
+## Stage 18 — Auth, identity & agent permissions (designed, not built)
+The current model has three coupled problems: apps receive users' plaintext passwords via
+`/verify`; operators and end users share one password hash, so an app can capture dashboard
+credentials; and end-user MFA is therefore unbuildable. Agent keys are two coarse scopes, one of
+which (`deploy`) reaches app deletion and arbitrary command execution.
+
+Full design in **`AUTH_DESIGN.md`** — hosted login (redirect flow), passkeys with passwordless,
+TOTP, recovery codes, operator roles, `resource:action` scopes with constrained delegation, session
+revocation, and the `exec` rebuild. **Hosted login gates `v0.1.0`**, since that version implies the
+app-facing contract is stable; everything else there is additive.
+
+---
+
 ## Open decisions — surface to the user when you reach them
 - **Internal backups:** local-only (current behaviour) vs optional off-box copy to an external
   object store. Explicitly flagged as a follow-up in `src/lib/backups.js:7`.
