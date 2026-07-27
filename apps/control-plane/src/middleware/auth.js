@@ -5,6 +5,8 @@ const { eq } = require('drizzle-orm');
 const config = require('../config');
 const { db, schema } = require('../db');
 const { hashToken } = require('../lib/ids');
+const scopes = require('../lib/scopes');
+const roles = require('../lib/roles');
 
 // Resolve the caller from the Authorization header. Returns one of:
 //   { type: 'admin', email }                 — a valid admin JWT
@@ -21,23 +23,63 @@ async function resolveAuth(req) {
     const rows = await db.select().from(schema.apiTokens).where(eq(schema.apiTokens.tokenHash, tokenHash)).limit(1);
     const tok = rows[0];
     if (!tok) return null;
+    if (tok.revokedAt) return null;
+    if (tok.expiresAt && new Date(tok.expiresAt) <= new Date()) return null;
     // best-effort last-used stamp (don't block on it)
     db.update(schema.apiTokens).set({ lastUsedAt: new Date() }).where(eq(schema.apiTokens.id, tok.id)).catch(() => {});
-    return { type: 'token', id: tok.id, name: tok.name, scopes: tok.scopes || [], appScope: tok.appScope || [] };
+    return {
+      type: 'token',
+      id: tok.id,
+      name: tok.name,
+      // Expanded once here, so every caller sees the current vocabulary and legacy
+      // tokens behave identically to reissued ones.
+      scopes: scopes.expand(tok.scopes || []),
+      rawScopes: tok.scopes || [],
+      appScope: tok.appScope || [],
+      expiresAt: tok.expiresAt || null,
+      authorizedByUserId: tok.authorizedByUserId || null
+    };
   }
 
-  // Admin JWT.
+  // Operator session JWT.
   try {
     const payload = jwt.verify(raw, config.adminJwtSecret);
+    // A session id makes revocation possible: an 8h JWT with no server-side record
+    // could not be killed. Tokens minted before sessions existed have no sid and
+    // are accepted until they expire on their own.
+    if (payload.sid) {
+      const srows = await db.select().from(schema.sessions).where(eq(schema.sessions.id, payload.sid)).limit(1);
+      const sess = srows[0];
+      if (!sess || sess.revokedAt || new Date(sess.expiresAt) <= new Date()) return null;
+      db.update(schema.sessions).set({ lastSeenAt: new Date() }).where(eq(schema.sessions.id, sess.id)).catch(() => {});
+      return {
+        type: 'admin', email: payload.email, sub: payload.sub,
+        role: payload.role || 'admin', sessionId: sess.id, reauthAt: sess.reauthAt || null
+      };
+    }
     if (!payload.isAdmin) return null;
-    return { type: 'admin', email: payload.email, sub: payload.sub };
+    return { type: 'admin', email: payload.email, sub: payload.sub, role: payload.role || 'admin' };
   } catch {
     return null;
   }
 }
 
-function tokenHasScope(scopes, scope) {
-  return Array.isArray(scopes) && (scopes.includes('*') || scopes.includes(scope));
+function tokenHasScope(list, scope) {
+  if (!Array.isArray(list)) return false;
+  if (list.includes('*')) return true;
+  return scopes.expand(list).includes(scope);
+}
+
+// What may this caller do? One question for keys and people alike — an operator's
+// role expands to the same scope vocabulary a key holds.
+function grantedScopes(auth) {
+  if (!auth) return [];
+  if (auth.type === 'token') return auth.scopes || [];
+  return roles.scopesFor(auth.role || 'admin');
+}
+
+function callerHasScope(auth, scope) {
+  return grantedScopes(auth).includes(scope);
 }
 
 // Admin JWT ONLY. Used for user management and token management — scoped API

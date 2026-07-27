@@ -10,9 +10,18 @@ const users = pgTable('users', {
   id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
   email: text('email').notNull(),
   name: text('name').notNull(),
-  passwordHash: text('password_hash').notNull(),
+  // Nullable: an account may authenticate by passkey alone. The
+  // always-one-primary-factor invariant is enforced in lib/auth-factors.
+  passwordHash: text('password_hash'),
   isActive: boolean('is_active').notNull().default(true),
-  isAdmin: boolean('is_admin').notNull().default(false),
+  isAdmin: boolean('is_admin').notNull().default(false), // legacy; operatorRole is authoritative
+  // null = not an operator (a pure end user). owner | admin | operator | viewer.
+  operatorRole: text('operator_role'),
+  totpSecret: text('totp_secret'),
+  totpConfirmedAt: timestamp('totp_confirmed_at', { withTimezone: true }),
+  totpLastStep: bigint('totp_last_step', { mode: 'number' }),
+  passwordless: boolean('passwordless').notNull().default(false),
+  lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
   appAccess: jsonb('app_access').notNull().default(sql`'[]'::jsonb`), // string[] of app slugs
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
@@ -128,10 +137,75 @@ const apiTokens = pgTable('api_tokens', {
   scopes: jsonb('scopes').notNull().default(sql`'[]'::jsonb`),
   appScope: jsonb('app_scope').notNull().default(sql`'[]'::jsonb`), // slug list; [] = all apps
   lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+  expiresAt: timestamp('expires_at', { withTimezone: true }),
+  // The human at the root of the delegation chain — inherited by keys a key mints,
+  // so every action can name who authorised it.
+  authorizedByUserId: uuid('authorized_by_user_id'),
+  createdByTokenId: uuid('created_by_token_id'),
+  revokedAt: timestamp('revoked_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 }, (t) => ({
   tokenHashUniq: uniqueIndex('api_tokens_hash_uniq').on(t.tokenHash)
 }));
+
+// ── auth factors ───────────────────────────────────────────────────────────
+const webauthnCredentials = pgTable('webauthn_credentials', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid('user_id').notNull(),
+  credentialId: text('credential_id').notNull(),
+  publicKey: text('public_key').notNull(),
+  signCount: bigint('sign_count', { mode: 'number' }).notNull().default(0),
+  transports: jsonb('transports').notNull().default(sql`'[]'::jsonb`),
+  label: text('label').notNull().default(''),
+  // Recorded because WebAuthn credentials are bound to the RP ID that created
+  // them: changing the base domain invalidates them, and we want to say which.
+  rpId: text('rp_id').notNull().default(''),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  lastUsedAt: timestamp('last_used_at', { withTimezone: true })
+}, (t) => ({
+  credIdUniq: uniqueIndex('webauthn_credential_id_uniq').on(t.credentialId),
+  userIdx: index('webauthn_user_idx').on(t.userId)
+}));
+
+const recoveryCodes = pgTable('recovery_codes', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid('user_id').notNull(),
+  codeHash: text('code_hash').notNull(),
+  usedAt: timestamp('used_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+}, (t) => ({ userIdx: index('recovery_codes_user_idx').on(t.userId) }));
+
+const sessions = pgTable('sessions', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid('user_id').notNull(),
+  userAgent: text('user_agent').notNull().default(''),
+  ip: text('ip').notNull().default(''),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull().defaultNow(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  revokedAt: timestamp('revoked_at', { withTimezone: true }),
+  // Independent of session age: step-up actions require a RECENT factor check.
+  reauthAt: timestamp('reauth_at', { withTimezone: true })
+}, (t) => ({ userIdx: index('sessions_user_idx').on(t.userId) }));
+
+// ── hosted login ───────────────────────────────────────────────────────────
+const authorizationCodes = pgTable('authorization_codes', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  codeHash: text('code_hash').notNull(),
+  appId: uuid('app_id').notNull(),
+  userId: uuid('user_id').notNull(),
+  redirectUri: text('redirect_uri').notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  usedAt: timestamp('used_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+}, (t) => ({ codeUniq: uniqueIndex('authorization_codes_hash_uniq').on(t.codeHash) }));
+
+const appRedirectUris = pgTable('app_redirect_uris', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  appId: uuid('app_id').notNull(),
+  uri: text('uri').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+}, (t) => ({ uniq: uniqueIndex('app_redirect_uris_uniq').on(t.appId, t.uri) }));
 
 // Persisted per-app health (so alerting state survives a control-plane restart).
 const appHealth = pgTable('app_health', {
@@ -305,4 +379,4 @@ const customDomains = pgTable('custom_domains', {
   appIdx: index('custom_domains_app_idx').on(t.appId)
 }));
 
-module.exports = { users, apps, appEnvVars, deployments, authLogs, apiTokens, appHealth, pages, pageFiles, pageData, events, platformSettings, notificationRules, notificationDeliveries, pageViews, backups, customDomains };
+module.exports = { users, webauthnCredentials, recoveryCodes, sessions, authorizationCodes, appRedirectUris, apps, appEnvVars, deployments, authLogs, apiTokens, appHealth, pages, pageFiles, pageData, events, platformSettings, notificationRules, notificationDeliveries, pageViews, backups, customDomains };
