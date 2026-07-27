@@ -38,12 +38,25 @@
           <li><strong>Authentication:</strong> add your <strong>SSH key</strong> (recommended over a password).</li>
           <li><strong>Advanced options → Add Initialization scripts (user data):</strong> paste the
             two lines below. This installs Astrodock while the droplet boots, so you never have to
-            open a terminal at all. Replace the token with any string of your own — 16+ characters,
-            no spaces.
+            open a terminal at all.
             <pre><code>#!/bin/sh
-ASTRODOCK_SETUP_TOKEN='pick-your-own-long-token' sh -c "$(curl -fsSL https://raw.githubusercontent.com/astrodock/astrodock/main/scripts/install.sh)"</code></pre>
-            <p>Choosing the token here is what removes the log-reading step — you already know it,
-            so you can go straight to the browser. It stops working the moment you claim the account.</p>
+ASTRODOCK_SETUP_TOKEN='<span data-setup-token>REPLACE-THIS-WITH-A-LONG-RANDOM-STRING</span>' sh -c "$(curl -fsSL https://raw.githubusercontent.com/astrodock/astrodock/main/scripts/install.sh)"</code></pre>
+            <p style="margin-top:-4px">
+              <button type="button" class="pillbtn" data-setup-token-regen hidden>Generate a different token</button>
+            </p>
+            <div class="callout note">
+              <p class="ct">About that token</p>
+              <p><strong>It has been generated in your browser just now and never sent anywhere</strong> —
+              this documentation is a static page with nothing behind it. That also means we have no
+              copy of it: <strong>keep the snippet until you have finished setup.</strong> Substitute
+              a string of your own if you prefer — 16 characters or more, no spaces.</p>
+              <p>The token is only used once, to prove the server is yours when you create your
+              administrator account. It stops working the moment you do. Choosing it here is what
+              removes the "SSH in and read the logs" step.</p>
+              <p><em>Lost it before finishing setup?</em> On the droplet, edit
+              <code>ASTRODOCK_SETUP_TOKEN</code> in <code>/opt/astrodock/.env</code>, then run
+              <code>cd /opt/astrodock &amp;&amp; docker compose up -d api</code> to pick up the new one.</p>
+            </div>
           </li>
         </ul>
         <p>Create it, and note the droplet's <strong>public IP address</strong>.</p>

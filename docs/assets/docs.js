@@ -4,8 +4,7 @@
 (function () {
   'use strict';
 
-  // Update this when you publish the repo:
-  var GITHUB_URL = 'https://github.com/your-org/astrodock';
+  var GITHUB_URL = 'https://github.com/astrodock/astrodock';
 
   var NAV = [
     { title: 'Get started', items: [
@@ -134,6 +133,51 @@
       pre.appendChild(b);
     });
   }
+  // Fill every <span data-setup-token> with one freshly generated token, so the
+  // install snippet on the page is ready to copy rather than something the reader
+  // has to invent a secret for. Left to themselves people type "astrodock123";
+  // 24 bytes from the platform CSPRNG is both stronger and less effort.
+  //
+  // Generated here, in the reader's browser, on a static page — it is never sent
+  // anywhere. It does end up in their clipboard and then in the server's instance
+  // metadata, so the copy on the page says "never sent", not "never stored".
+  //
+  // Without JS the placeholder stays visible and obviously unusable, which is the
+  // safe failure: nobody pastes a real-looking dud into production.
+  function fillSetupTokens(root) {
+    var slots = root.querySelectorAll('[data-setup-token]');
+    if (!slots.length) return;
+
+    function generate() {
+      var bytes = new Uint8Array(24);
+      (window.crypto || window.msCrypto).getRandomValues(bytes);
+      return Array.prototype.map
+        .call(bytes, function (b) { return ('0' + b.toString(16)).slice(-2); })
+        .join('');
+    }
+
+    function apply(token) {
+      slots.forEach(function (s) { s.textContent = token; });
+    }
+
+    try {
+      // One token per page load, shared by every slot — the snippet and the prose
+      // must not disagree about what the reader is supposed to paste.
+      apply(generate());
+    } catch (e) {
+      return; // no CSPRNG: leave the placeholder rather than emit a weak token
+    }
+
+    root.querySelectorAll('[data-setup-token-regen]').forEach(function (btn) {
+      btn.hidden = false;
+      btn.addEventListener('click', function () {
+        apply(generate());
+        btn.textContent = 'Generated a new one';
+        setTimeout(function () { btn.textContent = 'Generate a different token'; }, 1600);
+      });
+    });
+  }
+
   // <figure class="shot" data-file="apps.png" data-caption="The Apps page"></figure>
   // Shows a placeholder box; if assets/screenshots/<file> exists it swaps in the real
   // image automatically — so adding screenshots later is zero effort.
@@ -182,6 +226,7 @@
     layout.appendChild(main);
     document.body.appendChild(layout);
     addAnchors(doc);
+    fillSetupTokens(doc);
     addCopyButtons(doc);
     renderPlaceholders(doc);
   });
