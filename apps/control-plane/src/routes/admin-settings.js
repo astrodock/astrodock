@@ -29,6 +29,19 @@ router.get('/', async (req, res, next) => {
 
 router.patch('/', async (req, res, next) => {
   try {
+    // Turning on "require MFA" without holding a factor yourself locks you out on
+    // the next sign-in, and there is nobody left to turn it back off.
+    const body0 = req.body && typeof req.body === 'object' ? req.body : {};
+    const updates0 = body0.updates && typeof body0.updates === 'object' ? body0.updates : body0;
+    if (updates0['security.require_mfa'] === 'on' && req.auth?.sub) {
+      const factors = require('../lib/auth-factors');
+      const f = await factors.factorsFor(req.auth.sub).catch(() => null);
+      if (f && !factors.hasSecondFactor(f)) {
+        return res.status(400).json({
+          error: 'Set up a passkey or authenticator app on your own account first — otherwise this would lock you out.'
+        });
+      }
+    }
     const body = req.body && typeof req.body === 'object' ? req.body : {};
     const updates = body.updates && typeof body.updates === 'object' ? body.updates : body;
     const changed = [];

@@ -82,9 +82,11 @@ function tokenMatches(candidate) {
 }
 
 async function adminExists() {
-  const rows = await db.select({ id: schema.users.id }).from(schema.users)
-    .where(eq(schema.users.isAdmin, true)).limit(1);
-  return !!rows[0];
+  // Asks about OPERATORS, not the legacy is_admin flag: after the role migration
+  // operator_role is authoritative, and a fresh install has neither.
+  const rows = await db.select({ id: schema.users.id, operatorRole: schema.users.operatorRole })
+    .from(schema.users);
+  return rows.some((r) => !!r.operatorRole);
 }
 
 // Called at boot. Prints the token only when there is genuinely no admin yet.
@@ -170,7 +172,12 @@ router.post('/claim', async (req, res) => {
 
     const passwordHash = await hashPassword(String(password));
     await db.insert(schema.users).values({
-      email: addr, name: String(name || 'Admin'), passwordHash, isActive: true, isAdmin: true, appAccess: []
+      email: addr, name: String(name || 'Admin'), passwordHash, isActive: true,
+      isAdmin: true,
+      // The first account is the OWNER — the one role that cannot be removed, so an
+      // install always has someone who can undo anything.
+      operatorRole: 'owner',
+      appAccess: []
     });
     clearSetupToken();
     await emitEvent({
@@ -312,6 +319,19 @@ router.post('/defer', requireAdmin, async (req, res) => {
   }
 });
 
+// What would change break? Passkeys are bound to the admin hostname, so moving the
+// base domain invalidates them. Reported so the UI can warn — never used to block,
+// since an enrolled credential should not hold the platform's routing hostage.
+router.post('/domain/impact', requireAdmin, async (req, res) => {
+  const baseDomain = normalizeHostname((req.body || {}).baseDomain);
+  if (!validHostname(baseDomain)) return res.status(400).json({ error: 'Enter a valid domain.' });
+  try {
+    res.json(await require('../lib/passkeys').credentialsAtRisk(baseDomain));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Commit the domain. Persists it, applies it to the live config, and republishes
 // routing — after which the operator is redirected to the real admin host.
 router.post('/domain', requireAdmin, async (req, res) => {
@@ -342,12 +362,19 @@ router.post('/domain', requireAdmin, async (req, res) => {
     const { reloadCaddyWithRetry } = require('../provision');
     const routed = await reloadCaddyWithRetry(2).catch(() => false);
 
+    // Passkeys stop working at the new hostname; say so where it will be seen later.
+    let atRisk = { count: 0, users: 0 };
+    try { atRisk = await require('../lib/passkeys').credentialsAtRisk(baseDomain); } catch { /* non-fatal */ }
+
     await emitEvent({
-      category: 'audit', type: 'setup.domain_set', severity: 'info',
+      category: 'audit', type: 'setup.domain_set',
+      severity: atRisk.count > 0 ? 'warning' : 'info',
       message: previous
         ? `Base domain changed from ${previous} to ${baseDomain} (HTTPS: ${mode})`
-        : `Base domain set to ${baseDomain} (HTTPS: ${mode})`,
-      ...actor, targetType: 'platform', targetId: baseDomain, ip: req.ip || ''
+        : `Base domain set to ${baseDomain} (HTTPS: ${mode})`
+        + (atRisk.count ? ` — ${atRisk.count} passkey(s) across ${atRisk.users} account(s) no longer work and must be re-enrolled` : ''),
+      ...actor, targetType: 'platform', targetId: baseDomain, ip: req.ip || '',
+      meta: { passkeysInvalidated: atRisk.count }
     }).catch(() => {});
 
     const scheme = mode === 'off' ? 'http' : 'https';
@@ -365,6 +392,7 @@ router.post('/domain', requireAdmin, async (req, res) => {
       routed,
       handoff,
       adminUrl: `${scheme}://${config.adminSubdomain}.${baseDomain}`,
+      passkeysInvalidated: atRisk.count,
       message: routed
         ? 'Routing published.'
         : 'Saved, but routing did not reload yet — it will retry automatically.'

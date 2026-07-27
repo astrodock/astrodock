@@ -8,7 +8,7 @@ const { getServerMetrics } = require('../runner/health');
 const platformHealth = require('../lib/platform-health');
 
 const router = express.Router();
-router.use(requireScope('deploy'));
+router.use(requireScope('apps:read'));
 
 // Platform self-health snapshot (DB / object store / runner / TLS cert).
 router.get('/platform', async (req, res) => {

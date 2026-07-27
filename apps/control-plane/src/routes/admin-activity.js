@@ -6,7 +6,7 @@ const { db, schema } = require('../db');
 const { requireScope } = require('../middleware/auth');
 
 const router = express.Router();
-router.use(requireScope('deploy'));
+router.use(requireScope('events:read'));
 
 // Apps a per-app-scoped token may see (null = unrestricted: admin JWT or unscoped token).
 function scopeSlugs(req) {

@@ -65,6 +65,10 @@ app.use('/', require('./src/routes/oauth'));
 app.use('/verify', require('./src/routes/verify'));
 app.use('/account', require('./src/routes/account'));
 app.use('/admin', require('./src/routes/admin-auth'));
+// "What am I and what may I do" — so an agent can check before acting rather than
+// discovering its limits by collecting 403s.
+app.use('/whoami', require('./src/routes/whoami'));
+app.use('/admin/account', require('./src/routes/admin-account'));
 app.use('/admin/health', require('./src/routes/admin-health'));
 app.use('/admin/users', require('./src/routes/admin-users'));
 app.use('/admin/apps', require('./src/routes/admin-apps'));

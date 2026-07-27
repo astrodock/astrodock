@@ -51,6 +51,10 @@ const REGISTRY = {
     label: 'Caddy access logs for deployed apps', type: 'enum',
     values: ['off', 'on'], default: () => 'off'
   },
+  'security.require_mfa': {
+    label: 'Require two-factor authentication for all operators', type: 'enum',
+    values: ['off', 'on'], default: () => 'off'
+  },
   'alerts.disk_threshold_percent': {
     label: 'Disk-usage alert threshold (%)', type: 'int',
     default: () => 85

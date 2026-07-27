@@ -17,7 +17,7 @@ const pages = require('../lib/pages');
 const store = require('../lib/pages-store');
 
 const router = express.Router();
-router.use(requireScope('pages'));
+router.use(requireScope('pages:read'));
 router.use(express.json({ limit: config.pages.editTextMaxBytes }));
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: config.pages.maxFileBytes, files: config.pages.maxFilesPerUpload } });

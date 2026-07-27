@@ -118,4 +118,27 @@ function requireScope(scope) {
   };
 }
 
-module.exports = { resolveAuth, requireAdmin, requireScope, tokenHasScope, tokenAllowsApp };
+/**
+ * Require a specific permission, of a key OR a person. `requireScope` guards a
+ * whole router; this guards one route, so an endpoint declares what it needs
+ * rather than inheriting the loosest thing its neighbours needed.
+ */
+function requirePermission(scope) {
+  return (req, res, next) => {
+    resolveAuth(req).then((auth) => {
+      if (!auth) return res.status(401).json({ error: 'Authentication required' });
+      req.auth = auth;
+      if (callerHasScope(auth, scope)) return next();
+      return res.status(403).json({
+        error: `This action needs the "${scope}" permission.`,
+        code: 'insufficient_scope',
+        required: scope
+      });
+    }).catch((err) => res.status(500).json({ error: err.message }));
+  };
+}
+
+module.exports = {
+  resolveAuth, requireAdmin, requireScope, requirePermission,
+  tokenHasScope, tokenAllowsApp, grantedScopes, callerHasScope
+};

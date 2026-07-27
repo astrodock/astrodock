@@ -24,7 +24,7 @@ async function seedAdmin({ log = console.log } = {}) {
 
   const passwordHash = await hashPassword(password);
   await db.insert(schema.users).values({
-    email, name: 'Admin', passwordHash, isActive: true, isAdmin: true, appAccess: []
+    email, name: 'Admin', passwordHash, isActive: true, isAdmin: true, operatorRole: 'owner', appAccess: []
   });
   log(`[seed] admin user created: ${email}`);
   return { seeded: true };

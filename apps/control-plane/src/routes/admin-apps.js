@@ -6,7 +6,7 @@ const path = require('path');
 const { eq, and, desc } = require('drizzle-orm');
 const config = require('../config');
 const { db, schema } = require('../db');
-const { requireScope, tokenAllowsApp } = require('../middleware/auth');
+const { requireScope, requirePermission, tokenAllowsApp } = require('../middleware/auth');
 const { deployLimiter } = require('../middleware/rateLimiter');
 const { getAppBySlug, getAppEnvVars, serializeApp, serializeEnvVar } = require('../lib/apps');
 const { applyManifest } = require('../lib/apply');
@@ -30,7 +30,7 @@ function validSubdomain(v) {
 }
 
 const router = express.Router();
-router.use(requireScope('deploy'));
+router.use(requireScope('apps:read'));
 
 // Enforce per-app token scope for every /:slug route (params aren't available in
 // the router-level use() above, but router.param runs once :slug is matched).
@@ -59,7 +59,7 @@ router.get('/status/all', async (req, res) => {
 });
 
 // ── apply a manifest (CLI `apply`) ──────────────────────────────────────────────
-router.post('/apply', async (req, res) => {
+router.post('/apply', requirePermission('apps:write'), async (req, res) => {
   const manifest = req.body?.manifest || req.body;
   const prune = !!(req.body?.prune || req.query.prune);
   if (manifest && manifest.slug && !tokenAllowsApp(req.auth, manifest.slug)) {
@@ -113,7 +113,7 @@ router.get('/:slug', async (req, res) => {
 });
 
 // Manual create (admin UI) — builds a manifest from the body and applies it.
-router.post('/', async (req, res) => {
+router.post('/', requirePermission('apps:write'), async (req, res) => {
   const b = req.body || {};
   if (b.slug && !tokenAllowsApp(req.auth, b.slug)) {
     return res.status(403).json({ error: `Token is not scoped to app "${b.slug}"` });
@@ -156,7 +156,7 @@ const PATCH_VALIDATORS = {
   buildCommand: (v) => typeof v === 'string' && v.length <= 500
 };
 
-router.patch('/:slug', async (req, res) => {
+router.patch('/:slug', requirePermission('apps:write'), async (req, res) => {
   const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
   const b = req.body || {};
@@ -182,7 +182,7 @@ router.patch('/:slug', async (req, res) => {
   res.json({ app: serializeApp(rows[0]) });
 });
 
-router.delete('/:slug', async (req, res) => {
+router.delete('/:slug', requirePermission('apps:delete'), async (req, res) => {
   const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
   const purge = !!(req.query.purge || req.body?.purge); // also drop internal data
@@ -206,7 +206,7 @@ router.delete('/:slug', async (req, res) => {
   res.status(204).end();
 });
 
-router.post('/:slug/rotate-secret', async (req, res) => {
+router.post('/:slug/rotate-secret', requirePermission('apps:write'), async (req, res) => {
   const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
   const appSecret = generateAppSecret();
@@ -215,7 +215,7 @@ router.post('/:slug/rotate-secret', async (req, res) => {
 });
 
 // ── provisioning ────────────────────────────────────────────────────────────────
-router.post('/:slug/provision', async (req, res) => {
+router.post('/:slug/provision', requirePermission('apps:write'), async (req, res) => {
   const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
   try {
@@ -238,7 +238,7 @@ async function connectRepoInternal(app, githubRepo, branch, repoPath) {
   }).where(eq(schema.apps.id, app.id));
 }
 
-router.post('/:slug/connect-repo', async (req, res) => {
+router.post('/:slug/connect-repo', requirePermission('apps:write'), async (req, res) => {
   const { githubRepo, branch, repoPath } = req.body || {};
   if (!githubRepo) return res.status(400).json({ error: 'githubRepo is required (e.g. "owner/repo")' });
   // these get interpolated into shell (git clone) on the runner — keep them metachar-free
@@ -256,7 +256,7 @@ router.post('/:slug/connect-repo', async (req, res) => {
   }
 });
 
-router.post('/:slug/disconnect-repo', async (req, res) => {
+router.post('/:slug/disconnect-repo', requirePermission('apps:write'), async (req, res) => {
   const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
   if (app.githubRepo && app.webhookId) { try { await deleteWebhook(app.githubRepo, app.webhookId); } catch { /* best effort */ } }
@@ -265,7 +265,7 @@ router.post('/:slug/disconnect-repo', async (req, res) => {
 });
 
 // ── deploys ───────────────────────────────────────────────────────────────────
-router.post('/:slug/deploy', deployLimiter, async (req, res) => {
+router.post('/:slug/deploy', requirePermission('deploys:write'), deployLimiter, async (req, res) => {
   const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
   const r = await runner.deploy(app.slug, { trigger: req.auth?.type === 'token' ? 'cli' : 'manual' }).catch((e) => ({ status: e.status || 503, body: { error: e.message } }));
@@ -275,7 +275,7 @@ router.post('/:slug/deploy', deployLimiter, async (req, res) => {
 
 // Roll back to the last good build: redeploy the most recent successful commit
 // (the one before what's currently live, if live is healthy).
-router.post('/:slug/rollback', deployLimiter, async (req, res) => {
+router.post('/:slug/rollback', requirePermission('deploys:write'), deployLimiter, async (req, res) => {
   const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
   if (!app.githubRepo) return res.status(400).json({ error: 'Rollback requires a connected GitHub repo' });
@@ -300,7 +300,7 @@ router.get('/:slug/domains', async (req, res) => {
   res.json({ domains: rows.map((d) => ({ ...d, records: domainsLib.dnsRecords(d) })), publicIp: config.publicIp || null });
 });
 
-router.post('/:slug/domains', async (req, res) => {
+router.post('/:slug/domains', requirePermission('domains:write'), async (req, res) => {
   const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
   const hostname = domainsLib.normalizeHostname(req.body?.hostname);
@@ -318,7 +318,7 @@ router.post('/:slug/domains', async (req, res) => {
   }
 });
 
-router.post('/:slug/domains/:id/verify', async (req, res) => {
+router.post('/:slug/domains/:id/verify', requirePermission('domains:write'), async (req, res) => {
   const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
   const rows = await db.select().from(schema.customDomains).where(and(eq(schema.customDomains.id, req.params.id), eq(schema.customDomains.appId, app.id))).limit(1);
@@ -333,7 +333,7 @@ router.post('/:slug/domains/:id/verify', async (req, res) => {
   res.json({ domain: { ...updated, records: domainsLib.dnsRecords(updated) }, verified: ok, error: ok ? undefined : 'Verification TXT not found yet — DNS can take a few minutes to propagate.' });
 });
 
-router.patch('/:slug/domains/:id', async (req, res) => {
+router.patch('/:slug/domains/:id', requirePermission('domains:write'), async (req, res) => {
   const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
   const rows = await db.select().from(schema.customDomains).where(and(eq(schema.customDomains.id, req.params.id), eq(schema.customDomains.appId, app.id))).limit(1);
@@ -350,7 +350,7 @@ router.patch('/:slug/domains/:id', async (req, res) => {
   res.json({ domain: { ...updated, records: domainsLib.dnsRecords(updated) } });
 });
 
-router.delete('/:slug/domains/:id', async (req, res) => {
+router.delete('/:slug/domains/:id', requirePermission('domains:write'), async (req, res) => {
   const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
   const rows = await db.select().from(schema.customDomains).where(and(eq(schema.customDomains.id, req.params.id), eq(schema.customDomains.appId, app.id))).limit(1);
@@ -363,7 +363,7 @@ router.delete('/:slug/domains/:id', async (req, res) => {
 
 // Local (non-GitHub) deploy: receive a gzipped tarball of the working dir and
 // deploy it directly. Body is raw octet-stream (express.json skips non-JSON).
-router.post('/:slug/deploy-local', deployLimiter, express.raw({ type: () => true, limit: '100mb' }), async (req, res) => {
+router.post('/:slug/deploy-local', requirePermission('deploys:write'), deployLimiter, express.raw({ type: () => true, limit: '100mb' }), async (req, res) => {
   const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
   if (!req.body || !req.body.length) return res.status(400).json({ error: 'empty upload (send a gzipped tarball)' });
@@ -391,7 +391,7 @@ router.get('/:slug/deployments/:id', async (req, res) => {
 });
 
 // ── env vars ──────────────────────────────────────────────────────────────────
-router.get('/:slug/env', async (req, res) => {
+router.get('/:slug/env', requirePermission('env:read'), async (req, res) => {
   const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
   const envVars = await getAppEnvVars(app.id);
@@ -399,7 +399,7 @@ router.get('/:slug/env', async (req, res) => {
 });
 
 // Set a value (works for declared + reserved rows; creates an ad-hoc declared row if new).
-router.put('/:slug/env/:key', async (req, res) => {
+router.put('/:slug/env/:key', requirePermission('env:write'), async (req, res) => {
   const { value } = req.body || {};
   if (value === undefined) return res.status(400).json({ error: 'value is required' });
   if (/^ASTRODOCK_/.test(req.params.key)) {
@@ -428,7 +428,7 @@ router.put('/:slug/env/:key', async (req, res) => {
   res.json({ ok: true });
 });
 
-router.post('/:slug/env/bulk', async (req, res) => {
+router.post('/:slug/env/bulk', requirePermission('env:write'), async (req, res) => {
   const { raw } = req.body || {};
   if (!raw || typeof raw !== 'string') return res.status(400).json({ error: 'raw string is required' });
   const app = await getAppBySlug(req.params.slug);
@@ -457,7 +457,7 @@ router.post('/:slug/env/bulk', async (req, res) => {
   res.json({ added, skipped });
 });
 
-router.delete('/:slug/env/:key', async (req, res) => {
+router.delete('/:slug/env/:key', requirePermission('env:write'), async (req, res) => {
   const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
   const rows = await db.select().from(schema.appEnvVars).where(and(eq(schema.appEnvVars.appId, app.id), eq(schema.appEnvVars.key, req.params.key))).limit(1);
@@ -475,21 +475,21 @@ router.get('/:slug/status', async (req, res) => {
   res.json(r.body || { status: 'unavailable' });
 });
 
-router.post('/:slug/restart', async (req, res) => {
+router.post('/:slug/restart', requirePermission('runtime:write'), async (req, res) => {
   const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
   const r = await runner.restart(app.slug).catch((e) => ({ status: e.status || 503, body: { error: e.message } }));
   res.status(r.status).json(r.status === 200 ? { message: 'Process restarted' } : r.body);
 });
 
-router.post('/:slug/stop', async (req, res) => {
+router.post('/:slug/stop', requirePermission('runtime:write'), async (req, res) => {
   const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
   const r = await runner.stop(app.slug).catch((e) => ({ status: e.status || 503, body: { error: e.message } }));
   res.status(r.status).json(r.status === 200 ? { message: 'Process stopped' } : r.body);
 });
 
-router.get('/:slug/logs', async (req, res) => {
+router.get('/:slug/logs', requirePermission('logs:read'), async (req, res) => {
   const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
   const r = await runner.logs(app.slug, parseInt(req.query.lines, 10) || 100).catch(() => ({ status: 503, body: { logs: '(runner unreachable)' } }));
@@ -498,7 +498,7 @@ router.get('/:slug/logs', async (req, res) => {
 
 // HTTP access logs for the deployed app (opt-in: Settings → Caddy access logs).
 // Reads Caddy's per-app JSON log from the shared volume. Best-effort.
-router.get('/:slug/access-logs', async (req, res) => {
+router.get('/:slug/access-logs', requirePermission('logs:read'), async (req, res) => {
   const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
   const fs = require('fs');
@@ -523,23 +523,23 @@ router.get('/:slug/access-logs', async (req, res) => {
 // ── structured operations ────────────────────────────────────────────────────
 // Reading files and inspecting state need logs:read — they disclose, they do not
 // change. Running a declared command needs runtime:write, because it does.
-router.get('/:slug/ops/list', async (req, res) => {
+router.get('/:slug/ops/list', requirePermission('logs:read'), async (req, res) => {
   const { status, body } = await runner.opsList(req.params.slug, req.query.path);
   res.status(status).json(body);
 });
-router.get('/:slug/ops/file', async (req, res) => {
+router.get('/:slug/ops/file', requirePermission('logs:read'), async (req, res) => {
   const { status, body } = await runner.opsFile(req.params.slug, req.query.path);
   res.status(status).json(body);
 });
-router.get('/:slug/ops/env', async (req, res) => {
+router.get('/:slug/ops/env', requirePermission('env:read'), async (req, res) => {
   const { status, body } = await runner.opsEnv(req.params.slug);
   res.status(status).json(body);
 });
-router.get('/:slug/ops/commands', async (req, res) => {
+router.get('/:slug/ops/commands', requirePermission('logs:read'), async (req, res) => {
   const { status, body } = await runner.opsCommands(req.params.slug);
   res.status(status).json(body);
 });
-router.post('/:slug/ops/run', async (req, res) => {
+router.post('/:slug/ops/run', requirePermission('runtime:write'), async (req, res) => {
   const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
   const { status, body } = await runner.opsRun(req.params.slug, req.body?.name);

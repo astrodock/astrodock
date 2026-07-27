@@ -11,7 +11,7 @@ const { requireScope } = require('../middleware/auth');
 const domainsLib = require('../lib/domains');
 
 const router = express.Router();
-router.use(requireScope('deploy'));
+router.use(requireScope('apps:read'));
 
 router.get('/', async (req, res, next) => {
   try {
