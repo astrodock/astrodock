@@ -131,6 +131,26 @@ test('configured admin host still routes /setup/* to the API', () => {
   }
 });
 
+test('every control-plane path is proxied, in BOTH routing modes', () => {
+  // This has now bitten twice: a route added to one Caddy block but not the other
+  // returns index.html rather than JSON — a 200 that fails on parse, which is far
+  // harder to notice than a 404. Assert the list rather than individual paths.
+  const saved = config.baseDomain;
+  try {
+    config.applyRuntimeDomain({ baseDomain: '' });
+    const setupMode = generateCaddyfile([]);
+    ['/setup/*', '/admin/*', '/whoami', '/health'].forEach((p) =>
+      assert.ok(setupMode.includes(`handle ${p}`), `setup mode must proxy ${p}`));
+
+    config.applyRuntimeDomain({ baseDomain: 'apps.example.com' });
+    const configured = generateCaddyfile([]);
+    ['/setup/*', '/admin/*', '/whoami', '/authorize', '/token', '/login*', '/verify', '/health']
+      .forEach((p) => assert.ok(configured.includes(`handle ${p}`), `configured mode must proxy ${p}`));
+  } finally {
+    config.applyRuntimeDomain({ baseDomain: saved });
+  }
+});
+
 test('setting a domain at runtime re-keys routing and the pages host', () => {
   const saved = config.baseDomain;
   try {

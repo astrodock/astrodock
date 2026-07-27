@@ -46,19 +46,21 @@ function setupGlobalOptions() {
   return `{\n\tadmin 0.0.0.0:2019 {\n\t\torigins ${adminOrigin()} http://localhost:2019 http://127.0.0.1:2019\n\t}\n\tauto_https off\n}\n`;
 }
 
+// Everything the control plane serves, as opposed to the SPA. Both the setup-mode
+// block and the configured admin block proxy exactly this list — when they each
+// kept their own copy, a route added to one returned index.html from the other,
+// which fails as a successful-looking HTML response rather than a 404.
+const API_PATHS = ['/setup/*', '/admin/*', '/whoami', '/authorize', '/token', '/login*', '/verify', '/webhooks/*', '/health', '/account*'];
+
+function apiHandles(paths) {
+  return paths.map((p) => `\thandle ${p} {\n\t\treverse_proxy ${API}\n\t}`).join('\n');
+}
+
 function setupBlock() {
   const staticRoot = `${config.paths.caddyStatic}/__admin`;
   return `
 :80 {
-\thandle /setup/* {
-\t\treverse_proxy ${API}
-\t}
-\thandle /admin/* {
-\t\treverse_proxy ${API}
-\t}
-\thandle /health {
-\t\treverse_proxy ${API}
-\t}
+${apiHandles(['/setup/*', '/admin/*', '/whoami', '/health'])}
 \thandle {
 \t\troot * ${staticRoot}
 \t\ttry_files {path} /index.html
@@ -107,26 +109,10 @@ function customDomainBlock(d, accessLogs, onDemand, canonicalHost) {
 function adminBlock() {
   const host = `${config.adminSubdomain}.${config.baseDomain}`;
   const staticRoot = `${config.paths.caddyStatic}/__admin`;
+  // Derived from API_PATHS rather than listed again — see the note there.
   return `
 ${site(host)} {
-\thandle /admin/* {
-\t\treverse_proxy ${API}
-\t}
-\thandle /setup/* {
-\t\treverse_proxy ${API}
-\t}
-\thandle /verify {
-\t\treverse_proxy ${API}
-\t}
-\thandle /webhooks/* {
-\t\treverse_proxy ${API}
-\t}
-\thandle /health {
-\t\treverse_proxy ${API}
-\t}
-\thandle /account* {
-\t\treverse_proxy ${API}
-\t}
+${apiHandles(API_PATHS)}
 \thandle {
 \t\troot * ${staticRoot}
 \t\ttry_files {path} /index.html
