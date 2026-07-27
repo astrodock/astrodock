@@ -66,6 +66,23 @@ if [ -f "$DIR/.env" ]; then
   exit 0
 fi
 
+# docker-compose.yml pins `name: astrodock`, so `docker compose up` here would ADOPT
+# any existing stack of that name — recreating its containers against this install's
+# freshly generated secrets. The database volume keeps the old password, so the
+# result is a crash-looping api and a broken install, with nothing saying why.
+# The check above misses it whenever the other stack lives in a different directory.
+if docker ps -a --filter "label=com.docker.compose.project=astrodock" --format '{{.Names}}' 2>/dev/null | grep -q .; then
+  say ""
+  say "error: an Astrodock stack already exists on this machine." >&2
+  say "" >&2
+  say "Installing here would take over its containers and restart them with new" >&2
+  say "secrets, which breaks it — the database keeps the old password." >&2
+  say "" >&2
+  say "  Find it with:  docker compose ls" >&2
+  say "  Upgrade that one instead, or remove it first: docker compose -p astrodock down" >&2
+  exit 1
+fi
+
 # ── fetch ─────────────────────────────────────────────────────────────────────
 say "Fetching Astrodock…"
 fetch "$RAW/docker-compose.yml" "$DIR/docker-compose.yml" || die "Could not download docker-compose.yml from $RAW"
