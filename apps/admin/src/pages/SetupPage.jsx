@@ -245,16 +245,18 @@ export default function SetupPage({ status }) {
             <div className="callout">
               <b>First, prove this server is yours.</b>
               {status.tokenSource === 'preset' ? (
-                <p>
-                  This server is currently unclaimed — anyone who reached this page before you could
-                  otherwise make themselves the administrator. The token proves you are the person
-                  who set the server up.
-                </p>
-                <p>
-                  Enter the one you chose when you installed Astrodock, in your server's startup
-                  script. It is used once, right now, and stops working the moment your account
-                  exists.
-                </p>
+                <>
+                  <p>
+                    This server is currently unclaimed — anyone who reached this page before you
+                    could otherwise make themselves the administrator. The token proves you are the
+                    person who set the server up.
+                  </p>
+                  <p>
+                    Enter the one you chose when you installed Astrodock, in your server's startup
+                    script. It is used once, right now, and stops working the moment your account
+                    exists.
+                  </p>
+                </>
               ) : (
                 <>
                   <p>
