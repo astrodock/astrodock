@@ -12,9 +12,17 @@
     <p class="eyebrow">Guides</p>
     <h1>Upgrading</h1>
     <p class="lead">
-      Upgrading Astrodock is three commands: pull the new code, rebuild the images, and bring the stack
-      back up. Database migrations run on their own, and your apps' data is preserved across the upgrade.
+      Upgrading Astrodock is two commands: pull the new image and bring the stack back up. Database
+      migrations run on their own, and your apps' data is preserved across the upgrade.
     </p>
+
+    <div class="callout note">
+      <p class="ct">Which version am I on?</p>
+      <p>The dashboard shows it in the bottom-left corner, and <b>Settings &rarr; About This Astrodock</b>
+        says whether a newer release has been tagged. Astrodock checks GitHub for that once every six
+        hours and never installs anything by itself — you always run the upgrade. You can switch the
+        check off under <b>Settings &rarr; Logs &amp; Privacy</b>.</p>
+    </div>
 
     <div class="callout danger">
       <p class="ct">Back up first</p>
@@ -22,18 +30,13 @@
         goes sideways. It takes one command — see <a href="backups.html">Backups &amp; restore</a>.</p>
     </div>
 
-    <h2>Upgrade in three steps</h2>
-    <p>From the repo root on your server:</p>
+    <h2>Upgrade in two steps</h2>
+    <p>From your install directory on the server — <code>/opt/astrodock</code> unless you chose another:</p>
     <ol class="steps">
       <li>
-        <h3>Pull the latest code</h3>
-        <pre><code>git pull</code></pre>
-        <p>This updates the repo to the newest version, including any migrations and image changes.</p>
-      </li>
-      <li>
-        <h3>Rebuild the images</h3>
-        <pre><code>docker compose build</code></pre>
-        <p>Compose rebuilds the Astrodock service images against the new code.</p>
+        <h3>Pull the new image</h3>
+        <pre><code>cd /opt/astrodock &amp;&amp; docker compose pull</code></pre>
+        <p>Downloads the published Astrodock image. Nothing changes on the running stack yet.</p>
       </li>
       <li>
         <h3>Bring the stack back up</h3>
@@ -41,6 +44,28 @@
         <p>Compose recreates only the services that changed and leaves your data volumes untouched.</p>
       </li>
     </ol>
+
+    <div class="callout note">
+      <p class="ct">Staying on a specific version</p>
+      <p>By default the stack tracks <code>latest</code>, so a pull takes you to the newest release. To
+        pin a version instead, set <code>ASTRODOCK_VERSION=v0.0.6</code> in your <code>.env</code> and
+        run the two commands above — that is also how you go <em>back</em> to an earlier release if one
+        gives you trouble.</p>
+    </div>
+
+    <h2>If you built from source</h2>
+    <p>
+      A source install has the repository on the server and builds its own images, so it updates
+      differently — <code>git pull</code>, then rebuild:
+    </p>
+    <pre><code>git pull
+docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build</code></pre>
+    <p>
+      The standard install has no repository on the box: <code>install.sh</code> downloads the compose
+      file and the Caddy config, not a checkout. <code>git pull</code> there will only tell you it is not
+      a git repository. The dashboard says which kind you have — Settings &rarr; About This Astrodock
+      reports <em>built from source</em> when it applies.
+    </p>
 
     <div class="callout note">
       <p class="ct">Migrations run automatically</p>
@@ -71,11 +96,12 @@ docker compose logs -f api  # watch migrations run and the control plane start l
     <h2>Rolling back</h2>
     <p>If an upgrade goes wrong, you have two ways back:</p>
     <ul>
-      <li><strong>Check out the previous version</strong> of the code, then rebuild and bring the stack
-        up again:
-        <pre><code>git checkout &lt;previous-tag-or-commit&gt;
-docker compose build
+      <li><strong>Pin the previous version</strong> and bring the stack up on it again. Set
+        <code>ASTRODOCK_VERSION</code> in your <code>.env</code> to the release you were on, then:
+        <pre><code>docker compose pull
 docker compose up -d</code></pre>
+        <p class="fine">On a source install, <code>git checkout &lt;previous-tag&gt;</code> and rebuild
+          with the build overlay instead.</p>
       </li>
       <li><strong>Restore from backup</strong> if a migration changed data in a way an older version can't
         read. Use the backup you took before upgrading — see <a href="backups.html">Backups &amp;

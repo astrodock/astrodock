@@ -37,7 +37,10 @@ app.use('/admin/pages', require('./src/routes/admin-pages'));
 app.use(express.json({ limit: '1mb' }));
 
 // Control-plane liveness (distinct from /admin/health monitor data).
-app.get('/health', (req, res) => res.json({ status: 'ok', service: 'astrodock-control-plane' }));
+app.get('/health', (req, res) => {
+  const v = require('./src/lib/version').resolve();
+  res.json({ status: 'ok', service: 'astrodock-control-plane', version: v.version, build: v.source });
+});
 
 // Caddy on-demand-TLS authorization (no auth; Caddy calls this before issuing a
 // cert). Only authorize hostnames that are registered + active custom domains.

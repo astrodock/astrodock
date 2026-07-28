@@ -1,9 +1,12 @@
 {
   "name": "@astrodock/auth-client",
-  "version": "0.1.0",
+  "version": "0.0.6",
   "description": "Server-side client for the Astrodock platform auth service (/verify).",
   "license": "MIT",
   "main": "index.js",
   "types": "index.d.ts",
-  "files": ["index.js", "index.d.ts"]
+  "files": [
+    "index.js",
+    "index.d.ts"
+  ]
 }

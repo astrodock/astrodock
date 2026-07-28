@@ -52,6 +52,12 @@ jobs:
           # single-arch image would silently exclude them.
           platforms: linux/amd64,linux/arm64
           push: true
+          # Baked in so the running platform can report what it is, and so the
+          # update check has something real to compare against.
+          build-args: |
+            ASTRODOCK_BUILD_VERSION=${{ steps.v.outputs.version }}
+            ASTRODOCK_BUILD_COMMIT=${{ github.sha }}
+            ASTRODOCK_BUILD_DATE=${{ github.event.repository.updated_at }}
           tags: |
             ghcr.io/${{ github.repository }}:${{ steps.v.outputs.version }}
             ghcr.io/${{ github.repository }}:latest

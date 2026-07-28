@@ -62,6 +62,11 @@ const REGISTRY = {
     description: 'Every operator must hold a passkey or authenticator app before they can sign in. You need one yourself before this can be turned on.',
     values: ['off', 'on'], default: () => 'off'
   },
+  'updates.check': {
+    label: 'Check for new Astrodock releases', type: 'enum',
+    description: 'Asks GitHub once every six hours whether a newer version has been tagged. This is the only request Astrodock makes to the internet on its own. It never installs anything.',
+    values: ['on', 'off'], default: () => 'on'
+  },
   'alerts.disk_threshold_percent': {
     label: 'Disk-usage alert threshold (%)', type: 'int',
     description: 'Raise a warning once the disk is this full.',
@@ -220,7 +225,12 @@ const mask = (v) => (v ? '••• set' : 'not set');
 // settings without SSHing into the box. Secrets are masked, never returned.
 function diagnostics() {
   const { isEnabled } = require('./crypto');
+  const v = require('./version').resolve();
   return {
+    version: v.version || 'unknown',
+    build: v.source === 'image'
+      ? `image${v.commit ? ` · ${v.commit.slice(0, 7)}` : ''}`
+      : 'from source',
     env: config.env,
     configured: config.isConfigured(),
     baseDomain: config.baseDomain || '(not set — first-run setup pending)',

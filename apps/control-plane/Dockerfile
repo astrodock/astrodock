@@ -47,7 +47,18 @@ COPY --from=admin-build /admin/dist /opt/admin-dist
 COPY apps/control-plane/docker-entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-ENV NODE_ENV=production \
+# Stamped by the release workflow from the git tag. NOT named ASTRODOCK_VERSION:
+# that belongs to the host .env, where compose reads it to pick an image tag, and
+# `env_file: .env` would then inject it here and make a box pinned to `latest`
+# report its own version as "latest".
+ARG ASTRODOCK_BUILD_VERSION=""
+ARG ASTRODOCK_BUILD_COMMIT=""
+ARG ASTRODOCK_BUILD_DATE=""
+
+ENV ASTRODOCK_BUILD_VERSION=${ASTRODOCK_BUILD_VERSION} \
+    ASTRODOCK_BUILD_COMMIT=${ASTRODOCK_BUILD_COMMIT} \
+    ASTRODOCK_BUILD_DATE=${ASTRODOCK_BUILD_DATE} \
+    NODE_ENV=production \
     PM2_HOME=/data/pm2 \
     ASTRODOCK_STATIC_DIR=/data/static \
     ASTRODOCK_APPS_DIR=/data/apps \

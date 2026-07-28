@@ -272,6 +272,8 @@ export const deleteToken = (id) =>
 
 // Platform settings (operational overrides + read-only diagnostics + readiness)
 export const getSettings = () => request('/settings');
+// Cached server-side; force=1 is the "Check now" button.
+export const getVersion = (force) => request(`/settings/version${force ? '?force=1' : ''}`);
 export const updateSettings = (updates) =>
   request('/settings', { method: 'PATCH', body: JSON.stringify({ updates }) });
 

@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate, NavLink, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate, NavLink, Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { getToken, clearToken, getSetupStatus, exchangeHandoff, setToken } from './lib/api';
 import LoginPage from './pages/LoginPage';
@@ -193,6 +193,12 @@ export default function App() {
               Log out
             </button>
           </div>
+          {/* Which Astrodock is this? Previously unanswerable without SSHing in
+              and reading `docker images`. Links to Settings, where the update
+              check and the build detail live. */}
+          <Link className="version-line" to="/settings" title="Version and updates">
+            {setup?.version ? `v${String(setup.version).replace(/^v/, '')}` : 'version unknown'}
+          </Link>
         </div>
       </nav>
       <main className="content">

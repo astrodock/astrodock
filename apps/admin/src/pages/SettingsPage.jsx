@@ -4,6 +4,7 @@ import EmptyState from '../components/EmptyState';
 import SettingsGroup from '../components/SettingsGroup';
 import EmailSetup from '../components/EmailSetup';
 import BackupsSection from '../components/BackupsSection';
+import AboutSection from '../components/AboutSection';
 
 const CATEGORIES = [
   { key: 'health', label: 'App health' }, { key: 'deploy', label: 'Deploys' },
@@ -118,7 +119,7 @@ function RuleModal({ initial, onClose, onSaved }) {
 const ALERT_KEYS = ['alerts.email_to', 'alerts.disk_threshold_percent'];
 const SECURITY_KEYS = ['security.require_mfa'];
 const LOG_KEYS = ['logging.page_view_ip', 'logging.auth_log_retention_days',
-  'logging.page_view_retention_days', 'logging.app_access_logs'];
+  'logging.page_view_retention_days', 'logging.app_access_logs', 'updates.check'];
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState([]);
@@ -173,6 +174,8 @@ export default function SettingsPage() {
           ))}
         </div>
       )}
+
+      <AboutSection diagnostics={diagnostics} />
 
       {/* Notifications */}
       <section className="set-section">

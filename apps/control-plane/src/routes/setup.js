@@ -136,6 +136,9 @@ router.get('/status', async (req, res) => {
       // Safe to expose: knowing a token was operator-chosen doesn't help guess it,
       // and this only ever answers before an admin exists.
       tokenSource: hasAdmin ? null : (validatePresetToken(config.setupToken).ok ? 'preset' : 'generated'),
+      // The dashboard shell reads this at mount, which is the one call it always
+      // makes — so the sidebar can show the version without a request of its own.
+      version: require('../lib/version').resolve().version,
       baseDomain: config.baseDomain || '',
       adminSubdomain: config.adminSubdomain,
       tlsMode: config.tlsMode,

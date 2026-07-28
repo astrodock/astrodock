@@ -337,6 +337,64 @@ test('host port is read, not the container port', () => {
   assert.strictEqual(p.proto, 'tcp');
 });
 
+// ── version + update comparison ──────────────────────────────────────────────
+
+console.log('\nversion');
+
+const version = require('../src/lib/version.js');
+
+test('semver comparison orders releases correctly', () => {
+  assert.ok(version.compare('0.0.5', '0.0.6') < 0);
+  assert.ok(version.compare('0.0.6', '0.0.6') === 0);
+  assert.ok(version.compare('0.1.0', '0.0.9') > 0);
+  assert.ok(version.compare('1.0.0', '0.9.9') > 0);
+  // Two-digit segments must not be compared as strings: "10" > "9".
+  assert.ok(version.compare('0.0.9', '0.0.10') < 0);
+  assert.ok(version.compare('0.9.0', '0.10.0') < 0);
+});
+
+test('a leading v is noise, not part of the version', () => {
+  assert.strictEqual(version.compare('v0.0.6', '0.0.6'), 0);
+  assert.strictEqual(version.normalize('v1.2.3'), '1.2.3');
+});
+
+test('a pre-release sorts before the release it belongs to', () => {
+  assert.ok(version.compare('0.1.0-rc1', '0.1.0') < 0);
+  assert.ok(version.compare('0.1.0', '0.1.0-rc1') > 0);
+  assert.ok(version.compare('0.1.0-rc1', '0.1.0-rc2') < 0);
+});
+
+test('only real versions are treated as comparable', () => {
+  assert.ok(version.isSemver('v0.0.6'));
+  assert.ok(version.isSemver('1.2.3'));
+  assert.ok(version.isSemver('0.1.0-rc1'));
+  // "latest" is a tag, not a version — comparing against it would be nonsense.
+  assert.ok(!version.isSemver('latest'));
+  assert.ok(!version.isSemver(''));
+  assert.ok(!version.isSemver(null));
+  assert.ok(!version.isSemver('main'));
+});
+
+test('the build version does not come from the compose image-tag variable', () => {
+  // docker-compose.yml reads ASTRODOCK_VERSION from the host .env to pick an
+  // image tag, and every service does `env_file: .env` — so if the platform read
+  // its own version from that name, a box pinned to :latest would report its
+  // version as "latest". The baked-in value has its own name for that reason.
+  const composeSrc = fs.readFileSync(new URL('../../../docker-compose.yml', import.meta.url), 'utf8');
+  assert.ok(composeSrc.includes('${ASTRODOCK_VERSION:-latest}'),
+    'compose no longer selects the image tag this way — recheck the collision');
+  const versionSrc = fs.readFileSync(new URL('../src/lib/version.js', import.meta.url), 'utf8');
+  assert.ok(!/process\.env\.ASTRODOCK_VERSION\b/.test(versionSrc),
+    'version.js must not read ASTRODOCK_VERSION: .env injects it into the container');
+});
+
+test('the package version matches what the image build would stamp', () => {
+  // The fallback for a source build. It said 0.1.0 while the released tags were
+  // v0.0.x, which would have made the update check call a fresh checkout "ahead".
+  const pkg = JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  assert.ok(version.isSemver(pkg.version), `package.json version "${pkg.version}" is not a version`);
+});
+
 // ── the suite must not depend on the shell it is run from ────────────────────
 
 console.log('\ntest hygiene');

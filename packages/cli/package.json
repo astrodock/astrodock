@@ -1,13 +1,16 @@
 {
   "name": "@astrodock/cli",
-  "version": "0.1.0",
+  "version": "0.0.6",
   "description": "Thin CLI for driving an Astrodock platform: apply, deploy, status, logs, deploy:watch, set-secret.",
   "license": "MIT",
   "bin": {
     "astrodock": "bin/astrodock.js",
     "adock": "bin/astrodock.js"
   },
-  "files": ["bin/", "src/"],
+  "files": [
+    "bin/",
+    "src/"
+  ],
   "scripts": {
     "test": "node test/pages-unit.mjs && node test/cli.test.mjs"
   },

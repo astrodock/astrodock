@@ -63,6 +63,15 @@ router.patch('/', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// ── Version + update check ───────────────────────────────────────────────────
+
+router.get('/version', async (req, res) => {
+  const updates = require('../lib/updates');
+  // force=1 is the "Check now" button; the default read is served from cache so
+  // opening Settings does not call out to GitHub every time.
+  res.json(await updates.check({ force: req.query.force === '1' }));
+});
+
 // ── Email provider ───────────────────────────────────────────────────────────
 // Kept off the generic settings PATCH: these carry credentials, so they are
 // written through email-config (which encrypts them) and never read back out.
