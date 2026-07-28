@@ -23,6 +23,7 @@ const { db, schema } = require('../db');
 const { hashPassword } = require('../lib/passwords');
 const { requireAdmin } = require('../middleware/auth');
 const { setBootstrap, isSetupDeferred, setSetupDeferred } = require('../lib/settings');
+const { MIN_PASSWORD_LENGTH } = require('../lib/auth-factors');
 const { normalizeHostname, validHostname } = require('../lib/domains');
 const { emitEvent, actorFromAuth } = require('../lib/events');
 
@@ -166,8 +167,8 @@ router.post('/claim', async (req, res) => {
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(addr)) {
       return res.status(400).json({ error: 'A valid email address is required.' });
     }
-    if (!password || String(password).length < 12) {
-      return res.status(400).json({ error: 'Password must be at least 12 characters.' });
+    if (!password || String(password).length < MIN_PASSWORD_LENGTH) {
+      return res.status(400).json({ error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters.` });
     }
 
     const passwordHash = await hashPassword(String(password));

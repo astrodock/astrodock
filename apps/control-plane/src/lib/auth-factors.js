@@ -20,6 +20,9 @@ const { encryptSecret, decryptSecret } = require('./crypto');
 const totp = require('./totp');
 
 const RECOVERY_CODE_COUNT = 10;
+// Length alone is a weak signal, and a high floor pushes people toward reuse and
+// sticky notes. Passkeys and TOTP are where the real protection comes from.
+const MIN_PASSWORD_LENGTH = 8;
 
 // ── inventory ─────────────────────────────────────────────────────────────────
 
@@ -76,7 +79,9 @@ function hasSecondFactor(f) {
 // ── passwords ─────────────────────────────────────────────────────────────────
 
 async function setPassword(userId, plain) {
-  if (!plain || String(plain).length < 12) throw new Error('Password must be at least 12 characters.');
+  if (!plain || String(plain).length < MIN_PASSWORD_LENGTH) {
+    throw new Error(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+  }
   const passwordHash = await hashPassword(String(plain));
   await db.update(schema.users).set({ passwordHash, passwordless: false, updatedAt: new Date() })
     .where(eq(schema.users.id, userId));
@@ -183,5 +188,5 @@ module.exports = {
   setPassword, removePassword, checkPassword,
   beginTotp, confirmTotp, checkTotp, removeTotp,
   generateRecoveryCodes, consumeRecoveryCode,
-  RECOVERY_CODE_COUNT
+  RECOVERY_CODE_COUNT, MIN_PASSWORD_LENGTH
 };

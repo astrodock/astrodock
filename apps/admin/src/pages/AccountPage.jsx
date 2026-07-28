@@ -332,7 +332,7 @@ function PasswordSection({ data, guarded }) {
         <div className="field">
           <div className="lab">
             <b>{has ? 'Change password' : 'Set a password'}</b>
-            <span className="desc">At least 12 characters.</span>
+            <span className="desc">At least 8 characters.</span>
           </div>
           <div className="ctl">
             <input type="password" value={pw} placeholder="New password"

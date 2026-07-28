@@ -20,6 +20,47 @@ function serverAddress(publicIp) {
   return isIpv4 || isIpv6 ? h : '';
 }
 
+// What to type, per registrar. The Name field and the provider-specific trap are
+// the two things that actually go wrong; everything else is the same everywhere.
+const REGISTRARS = [
+  {
+    key: 'cloudflare', label: 'Cloudflare',
+    where: 'DNS → Records → Add record',
+    fields: [['Type', 'A'], ['Name', '{NAME}'], ['IPv4 address', '{IP}'], ['Proxy status', 'DNS only (grey cloud)']],
+    warning: 'Turn the proxy OFF. An orange-cloud record terminates HTTPS at Cloudflare, so Astrodock can never get a certificate for your domain.'
+  },
+  {
+    key: 'digitalocean', label: 'DigitalOcean',
+    where: 'Networking → Domains → your domain',
+    fields: [['Type', 'A'], ['Hostname', '{NAME}'], ['Will direct to', '{IP}'], ['TTL', '300']],
+    warning: 'Your registrar must point its nameservers at DigitalOcean, or this zone is ignored entirely.'
+  },
+  {
+    key: 'namecheap', label: 'Namecheap',
+    where: 'Domain List → Manage → Advanced DNS → Add New Record',
+    fields: [['Type', 'A Record'], ['Host', '{NAME}'], ['Value', '{IP}'], ['TTL', 'Automatic']],
+    warning: 'The domain must be on Namecheap BasicDNS. URL forwarding silently overrides A records.'
+  },
+  {
+    key: 'godaddy', label: 'GoDaddy',
+    where: 'My Products → DNS → Add New Record',
+    fields: [['Type', 'A'], ['Name', '{NAME}'], ['Value', '{IP}'], ['TTL', '600 seconds']],
+    warning: 'Remove any parked or forwarding record for the same name first, or it wins.'
+  },
+  {
+    key: 'route53', label: 'AWS Route 53',
+    where: 'Hosted zones → your zone → Create record',
+    fields: [['Record name', '{NAME}'], ['Record type', 'A'], ['Value', '{IP}'], ['TTL', '300']],
+    warning: 'Route 53 shows the full name as {NAME}.{DOMAIN} — that is the same record, not a duplicated prefix.'
+  },
+  {
+    key: 'other', label: 'Something else',
+    where: 'Your DNS provider, wherever records are managed',
+    fields: [['Type', 'A'], ['Name / Host', '{NAME}'], ['Value / Points to', '{IP}']],
+    warning: 'If there is a "forwarding" or "parking" feature switched on for this domain, turn it off — those override A records.'
+  }
+];
+
 function Stepper({ step, needsClaim }) {
   const steps = needsClaim ? ['Administrator', 'Domain & HTTPS'] : ['Domain & HTTPS'];
   const offset = needsClaim ? 0 : 1;
@@ -64,6 +105,8 @@ export default function SetupPage({ status }) {
   const [dnsProvider, setDnsProvider] = useState('digitalocean');
   const [dnsToken, setDnsToken] = useState('');
   const [dnsCreated, setDnsCreated] = useState(null);
+  // null = no registrar picked; the generic record above is usually enough.
+  const [registrar, setRegistrar] = useState(null);
 
   useEffect(() => {
     // Needs admin auth, so only once we are past the claim step.
@@ -203,17 +246,23 @@ export default function SetupPage({ status }) {
               <b>First, prove this server is yours.</b>
               {status.tokenSource === 'preset' ? (
                 <p>
-                  Enter the setup token you chose when you installed Astrodock — the one you put in
-                  your server's startup script. It's what stops anyone who found this page before
-                  you from claiming it, and it stops working the moment you're done here.
+                  This server is currently unclaimed — anyone who reached this page before you could
+                  otherwise make themselves the administrator. The token proves you are the person
+                  who set the server up.
+                </p>
+                <p>
+                  Enter the one you chose when you installed Astrodock, in your server's startup
+                  script. It is used once, right now, and stops working the moment your account
+                  exists.
                 </p>
               ) : (
                 <>
                   <p>
-                    Astrodock generated a one-time token and printed it to its log when it started.
-                    It's what stops anyone who found this page before you from claiming it. Fetch it
-                    over SSH with:
+                    This server is currently unclaimed — anyone who reached this page before you
+                    could otherwise make themselves the administrator. The token proves you are the
+                    person who set the server up, by proving you can read its logs.
                   </p>
+                  <p>Astrodock printed one when it started. Fetch it over SSH with:</p>
                   <code className="setup-cmd">
                     cd /opt/astrodock && docker compose logs api | grep -A2 'first-run setup'
                   </code>
@@ -239,12 +288,12 @@ export default function SetupPage({ status }) {
             <label>
               Password
               <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-                required minLength={12} placeholder="At least 12 characters" />
+                required minLength={8} placeholder="At least 8 characters" />
             </label>
             <label>
               Confirm password
               <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)}
-                required minLength={12} placeholder="Type it again" />
+                required minLength={8} placeholder="Type it again" />
             </label>
             <button type="submit" className="login-btn" disabled={busy}>
               {busy ? 'Creating…' : 'Create administrator'}
@@ -278,6 +327,15 @@ export default function SetupPage({ status }) {
             {baseDomain.trim().includes('.') && (
               <>
                 <p className="setup-section-label">Add this DNS record at your registrar</p>
+                <div className="seg-pills" style={{ marginBottom: 10 }}>
+                  {REGISTRARS.map((r) => (
+                    <button type="button" key={r.key}
+                      className={`pillbtn ${registrar === r.key ? 'sel' : ''}`}
+                      onClick={() => setRegistrar(registrar === r.key ? null : r.key)}>
+                      {r.label}
+                    </button>
+                  ))}
+                </div>
                 <div className="dns-rec">
                   <div><span className="rk">Type</span><b>A</b></div>
                   <div><span className="rk">Name</span><span className="rv">*.{baseDomain.trim()}</span></div>
@@ -289,6 +347,32 @@ export default function SetupPage({ status }) {
                     you won't need to touch DNS again.
                   </div>
                 </div>
+                {registrar && (() => {
+                  const r = REGISTRARS.find((x) => x.key === registrar);
+                  const name = baseDomain.trim().split('.').length > 2
+                    ? `*.${baseDomain.trim().split('.').slice(0, -2).join('.')}`
+                    : '*';
+                  const fill = (v) => v
+                    .replace('{NAME}', name)
+                    .replace('{IP}', ip || '<your server IP>')
+                    .replace('{DOMAIN}', baseDomain.trim().split('.').slice(-2).join('.'));
+                  return (
+                    <div className="callout" style={{ marginTop: 10 }}>
+                      <b>{r.label}</b>
+                      <p style={{ marginBottom: 8 }}>{r.where}</p>
+                      <div className="dns-rec" style={{ marginBottom: 8 }}>
+                        {r.fields.map(([k, v]) => (
+                          <div key={k}>
+                            <span className="rk">{k}</span>
+                            <span className="rv" style={{ color: 'var(--info)' }}>{fill(v)}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <p><b>Watch out:</b> {fill(r.warning)}</p>
+                    </div>
+                  );
+                })()}
+
                 {!ip && (
                   <p className="field-help">
                     Couldn't detect this server's IP from your browser. Use the address you SSH to,

@@ -1,8 +1,13 @@
 # Bootstrap Caddy config. The control plane replaces this at runtime by POSTing a
 # freshly-generated Caddyfile to the admin API (POST /load), adding the admin host
-# and one block per provisioned app. This file just keeps the admin API reachable
-# (from the api container, over the internal network) and answers a health check
-# until that first push lands.
+# and one block per provisioned app. This file keeps the admin API reachable (from
+# the api container, over the internal network), answers a health check, and shows
+# a real page until that first push lands.
+#
+# That gap is brief but it IS visible: Caddy starts before the control plane has
+# finished migrating and pushed its routes, so anyone refreshing at that moment
+# used to get one line of plain text on a white page and reasonably conclude
+# something had broken.
 
 {
 	admin 0.0.0.0:2019 {
@@ -11,6 +16,50 @@
 }
 
 :80 {
-	respond /healthz "astrodock: caddy up\n" 200
-	respond "astrodock: waiting for control plane to publish routes\n" 200
+	# Both in `handle` blocks, which are mutually exclusive and evaluated in order.
+	# A bare `respond` alongside a `handle` loses: Caddy sorts `handle` first, so the
+	# catch-all swallowed /healthz and answered a health probe with HTML.
+	handle /healthz {
+		respond "astrodock: caddy up" 200
+	}
+
+	handle {
+		header Content-Type "text/html; charset=utf-8"
+		respond <<HTML
+<!doctype html><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="refresh" content="4">
+<title>Astrodock is starting</title>
+<style>
+:root{color-scheme:light dark}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#f4f6fa;color:#121823;
+display:grid;place-items:center;min-height:100vh;padding:1.5rem}
+.card{text-align:center;max-width:30rem}
+.mark{width:76px;height:76px;margin:0 auto 1.5rem;display:block}
+.orbit{transform-origin:17px 17px;animation:orbit 6s linear infinite}
+@keyframes orbit{to{transform:rotate(360deg)}}
+h1{font-size:1.3rem;font-weight:650;letter-spacing:-.2px;margin-bottom:.5rem}
+p{color:#6b7889;font-size:.94rem;line-height:1.6;margin-bottom:.35rem}
+.tag{display:inline-block;margin-top:1.4rem;font-family:ui-monospace,monospace;font-size:.72rem;
+letter-spacing:1.4px;text-transform:uppercase;color:#8595a8;border:1px solid #dce2ec;
+border-radius:99px;padding:5px 13px}
+@media(prefers-color-scheme:dark){
+body{background:#0a0e15;color:#f1f5fa}p{color:#8595a8}.tag{border-color:#222d3b;color:#6b7889}}
+@media(prefers-reduced-motion:reduce){.orbit{animation:none}}
+</style>
+<div class="card">
+<svg class="mark" viewBox="0 0 34 34" fill="none" aria-hidden="true">
+<circle cx="17" cy="17" r="15" stroke="#2fe6a8" stroke-width="1.4" opacity=".35"/>
+<circle cx="17" cy="17" r="9.5" stroke="#2fe6a8" stroke-width="1.4" opacity=".7"/>
+<circle cx="17" cy="17" r="3.6" fill="#2fe6a8"/>
+<g class="orbit"><circle cx="32" cy="17" r="2.3" fill="#2fe6a8"/></g>
+</svg>
+<h1>Astrodock is starting</h1>
+<p>The platform is coming up and setting up its routing. This usually takes a few seconds.</p>
+<p>This page refreshes itself.</p>
+<div class="tag">Starting up</div>
+</div>
+HTML 200
+	}
 }

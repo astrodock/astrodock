@@ -51,6 +51,53 @@ say()  { printf '%s\n' "$*"; }
 die()  { printf 'error: %s\n' "$*" >&2; exit 1; }
 have() { command -v "$1" >/dev/null 2>&1; }
 
+# ── the "starting up" page ────────────────────────────────────────────────────
+# Shared by the early python server, the Docker placeholder and the failure page,
+# so an operator sees one consistent thing however far the install got. Matches the
+# bootstrap Caddyfile, which takes over once compose starts.
+#
+# No apostrophes anywhere in here: it is emitted inside single-quoted shell strings.
+page() { # page <title> <line1> <line2> <tag> [refresh-seconds]
+  cat <<PAGE_EOF
+<!doctype html><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+$( [ -n "${5:-}" ] && printf '<meta http-equiv="refresh" content="%s">' "$5" )
+<title>$1</title>
+<style>
+:root{color-scheme:light dark}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#f4f6fa;color:#121823;
+display:grid;place-items:center;min-height:100vh;padding:1.5rem}
+.card{text-align:center;max-width:32rem}
+.mark{width:76px;height:76px;margin:0 auto 1.5rem;display:block}
+.orbit{transform-origin:17px 17px;animation:orbit 6s linear infinite}
+@keyframes orbit{to{transform:rotate(360deg)}}
+h1{font-size:1.3rem;font-weight:650;letter-spacing:-.2px;margin-bottom:.5rem}
+p{color:#6b7889;font-size:.94rem;line-height:1.6;margin-bottom:.35rem}
+code{font-family:ui-monospace,monospace;font-size:.85em;background:#e9edf4;padding:2px 6px;border-radius:5px}
+.tag{display:inline-block;margin-top:1.4rem;font-family:ui-monospace,monospace;font-size:.72rem;
+letter-spacing:1.4px;text-transform:uppercase;color:#8595a8;border:1px solid #dce2ec;
+border-radius:99px;padding:5px 13px}
+@media(prefers-color-scheme:dark){
+body{background:#0a0e15;color:#f1f5fa}p{color:#8595a8}code{background:#141b26}
+.tag{border-color:#222d3b;color:#6b7889}}
+@media(prefers-reduced-motion:reduce){.orbit{animation:none}}
+</style>
+<div class="card">
+<svg class="mark" viewBox="0 0 34 34" fill="none" aria-hidden="true">
+<circle cx="17" cy="17" r="15" stroke="#2fe6a8" stroke-width="1.4" opacity=".35"/>
+<circle cx="17" cy="17" r="9.5" stroke="#2fe6a8" stroke-width="1.4" opacity=".7"/>
+<circle cx="17" cy="17" r="3.6" fill="#2fe6a8"/>
+<g class="orbit"><circle cx="32" cy="17" r="2.3" fill="#2fe6a8"/></g>
+</svg>
+<h1>$1</h1>
+<p>$2</p>
+<p>$3</p>
+<div class="tag">$4</div>
+</div>
+PAGE_EOF
+}
+
 # ── "installing" page, as early as possible ───────────────────────────────────
 # The Docker-based placeholder further down cannot start until Docker is installed
 # and an image is pulled — which on a stock image is the LONGEST part of the wait,
@@ -68,8 +115,10 @@ EARLY_PID=""
 start_early_page() {
   have python3 || return 0
   mkdir -p "$EARLY_DIR" 2>/dev/null || return 0
-  printf '%s' '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="5"><title>Astrodock is installing</title><style>body{font-family:system-ui,sans-serif;background:#f4f6fa;color:#1a2233;display:grid;place-items:center;height:100vh;margin:0}div{max-width:34rem;padding:2rem;text-align:center}h1{font-weight:650;font-size:1.4rem;margin:0 0 .6rem}p{margin:.4rem 0;color:#556}</style><div><h1>Astrodock is installing</h1><p>Setting up Docker and downloading the platform. On a small server this usually takes two or three minutes.</p><p>This page refreshes itself — setup will appear here when it is ready.</p></div>' \
-    > "$EARLY_DIR/index.html" 2>/dev/null || return 0
+  page 'Astrodock is installing' \
+    'Setting up Docker and downloading the platform. On a small server this usually takes two or three minutes.' \
+    'This page refreshes itself, and setup will appear here when it is ready.' \
+    'Installing' 5 > "$EARLY_DIR/index.html" 2>/dev/null || return 0
   python3 -m http.server 80 --directory "$EARLY_DIR" >/dev/null 2>&1 &
   EARLY_PID=$!
 }
@@ -261,23 +310,24 @@ serve_page() { # serve_page <html> — best-effort, replaces any existing placeh
     >/dev/null 2>&1 || true
 }
 
-page() { # page <title> <body-html>
-  printf '%s' "<!doctype html><meta charset=\"utf-8\"><title>$1</title><style>body{font-family:system-ui,sans-serif;background:#f4f6fa;color:#1a2233;display:grid;place-items:center;height:100vh;margin:0}div{max-width:38rem;padding:2rem}h1{font-weight:650;font-size:1.4rem;margin:0 0 .8rem}p{margin:.5rem 0;color:#556;line-height:1.5}code{background:#e6e9f0;padding:.15rem .4rem;border-radius:4px;font-size:.9em}</style><div><h1>$1</h1>$2</div>"
-}
-
 # Fail LOUDLY on the port the operator is watching. Tearing the placeholder down on
 # failure — which is what this used to do — turns a diagnosable error into a bare
 # connection-refused, and the real reason ends up buried in cloud-init's log on a
 # box the operator may never have opened a terminal on.
 fail_with_page() {
   serve_page "$(page 'Astrodock could not finish installing' \
-    "<p>$1</p><p>The full log is on the server at <code>/var/log/cloud-init-output.log</code>, or from <code>cd $DIR &amp;&amp; docker compose logs</code>.</p>")"
+    "$1" \
+    "The full log is at <code>/var/log/cloud-init-output.log</code> on the server." \
+    'Install failed')"
   die "$1"
 }
 
 say "Pulling images…"
 if docker pull -q caddy:2-alpine >/dev/null 2>&1; then
-  serve_page '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="10"><title>Astrodock is installing</title><style>body{font-family:system-ui,sans-serif;background:#f4f6fa;color:#1a2233;display:grid;place-items:center;height:100vh;margin:0}div{max-width:34rem;padding:2rem;text-align:center}h1{font-weight:650;font-size:1.4rem;margin:0 0 .6rem}p{margin:.4rem 0;color:#556}</style><div><h1>Astrodock is installing</h1><p>Downloading and starting the platform. This usually takes a minute or two on a small server.</p><p>This page refreshes itself — setup will appear here when it is ready.</p></div>'
+  serve_page "$(page 'Astrodock is installing' \
+    'Downloading the platform. This usually takes a minute or two on a small server.' \
+    'This page refreshes itself, and setup will appear here when it is ready.' \
+    'Downloading' 5)"
 fi
 
 # Registry sign-in, for private images. Done HERE rather than by the caller: a
