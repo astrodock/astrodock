@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../lib/api';
+import EmptyState from '../components/EmptyState';
 
 const BLANK = { title: '', accessMode: 'public', dataMode: 'none', passkeyMode: 'generate', passkey: '' };
 
@@ -68,7 +69,8 @@ export default function PagesPage() {
       {error && <div className="error">{error}</div>}
 
       {pages.length === 0 ? (
-        <p className="empty-state">No pages yet. Create one, or run <code>astrodock pages push ./dir</code>.</p>
+        <EmptyState icon="pages" title="No Pages Yet"
+          body="A page is a lightweight document or mini-site hosted without a full app — handy for docs, notes or a landing page. You can also run: astrodock pages push ./dir" />
       ) : (
         <table className="data-table clickable">
           <thead>

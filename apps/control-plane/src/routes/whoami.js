@@ -10,7 +10,7 @@ const express = require('express');
 const { eq } = require('drizzle-orm');
 const { db, schema } = require('../db');
 const { resolveAuth, grantedScopes } = require('../middleware/auth');
-const { SCOPES } = require('../lib/scopes');
+const { describe } = require('../lib/scopes');
 const roles = require('../lib/roles');
 
 const router = express.Router();
@@ -21,7 +21,7 @@ router.get('/', async (req, res) => {
 
   const scopes = grantedScopes(auth);
   const can = {};
-  for (const s of scopes) can[s] = SCOPES[s] || s;
+  for (const s of scopes) can[s] = describe(s);
 
   if (auth.type === 'token') {
     let authorizedBy = null;

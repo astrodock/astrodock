@@ -26,9 +26,12 @@ const DEFAULT_TTL_DAYS = 90;
 router.get('/options', (req, res) => {
   const mine = req.auth.type === 'token' ? scopes.expand(req.auth.scopes) : scopes.ALL;
   res.json({
-    scopes: Object.entries(scopes.SCOPES).map(([key, description]) => ({
+    groups: scopes.GROUPS,
+    scopes: Object.entries(scopes.SCOPES).map(([key, meta]) => ({
       key,
-      description,
+      label: meta.label,
+      group: meta.group,
+      description: meta.description,
       // A key cannot grant what it does not hold, so grey those out rather than
       // letting someone build a request that will be refused.
       grantable: req.auth.type !== 'token' ? key !== 'tokens:write' : (mine.includes(key) && key !== 'tokens:write')

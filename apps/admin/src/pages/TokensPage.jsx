@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import * as api from '../lib/api';
+import NewKeyModal from '../components/NewKeyModal';
+import EmptyState from '../components/EmptyState';
 
 // Access keys — what you hand an agent.
 //
@@ -51,8 +53,8 @@ export default function TokensPage() {
   return (
     <div className="settings-page">
       <div className="page-header">
-        <h1>Access keys</h1>
-        <button onClick={() => { setOpen(true); setCreated(null); }}>+ New key</button>
+        <h1>Access Keys</h1>
+        <button onClick={() => { setOpen(true); setCreated(null); }}>+ New Key</button>
       </div>
 
       <p className="hint">
@@ -82,7 +84,7 @@ export default function TokensPage() {
       )}
 
       {open && !created && (
-        <NewKey
+        <NewKeyModal
           options={options}
           apps={apps}
           onCancel={() => setOpen(false)}
@@ -102,9 +104,10 @@ export default function TokensPage() {
         </div>
       )}
 
+      {live.length > 0 && (
       <table className="data-table">
         <thead>
-          <tr><th>Name</th><th>Can do</th><th>Apps</th><th>Expires</th><th>Last used</th><th /></tr>
+          <tr><th>Name</th><th>Can Do</th><th>Apps</th><th>Expires</th><th>Last Used</th><th /></tr>
         </thead>
         <tbody>
           {live.map((t) => (
@@ -138,166 +141,18 @@ export default function TokensPage() {
               </td>
             </tr>
           ))}
-          {!live.length && <tr><td colSpan={6} style={{ color: 'var(--text-3)' }}>No keys yet.</td></tr>}
         </tbody>
       </table>
+      )}
+
+      {!live.length && (
+        <EmptyState
+          icon="key"
+          title="No Access Keys Yet"
+          body="A key lets the astrodock CLI or an AI agent act on your behalf, with only the permissions you choose. Nothing can use the API until you create one."
+          action={<button onClick={() => { setOpen(true); setCreated(null); }}>+ New Key</button>}
+        />
+      )}
     </div>
-  );
-}
-
-function NewKey({ options, apps, onCancel, onCreated }) {
-  const [name, setName] = useState('');
-  const [preset, setPreset] = useState('deployer');
-  const [custom, setCustom] = useState(null); // null = follow the preset
-  const [appScope, setAppScope] = useState([]);
-  const [expiryDays, setExpiryDays] = useState(90);
-  const [error, setError] = useState('');
-  const [busy, setBusy] = useState(false);
-
-  if (!options) return null;
-  const presets = options.presets || [];
-  const chosen = presets.find((p) => p.key === preset);
-  const effective = custom || chosen?.scopes || [];
-
-  const toggle = (s) => {
-    const base = custom || chosen?.scopes || [];
-    setCustom(base.includes(s) ? base.filter((x) => x !== s) : [...base, s]);
-  };
-
-  async function create() {
-    setError(''); setBusy(true);
-    try {
-      onCreated(await api.createToken({
-        name: name.trim(),
-        ...(custom ? { scopes: custom } : { preset }),
-        apps: appScope,
-        expiresInDays: expiryDays
-      }));
-    } catch (e) { setError(e.message); }
-    finally { setBusy(false); }
-  }
-
-  return (
-    <>
-      <div className="sec-head">
-        <div>
-          <h2>New access key</h2>
-          <p>
-            {options.delegating
-              ? 'A key can only pass on part of what it holds, and cannot let its own keys make further keys.'
-              : 'Give it only what it needs — you can always issue another.'}
-          </p>
-        </div>
-      </div>
-
-      {error && <div className="error">{error}</div>}
-
-      <div className="field-panel" style={{ marginBottom: 14 }}>
-        <div className="field">
-          <div className="lab">
-            <b>Name</b>
-            <span className="desc">So you recognise it in the list later.</span>
-          </div>
-          <div className="ctl">
-            <input value={name} onChange={(e) => setName(e.target.value)} autoFocus
-              placeholder="e.g. invoices deploy key" style={{ width: 260 }} />
-          </div>
-        </div>
-
-        <div className="field">
-          <div className="lab">
-            <b>Starting point</b>
-            <span className="desc">{chosen?.description}</span>
-          </div>
-          <div className="ctl">
-            <div className="seg">
-              {presets.map((p) => (
-                <button key={p.key} type="button" className={!custom && preset === p.key ? 'sel' : ''}
-                  onClick={() => { setPreset(p.key); setCustom(null); }}>{p.label}</button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="field" style={{ display: 'block' }}>
-          <div className="lab" style={{ marginBottom: 10 }}>
-            <b>Permissions</b>
-            <span className="desc">
-              {custom ? 'Adjusted by hand — pick a starting point above to reset.'
-                : 'From the starting point above. Click any to adjust.'}
-            </span>
-          </div>
-          <div className="seg-pills">
-            {(options.scopes || []).map((s) => (
-              <button
-                key={s.key}
-                type="button"
-                title={s.grantable ? s.description : `${s.description} — this key cannot pass that on`}
-                disabled={!s.grantable}
-                className={`pillbtn ${effective.includes(s.key) ? 'sel' : ''}`}
-                style={!s.grantable ? { opacity: 0.35, cursor: 'not-allowed' } : undefined}
-                onClick={() => s.grantable && toggle(s.key)}
-              >
-                {s.key}
-              </button>
-            ))}
-          </div>
-          {effective.includes('apps:delete') && (
-            <div className="rcard crit" style={{ marginTop: 12 }}>
-              <span className="led crit" />
-              <span><b>Deleting an app destroys its data.</b> Its database and stored files go with it.</span>
-            </div>
-          )}
-          {effective.includes('exec') && (
-            <div className="rcard crit" style={{ marginTop: 12 }}>
-              <span className="led crit" />
-              <span><b>Running commands is unrestricted.</b> Grant it only to something you'd trust with the machine.</span>
-            </div>
-          )}
-        </div>
-
-        <div className="field">
-          <div className="lab">
-            <b>Limit to certain apps</b>
-            <span className="desc">Leave empty for every app, including ones created later.</span>
-          </div>
-          <div className="ctl">
-            <div className="seg-pills" style={{ justifyContent: 'flex-end', maxWidth: 430 }}>
-              {apps.map((a) => (
-                <button key={a.slug} type="button"
-                  className={`pillbtn ${appScope.includes(a.slug) ? 'sel' : ''}`}
-                  onClick={() => setAppScope(appScope.includes(a.slug)
-                    ? appScope.filter((x) => x !== a.slug) : [...appScope, a.slug])}>
-                  {a.slug}
-                </button>
-              ))}
-              {!apps.length && <span style={{ color: 'var(--text-3)', fontSize: 13 }}>No apps yet</span>}
-            </div>
-          </div>
-        </div>
-
-        <div className="field">
-          <div className="lab">
-            <b>Expires</b>
-            <span className="desc">A key that never expires is one you'll forget you issued.</span>
-          </div>
-          <div className="ctl">
-            <div className="seg">
-              {EXPIRY_CHOICES.map((c) => (
-                <button key={c.label} type="button" className={expiryDays === c.days ? 'sel' : ''}
-                  onClick={() => setExpiryDays(c.days)}>{c.label}</button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="seg-pills" style={{ marginBottom: 22 }}>
-        <button className="pillbtn sel" disabled={busy || !name.trim() || !effective.length} onClick={create}>
-          {busy ? 'Creating…' : 'Create key'}
-        </button>
-        <button className="link-btn" onClick={onCancel}>Cancel</button>
-      </div>
-    </>
   );
 }

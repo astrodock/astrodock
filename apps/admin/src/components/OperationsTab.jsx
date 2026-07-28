@@ -12,7 +12,7 @@ export default function OperationsTab({ app }) {
     <div>
       <div className="sec-head">
         <div>
-          <h2>Look inside this app</h2>
+          <h2>Look Inside This App</h2>
           <p>
             Browse the deployed files, check which configuration actually reached the running
             process, and run the commands this app declares in its <code>app.json</code>. There is

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import * as api from '../lib/api';
+import EmptyState from './EmptyState';
 
 export default function LogsTab({ app }) {
   const [view, setView] = useState('runtime'); // runtime | access
@@ -74,7 +75,8 @@ export default function LogsTab({ app }) {
 
       {view === 'access' && access && (
         access.enabled === false ? (
-          <p className="empty-state">{access.note || 'HTTP access logs are off. Enable “Caddy access logs for deployed apps” in Settings, then redeploy.'}</p>
+          <EmptyState icon="logs" title="Request Logs Are Off"
+            body={access.note || 'Turn on “Caddy access logs for deployed apps” in Settings and redeploy, and every request to this app will be listed here.'} />
         ) : (
           <div>
             <div className="access-pills" style={{ margin: '8px 0' }}>
@@ -83,7 +85,8 @@ export default function LogsTab({ app }) {
               ))}
             </div>
             {(access.recent || []).length === 0 ? (
-              <p className="empty-state">No requests logged yet.</p>
+              <EmptyState icon="logs" title="No Requests Yet"
+              body="Nothing has visited this app since logging was turned on." />
             ) : (
               <table className="data-table">
                 <thead><tr><th>Time</th><th>Status</th><th>Method</th><th>Path</th><th>IP</th></tr></thead>

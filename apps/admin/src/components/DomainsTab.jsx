@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import * as api from '../lib/api';
+import EmptyState from './EmptyState';
 
 const STC = { active: 'ok', pending: 'warn', failed: 'crit' };
 const STLABEL = { active: 'live', pending: 'waiting for DNS', failed: 'not connected' };
@@ -50,7 +51,7 @@ export default function DomainsTab({ app }) {
 
   return (
     <div>
-      <div className="tab-header"><h2>Custom domains</h2></div>
+      <div className="tab-header"><h2>Custom Domains</h2></div>
       <p className="hint">Serve this app at your own domain (like <code>app.example.com</code>) on top of its built-in <code>{app.subdomain}.&lt;base&gt;</code> address. Add the domain, then add the two DNS records we show you.</p>
 
       {error && <div className="error">{error}</div>}
@@ -62,12 +63,13 @@ export default function DomainsTab({ app }) {
       </form>
 
       {domains.length === 0 ? (
-        <p className="empty-state">No custom domains yet.</p>
+        <EmptyState icon="domains" title="No Custom Domains"
+          body="This app already answers at its automatic address. Add a domain to serve it at one you own." />
       ) : domains.map((d) => (
         <div className={`dom-card ${d.status}`} key={d.id}>
           <div className="dom-top">
             <span className="host">
-              {d.isPrimary && <span className="star" title="Main address">★</span>}
+              {d.isPrimary && <span className="star" title="Main Address">★</span>}
               {d.status === 'active'
                 ? <a className="link" href={`https://${d.hostname}`} target="_blank" rel="noopener">{d.hostname} ↗</a>
                 : <span className="mono">{d.hostname}</span>}

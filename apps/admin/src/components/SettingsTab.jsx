@@ -95,7 +95,7 @@ export default function SettingsTab({ app, onRefresh }) {
 
       {/* Source code */}
       <section className="set-section">
-        <div className="sec-head"><div><h2>Source code</h2><p>Astrodock pulls this app’s code from GitHub. Connect a repo, and every push to your chosen branch can rebuild and redeploy it automatically.</p></div></div>
+        <div className="sec-head"><div><h2>Source Code</h2><p>Astrodock pulls this app’s code from GitHub. Connect a repo, and every push to your chosen branch can rebuild and redeploy it automatically.</p></div></div>
         {app.repoConnected && app.source?.githubRepo ? (
           <div className="field-panel">
             <div className="field"><div className="lab"><b>Repository</b><span className="desc">Where your code lives.</span></div><div className="ctl"><code>{app.source.githubRepo}</code></div></div>
@@ -124,7 +124,7 @@ export default function SettingsTab({ app, onRefresh }) {
 
       {/* Resources & runtime */}
       <section className="set-section">
-        <div className="sec-head"><div><h2>Resources &amp; how it runs</h2><p>What this app needs from Astrodock, and how it’s built. Your app reads any connection details from Variables, so changing these just decides where they point.</p></div><button className="primary" form="cfgform" disabled={savingConfig}>{savingConfig ? 'Saving…' : 'Save'}</button></div>
+        <div className="sec-head"><div><h2>Resources &amp; How It Runs</h2><p>What this app needs from Astrodock, and how it’s built. Your app reads any connection details from Variables, so changing these just decides where they point.</p></div><button className="primary" form="cfgform" disabled={savingConfig}>{savingConfig ? 'Saving…' : 'Save'}</button></div>
         <form id="cfgform" onSubmit={handleSaveConfig} className="field-panel">
           <div className="cfg">
             <label>Sign-in<select value={authMode} onChange={(e) => setAuthMode(e.target.value)}><option value="platform">Astrodock accounts</option><option value="public">Public — no sign-in</option></select></label>
@@ -152,7 +152,7 @@ export default function SettingsTab({ app, onRefresh }) {
 
       {/* Infrastructure */}
       <section className="set-section">
-        <div className="sec-head"><div><h2>Setup &amp; web address</h2><p>Provisioning sets up this app’s moving parts — its database and storage (if built-in) and its web address. Run it once after creating the app, and again whenever you change the resources above.</p></div><button onClick={handleProvision}>{app.provisioned ? 'Re-provision' : 'Set it up'}</button></div>
+        <div className="sec-head"><div><h2>Setup &amp; Web Address</h2><p>Provisioning sets up this app’s moving parts — its database and storage (if built-in) and its web address. Run it once after creating the app, and again whenever you change the resources above.</p></div><button onClick={handleProvision}>{app.provisioned ? 'Re-provision' : 'Set it up'}</button></div>
         <div className="diag">
           <div className="drow"><label>Web address</label><div className="v">{appHost(app.subdomain)}</div></div>
           <div className="drow"><label>Internal port</label><div className="v">{app.port}</div></div>
@@ -170,7 +170,7 @@ export default function SettingsTab({ app, onRefresh }) {
 
       {/* App secret */}
       <section className="set-section">
-        <div className="sec-head"><div><h2>App secret</h2><p>A private password this app uses to talk to Astrodock’s sign-in service. Keep it safe. If it ever leaks, make a new one here — then redeploy so the app picks it up.</p></div><button onClick={handleRotateSecret}>Make a new secret</button></div>
+        <div className="sec-head"><div><h2>App Secret</h2><p>A private password this app uses to talk to Astrodock’s sign-in service. Keep it safe. If it ever leaks, make a new one here — then redeploy so the app picks it up.</p></div><button onClick={handleRotateSecret}>Make a new secret</button></div>
         {newSecret && (
           <div className="secret-banner"><strong>New app secret — copy it now, it won’t be shown again</strong><code>{newSecret}</code></div>
         )}
@@ -178,7 +178,7 @@ export default function SettingsTab({ app, onRefresh }) {
 
       {/* About */}
       <section className="set-section">
-        <div className="sec-head"><div><h2>About this app</h2></div></div>
+        <div className="sec-head"><div><h2>About This App</h2></div></div>
         <div className="diag">
           <div className="drow"><label>ID (slug)</label><div className="v">{app.slug}</div></div>
           {app.description && <div className="drow"><label>Description</label><div className="v" style={{ fontFamily: 'var(--font)' }}>{app.description}</div></div>}
@@ -188,7 +188,7 @@ export default function SettingsTab({ app, onRefresh }) {
 
       {/* Danger zone */}
       <section className="set-section danger-zone">
-        <h3>Danger zone</h3>
+        <h3>Danger Zone</h3>
         <div className="danger-actions">
           <div className="danger-action">
             <div><strong>Delete this app</strong><p>Permanently removes the app, its deploy history, and its web address. This can’t be undone.</p></div>

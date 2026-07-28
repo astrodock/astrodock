@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../lib/api';
 import { appHost } from '../lib/appUrl';
+import EmptyState from '../components/EmptyState';
 
 const STATUS_CONFIG = {
   healthy: { label: 'Healthy', dotClass: 'active', textClass: 'health-healthy' },
@@ -127,10 +128,11 @@ export default function HealthPage() {
 
       {/* per-app health */}
       {apps.length === 0 ? (
-        <p className="empty-state">No provisioned apps to monitor.</p>
+        <EmptyState icon="health" title="Nothing To Monitor Yet"
+          body="Once an app is set up and running, its status, memory and response time show up here." />
       ) : (
         <table className="data-table clickable">
-          <thead><tr><th>App</th><th>Status</th><th>Response</th><th>Memory</th><th>CPU</th><th>Uptime</th><th>Restarts</th><th>Last check</th></tr></thead>
+          <thead><tr><th>App</th><th>Status</th><th>Response</th><th>Memory</th><th>CPU</th><th>Uptime</th><th>Restarts</th><th>Last Check</th></tr></thead>
           <tbody>
             {apps.map((app) => {
               const cfg = STATUS_CONFIG[app.health] || STATUS_CONFIG.unknown;

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../lib/api';
+import EmptyState from '../components/EmptyState';
 import UserCreateModal from '../components/UserCreateModal';
 
 export default function UsersPage() {

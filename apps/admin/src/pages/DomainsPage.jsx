@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import * as api from '../lib/api';
+import EmptyState from '../components/EmptyState';
 
 const STC = { active: 'ok', pending: 'warn', failed: 'crit' };
 const STLABEL = { active: 'live', pending: 'waiting for DNS', failed: 'not connected' };
@@ -67,7 +68,7 @@ export default function DomainsPage() {
       <div className="basecard">
         <svg className="globe" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="19" stroke="currentColor" strokeWidth="1.6" opacity=".5" /><path d="M5 24h38M24 5c5.5 6 5.5 32 0 38M24 5c-5.5 6-5.5 32 0 38" stroke="currentColor" strokeWidth="1.3" opacity=".8" /><circle cx="24" cy="24" r="3" fill="currentColor" /></svg>
         <div className="bd">
-          <h2>Your main web address</h2>
+          <h2>Your Main Web Address</h2>
           <div className="dom">{data.baseDomain}</div>
           <div className="meta">Every app and page lives under this. <code>*.{data.baseDomain}</code> already points to your server, so new apps just work — no setup needed.</div>
         </div>
@@ -75,16 +76,17 @@ export default function DomainsPage() {
       </div>
       <p className="howset"><b>Where does this come from?</b> You chose it when you first set up Astrodock. Changing it later is a bigger job (you’d re-point your DNS and get new security certificates), so it’s done back on the server — not from this page.</p>
 
-      <div className="secthead"><h3>Your custom domains</h3><p>— domains you add and manage here</p></div>
+      <div className="secthead"><h3>Your Custom Domains</h3><p>— domains you add and manage here</p></div>
       {custom.length === 0 ? (
-        <div className="autolist"><div className="autorow"><span className="agoes" style={{ color: 'var(--text-3)' }}>No custom domains yet. Add one to serve an app at your own address.</span></div></div>
+        <EmptyState icon="domains" title="No Custom Domains"
+          body="Every app already answers at its own subdomain. Add a custom domain when you want one served at an address you own." />
       ) : (
         <table className="data-table" style={{ marginBottom: 30 }}>
-            <thead><tr><th>Domain</th><th>Goes to</th><th>Secure</th><th>Status</th><th></th></tr></thead>
+            <thead><tr><th>Domain</th><th>Goes To</th><th>Secure</th><th>Status</th><th></th></tr></thead>
             <tbody>
               {custom.map((d) => (
                 <tr key={d.id}>
-                  <td><span className="host">{d.isPrimary && <span className="star" title="Main address">★</span>}{d.status === 'active' ? <a className="link" href={`https://${d.hostname}`} target="_blank" rel="noopener">{d.hostname} ↗</a> : <span className="mono">{d.hostname}</span>}</span></td>
+                  <td><span className="host">{d.isPrimary && <span className="star" title="Main Address">★</span>}{d.status === 'active' ? <a className="link" href={`https://${d.hostname}`} target="_blank" rel="noopener">{d.hostname} ↗</a> : <span className="mono">{d.hostname}</span>}</span></td>
                   <td><Link className="link" to={`/apps/${d.appSlug}`}>the <b>{d.appName}</b> app</Link>{d.redirectToCanonical && <span className="redir"> · redirects to primary</span>}</td>
                   <td>{d.status === 'active' ? <span className="tls ok">on</span> : <span className="tls">—</span>}</td>
                   <td><span className={`chip ${STC[d.status]}`}>{STLABEL[d.status]}</span></td>
@@ -99,7 +101,7 @@ export default function DomainsPage() {
         </table>
       )}
 
-      <div className="secthead"><h3>Automatic addresses</h3><p>— handled for you, nothing to set up</p></div>
+      <div className="secthead"><h3>Automatic Addresses</h3><p>— handled for you, nothing to set up</p></div>
       <div className="autolist">
         {(data.platform || []).map((p) => (
           <div className="autorow" key={p.host}><span className="led ok" /><span className="ahost">{p.host}</span><span className="agoes">→ {p.label}</span><a className="open" href={`https://${p.host}`} target="_blank" rel="noopener">Open ↗</a></div>
@@ -113,7 +115,7 @@ export default function DomainsPage() {
       {addOpen && (
         <div className="modal-overlay" onClick={() => setAddOpen(false)}>
           <form className="modal" onClick={(e) => e.stopPropagation()} onSubmit={addDomain}>
-            <h2>Add a domain</h2>
+            <h2>Add a Domain</h2>
             <label>Which app should it open?
               <select value={addApp} onChange={(e) => setAddApp(e.target.value)} required>
                 <option value="">Choose an app…</option>

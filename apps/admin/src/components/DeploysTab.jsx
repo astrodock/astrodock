@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import * as api from '../lib/api';
+import EmptyState from './EmptyState';
 
 const STATUS = {
   pending: { led: 'run', label: 'Queued' },
@@ -214,7 +215,8 @@ export default function DeploysTab({ app, missingRequired = [], onRefresh }) {
       )}
 
       {deployments.length === 0 ? (
-        <p className="empty-state">No deploys yet. Connect a repo in Settings, then deploy.</p>
+        <EmptyState icon="deploy" title="No Deploys Yet"
+          body="Connect a repository under Settings, then deploy — each build and its result is kept here." />
       ) : (
         <div className="deploy-list">
           {deployments.map(d => {

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import * as api from '../lib/api';
+import EmptyState from '../components/EmptyState';
 
 const TEXT_EXTS = ['html', 'htm', 'css', 'js', 'mjs', 'json', 'txt', 'md', 'csv', 'xml', 'svg', 'yml', 'yaml'];
 const isText = (n) => TEXT_EXTS.includes((n.split('.').pop() || '').toLowerCase());
@@ -149,7 +150,7 @@ export default function PageDetailPage() {
 
       {/* Saved data */}
       <div className="card">
-        <h2>Saved data</h2>
+        <h2>Saved Data</h2>
         <p className="hint">A small JSON blob your page reads/writes at <code>{page.url}_data</code> (≤ 1 MB). Writes require a passkey or login.</p>
         <label>
           Mode
@@ -191,7 +192,8 @@ export default function PageDetailPage() {
           </div>
         </div>
         {(page.files || []).length === 0 ? (
-          <p className="empty-state">No files yet. Upload some, or create a text file.</p>
+          <EmptyState icon="file" title="No Files Yet"
+            body="Upload files or create a text file, and they will be served as part of this page." />
         ) : (
           <table className="data-table">
             <thead><tr><th>Name</th><th>Type</th><th>Size</th><th>Entry</th><th>Actions</th></tr></thead>

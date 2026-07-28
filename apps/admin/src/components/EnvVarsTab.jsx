@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import * as api from '../lib/api';
+import EmptyState from './EmptyState';
 
 export default function EnvVarsTab({ app, onRefresh }) {
   const [envVars, setEnvVars] = useState([]);
@@ -106,9 +107,10 @@ export default function EnvVarsTab({ app, onRefresh }) {
       )}
 
       <section className="set-section">
-        <div className="sec-head"><div><h2>Your variables</h2><p>Ones you add yourself, or that your app declares in its <code>app.json</code>.</p></div></div>
+        <div className="sec-head"><div><h2>Your Variables</h2><p>Ones you add yourself, or that your app declares in its <code>app.json</code>.</p></div></div>
         {yours.length === 0 ? (
-          <p className="empty-state" style={{ padding: '1.5rem 0' }}>None yet — add one below.</p>
+          <EmptyState icon="env" title="No Variables Yet"
+            body="Variables carry settings and secrets into your app at run time — API keys, feature flags, anything you would rather not commit. Add one below." />
         ) : (
           <table className="data-table env-table">
             <thead><tr><th>Name</th><th>Value</th><th></th></tr></thead>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import * as api from '../lib/api';
+import ReauthModal from '../components/ReauthModal';
 
 // How you sign in, and where you're signed in from.
 //
@@ -17,22 +18,26 @@ export default function AccountPage() {
 
   // Any protected action: run it, and if the server wants a fresh factor, ask once
   // and retry — rather than dropping the operator back at a sign-in screen.
-  async function guarded(fn, success) {
+  // Run a protected action. If the server wants a fresh factor, say WHICH action
+  // is being confirmed and retry it afterwards, rather than losing the operator's
+  // place or bouncing them to sign-in.
+  async function guarded(fn, success, action) {
     setError(''); setMsg('');
     try {
       await fn();
       if (success) setMsg(success);
       await load();
     } catch (e) {
-      if (e.body?.code === 'reauth_required') setReauth(() => () => guarded(fn, success));
-      else setError(e.message);
+      if (e.body?.code === 'reauth_required') {
+        setReauth({ action, retry: () => guarded(fn, success, action) });
+      } else setError(e.message);
     }
   }
 
   if (!data) {
     return (
       <div className="settings-page">
-        <div className="page-header"><h1>Your account</h1></div>
+        <div className="page-header"><h1>Your Account</h1></div>
         {error && <div className="error">{error}</div>}
       </div>
     );
@@ -44,12 +49,18 @@ export default function AccountPage() {
   return (
     <div className="settings-page">
       <div className="page-header">
-        <h1>Your account</h1>
+        <h1>Your Account</h1>
       </div>
 
       {error && <div className="error">{error}</div>}
       {msg && <div className="provision-banner"><strong>{msg}</strong></div>}
-      {reauth && <Reauth onDone={() => { const go = reauth; setReauth(null); go(); }} onCancel={() => setReauth(null)} />}
+      {reauth && (
+        <ReauthModal
+          action={reauth.action}
+          onConfirm={() => { const again = reauth.retry; setReauth(null); again(); }}
+          onCancel={() => setReauth(null)}
+        />
+      )}
 
       <div className="basecard">
         <svg className="globe" viewBox="0 0 24 24" fill="none">
@@ -59,7 +70,7 @@ export default function AccountPage() {
             strokeLinecap="round" strokeLinejoin="round" />
         </svg>
         <div>
-          <h2>Signed in as</h2>
+          <h2>Signed In As</h2>
           <div className="dom">{data.email}</div>
           <div className="meta">
             <span className="chip ok">{data.role}</span>{' '}
@@ -87,28 +98,6 @@ export default function AccountPage() {
       <Recovery data={data} guarded={guarded} />
       <PasswordSection data={data} guarded={guarded} />
       <Sessions data={data} guarded={guarded} />
-    </div>
-  );
-}
-
-function Reauth({ onDone, onCancel }) {
-  const [password, setPassword] = useState('');
-  const [err, setErr] = useState('');
-  return (
-    <div className="rcard warn" style={{ marginBottom: 16, display: 'block' }}>
-      <b>Confirm it's you</b>
-      <p className="hint" style={{ margin: '6px 0 12px' }}>
-        Changing how you sign in needs your password again, even though you're already signed in.
-      </p>
-      {err && <div className="error">{err}</div>}
-      <div className="seg-pills" style={{ alignItems: 'center' }}>
-        <input type="password" value={password} autoFocus placeholder="Password"
-          onChange={(e) => setPassword(e.target.value)} style={{ width: 240, marginTop: 0 }} />
-        <button className="pillbtn sel" onClick={async () => {
-          try { await api.reauth({ password }); onDone(); } catch (e) { setErr(e.message); }
-        }}>Confirm</button>
-        <button className="link-btn" onClick={onCancel}>Cancel</button>
-      </div>
     </div>
   );
 }
@@ -188,7 +177,7 @@ function Passkeys({ data, guarded }) {
               {p.stale
                 ? <span className="chip warn">re-add</span>
                 : <span className="chip ok">active</span>}
-              <button className="link-btn" onClick={() => guarded(() => api.passkeyRemove(p.id), 'Passkey removed.')}>
+              <button className="link-btn" onClick={() => guarded(() => api.passkeyRemove(p.id), 'Passkey removed.', 'Removing a passkey')}>
                 Remove
               </button>
             </div>
@@ -207,7 +196,7 @@ function Passkeys({ data, guarded }) {
           <div className="ctl">
             <input value={label} placeholder="e.g. work laptop" disabled={!supported}
               onChange={(e) => setLabel(e.target.value)} style={{ width: 200 }} />
-            <button className="pillbtn sel" disabled={!supported} onClick={() => guarded(add, 'Passkey added.')}>
+            <button className="pillbtn sel" disabled={!supported} onClick={() => guarded(add, 'Passkey added.', 'Adding a passkey')}>
               Add
             </button>
           </div>
@@ -224,7 +213,7 @@ function Totp({ data, guarded }) {
 
   return (
     <Section
-      title="Authenticator app"
+      title="Authenticator App"
       description="A six-digit code from an app like 1Password or Google Authenticator. Useful where passkeys don't travel — a shared machine, or a device that can't sync them."
     >
       <div className="field-panel">
@@ -239,8 +228,8 @@ function Totp({ data, guarded }) {
           <div className="ctl">
             <span className={`mini-toggle ${on ? 'on' : ''}`} title={on ? 'Turn off' : 'Set up'}
               onClick={() => {
-                if (on) guarded(() => api.totpRemove(), 'Authenticator app removed.');
-                else guarded(async () => setSetup(await api.totpBegin()));
+                if (on) guarded(() => api.totpRemove(), 'Authenticator app removed.', 'Removing your authenticator app');
+                else guarded(async () => setSetup(await api.totpBegin()), null, 'Setting up an authenticator app');
               }} />
           </div>
         </div>
@@ -262,7 +251,7 @@ function Totp({ data, guarded }) {
                 onChange={(e) => setCode(e.target.value)} style={{ width: 130, marginTop: 0 }} />
               <button className="pillbtn sel" onClick={() => guarded(async () => {
                 await api.totpConfirm(code); setSetup(null); setCode('');
-              }, 'Authenticator app enabled.')}>Confirm</button>
+              }, 'Authenticator app enabled.', 'Enabling an authenticator app')}>Confirm</button>
             </div>
           </div>
         )}
@@ -278,7 +267,7 @@ function Recovery({ data, guarded }) {
 
   return (
     <Section
-      title="Recovery codes"
+      title="Recovery Codes"
       description="Single-use codes for when you lose your phone or your passkey. They're the only way back into a locked-out account, so keep them somewhere other than the device you sign in with."
     >
       {needed && n === 0 && (
@@ -297,7 +286,7 @@ function Recovery({ data, guarded }) {
             <span className={`chip ${n > 0 ? 'ok' : 'warn'}`}>{n} left</span>
             <button className="pillbtn" onClick={() => guarded(async () => {
               const r = await api.generateRecoveryCodes(); setCodes(r.codes);
-            })}>{n > 0 ? 'Generate new' : 'Generate'}</button>
+            }, null, 'Generating recovery codes')}>{n > 0 ? 'Generate new' : 'Generate'}</button>
           </div>
         </div>
       </div>
@@ -339,7 +328,7 @@ function PasswordSection({ data, guarded }) {
               onChange={(e) => setPw(e.target.value)} style={{ width: 220 }} />
             <button className="pillbtn sel" disabled={!pw} onClick={() => guarded(async () => {
               await api.setPassword(pw); setPw('');
-            }, has ? 'Password changed.' : 'Password set.')}>Save</button>
+            }, has ? 'Password changed.' : 'Password set.', has ? 'Changing your password' : 'Setting a password')}>Save</button>
           </div>
         </div>
 
@@ -353,7 +342,7 @@ function PasswordSection({ data, guarded }) {
             </div>
             <div className="ctl">
               <button className="link-btn danger"
-                onClick={() => guarded(() => api.removePassword(), 'Password removed — passkey only.')}>
+                onClick={() => guarded(() => api.removePassword(), 'Password removed — passkey only.', 'Removing your password')}>
                 Remove my password
               </button>
             </div>
@@ -376,7 +365,7 @@ function Sessions({ data, guarded }) {
       )}
     >
       <table className="data-table">
-        <thead><tr><th>Device</th><th>IP address</th><th>Last seen</th><th /></tr></thead>
+        <thead><tr><th>Device</th><th>IP Address</th><th>Last Seen</th><th /></tr></thead>
         <tbody>
           {data.sessions.map((s) => (
             <tr key={s.id}>

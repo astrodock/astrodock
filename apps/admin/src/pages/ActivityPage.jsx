@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import * as api from '../lib/api';
+import EmptyState from '../components/EmptyState';
 
 const RESULT_STYLES = {
   SUCCESS: { color: 'var(--accent)', label: 'Success' },
@@ -133,7 +134,8 @@ export default function ActivityPage() {
           </div>
 
           {authLogs.length === 0 ? (
-            <p className="empty-state">No auth logs yet.</p>
+            <EmptyState icon="users" title="No Sign-Ins Yet"
+              body="When someone signs in to one of your apps, the attempt is recorded here." />
           ) : (
             <div className="activity-list">
               {authLogs.map(log => {
@@ -171,7 +173,8 @@ export default function ActivityPage() {
             </select>
           </div>
           {events.length === 0 ? (
-            <p className="empty-state">No events yet.</p>
+            <EmptyState icon="activity" title="Nothing Recorded Yet"
+              body="Deploys, administrative changes and platform events appear here as they happen." />
           ) : (
             <div className="activity-list">
               {events.map(ev => (
@@ -197,7 +200,8 @@ export default function ActivityPage() {
       {tab === 'deploys' && (
         <div>
           {deployments.length === 0 ? (
-            <p className="empty-state">No deployments yet.</p>
+            <EmptyState icon="deploy" title="No Deployments Yet"
+              body="Every build and release across your apps is listed here as it happens." />
           ) : (
             <div className="activity-list">
               {deployments.map(d => {

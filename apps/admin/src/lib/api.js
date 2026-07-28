@@ -34,7 +34,11 @@ async function request(path, options = {}) {
 
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
 
-  if (res.status === 401 && path !== '/login') {
+  // A 401 usually means the session is gone, so bounce to sign-in. But endpoints
+  // that CHECK a credential answer 401 for "wrong password" — treating that the
+  // same way logged people out for a typo, which is what made re-authentication
+  // look broken. Those pass verifiesCredential and get a normal error instead.
+  if (res.status === 401 && path !== '/login' && !options.verifiesCredential) {
     clearToken();
     window.location.href = '/login';
     throw new ApiError('Session expired', { status: 401 });
@@ -161,7 +165,8 @@ export const getAppLogs = (slug, lines = 100) =>
 
 // Your own account: factors, sessions, step-up
 export const getAccount = () => request('/account');
-export const reauth = (proof) => request('/account/reauth', { method: 'POST', body: JSON.stringify(proof) });
+export const reauth = (proof) =>
+  request('/account/reauth', { method: 'POST', body: JSON.stringify(proof), verifiesCredential: true });
 export const setPassword = (password) => request('/account/password', { method: 'PUT', body: JSON.stringify({ password }) });
 export const removePassword = () => request('/account/password', { method: 'DELETE' });
 export const passkeyOptions = () => request('/account/passkeys/options', { method: 'POST' });

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../lib/api';
+import EmptyState from '../components/EmptyState';
 import { appHost, appUrl } from '../lib/appUrl';
 
 const STMAP = {
@@ -134,7 +135,8 @@ export default function AppsPage() {
       )}
 
       {apps.length === 0 ? (
-        <p className="empty-state">No apps yet. Register one to deploy it.</p>
+        <EmptyState icon="apps" title="No Apps Yet"
+          body="An app is a Git repo Astrodock builds, runs and serves at its own web address. Create one to get started." />
       ) : (
         <div className="app-grid">
           {sorted.map((app) => {

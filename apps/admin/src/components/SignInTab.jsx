@@ -29,7 +29,7 @@ export default function SignInTab({ app }) {
     <div>
       <div className="sec-head">
         <div>
-          <h2>How people sign in to this app</h2>
+          <h2>How People Sign In to This App</h2>
           <p>
             Your app sends people here, and Astrodock sends them back with a one-time code you
             exchange on your server. Your app never sees their password — which is also what lets it
@@ -83,7 +83,7 @@ export default function SignInTab({ app }) {
         </div>
       </div>
 
-      <div className="sec-head" style={{ marginTop: 26 }}><div><h2>What your app does</h2></div></div>
+      <div className="sec-head" style={{ marginTop: 26 }}><div><h2>What Your App Does</h2></div></div>
       <pre className="log-viewer" style={{ whiteSpace: 'pre-wrap' }}>{`// 1. send them here (keep the state — you compare it on return)
 res.redirect('${authUrl}?app_id=${app.slug}'
   + '&redirect_uri=' + encodeURIComponent(CALLBACK)

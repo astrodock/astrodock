@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import * as api from '../lib/api';
+import EmptyState from '../components/EmptyState';
 
 const CATEGORIES = [
   { key: 'health', label: 'App health' }, { key: 'deploy', label: 'Deploys' },
@@ -213,7 +214,8 @@ export default function SettingsPage() {
       {/* Notifications */}
       <section className="set-section">
         <div className="sec-head"><div><h2>Notifications</h2><p>What Astrodock tells you about, and how. With no rules, it emails the alert address for health &amp; deploy events at warning+.</p></div><button className="primary" onClick={() => setEditRule({})}>+ Add rule</button></div>
-        {rules.length === 0 ? <p className="empty-state">No rules.</p> : (
+        {rules.length === 0 ? <EmptyState icon="settings" title="No Rules Yet"
+          body="Rules let you hold back or reshape traffic before it reaches an app." /> : (
           <table className="data-table">
             <thead><tr><th>Name</th><th>How</th><th>Where</th><th>About</th><th>Min sev.</th><th>On</th><th></th></tr></thead>
             <tbody>
@@ -255,7 +257,7 @@ export default function SettingsPage() {
 
       {/* Logs & privacy */}
       <section className="set-section">
-        <div className="sec-head"><div><h2>Logs &amp; privacy</h2><p>What gets recorded, how long it’s kept, and how much visitor data you store.</p></div></div>
+        <div className="sec-head"><div><h2>Logs &amp; Privacy</h2><p>What gets recorded, how long it’s kept, and how much visitor data you store.</p></div></div>
         <div className="field-panel">{LOG_KEYS.map((k) => <Field key={k} s={byKey(k)} />)}</div>
         <p className="store-note"><b>Where this lives:</b> sign-ins, page visits, the audit trail, and deploy logs are in your database; app runtime logs sit on the server’s disk. Everything stays on your box. <span className="soon">off-box forwarding soon</span></p>
       </section>
@@ -264,7 +266,8 @@ export default function SettingsPage() {
       {backups && (
         <section className="set-section">
           <div className="sec-head"><div><h2>Backups</h2><p>A copy of your database is saved {backups.config.intervalHours > 0 ? `every ${backups.config.intervalHours}h` : '(schedule off)'}, keeping the last {backups.config.keep}, in <code>{backups.config.dir}</code>.</p></div><button className="primary" onClick={triggerBackup} disabled={backingUp}>{backingUp ? 'Backing up…' : 'Back up now'}</button></div>
-          {(backups.backups || []).length === 0 ? <p className="empty-state">No backups recorded yet.</p> : (
+          {(backups.backups || []).length === 0 ? <EmptyState icon="file" title="No Backups Yet"
+            body="Backups appear here once one has run." /> : (
             <table className="data-table">
               <thead><tr><th>When</th><th>Result</th><th>Size</th><th>How</th><th></th></tr></thead>
               <tbody>
@@ -286,7 +289,7 @@ export default function SettingsPage() {
       {/* System info */}
       {diagnostics && (
         <section className="set-section">
-          <div className="sec-head"><div><h2>System info</h2><p>Set when Astrodock was installed — read-only here, secrets masked.</p></div></div>
+          <div className="sec-head"><div><h2>System Info</h2><p>Set when Astrodock was installed — read-only here, secrets masked.</p></div></div>
           <div className="diag">
             {Object.entries(diagnostics).map(([k, v]) => (
               <div className="drow" key={k}><label>{k}</label><div className="v">{typeof v === 'object' && v !== null ? Object.entries(v).map(([kk, vv]) => `${kk}: ${vv}`).join(' · ') : String(v)}</div></div>

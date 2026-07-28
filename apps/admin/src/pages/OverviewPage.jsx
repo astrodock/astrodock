@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../lib/api';
+import EmptyState from '../components/EmptyState';
 
 function rel(dateStr) {
   if (!dateStr) return '';
@@ -128,9 +129,10 @@ export default function OverviewPage() {
 
       <section className="ov-lower">
         <div className="panel">
-          <div className="panel-h"><h2>Live activity</h2><span className="panel-live">live</span></div>
+          <div className="panel-h"><h2>Live Activity</h2><span className="panel-live">live</span></div>
           <div className="feed">
-            {feed.length === 0 ? <p className="empty-state">No recent activity.</p> : feed.map((f, i) => (
+            {feed.length === 0 ? <EmptyState icon="activity" title="Nothing Yet"
+              body="Deploys and platform events show up here as they happen." /> : feed.map((f, i) => (
               <div className="frow" key={i}>
                 <span className={`led ${f.led}`} />
                 <span className="frow-name">{f.name}</span>

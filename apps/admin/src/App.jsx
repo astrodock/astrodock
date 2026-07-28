@@ -15,6 +15,7 @@ import HealthPage from './pages/HealthPage';
 import TokensPage from './pages/TokensPage';
 import DomainsPage from './pages/DomainsPage';
 import SettingsPage from './pages/SettingsPage';
+import NotFoundPage from './pages/NotFoundPage';
 import AccountPage from './pages/AccountPage';
 import './App.css';
 
@@ -112,63 +113,63 @@ export default function App() {
           <li className="nav-sec">Operate</li>
           <li>
             <NavLink to="/overview" className={({ isActive }) => isActive ? 'active' : ''}>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 9.5 8 3l6 6.5M4 8.5V14h8V8.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2.5 8.6 8 3.2l5.5 5.4M4.2 7.6V13a.6.6 0 0 0 .6.6h6.4a.6.6 0 0 0 .6-.6V7.6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
               Overview
             </NavLink>
           </li>
           <li>
             <NavLink to="/apps" className={({ isActive }) => isActive ? 'active' : ''}>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="1.5"/><rect x="9" y="1" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="1.5"/><rect x="1" y="9" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="1.5"/><rect x="9" y="9" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="1.5"/></svg>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="5" height="5" rx="1.2" stroke="currentColor" strokeWidth="1.4"/><rect x="9" y="2" width="5" height="5" rx="1.2" stroke="currentColor" strokeWidth="1.4"/><rect x="2" y="9" width="5" height="5" rx="1.2" stroke="currentColor" strokeWidth="1.4"/><rect x="9" y="9" width="5" height="5" rx="1.2" stroke="currentColor" strokeWidth="1.4"/></svg>
               Apps
             </NavLink>
           </li>
           <li>
             <NavLink to="/pages" className={({ isActive }) => isActive ? 'active' : ''}>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 1.5h6L13 5v9.5a0 0 0 0 1 0 0H3a0 0 0 0 1 0 0v-13z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/><path d="M9 1.5V5h4M5.5 8h5M5.5 11h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3.6 2h5.1l3.7 3.7v8.3H3.6V2z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"/><path d="M8.6 2v3.8h3.8M5.8 8.8h4.4M5.8 11.2h4.4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>
               Pages
             </NavLink>
           </li>
           <li>
             <NavLink to="/users" className={({ isActive }) => isActive ? 'active' : ''}>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="3" stroke="currentColor" strokeWidth="1.5"/><path d="M2 14c0-3 2.5-5 6-5s6 2 6 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5.4" r="2.6" stroke="currentColor" strokeWidth="1.4"/><path d="M2.8 13.6c0-2.5 2.3-4.2 5.2-4.2s5.2 1.7 5.2 4.2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>
               Users
             </NavLink>
           </li>
-          <li className="nav-sec">Network &amp; access</li>
+          <li className="nav-sec">Network &amp; Access</li>
           <li>
             <NavLink to="/domains" className={({ isActive }) => isActive ? 'active' : ''}>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.3" stroke="currentColor" strokeWidth="1.5"/><path d="M1.7 8h12.6M8 1.7c1.8 2 1.8 10.6 0 12.6M8 1.7c-1.8 2-1.8 10.6 0 12.6" stroke="currentColor" strokeWidth="1.2"/></svg>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.4"/><path d="M2 8h12M8 2c1.7 2 1.7 10 0 12M8 2c-1.7 2-1.7 10 0 12" stroke="currentColor" strokeWidth="1.2"/></svg>
               Domains
             </NavLink>
           </li>
           <li>
             <NavLink to="/tokens" className={({ isActive }) => isActive ? 'active' : ''}>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10.5 5.5a3 3 0 1 0-3.2 3l-.8.8v1.2H5.3v1.5H3.8V14H1.5v-2.2l4-4a3 3 0 0 1 5-2.3z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/><circle cx="11" cy="5" r="1" fill="currentColor"/></svg>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="10.6" cy="5.4" r="3.1" stroke="currentColor" strokeWidth="1.4"/><path d="M8.4 7.6 2.6 13.4v1.2h2.2v-1.5h1.5v-1.5h1.4l1-1" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
               Access keys
             </NavLink>
           </li>
           <li className="nav-sec">Observe</li>
           <li>
             <NavLink to="/activity" className={({ isActive }) => isActive ? 'active' : ''}>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 8h2l2-4 4 8 2-4h2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M1.8 8h2.4l2-4.4 3.6 9 2-4.6h2.4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
               Activity
             </NavLink>
           </li>
           <li>
             <NavLink to="/health" className={({ isActive }) => isActive ? 'active' : ''}>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 14s-5.5-3.5-5.5-7.5a3.5 3.5 0 0 1 7 0 3.5 3.5 0 0 1 7 0C16.5 10.5 8 14 8 14z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 13.8S2.4 10.4 2.4 6.5A2.9 2.9 0 0 1 8 5.2a2.9 2.9 0 0 1 5.6 1.3c0 3.9-5.6 7.3-5.6 7.3z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"/></svg>
               Health
             </NavLink>
           </li>
           <li>
             <NavLink to="/account" className={({ isActive }) => isActive ? 'active' : ''}>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1.8 3 4v3.4c0 3 2.1 5.6 5 6.8 2.9-1.2 5-3.8 5-6.8V4L8 1.8z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/><path d="M5.8 8.1 7.3 9.6l3-3.2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1.9 3.2 3.9v3.5c0 3 2 5.7 4.8 6.7 2.8-1 4.8-3.7 4.8-6.7V3.9L8 1.9z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"/><path d="m5.9 7.9 1.5 1.5 2.9-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
               Your account
             </NavLink>
           </li>
           <li>
             <NavLink to="/settings" className={({ isActive }) => isActive ? 'active' : ''}>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2" stroke="currentColor" strokeWidth="1.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.5 1.5M11.5 11.5L13 13M13 3l-1.5 1.5M4.5 11.5L3 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.1" stroke="currentColor" strokeWidth="1.4"/><path d="M8 1.6v1.7M8 12.7v1.7M1.6 8h1.7M12.7 8h1.7M3.5 3.5l1.2 1.2M11.3 11.3l1.2 1.2M12.5 3.5l-1.2 1.2M4.7 11.3l-1.2 1.2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>
               Settings
             </NavLink>
           </li>
@@ -211,7 +212,7 @@ export default function App() {
           <Route path="/account" element={<AccountPage />} />
           {/* Reachable after setup so a deferred domain can still be finished. */}
           <Route path="/setup" element={<SetupPage status={setup} />} />
-          <Route path="*" element={<Navigate to="/overview" />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </main>
     </div>

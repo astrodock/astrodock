@@ -12,6 +12,12 @@ const require = createRequire(import.meta.url);
 // the ambient environment happens to have.
 process.env.ASTRODOCK_BASE_DOMAIN ||= 'localhost';
 
+// These tests seed and then log in as this admin, so pin the credentials rather
+// than inheriting whatever ASTRODOCK_ADMIN_* the environment happens to carry —
+// a gitignored .env or CI's own values would otherwise decide whether login works.
+process.env.ASTRODOCK_ADMIN_EMAIL = 'admin@example.com';
+process.env.ASTRODOCK_ADMIN_PASSWORD = 'test-admin-password';
+
 const { app } = require('../server.js');
 const { migrate } = require('../src/db/migrate.js');
 const { seedAdmin } = require('../src/seed.js');

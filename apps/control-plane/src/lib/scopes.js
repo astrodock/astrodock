@@ -11,30 +11,43 @@
 // person do" and "what can this key do" are one concept rather than two.
 
 // ── the scopes ────────────────────────────────────────────────────────────────
+// Grouped so a permission picker can present them as a structured list rather than
+// twenty undifferentiated switches. Order runs from everyday to dangerous.
+const GROUPS = [
+  { key: 'apps', label: 'Apps & Deploys', description: 'Creating, configuring and shipping apps.' },
+  { key: 'config', label: 'Configuration', description: 'Environment values and custom domains.' },
+  { key: 'observe', label: 'Observability', description: 'Logs and the audit trail. Read-only.' },
+  { key: 'pages', label: 'Pages', description: 'Lightweight hosted documents and mini-sites.' },
+  { key: 'people', label: 'People', description: 'End users and who can reach which app.' },
+  { key: 'platform', label: 'Platform', description: 'Settings, backups and platform-wide changes.' },
+  { key: 'sensitive', label: 'Sensitive', description: 'Destructive or privilege-granting. Give these deliberately.' }
+];
+
 const SCOPES = {
-  'apps:read': 'View apps, status and health',
-  'apps:write': 'Create and configure apps, provision resources, connect repos',
-  'apps:delete': 'Delete apps — destroys their database and stored files',
-  'deploys:write': 'Deploy, deploy a local build, roll back',
-  'runtime:write': 'Restart and stop apps',
-  'logs:read': 'Read runtime, build and HTTP access logs',
-  'env:read': 'List configuration keys (secret values stay hidden)',
-  'env:write': 'Set and remove configuration values',
-  'domains:write': 'Add, verify and remove custom domains',
-  'pages:read': 'View published pages',
-  'pages:write': 'Create, edit and delete pages',
-  'users:read': 'View end users and their app access',
-  'users:write': 'Create end users and grant or revoke app access',
-  'events:read': 'Read the audit trail and sign-in logs',
-  'settings:read': 'View platform settings and diagnostics',
-  'settings:write': 'Change platform settings and notification rules',
-  'backups:write': 'Run and restore backups',
-  'platform:write': 'Change the base domain, HTTPS mode and DNS records',
-  'tokens:write': 'Create and revoke access keys',
-  exec: 'Run commands inside an app'
+  'apps:read': { group: 'apps', label: 'View apps', description: 'View apps, status and health' },
+  'apps:write': { group: 'apps', label: 'Create & configure apps', description: 'Create and configure apps, provision resources, connect repos' },
+  'apps:delete': { group: 'sensitive', label: 'Delete apps', description: 'Delete apps — destroys their database and stored files' },
+  'deploys:write': { group: 'apps', label: 'Deploy & roll back', description: 'Deploy, deploy a local build, roll back' },
+  'runtime:write': { group: 'apps', label: 'Restart & stop', description: 'Restart and stop apps' },
+  'logs:read': { group: 'observe', label: 'Read logs', description: 'Read runtime, build and HTTP access logs' },
+  'env:read': { group: 'config', label: 'View configuration', description: 'List configuration keys (secret values stay hidden)' },
+  'env:write': { group: 'config', label: 'Change configuration', description: 'Set and remove configuration values' },
+  'domains:write': { group: 'config', label: 'Manage custom domains', description: 'Add, verify and remove custom domains' },
+  'pages:read': { group: 'pages', label: 'View pages', description: 'View published pages' },
+  'pages:write': { group: 'pages', label: 'Create & edit pages', description: 'Create, edit and delete pages' },
+  'users:read': { group: 'people', label: 'View end users', description: 'View end users and their app access' },
+  'users:write': { group: 'people', label: 'Manage end users', description: 'Create end users and grant or revoke app access' },
+  'events:read': { group: 'observe', label: 'Read the audit trail', description: 'Read the audit trail and sign-in logs' },
+  'settings:read': { group: 'platform', label: 'View platform settings', description: 'View platform settings and diagnostics' },
+  'settings:write': { group: 'platform', label: 'Change platform settings', description: 'Change platform settings and notification rules' },
+  'backups:write': { group: 'platform', label: 'Run & restore backups', description: 'Run and restore backups' },
+  'platform:write': { group: 'platform', label: 'Change domain & HTTPS', description: 'Change the base domain, HTTPS mode and DNS records' },
+  'tokens:write': { group: 'sensitive', label: 'Create & revoke keys', description: 'Create and revoke access keys' },
+  exec: { group: 'sensitive', label: 'Run commands in an app', description: 'Run commands inside an app' }
 };
 
 const ALL = Object.keys(SCOPES);
+const describe = (k) => (SCOPES[k] ? SCOPES[k].description : k);
 
 // ── presets ───────────────────────────────────────────────────────────────────
 // Nobody hand-picks twenty checkboxes. Note what is absent from every preset:
@@ -151,4 +164,4 @@ function checkDelegation(minter, requested) {
   }
 }
 
-module.exports = { SCOPES, ALL, PRESETS, LEGACY, expand, has, validate, checkDelegation, isLegacy };
+module.exports = { SCOPES, GROUPS, ALL, PRESETS, LEGACY, expand, has, validate, checkDelegation, isLegacy, describe };
