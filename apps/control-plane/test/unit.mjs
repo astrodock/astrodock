@@ -1,6 +1,7 @@
 // Pure-logic unit tests: env computation + Caddyfile generation.
 // Run: node test/unit.mjs
 import assert from 'node:assert';
+import fs from 'node:fs';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 
@@ -334,6 +335,31 @@ test('host port is read, not the container port', () => {
   assert.strictEqual(p.hostPort, '15432');
   assert.strictEqual(p.containerPort, '5432');
   assert.strictEqual(p.proto, 'tcp');
+});
+
+// ── the suite must not depend on the shell it is run from ────────────────────
+
+console.log('\ntest hygiene');
+
+test('no integration test defaults its admin credentials from the environment', () => {
+  // Three separate files seeded the admin with `ASTRODOCK_ADMIN_PASSWORD ||= ...`
+  // and then logged in with a hard-coded literal. On a bare shell the two agreed
+  // and everything passed; anywhere the variable was already set — every CI run —
+  // the seed and the login disagreed and the suite failed with "Authentication
+  // required". It went unnoticed for weeks because it never failed locally.
+  const dir = new URL('.', import.meta.url);
+  const offenders = [];
+  for (const name of fs.readdirSync(dir)) {
+    if (!name.endsWith('.mjs')) continue;
+    const src = fs.readFileSync(new URL(name, dir), 'utf8');
+    for (const [i, line] of src.split('\n').entries()) {
+      if (/process\.env\.ASTRODOCK_ADMIN_(EMAIL|PASSWORD)\s*\|\|=/.test(line)) {
+        offenders.push(`${name}:${i + 1}`);
+      }
+    }
+  }
+  assert.deepStrictEqual(offenders, [],
+    `these pick up ambient credentials instead of pinning their own: ${offenders.join(', ')}`);
 });
 
 console.log(`\n${passed} passed, ${failed} failed`);

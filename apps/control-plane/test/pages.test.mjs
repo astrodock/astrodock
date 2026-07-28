@@ -12,8 +12,12 @@ const require = createRequire(import.meta.url);
 
 process.env.ASTRODOCK_ADMIN_JWT_SECRET ||= 'pages-test-jwt';
 process.env.ASTRODOCK_SECRET_KEY ||= 'pages-test-secret';
-process.env.ASTRODOCK_ADMIN_EMAIL ||= 'admin@example.com';
-process.env.ASTRODOCK_ADMIN_PASSWORD ||= 'adminpass';
+// Pinned, not defaulted. `||=` let an ambient ASTRODOCK_ADMIN_PASSWORD decide what
+// the admin is seeded with while the login below still sent 'adminpass' — so the
+// suite passed on a bare shell and failed anywhere the variable was set, which is
+// every CI run. Same trap that smoke.mjs and cli.test.mjs were in.
+process.env.ASTRODOCK_ADMIN_EMAIL = 'admin@example.com';
+process.env.ASTRODOCK_ADMIN_PASSWORD = 'adminpass';
 process.env.ASTRODOCK_BASE_DOMAIN = 'localhost';
 process.env.ASTRODOCK_TLS_MODE = 'off';
 process.env.ASTRODOCK_ENV = 'development';

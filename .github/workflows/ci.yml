@@ -68,6 +68,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # docker-compose.yml declares `env_file: .env` and marks ASTRODOCK_PG_PASSWORD
+      # required, so `docker compose config` cannot run on a bare checkout at all —
+      # which is why both steps below have been failing since they were written.
+      # An installed box always has a .env; make one, the way install.sh does.
+      - name: seed a throwaway .env so compose can be evaluated
+        run: sed 's/^ASTRODOCK_PG_PASSWORD=$/ASTRODOCK_PG_PASSWORD=ci-not-a-real-password/' .env.example > .env
+
       - name: compose keeps per-project network isolation
         run: |
           set -eu
