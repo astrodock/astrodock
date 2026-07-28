@@ -119,7 +119,7 @@ export default function PagesPage() {
                 </select>
               </label>
               <label>
-                Saved data
+                Saved Data
                 <select value={draft.dataMode} onChange={(e) => setDraft({ ...draft, dataMode: e.target.value })}>
                   {dataModes.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                 </select>
@@ -136,7 +136,7 @@ export default function PagesPage() {
                 </label>
                 {draft.passkeyMode === 'custom' && (
                   <label>
-                    Custom passkey
+                    Custom Passkey
                     <input value={draft.passkey} onChange={(e) => setDraft({ ...draft, passkey: e.target.value })} placeholder="min 4 chars" minLength={4} />
                   </label>
                 )}

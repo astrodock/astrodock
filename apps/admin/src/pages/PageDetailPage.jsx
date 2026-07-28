@@ -89,7 +89,7 @@ export default function PageDetailPage() {
           <h1 style={{ margin: '4px 0 0' }}>{page.title || 'Untitled'}</h1>
           <span className="row-subtitle">{page.pageId} · {page.views} views</span>
         </div>
-        <button className="danger" onClick={async () => { if (confirm('Delete this page and all its files? This cannot be undone.')) { await api.deletePage(pageId); navigate('/pages'); } }}>Delete page</button>
+        <button className="danger" onClick={async () => { if (confirm('Delete this page and all its files? This cannot be undone.')) { await api.deletePage(pageId); navigate('/pages'); } }}>Delete Page</button>
       </div>
 
       {error && <div className="error">{error}</div>}
@@ -143,7 +143,7 @@ export default function PageDetailPage() {
           <label>
             Allowed emails (one per line — empty = any active user)
             <textarea rows={3} value={allowlist} onChange={(e) => setAllowlist(e.target.value)} placeholder="alice@example.com" />
-            <button style={{ marginTop: 6 }} onClick={() => patch({ allowlist: allowlist.split(/[\n,]/).map((s) => s.trim()).filter(Boolean) }, 'Allowlist saved.')}>Save allowlist</button>
+            <button style={{ marginTop: 6 }} onClick={() => patch({ allowlist: allowlist.split(/[\n,]/).map((s) => s.trim()).filter(Boolean) }, 'Allowlist saved.')}>Save Allowlist</button>
           </label>
         )}
       </div>
@@ -184,9 +184,9 @@ export default function PageDetailPage() {
         <div className="page-header" style={{ marginBottom: 8 }}>
           <h2 style={{ margin: 0 }}>Files</h2>
           <div className="modal-actions" style={{ margin: 0 }}>
-            <button onClick={newFile}>New text file</button>
-            <button onClick={() => fileRef.current?.click()} disabled={busy}>Upload files</button>
-            <button onClick={() => dirRef.current?.click()} disabled={busy}>Upload folder</button>
+            <button onClick={newFile}>New Text File</button>
+            <button onClick={() => fileRef.current?.click()} disabled={busy}>Upload Files</button>
+            <button onClick={() => dirRef.current?.click()} disabled={busy}>Upload Folder</button>
             <input ref={fileRef} type="file" multiple hidden onChange={(e) => uploadFrom(e.target)} />
             <input ref={dirRef} type="file" multiple webkitdirectory="" directory="" hidden onChange={(e) => uploadFrom(e.target)} />
           </div>

@@ -101,7 +101,13 @@ function RuleModal({ initial, onClose, onSaved }) {
         </div>
 
         <label style={{ marginTop: 16 }}>Limit to apps <span style={{ fontWeight: 400, color: 'var(--text-3)' }}>(comma-separated slugs; blank = all)</span><input value={scopeText} onChange={(e) => setScopeText(e.target.value)} placeholder="blog, notes" /></label>
-        <label className="checkbox-label" style={{ marginTop: 6 }}><input type="checkbox" checked={r.enabled} onChange={(e) => setR({ ...r, enabled: e.target.checked })} /> Rule is on</label>
+        <div className="opt-list" style={{ marginTop: 10 }}>
+          <div className={`opt-row ${r.enabled ? 'on' : ''}`}>
+            <span className="name">Rule is on</span>
+            <span className={`mini-toggle ${r.enabled ? 'on' : ''}`} role="switch" aria-checked={r.enabled}
+              aria-label="Rule is on" onClick={() => setR({ ...r, enabled: !r.enabled })} />
+          </div>
+        </div>
 
         <div className="modal-actions"><button type="button" onClick={onClose}>Cancel</button><button type="submit" disabled={saving}>{saving ? 'Saving…' : (editing ? 'Save' : 'Create rule')}</button></div>
       </form>
@@ -170,7 +176,7 @@ export default function SettingsPage() {
 
       {/* Notifications */}
       <section className="set-section">
-        <div className="sec-head"><div><h2>Notifications</h2><p>What Astrodock tells you about, and how. With no rules, it emails the alert address for health &amp; deploy events at warning+.</p></div><button className="primary" onClick={() => setEditRule({})}>+ Add rule</button></div>
+        <div className="sec-head"><div><h2>Notifications</h2><p>What Astrodock tells you about, and how. With no rules, it emails the alert address for health &amp; deploy events at warning+.</p></div><button className="primary" onClick={() => setEditRule({})}>+ Add Rule</button></div>
         {rules.length === 0 ? <EmptyState icon="settings" title="No Custom Rules"
           body="Astrodock already emails the alert address about health and deploy problems. Add a rule to send somewhere else — a Slack or Discord webhook, a second address — or to change what counts as worth telling you about." /> : (
           <table className="data-table">

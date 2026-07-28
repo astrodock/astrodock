@@ -118,7 +118,7 @@ export default function UserModal({ user, onClose, onSave }) {
           <div className="reset-section">
             {!showReset ? (
               <button type="button" className="link-btn" onClick={() => setShowReset(true)}>
-                Reset password
+                Reset Password
               </button>
             ) : (
               <div className="reset-form">

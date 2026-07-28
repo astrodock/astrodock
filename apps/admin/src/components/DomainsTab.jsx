@@ -77,7 +77,7 @@ export default function DomainsTab({ app }) {
             <span className={`chip ${STC[d.status]}`}>{STLABEL[d.status]}</span>
             <div className="dom-actions">
               {d.status !== 'active' && <button className="primary" onClick={() => verify(d.id)}>Check DNS</button>}
-              {d.status === 'active' && !d.isPrimary && <button onClick={() => makePrimary(d.id)}>Make primary</button>}
+              {d.status === 'active' && !d.isPrimary && <button onClick={() => makePrimary(d.id)}>Make Primary</button>}
               {d.status === 'active' && !d.isPrimary && hasPrimary && <button onClick={() => toggleRedirect(d.id, !d.redirectToCanonical)}>{d.redirectToCanonical ? 'Redirect: on' : 'Redirect: off'}</button>}
               <button className="danger" onClick={() => remove(d.id, d.hostname)}>Remove</button>
             </div>

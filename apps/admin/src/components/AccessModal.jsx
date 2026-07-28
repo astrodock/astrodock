@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import * as api from '../lib/api';
+import EmptyState from './EmptyState';
 
 export default function AccessModal({ user, apps, onClose, onSave }) {
   const [error, setError] = useState('');
@@ -26,28 +27,26 @@ export default function AccessModal({ user, apps, onClose, onSave }) {
         {error && <div className="error">{error}</div>}
 
         {apps.length === 0 ? (
-          <p>No apps registered yet.</p>
+          <EmptyState icon="apps" title="No Apps Yet"
+            body="Register an app and you can grant access to it here." />
         ) : (
-          <ul className="access-list">
+          <div className="opt-list">
             {apps.map(app => {
               const hasAccess = user.appAccess.includes(app.slug);
               return (
-                <li key={app.slug}>
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={hasAccess}
-                      onChange={() => handleToggle(app.slug, hasAccess)}
-                    />
-                    <span>
-                      <strong>{app.name}</strong>
-                      <code>{app.slug}</code>
-                    </span>
-                  </label>
-                </li>
+                <div className={`opt-row ${hasAccess ? 'on' : ''}`} key={app.slug}>
+                  <span className="name"><strong>{app.name}</strong><code>{app.slug}</code></span>
+                  <span
+                    className={`mini-toggle ${hasAccess ? 'on' : ''}`}
+                    role="switch"
+                    aria-checked={hasAccess}
+                    aria-label={`Access to ${app.name}`}
+                    onClick={() => handleToggle(app.slug, hasAccess)}
+                  />
+                </div>
               );
             })}
-          </ul>
+          </div>
         )}
 
         <div className="modal-actions">

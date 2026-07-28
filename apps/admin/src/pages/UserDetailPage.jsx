@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import * as api from '../lib/api';
+import EmptyState from '../components/EmptyState';
+
+const ROLE_TONE = { owner: 'crit', admin: 'warn', operator: 'ok', viewer: '' };
 
 export default function UserDetailPage() {
   const { id } = useParams();
@@ -101,7 +104,7 @@ export default function UserDetailPage() {
     }
   }
 
-  if (!user) return <p style={{ color: 'var(--text-muted)' }}>Loading...</p>;
+  if (!user) return <p className="text-muted">Loading…</p>;
 
   return (
     <div>
@@ -114,7 +117,7 @@ export default function UserDetailPage() {
           <span className={`badge ${user.isActive ? 'active' : 'inactive'}`}>
             {user.isActive ? 'Active' : 'Inactive'}
           </span>
-          {user.operatorRole && <span className="chip ok">{user.operatorRole}</span>}
+          {user.operatorRole && <span className={`chip ${ROLE_TONE[user.operatorRole] || ''}`}>{user.operatorRole}</span>}
         </div>
       </div>
 
@@ -122,8 +125,8 @@ export default function UserDetailPage() {
       {success && <div className="provision-banner"><strong>{success}</strong></div>}
 
       {/* Profile */}
-      <section className="settings-section">
-        <h3>Profile</h3>
+      <section className="set-section">
+        <div className="sec-head"><div><h2>Profile</h2><p>Their name, and whether they can open this dashboard at all.</p></div></div>
         <form onSubmit={handleSave} className="user-form">
           <div className="form-row">
             <label>
@@ -164,27 +167,25 @@ export default function UserDetailPage() {
       </section>
 
       {/* App Access */}
-      <section className="settings-section">
-        <h3>App Access</h3>
+      <section className="set-section">
+        <div className="sec-head"><div><h2>App Access</h2><p>Which of your apps this person can sign in to. Turning one on takes effect immediately.</p></div></div>
         {apps.length === 0 ? (
-          <p className="text-muted">No apps registered yet.</p>
+          <EmptyState icon="apps" title="No Apps Yet"
+            body="Once you register an app, you can grant this person access to it here." />
         ) : (
-          <div className="access-grid">
+          <div className="opt-list">
             {apps.map(app => {
               const hasAccess = user.appAccess.includes(app.slug);
               return (
-                <div
-                  key={app.slug}
-                  className={`access-card ${hasAccess ? 'granted' : ''}`}
-                  onClick={() => handleToggleAccess(app.slug, hasAccess)}
-                >
-                  <div className="access-card-header">
-                    <span className="access-card-name">{app.name}</span>
-                    <div className={`access-toggle ${hasAccess ? 'on' : ''}`}>
-                      <div className="access-toggle-knob" />
-                    </div>
-                  </div>
-                  <code className="access-card-slug">{app.slug}</code>
+                <div className={`opt-row ${hasAccess ? 'on' : ''}`} key={app.slug}>
+                  <span className="name">{app.name}<code>{app.slug}</code></span>
+                  <span
+                    className={`mini-toggle ${hasAccess ? 'on' : ''}`}
+                    role="switch"
+                    aria-checked={hasAccess}
+                    aria-label={`Access to ${app.name}`}
+                    onClick={() => handleToggleAccess(app.slug, hasAccess)}
+                  />
                 </div>
               );
             })}
@@ -193,8 +194,8 @@ export default function UserDetailPage() {
       </section>
 
       {/* Reset Password */}
-      <section className="settings-section">
-        <h3>Reset Password</h3>
+      <section className="set-section">
+        <div className="sec-head"><div><h2>Reset Password</h2><p>Sets a new password for them. They are not emailed — you will need to pass it on yourself.</p></div></div>
         <form onSubmit={handleResetPassword} className="reset-pw-form">
           <input
             type="password"
@@ -212,8 +213,8 @@ export default function UserDetailPage() {
       </section>
 
       {/* Danger Zone */}
-      <section className="settings-section danger-zone">
-        <h3>Danger Zone</h3>
+      <section className="set-section danger-zone">
+        <div className="sec-head"><div><h2>Danger Zone</h2><p>Deactivating blocks every sign-in, everywhere, at once.</p></div></div>
         <div className="danger-actions">
           <div className="danger-action">
             <div>

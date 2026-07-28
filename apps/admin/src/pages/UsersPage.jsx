@@ -4,6 +4,10 @@ import * as api from '../lib/api';
 import EmptyState from '../components/EmptyState';
 import UserCreateModal from '../components/UserCreateModal';
 
+// Roles are not interchangeable, so they should not all look alike: an owner
+// can hand the platform away, a viewer can only read.
+const ROLE_TONE = { owner: 'crit', admin: 'warn', operator: 'ok', viewer: '' };
+
 export default function UsersPage() {
   const [users, setUsers] = useState([]);
   const [showCreate, setShowCreate] = useState(false);
@@ -30,6 +34,11 @@ export default function UsersPage() {
 
       {error && <div className="error">{error}</div>}
 
+      {users.length === 0 ? (
+        <EmptyState icon="users" title="No People Yet"
+          body="People here can sign in to the apps you grant them. Give someone a dashboard role and they can open this dashboard too."
+          action={<button onClick={() => setShowCreate(true)}>Add User</button>} />
+      ) : (
       <table className="data-table clickable">
         <thead>
           <tr>
@@ -56,8 +65,8 @@ export default function UsersPage() {
               </td>
               <td>
                 {user.operatorRole
-                  ? <span className="chip ok">{user.operatorRole}</span>
-                  : <span style={{ color: 'var(--text-3)' }}>app user</span>}
+                  ? <span className={`chip ${ROLE_TONE[user.operatorRole] || ''}`}>{user.operatorRole}</span>
+                  : <span className="chip">app user</span>}
               </td>
               <td>
                 <div className="access-pills">
@@ -73,6 +82,7 @@ export default function UsersPage() {
           ))}
         </tbody>
       </table>
+      )}
 
       {showCreate && (
         <UserCreateModal

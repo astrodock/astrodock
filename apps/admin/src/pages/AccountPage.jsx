@@ -343,7 +343,7 @@ function PasswordSection({ data, guarded }) {
             <div className="ctl">
               <button className="link-btn danger"
                 onClick={() => guarded(() => api.removePassword(), 'Password removed — passkey only.', 'Removing your password')}>
-                Remove my password
+                Remove My Password
               </button>
             </div>
           </div>
@@ -360,7 +360,7 @@ function Sessions({ data, guarded }) {
       description="If you don't recognise one, sign it out — it takes effect immediately."
       action={data.sessions.length > 1 && (
         <button className="pillbtn" onClick={() => guarded(() => api.revokeOtherSessions(), 'Other sessions signed out.')}>
-          Sign out everywhere else
+          Sign Out Everywhere Else
         </button>
       )}
     >
@@ -378,7 +378,7 @@ function Sessions({ data, guarded }) {
               <td style={{ textAlign: 'right' }}>
                 {!s.current && (
                   <button className="link-btn danger" onClick={() => guarded(() => api.revokeSession(s.id), 'Signed out.')}>
-                    Sign out
+                    Sign Out
                   </button>
                 )}
               </td>

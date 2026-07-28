@@ -17,13 +17,13 @@ const RESULT_STYLES = {
 const DEPLOY_STYLES = {
   success: { color: 'var(--accent)', label: 'Success' },
   failed: { color: 'var(--danger)', label: 'Failed' },
-  pending: { color: 'var(--text-muted)', label: 'Pending' },
+  pending: { color: 'var(--text-3)', label: 'Pending' },
   cloning: { color: 'var(--info)', label: 'Cloning' },
   building: { color: 'var(--info)', label: 'Building' },
   deploying: { color: 'var(--info)', label: 'Deploying' }
 };
 
-const SEVERITY_COLOR = { info: 'var(--text-muted)', warning: 'var(--warning)', critical: 'var(--danger)' };
+const SEVERITY_COLOR = { info: 'var(--text-3)', warning: 'var(--warning)', critical: 'var(--danger)' };
 
 export default function ActivityPage() {
   const [tab, setTab] = useState('auth');
@@ -179,7 +179,7 @@ export default function ActivityPage() {
             <div className="activity-list">
               {events.map(ev => (
                 <div key={ev.id} className="activity-row">
-                  <span className="activity-result" style={{ color: SEVERITY_COLOR[ev.severity] || 'var(--text-muted)' }}>
+                  <span className="activity-result" style={{ color: SEVERITY_COLOR[ev.severity] || 'var(--text-3)' }}>
                     {ev.type}
                   </span>
                   <span className="activity-detail">

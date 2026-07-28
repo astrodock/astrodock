@@ -87,7 +87,7 @@ export default function AppDetailPage() {
   }
 
   if (error && !app) return <div className="error">{error}</div>;
-  if (!app) return <p style={{ color: 'var(--text-muted)' }}>Loading...</p>;
+  if (!app) return <p style={{ color: 'var(--text-3)' }}>Loading...</p>;
 
   const statusInfo = STATUS_LABELS[procStatus?.status] || STATUS_LABELS.unavailable;
   const ledClass = procStatus?.status === 'online' ? 'ok' : (procStatus?.status === 'errored' ? 'crit' : '');

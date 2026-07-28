@@ -76,7 +76,7 @@ export default function DomainsPage() {
       </div>
       <p className="howset"><b>Where does this come from?</b> You chose it when you first set up Astrodock. Changing it later is a bigger job (you’d re-point your DNS and get new security certificates), so it’s done back on the server — not from this page.</p>
 
-      <div className="secthead"><h3>Your Custom Domains</h3><p>— domains you add and manage here</p></div>
+      <div className="sec-head"><div><h2>Your Custom Domains</h2><p>Addresses you own and point at Astrodock yourself.</p></div></div>
       {custom.length === 0 ? (
         <EmptyState icon="domains" title="No Custom Domains"
           body="Every app already answers at its own subdomain. Add a custom domain when you want one served at an address you own." />
@@ -101,7 +101,7 @@ export default function DomainsPage() {
         </table>
       )}
 
-      <div className="secthead"><h3>Automatic Addresses</h3><p>— handled for you, nothing to set up</p></div>
+      <div className="sec-head"><div><h2>Automatic Addresses</h2><p>Given to every app under your base domain. Nothing to set up, and nothing to maintain.</p></div></div>
       <div className="autolist">
         {(data.platform || []).map((p) => (
           <div className="autorow" key={p.host}><span className="led ok" /><span className="ahost">{p.host}</span><span className="agoes">→ {p.label}</span><a className="open" href={`https://${p.host}`} target="_blank" rel="noopener">Open ↗</a></div>
@@ -159,10 +159,10 @@ export default function DomainsPage() {
             <h2>{manage.hostname}</h2>
             <div className="mrow"><div className="ml"><b>Goes to the {manage.appName} app</b><span>What people see when they visit {manage.hostname}.</span></div><Link className="link" to={`/apps/${manage.appSlug}`}>Open app →</Link></div>
             <div className="mrow"><div className="ml"><b>Secure (HTTPS) is on</b><span>Visitors get a padlock; the certificate renews itself.</span></div><span className="led ok" /></div>
-            {!manage.isPrimary && <div className="mrow"><div className="ml"><b>Make this the main address</b><span>People will see {manage.hostname} as the primary; the app’s other addresses send visitors here.</span></div><button onClick={() => setPrimary(manage)}>Make primary</button></div>}
+            {!manage.isPrimary && <div className="mrow"><div className="ml"><b>Make this the main address</b><span>People will see {manage.hostname} as the primary; the app’s other addresses send visitors here.</span></div><button onClick={() => setPrimary(manage)}>Make Primary</button></div>}
             {!manage.isPrimary && <div className="mrow"><div className="ml"><b>Redirect to the main address</b><span>Send anyone who visits {manage.hostname} to the primary domain instead.</span></div><button onClick={() => toggleRedirect(manage, !manage.redirectToCanonical)}>{manage.redirectToCanonical ? 'On' : 'Off'}</button></div>}
             <div className="modal-actions" style={{ justifyContent: 'space-between' }}>
-              <button className="danger" onClick={() => removeDomain(manage)}>Remove domain</button>
+              <button className="danger" onClick={() => removeDomain(manage)}>Remove Domain</button>
               <button onClick={() => setManage(null)}>Done</button>
             </div>
           </div>

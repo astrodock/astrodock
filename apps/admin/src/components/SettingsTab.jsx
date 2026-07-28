@@ -102,7 +102,7 @@ export default function SettingsTab({ app, onRefresh }) {
             <div className="field"><div className="lab"><b>Branch</b><span className="desc">Pushes here trigger a deploy.</span></div><div className="ctl"><code>{app.source.branch}</code></div></div>
             {app.source.repoPath && <div className="field"><div className="lab"><b>Folder</b><span className="desc">The app lives in this folder of the repo.</span></div><div className="ctl"><code>{app.source.repoPath}</code></div></div>}
             <div className="field"><div className="lab"><b>Auto-deploy</b><span className="desc">A GitHub webhook that redeploys when you push. {app.webhookConnected ? 'It’s on.' : 'It isn’t set up — you’ll deploy manually.'}</span></div><div className="ctl"><span className={`badge ${app.webhookConnected ? 'active' : 'inactive'}`}>{app.webhookConnected ? 'On' : 'Off'}</span></div></div>
-            <div className="field"><div className="lab" /><div className="ctl"><button className="danger" onClick={handleDisconnect}>Disconnect repository</button></div></div>
+            <div className="field"><div className="lab" /><div className="ctl"><button className="danger" onClick={handleDisconnect}>Disconnect Repository</button></div></div>
           </div>
         ) : (
           <form onSubmit={handleConnect} className="field-panel">
@@ -170,7 +170,7 @@ export default function SettingsTab({ app, onRefresh }) {
 
       {/* App secret */}
       <section className="set-section">
-        <div className="sec-head"><div><h2>App Secret</h2><p>A private password this app uses to talk to Astrodock’s sign-in service. Keep it safe. If it ever leaks, make a new one here — then redeploy so the app picks it up.</p></div><button onClick={handleRotateSecret}>Make a new secret</button></div>
+        <div className="sec-head"><div><h2>App Secret</h2><p>A private password this app uses to talk to Astrodock’s sign-in service. Keep it safe. If it ever leaks, make a new one here — then redeploy so the app picks it up.</p></div><button onClick={handleRotateSecret}>Make a New Secret</button></div>
         {newSecret && (
           <div className="secret-banner"><strong>New app secret — copy it now, it won’t be shown again</strong><code>{newSecret}</code></div>
         )}
@@ -192,7 +192,7 @@ export default function SettingsTab({ app, onRefresh }) {
         <div className="danger-actions">
           <div className="danger-action">
             <div><strong>Delete this app</strong><p>Permanently removes the app, its deploy history, and its web address. This can’t be undone.</p></div>
-            <button className="danger" onClick={handleDelete}>Delete app</button>
+            <button className="danger" onClick={handleDelete}>Delete App</button>
           </div>
         </div>
       </section>

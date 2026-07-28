@@ -26,11 +26,15 @@
   --bg-root:#f4f6fa; --bg-deep:#eef1f6;
   --surface:#ffffff; --surface-2:#f6f8fc; --field:#f4f7fb; --hover:#eef2f8;
   --line:#dce2ec; --line-soft:#e8edf4;
-  --text:#121823; --text-2:#445064; --text-3:#6b7889;
-  --accent:#0e9e6e; --accent-2:#0b8a60; --accent-ink:#ffffff; --accent-dim:rgba(14,158,110,.10);
-  --danger:#dc3a4a; --danger-dim:rgba(220,58,74,.09); --danger-ink:#fff;
-  --warning:#c07d18; --warning-dim:rgba(192,125,24,.10);
-  --info:#0f8fce; --info-dim:rgba(15,143,206,.10);
+  /* Light is the default theme, and every semantic colour here used to fail
+     WCAG AA on it — accent 3.16:1, warning 3.14:1, info 3.32:1, muted text
+     4.15:1, all against --bg-root. Same hues, darkened until each clears 4.8:1
+     on the lightest surface they are drawn on. Dark theme already passed. */
+  --text:#121823; --text-2:#445064; --text-3:#626e7d;
+  --accent:#0b7c56; --accent-2:#0a6a4a; --accent-ink:#ffffff; --accent-dim:rgba(11,124,86,.11);
+  --danger:#d12536; --danger-dim:rgba(209,37,54,.10); --danger-ink:#fff;
+  --warning:#966213; --warning-dim:rgba(150,98,19,.11);
+  --info:#0c73a6; --info-dim:rgba(12,115,166,.10);
   --sidebar-bg:#ffffff; --sidebar-line:var(--line);
   --log-bg:#0e131b; --log-ink:#c7d2e0;
   --shadow:0 14px 40px rgba(28,40,66,.14); --shadow-sm:0 1px 2px rgba(28,40,66,.08);
@@ -198,7 +202,10 @@ button.secondary, .cancel-btn { background:var(--surface-2); color:var(--text-2)
 .data-table tr:last-child td { border-bottom:0; }
 .data-table tbody tr:hover td { background:color-mix(in srgb, var(--text) 4%, transparent); }
 .data-table.clickable tbody tr { cursor:pointer; }
-.data-table tr.inactive td { opacity:.45; }
+/* Was opacity:.45, which dropped a deactivated row to about 2:1 and made it
+   unreadable. The badge in the Status column is the signal; this just recedes. */
+.data-table tr.inactive td { color:var(--text-3); }
+.data-table tr.inactive td strong { font-weight:500; }
 .data-table td a { color:var(--text); font-weight:500; }
 .data-table td a:hover { color:var(--accent); }
 .data-table td code, .activity-detail code, .settings-row code, .kv code, .deploy-commit code {
@@ -330,9 +337,7 @@ button.secondary, .cancel-btn { background:var(--surface-2); color:var(--text-2)
 .bulk-modal { max-width:560px; }
 
 /* ── Settings / cards / kv ──────────────────────────────── */
-.settings-section { margin-bottom:2rem; padding-bottom:1.6rem; border-bottom:1px solid var(--line-soft); }
-.settings-section:last-child { border-bottom:0; }
-.settings-section h3, .danger-zone h3 { font-size:12px; font-weight:600; margin-bottom:1rem; color:var(--text-3); text-transform:uppercase; letter-spacing:.5px; }
+.danger-zone h3 { font-size:12px; font-weight:600; margin-bottom:1rem; color:var(--text-3); text-transform:uppercase; letter-spacing:.5px; }
 .danger-zone h3 { color:var(--danger); }
 .settings-row { display:flex; gap:2.5rem; margin-bottom:.85rem; font-size:14px; color:var(--text-2); align-items:center; }
 .settings-row strong { color:var(--text-3); font-weight:500; font-size:12.5px; }
@@ -343,20 +348,6 @@ button.secondary, .cancel-btn { background:var(--surface-2); color:var(--text-2)
 .form-row { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
 
 /* ── Access grid (user detail) ──────────────────────────── */
-.access-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:.65rem; }
-.access-card { background:var(--surface); border:1px solid var(--line); border-radius:var(--r); padding:.85rem 1rem; cursor:pointer; transition:.15s; }
-.access-card:hover { border-color:var(--accent); }
-.access-card.granted { border-color:var(--accent); background:var(--accent-dim); }
-.access-card-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:.25rem; }
-.access-card-name { font-weight:600; font-size:14px; }
-.access-card-slug { font-family:var(--mono); font-size:11px; color:var(--text-3); }
-.access-toggle { width:36px; height:20px; background:var(--surface-2); border:1px solid var(--line); border-radius:10px; position:relative; transition:.2s; flex-shrink:0; }
-.access-toggle.on { background:var(--accent); border-color:var(--accent); }
-.access-toggle-knob { width:14px; height:14px; background:var(--surface); border-radius:50%; position:absolute; top:2px; left:2px; transition:transform .2s; box-shadow:0 1px 2px rgba(0,0,0,.2); }
-.access-toggle.on .access-toggle-knob { transform:translateX(16px); }
-.access-list { list-style:none; }
-.access-list li { padding:.65rem 0; border-bottom:1px solid var(--line-soft); }
-.access-list li:last-child { border-bottom:0; }
 
 /* ── Danger zone (user detail) ──────────────────────────── */
 .danger-actions { display:flex; flex-direction:column; border:1px solid var(--danger-dim); border-radius:var(--r); overflow:hidden; }
@@ -516,9 +507,6 @@ button.secondary, .cancel-btn { background:var(--surface-2); color:var(--text-2)
 .pill-ok { margin-left:auto; flex-shrink:0; align-self:flex-start; display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--accent); font-family:var(--mono); }
 .howset { font-size:13px; color:var(--text-3); margin:0 2px 26px; line-height:1.6; }
 .howset b { color:var(--text-2); }
-.secthead { display:flex; align-items:baseline; gap:12px; margin:0 2px 12px; }
-.secthead h3 { font-size:18px; font-weight:600; letter-spacing:-.2px; color:var(--text); text-transform:none; margin:0; }
-.secthead p { font-size:13px; color:var(--text-3); }
 .host { font-family:var(--mono); font-size:13.5px; display:flex; align-items:center; gap:9px; }
 .host .star { color:var(--warning); font-size:11px; }
 .link { color:var(--info); } .link:hover { text-decoration:underline; }
@@ -774,3 +762,8 @@ button.secondary, .cancel-btn { background:var(--surface-2); color:var(--text-2)
   color:var(--text-2); line-height:1.55; }
 .plain-list li::before { content:""; position:absolute; left:3px; top:8px; width:5px; height:5px;
   border-radius:50%; background:var(--text-3); }
+
+/* A smaller switch for toolbars, where a full-size one crowds the row. */
+.mini-toggle.sm { width:30px; height:17px; }
+.mini-toggle.sm::after { width:12px; height:12px; }
+.mini-toggle.sm.on::after { transform:translateX(13px); }

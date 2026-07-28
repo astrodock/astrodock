@@ -158,19 +158,50 @@ function esc(s) {
 function shell(title, body) {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <style>
-:root{color-scheme:light dark}
-body{font-family:system-ui,-apple-system,sans-serif;background:#f4f6fa;color:#1a2233;display:grid;place-items:center;min-height:100vh;margin:0}
-.card{background:#fff;border:1px solid #e3e7ef;border-radius:14px;padding:2rem;width:min(92vw,24rem);box-shadow:0 8px 30px rgba(20,30,60,.07)}
-h1{font-size:1.15rem;margin:0 0 .3rem}p.sub{margin:0 0 1.4rem;color:#667;font-size:.9rem}
-label{display:block;font-size:.8rem;font-weight:600;color:#445;margin:0 0 .3rem}
-input{width:100%;box-sizing:border-box;padding:.6rem .7rem;border:1px solid #d5dae5;border-radius:8px;font-size:1rem;margin-bottom:.9rem;background:#fff;color:inherit}
-button{width:100%;padding:.7rem;border:0;border-radius:8px;background:#2f6df6;color:#fff;font-weight:650;font-size:.95rem;cursor:pointer}
-button.secondary{background:#eef1f7;color:#2a3550;margin-top:.6rem}
-.err{background:#fdecec;color:#a12; padding:.6rem .7rem;border-radius:8px;font-size:.86rem;margin-bottom:.9rem;display:none}
-.muted{text-align:center;color:#889;font-size:.78rem;margin-top:1.1rem}
-@media(prefers-color-scheme:dark){body{background:#0d1117;color:#e6edf3}.card{background:#161b22;border-color:#30363d}
-input{background:#0d1117;border-color:#30363d}button.secondary{background:#21262d;color:#e6edf3}.err{background:#3d1a1a;color:#ffb4b4}}
+/* This page is the only Astrodock surface an app's end users ever see, and it
+   used to be a generic blue form — GitHub-ish greys and #2f6df6 — sharing no
+   colour, radius or type with the dashboard. Same tokens as the admin theme
+   now, both schemes. Kept self-contained: no webfont, no stylesheet request,
+   because it renders on an app's own domain before anything else loads. */
+:root{
+  color-scheme:light dark;
+  --bg:#f4f6fa; --surface:#fff; --line:#dce2ec; --field:#f4f7fb;
+  --text:#121823; --text-2:#445064; --text-3:#626e7d;
+  --accent:#0b7c56; --accent-ink:#fff;
+  --danger:#d12536; --danger-bg:rgba(209,37,54,.10);
+  --r:14px; --r-sm:9px;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#0a0e15; --surface:#0f141d; --line:#222d3b; --field:#0c121b;
+  --text:#f1f5fa; --text-2:#b6c4d4; --text-3:#8595a8;
+  --accent:#2fe6a8; --accent-ink:#06120d;
+  --danger:#ff6573; --danger-bg:rgba(255,101,115,.13);
+}}
+*{box-sizing:border-box}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);
+  display:grid;place-items:center;min-height:100vh;margin:0;line-height:1.55;letter-spacing:.1px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:2.1rem;
+  width:min(92vw,24rem);box-shadow:0 14px 40px rgba(20,30,60,.09)}
+.mark{display:block;margin:0 auto .9rem}
+h1{font-size:1.2rem;font-weight:650;letter-spacing:-.3px;margin:0 0 .3rem;text-align:center}
+p.sub{margin:0 0 1.5rem;color:var(--text-3);font-size:.88rem;text-align:center}
+label{display:block;font-size:.79rem;font-weight:600;color:var(--text-2);margin:0 0 .35rem}
+input{width:100%;padding:.62rem .72rem;border:1px solid var(--line);border-radius:var(--r-sm);
+  font-size:1rem;font-family:inherit;margin-bottom:.9rem;background:var(--field);color:inherit;
+  outline:none;transition:border-color .15s,box-shadow .15s}
+input:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent)}
+button{width:100%;padding:.72rem;border:0;border-radius:var(--r-sm);background:var(--accent);
+  color:var(--accent-ink);font-family:inherit;font-weight:650;font-size:.95rem;cursor:pointer;
+  transition:filter .15s}
+button:hover{filter:brightness(1.08)}
+button:disabled{opacity:.6;cursor:default}
+button.secondary{background:transparent;border:1px solid var(--line);color:var(--text-2);margin-top:.6rem}
+button.secondary:hover{border-color:var(--accent);color:var(--accent);filter:none}
+.err{background:var(--danger-bg);color:var(--danger);padding:.62rem .72rem;border-radius:var(--r-sm);
+  font-size:.86rem;margin-bottom:.9rem;display:none}
+.muted{text-align:center;color:var(--text-3);font-size:.76rem;margin-top:1.2rem}
 </style></head><body><div class="card">${body}</div></body></html>`;
 }
 
@@ -181,6 +212,12 @@ function errorPage(title, message) {
 function loginPage({ appName, appId, redirectUri, state, nonce }) {
   const cfg = esc(JSON.stringify({ appId, redirectUri, state, nonce }));
   return shell(`Sign in to ${appName}`, `
+<svg class="mark" width="34" height="34" viewBox="0 0 34 34" fill="none" aria-hidden="true">
+  <circle cx="17" cy="17" r="15" stroke="var(--accent)" stroke-width="1.4" opacity=".4"/>
+  <circle cx="17" cy="17" r="9.5" stroke="var(--accent)" stroke-width="1.4" opacity=".7"/>
+  <circle cx="17" cy="17" r="3.6" fill="var(--accent)"/>
+  <circle cx="32" cy="17" r="2.3" fill="var(--text-3)"/>
+</svg>
 <h1>Sign in to ${esc(appName)}</h1>
 <p class="sub">Use your ${esc(config.baseDomain || 'Astrodock')} account.</p>
 <div class="err" id="err"></div>

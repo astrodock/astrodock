@@ -282,13 +282,13 @@ export default function SetupPage({ status }) {
               )}
             </div>
             <label>
-              Setup token
+              Setup Token
               <input value={setupToken} onChange={(e) => setSetupToken(e.target.value)}
                 required autoFocus spellCheck="false"
                 placeholder={status.tokenSource === 'preset' ? 'The token you chose at install time' : 'Paste the token from the log'} />
             </label>
             <label>
-              Your email
+              Your Email
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
                 required placeholder="you@example.com" />
               <span className="field-help">This becomes the administrator sign-in for the dashboard.</span>
@@ -299,7 +299,7 @@ export default function SetupPage({ status }) {
                 required minLength={8} placeholder="At least 8 characters" />
             </label>
             <label>
-              Confirm password
+              Confirm Password
               <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)}
                 required minLength={8} placeholder="Type it again" />
             </label>
@@ -323,7 +323,7 @@ export default function SetupPage({ status }) {
             </div>
 
             <label>
-              Base domain
+              Base Domain
               <input value={baseDomain} onChange={(e) => { setBaseDomain(e.target.value); setDns(null); }}
                 required placeholder="apps.example.com" spellCheck="false" autoFocus />
               <span className="field-help">
@@ -463,7 +463,7 @@ export default function SetupPage({ status }) {
 
             {tlsMode === 'auto' && (
               <label>
-                Certificate contact email
+                Certificate Contact Email
                 <input type="email" value={acmeEmail} onChange={(e) => setAcmeEmail(e.target.value)}
                   required placeholder="you@example.com" />
                 <span className="field-help">
@@ -519,7 +519,7 @@ export default function SetupPage({ status }) {
             </button>
             <div className="setup-skip">
               <button type="button" className="link-btn" onClick={() => setFinished(true)}>
-                Skip for now
+                Skip for Now
               </button>
               <p className="field-help">You can set this up any time under Settings → Email.</p>
             </div>

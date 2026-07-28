@@ -108,7 +108,7 @@ export default function AppsPage() {
     <div>
       <div className="page-header">
         <h1>Apps</h1>
-        <button onClick={() => setShowCreate(true)}>Register app</button>
+        <button onClick={() => setShowCreate(true)}>Register App</button>
       </div>
 
       {apps.length > 0 && (

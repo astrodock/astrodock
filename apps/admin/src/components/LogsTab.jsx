@@ -55,7 +55,9 @@ export default function LogsTab({ app }) {
             </select>
           )}
           <label className="checkbox-label">
-            <input type="checkbox" checked={autoRefresh} onChange={e => setAutoRefresh(e.target.checked)} />
+            <span className={`mini-toggle sm ${autoRefresh ? 'on' : ''}`} role="switch"
+              aria-checked={autoRefresh} aria-label="Auto-refresh"
+              onClick={() => setAutoRefresh(!autoRefresh)} />
             Auto-refresh
           </label>
           <button onClick={load}>Refresh</button>
