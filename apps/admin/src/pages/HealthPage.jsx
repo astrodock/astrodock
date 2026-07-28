@@ -32,7 +32,15 @@ function formatTime(dateStr) {
   if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
   return new Date(dateStr).toLocaleString();
 }
-function depLabel(d) { if (!d) return { cls: 'inactive', text: 'unknown' }; return d.ok ? { cls: 'active', text: 'ok' } : { cls: 'errored', text: d.error || 'down' }; }
+// `starting` means one probe failed but the failure is not confirmed yet — the
+// usual cause is that the container is still coming up. Saying "down" there
+// accuses a dependency that is merely slow to boot.
+function depLabel(d) {
+  if (!d) return { cls: 'inactive', text: 'unknown' };
+  if (d.ok) return { cls: 'active', text: 'ok' };
+  if (d.starting) return { cls: 'warn', text: 'starting…' };
+  return { cls: 'errored', text: d.error || 'down' };
+}
 
 function Sparkline({ values, color, max }) {
   if (!values || values.length < 2) return <div className="spark-empty">collecting…</div>;
@@ -92,7 +100,8 @@ export default function HealthPage() {
         <div className="deps deps-standalone">
           {[['database', 'Database'], ['objectstore', 'Object store'], ['runner', 'Runner']].map(([k, label]) => {
             const st = depLabel(platform[k]);
-            return <div className="dep" key={k}><span className={`led ${st.cls === 'active' ? 'ok' : (st.cls === 'errored' ? 'crit' : '')}`} /><label>{label}</label><span className={`dep-v ${st.cls === 'active' ? 'ok' : 'crit'}`}>{st.text}</span></div>;
+            const led = st.cls === 'active' ? 'ok' : st.cls === 'errored' ? 'crit' : st.cls === 'warn' ? 'warn' : '';
+            return <div className="dep" key={k}><span className={`led ${led}`} /><label>{label}</label><span className={`dep-v ${led}`}>{st.text}</span></div>;
           })}
           {platform.cert && !platform.cert.skipped && (
             <div className="dep"><span className={`led ${platform.cert.ok ? 'ok' : 'warn'}`} /><label>TLS cert</label><span className="dep-v">{platform.cert.daysLeft != null ? `${platform.cert.daysLeft}d left` : (platform.cert.ok ? 'ok' : 'error')}</span></div>

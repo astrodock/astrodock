@@ -22,7 +22,8 @@ router.get('/', async (req, res, next) => {
       diagnostics: settings.diagnostics(),
       // The port-exposure card needs a round-trip to the runner (only it can see
       // the Docker socket), so it is appended to the synchronous checks.
-      readiness: [...settings.readiness(), await settings.exposureCheck()]
+      readiness: [...(await settings.readiness()), await settings.exposureCheck()],
+      email: await require('../lib/email-config').describe()
     });
   } catch (err) { next(err); }
 });
@@ -60,6 +61,41 @@ router.patch('/', async (req, res, next) => {
     }
     res.json({ settings: await settings.effective(), updated: changed });
   } catch (err) { next(err); }
+});
+
+// ── Email provider ───────────────────────────────────────────────────────────
+// Kept off the generic settings PATCH: these carry credentials, so they are
+// written through email-config (which encrypts them) and never read back out.
+
+const emailConfig = require('../lib/email-config');
+const { sendTestEmail } = require('../lib/email');
+
+router.get('/email', async (req, res, next) => {
+  try { res.json(await emailConfig.describe()); } catch (err) { next(err); }
+});
+
+router.put('/email', async (req, res, next) => {
+  try {
+    const described = await emailConfig.update(req.body || {}, req.auth.email);
+    emitEvent({
+      category: 'audit', type: 'settings.email_update', severity: 'info',
+      actorType: 'admin', actor: req.auth.email, ip: req.ip,
+      targetType: 'setting', targetId: 'email',
+      message: `email delivery set to ${described.provider}`
+    }).catch(() => {});
+    res.json(described);
+  } catch (err) { res.status(400).json({ error: err.message }); }
+});
+
+router.post('/email/test', async (req, res) => {
+  const to = (req.body?.to || '').trim();
+  try {
+    res.json(await sendTestEmail(to));
+  } catch (err) {
+    // A failed test is the expected outcome of a wrong password or a blocked
+    // port, so it is a 400 with the provider's own words — not a 500.
+    res.status(400).json({ error: err.message });
+  }
 });
 
 module.exports = router;

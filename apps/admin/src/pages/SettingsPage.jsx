@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import * as api from '../lib/api';
 import EmptyState from '../components/EmptyState';
+import SettingsGroup from '../components/SettingsGroup';
+import EmailSetup from '../components/EmailSetup';
+import BackupsSection from '../components/BackupsSection';
 
 const CATEGORIES = [
   { key: 'health', label: 'App health' }, { key: 'deploy', label: 'Deploys' },
@@ -106,25 +109,18 @@ function RuleModal({ initial, onClose, onSaved }) {
   );
 }
 
-function fmtBytes(b) {
-  if (!b) return '—';
-  if (b < 1048576) return `${(b / 1024).toFixed(0)} KB`;
-  if (b < 1073741824) return `${(b / 1048576).toFixed(1)} MB`;
-  return `${(b / 1073741824).toFixed(1)} GB`;
-}
-
-const EMAIL_KEYS = ['alerts.email_to', 'alerts.email_from'];
-const LOG_KEYS = ['logging.page_view_ip', 'logging.auth_log_retention_days', 'logging.page_view_retention_days', 'logging.app_access_logs', 'alerts.disk_threshold_percent'];
+const ALERT_KEYS = ['alerts.email_to', 'alerts.disk_threshold_percent'];
+const SECURITY_KEYS = ['security.require_mfa'];
+const LOG_KEYS = ['logging.page_view_ip', 'logging.auth_log_retention_days',
+  'logging.page_view_retention_days', 'logging.app_access_logs'];
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState([]);
   const [diagnostics, setDiagnostics] = useState(null);
   const [readiness, setReadiness] = useState([]);
+  const [email, setEmail] = useState(null);
   const [rules, setRules] = useState([]);
   const [backups, setBackups] = useState(null);
-  const [backingUp, setBackingUp] = useState(false);
-  const [draft, setDraft] = useState({});
-  const [savingSettings, setSavingSettings] = useState(false);
   const [editRule, setEditRule] = useState(null);
   const [msg, setMsg] = useState('');
   const [error, setError] = useState('');
@@ -133,25 +129,13 @@ export default function SettingsPage() {
     try {
       const [s, r, b] = await Promise.all([api.getSettings(), api.getNotificationRules(), api.getBackups().catch(() => null)]);
       setSettings(s.settings || []); setDiagnostics(s.diagnostics || null); setReadiness(s.readiness || []);
-      setRules(r.rules || []); setBackups(b); setError('');
+      setEmail(s.email || null); setRules(r.rules || []); setBackups(b); setError('');
     } catch (err) { setError(err.message); }
   }
   useEffect(() => { load(); }, []);
+  const alertTo = settings.find((s) => s.key === 'alerts.email_to')?.value || '';
   function flash(m) { setMsg(m); setTimeout(() => setMsg(''), 3000); }
 
-  const valueOf = (key) => (key in draft ? draft[key] : settings.find((s) => s.key === key)?.value);
-  const dirty = Object.keys(draft).length;
-
-  async function saveSettings() {
-    setSavingSettings(true); setError('');
-    try { await api.updateSettings(draft); setDraft({}); await load(); flash('Settings saved.'); }
-    catch (err) { setError(err.message); } finally { setSavingSettings(false); }
-  }
-  async function triggerBackup() {
-    setBackingUp(true); setError('');
-    try { await api.runBackup(); await load(); flash('Backup complete.'); }
-    catch (err) { setError(`Backup failed: ${err.message}`); } finally { setBackingUp(false); }
-  }
   async function removeRule(rule) {
     if (!confirm(`Delete notification rule "${rule.name || rule.channel}"?`)) return;
     try { await api.deleteNotificationRule(rule.id); await load(); } catch (err) { setError(err.message); }
@@ -165,24 +149,6 @@ export default function SettingsPage() {
     catch (err) { setError(err.message); }
   }
 
-  function setField(s, value) { setDraft({ ...draft, [s.key]: s.type === 'int' ? Number(value) : value }); }
-  function Field({ s }) {
-    if (!s) return null;
-    return (
-      <div className="field">
-        <div className="lab"><b>{s.label}</b></div>
-        <div className="ctl">
-          {s.type === 'enum' ? (
-            <div className="seg">{s.values.map((v) => <button key={v} type="button" className={String(valueOf(s.key)) === String(v) ? 'sel' : ''} onClick={() => setField(s, v)}>{v}</button>)}</div>
-          ) : (
-            <input className={s.type === 'int' ? 'num' : ''} type={s.type === 'int' ? 'number' : 'text'} value={valueOf(s.key) ?? ''} onChange={(e) => setField(s, e.target.value)} style={{ marginTop: 0, width: s.type === 'int' ? 90 : 260 }} />
-          )}
-          <span className={`src ${s.source === 'override' ? 'override' : ''}`}>{s.source}</span>
-        </div>
-      </div>
-    );
-  }
-  const byKey = (k) => settings.find((s) => s.key === k);
 
   return (
     <div className="settings-page">
@@ -202,20 +168,11 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* save bar */}
-      <div className={`savebar ${dirty ? 'on' : ''}`}>
-        {dirty ? (
-          <><span className="led warn" /><b>{dirty} unsaved {dirty === 1 ? 'change' : 'changes'}</b><span style={{ flex: 1 }} />
-            <button onClick={() => setDraft({})}>Discard</button>
-            <button className="primary" onClick={saveSettings} disabled={savingSettings}>{savingSettings ? 'Saving…' : 'Save changes'}</button></>
-        ) : <span className="saved"><span className="led ok" /> All changes saved</span>}
-      </div>
-
       {/* Notifications */}
       <section className="set-section">
         <div className="sec-head"><div><h2>Notifications</h2><p>What Astrodock tells you about, and how. With no rules, it emails the alert address for health &amp; deploy events at warning+.</p></div><button className="primary" onClick={() => setEditRule({})}>+ Add rule</button></div>
-        {rules.length === 0 ? <EmptyState icon="settings" title="No Rules Yet"
-          body="Rules let you hold back or reshape traffic before it reaches an app." /> : (
+        {rules.length === 0 ? <EmptyState icon="settings" title="No Custom Rules"
+          body="Astrodock already emails the alert address about health and deploy problems. Add a rule to send somewhere else — a Slack or Discord webhook, a second address — or to change what counts as worth telling you about." /> : (
           <table className="data-table">
             <thead><tr><th>Name</th><th>How</th><th>Where</th><th>About</th><th>Min sev.</th><th>On</th><th></th></tr></thead>
             <tbody>
@@ -241,50 +198,48 @@ export default function SettingsPage() {
 
       {/* Email */}
       <section className="set-section">
-        <div className="sec-head"><div><h2>Email</h2><p>The email account Astrodock uses to send you alerts.</p></div></div>
-        <div className="field-panel">
-          <Field s={byKey('alerts.email_to')} />
-          <Field s={byKey('alerts.email_from')} />
-          <div className="field">
-            <div className="lab"><b>Email service</b><span className="desc">The provider key is set at install for now.</span></div>
-            <div className="ctl">
-              {diagnostics?.email?.resendConfigured ? <span className="chip ok">connected</span> : <span className="chip warn">not set up</span>}
-              <span className="soon">in-app setup soon</span>
-            </div>
+        <div className="sec-head">
+          <div>
+            <h2>Email</h2>
+            <p>How Astrodock sends you alerts. Nothing signs in by email, so leaving this unset only means alerts stay in the dashboard.</p>
           </div>
+          {email && <span className={`chip ${email.usable ? 'ok' : 'warn'}`}>{email.usable ? `via ${email.provider}` : 'not set up'}</span>}
+        </div>
+        <div className="field-panel" style={{ padding: '20px 22px' }}>
+          <EmailSetup initial={email} onSaved={load} testTo={alertTo} />
         </div>
       </section>
 
-      {/* Logs & privacy */}
-      <section className="set-section">
-        <div className="sec-head"><div><h2>Logs &amp; Privacy</h2><p>What gets recorded, how long it’s kept, and how much visitor data you store.</p></div></div>
-        <div className="field-panel">{LOG_KEYS.map((k) => <Field key={k} s={byKey(k)} />)}</div>
-        <p className="store-note"><b>Where this lives:</b> sign-ins, page visits, the audit trail, and deploy logs are in your database; app runtime logs sit on the server’s disk. Everything stays on your box. <span className="soon">off-box forwarding soon</span></p>
-      </section>
+      <SettingsGroup
+        title="Alerts"
+        description="Where alerts go when a rule does not name its own recipient, and how full the disk gets before Astrodock says something."
+        keys={ALERT_KEYS}
+        settings={settings}
+        onSave={api.updateSettings}
+        onSaved={load}
+      />
 
-      {/* Backups */}
-      {backups && (
-        <section className="set-section">
-          <div className="sec-head"><div><h2>Backups</h2><p>A copy of your database is saved {backups.config.intervalHours > 0 ? `every ${backups.config.intervalHours}h` : '(schedule off)'}, keeping the last {backups.config.keep}, in <code>{backups.config.dir}</code>.</p></div><button className="primary" onClick={triggerBackup} disabled={backingUp}>{backingUp ? 'Backing up…' : 'Back up now'}</button></div>
-          {(backups.backups || []).length === 0 ? <EmptyState icon="file" title="No Backups Yet"
-            body="Backups appear here once one has run." /> : (
-            <table className="data-table">
-              <thead><tr><th>When</th><th>Result</th><th>Size</th><th>How</th><th></th></tr></thead>
-              <tbody>
-                {backups.backups.slice(0, 10).map((b) => (
-                  <tr key={b.id}>
-                    <td>{new Date(b.createdAt).toLocaleString()}</td>
-                    <td><span className="led" style={{ background: b.status === 'success' ? 'var(--accent)' : 'var(--danger)', marginRight: 8 }} />{b.status}{b.error && <span className="hint"> — {b.error.slice(0, 60)}</span>}</td>
-                    <td>{fmtBytes(b.sizeBytes)}</td>
-                    <td>{b.trigger}</td>
-                    <td className="actions"><span className="soon">download / restore soon</span></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </section>
-      )}
+      <SettingsGroup
+        title="Security"
+        description="Applies to everyone who signs in to this dashboard."
+        keys={SECURITY_KEYS}
+        settings={settings}
+        onSave={api.updateSettings}
+        onSaved={load}
+      />
+
+      {/* Logs & privacy */}
+      <SettingsGroup
+        title="Logs & Privacy"
+        description="What gets recorded, how long it is kept, and how much visitor data you store."
+        keys={LOG_KEYS}
+        settings={settings}
+        onSave={api.updateSettings}
+        onSaved={load}
+      />
+      <p className="store-note" style={{ marginTop: -22, marginBottom: 34 }}><b>Where this lives:</b> sign-ins, page visits, the audit trail, and deploy logs are in your database; app runtime logs sit on the server’s disk. Everything stays on your box. <span className="soon">off-box forwarding soon</span></p>
+
+      <BackupsSection backups={backups} onChanged={load} />
 
       {/* System info */}
       {diagnostics && (

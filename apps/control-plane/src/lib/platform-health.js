@@ -26,6 +26,37 @@ async function probeHttp(url) {
   } catch (err) { return { ok: false, error: err.message }; }
 }
 
+// The object store is checked through the S3 API, not by asking whether the port
+// answers. SeaweedFS returns 200 on a bare GET / whether or not the S3 layer is
+// usable, so the old HTTP probe went green for a store that rejected every write:
+// wrong credentials, a missing bucket and a healthy store all looked identical.
+// ListBuckets exercises signing, credentials and the API in one round trip.
+async function probeObjectStore() {
+  const { objectstore } = config;
+  if (!objectstore.accessKey || !objectstore.secretKey) {
+    return { ok: false, error: 'no object-store credentials configured' };
+  }
+  let client;
+  try {
+    const { S3Client, ListBucketsCommand } = require('@aws-sdk/client-s3');
+    client = new S3Client({
+      endpoint: objectstore.endpoint,
+      region: objectstore.region,
+      credentials: { accessKeyId: objectstore.accessKey, secretAccessKey: objectstore.secretKey },
+      forcePathStyle: true,
+      requestHandler: { requestTimeout: 4000, connectionTimeout: 4000 },
+      maxAttempts: 1
+    });
+    const out = await withTimeout(client.send(new ListBucketsCommand({})), 5000);
+    const buckets = (out.Buckets || []).map((b) => b.Name);
+    return { ok: true, buckets: buckets.length, hasPlatformBucket: buckets.includes(objectstore.bucket) };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  } finally {
+    try { client?.destroy(); } catch { /* ignore */ }
+  }
+}
+
 // Days until the admin host's TLS cert expires (auto TLS only). null = unknown/skipped.
 function probeCert() {
   if (config.tlsMode !== 'auto') return Promise.resolve({ ok: true, skipped: true });
@@ -50,7 +81,7 @@ function probeCert() {
 async function probePlatform() {
   const [database, objectstore, runner, cert] = await Promise.all([
     probeDb(),
-    probeHttp(config.objectstore.endpoint),
+    probeObjectStore(),
     probeHttp(`${config.runnerUrl}/health`),
     probeCert()
   ]);
@@ -59,13 +90,29 @@ async function probePlatform() {
 
 // Transition state so we only alert on down→up / up→down edges, not every cycle.
 const wasDown = {};
+const failStreak = {};
 let last = null;
+
+// A dependency has to fail this many probes in a row before it counts as down.
+// The api process starts in the same second as its siblings and probes them
+// immediately; SeaweedFS and the runner are not listening yet, so a single
+// failed probe used to raise a CRITICAL "unreachable" alert on every boot and
+// leave the dashboard red for the whole two minutes until the next cycle. The
+// dependency was never actually down. Confirming across cycles costs a little
+// detection latency and buys an alert that means something.
+const FAILURES_BEFORE_DOWN = 2;
 
 async function checkAndAlert() {
   const snap = await probePlatform();
-  last = snap;
   for (const dep of ['database', 'objectstore', 'runner']) {
-    const down = !snap[dep].ok;
+    const failing = !snap[dep].ok;
+    failStreak[dep] = failing ? (failStreak[dep] || 0) + 1 : 0;
+    const down = failStreak[dep] >= FAILURES_BEFORE_DOWN;
+
+    // Report "starting" rather than "unreachable" while a failure is unconfirmed,
+    // so the dashboard doesn't accuse a dependency that is merely still booting.
+    if (failing && !down) snap[dep].starting = true;
+
     if (down && !wasDown[dep]) {
       emitEvent({ category: 'system', type: 'system.dependency_down', severity: 'critical',
         message: `Platform dependency "${dep}" is unreachable${snap[dep].error ? `: ${snap[dep].error}` : ''}`,
@@ -76,6 +123,7 @@ async function checkAndAlert() {
     }
     wasDown[dep] = down;
   }
+  last = snap;
   if (snap.cert && snap.cert.ok && typeof snap.cert.daysLeft === 'number' && snap.cert.daysLeft <= 14) {
     emitEvent({ category: 'system', type: 'system.cert_expiring', severity: 'warning',
       message: `TLS certificate for the admin host expires in ${snap.cert.daysLeft} day(s)`,
@@ -87,8 +135,19 @@ async function checkAndAlert() {
 function getLast() { return last; }
 
 function startPlatformHealth(intervalMs = 120000) {
-  checkAndAlert().catch(() => {});
-  setInterval(() => checkAndAlert().catch(() => {}), intervalMs);
+  // Confirming a failure needs a second probe, so when something looks wrong,
+  // come back in seconds rather than waiting out the full cycle — otherwise
+  // requiring two failures would push real detection to four minutes.
+  const RECHECK_MS = 10000;
+  let timer = null;
+  const tick = async () => {
+    let snap = null;
+    try { snap = await checkAndAlert(); } catch { /* keep the loop alive */ }
+    const unconfirmed = snap && ['database', 'objectstore', 'runner'].some((d) => snap[d]?.starting);
+    timer = setTimeout(tick, unconfirmed ? RECHECK_MS : intervalMs);
+    if (timer.unref) timer.unref();
+  };
+  tick();
 }
 
 module.exports = { probePlatform, checkAndAlert, startPlatformHealth, getLast };

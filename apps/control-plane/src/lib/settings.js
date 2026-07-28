@@ -29,34 +29,42 @@ const config = require('../config');
 const REGISTRY = {
   'alerts.email_to': {
     label: 'Alert recipient', type: 'string',
+    description: 'Where health and deploy alerts are sent when a notification rule does not name its own recipient.',
     default: () => config.email.alertTo || ''
   },
   'alerts.email_from': {
     label: 'Email “from” address', type: 'string',
+    description: 'The address alerts appear to come from. It must be one your email provider is allowed to send as.',
     default: () => config.email.from
   },
   'logging.page_view_ip': {
     label: 'Store visitor IPs in page access logs', type: 'enum',
+    description: 'How much of a visitor IP address is kept in page access logs. Truncated drops the last octet; off stores none.',
     values: ['full', 'truncated', 'off'], default: () => 'full'
   },
   'logging.auth_log_retention_days': {
     label: 'Auth-log retention (days)', type: 'int',
+    description: 'How long sign-in records are kept before being deleted.',
     default: () => 90
   },
   'logging.page_view_retention_days': {
     label: 'Page access-log retention (days)', type: 'int',
+    description: 'How long page access logs are kept before being deleted.',
     default: () => 90
   },
   'logging.app_access_logs': {
     label: 'Caddy access logs for deployed apps', type: 'enum',
+    description: 'Record every HTTP request to your deployed apps. Off by default — it is the noisiest thing the platform can store.',
     values: ['off', 'on'], default: () => 'off'
   },
   'security.require_mfa': {
     label: 'Require two-factor authentication for all operators', type: 'enum',
+    description: 'Every operator must hold a passkey or authenticator app before they can sign in. You need one yourself before this can be turned on.',
     values: ['off', 'on'], default: () => 'off'
   },
   'alerts.disk_threshold_percent': {
     label: 'Disk-usage alert threshold (%)', type: 'int',
+    description: 'Raise a warning once the disk is this full.',
     default: () => 85
   }
 };
@@ -199,6 +207,7 @@ async function effective() {
       label: def.label,
       type: def.type,
       values: def.values || null,
+      description: def.description || null,
       value: has ? overrides.get(key) : def.default(),
       source: has ? 'override' : 'default'
     };
@@ -222,7 +231,7 @@ function diagnostics() {
     basePort: config.basePort,
     postgres: { host: config.pg.host, port: config.pg.port, database: config.pg.database, password: mask(config.pg.password) },
     objectstore: { endpoint: config.objectstore.endpoint, bucket: config.objectstore.bucket, accessKey: mask(config.objectstore.accessKey) },
-    email: { from: config.email.from, resendConfigured: !!config.email.resendApiKey, alertTo: config.email.alertTo || '(unset)' },
+    email: { from: config.email.from, alertTo: config.email.alertTo || '(unset)' },
     github: { owner: config.github.owner || '(unset)', pat: mask(config.github.pat) },
     runner: { url: config.runnerUrl, token: mask(config.runnerToken) },
     features: { secretEncryption: isEnabled() }
@@ -276,11 +285,13 @@ async function exposureCheck() {
 }
 
 // Boot-time nudges toward a production-ready config.
-function readiness() {
+async function readiness() {
   const { isEnabled } = require('./crypto');
+  const emailConfig = require('./email-config');
   const enc = isEnabled();
-  const hasAlert = !!config.email.alertTo;
-  const hasEmail = !!config.email.resendApiKey;
+  const email = await emailConfig.describe().catch(() => ({ usable: false }));
+  const hasAlert = !!(await getSetting('alerts.email_to', config.email.alertTo));
+  const hasEmail = email.usable;
   const configured = config.isConfigured();
   return [
     // First card on purpose: without a domain nothing can be published, and this is
@@ -294,7 +305,9 @@ function readiness() {
     { key: 'alert_email', ok: hasAlert, level: hasAlert ? 'ok' : 'warning',
       message: hasAlert ? 'Alert recipient is configured.' : 'No alert recipient set — health/deploy alerts have nowhere to go.' },
     { key: 'email_provider', ok: hasEmail, level: hasEmail ? 'ok' : 'warning',
-      message: hasEmail ? 'Email delivery is configured.' : 'No email provider (ASTRODOCK_RESEND_API_KEY) — email alerts will not send.' }
+      message: hasEmail
+        ? `Email delivery is set up (${email.provider}).`
+        : 'No email provider set up — alerts have nowhere to go. Settings → Email.' }
   ];
 }
 

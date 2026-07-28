@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import EmailSetup from '../components/EmailSetup';
 import { claimAdmin, checkSetupDns, setSetupDomain, deferSetupDomain, getDnsProviders, createDnsRecord, login, setToken } from '../lib/api';
 
 // First-run setup. This is what replaces hand-editing .env before the first boot:
@@ -62,7 +63,7 @@ const REGISTRARS = [
 ];
 
 function Stepper({ step, needsClaim }) {
-  const steps = needsClaim ? ['Administrator', 'Domain & HTTPS'] : ['Domain & HTTPS'];
+  const steps = needsClaim ? ['Administrator', 'Domain & HTTPS', 'Email'] : ['Domain & HTTPS', 'Email'];
   const offset = needsClaim ? 0 : 1;
   return (
     <div className="setup-steps">
@@ -98,6 +99,10 @@ export default function SetupPage({ status }) {
   const [acmeEmail, setAcmeEmail] = useState(status.acmeEmail || '');
   const [dns, setDns] = useState(null);
   const [done, setDone] = useState(null);
+  // `done` is the handoff payload; `finished` is whether we are showing it yet.
+  // Email sits between the two — the box still answers on this address until the
+  // operator follows the link, so it is the last quiet moment to set it up.
+  const [finished, setFinished] = useState(false);
 
   // Optional "create the record for me" path.
   const [providers, setProviders] = useState([]);
@@ -181,6 +186,7 @@ export default function SetupPage({ status }) {
     setError(''); setBusy(true);
     try {
       setDone(await setSetupDomain(baseDomain.trim(), tlsMode, acmeEmail.trim()));
+      setStep(3);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -205,11 +211,11 @@ export default function SetupPage({ status }) {
         </div>
         <p className="login-subtitle">Set up your platform</p>
 
-        {!done && <Stepper step={step} needsClaim={needsClaim} />}
+        {!finished && <Stepper step={step} needsClaim={needsClaim} />}
         {error && <div className="error">{error}</div>}
 
         {/* ── done ─────────────────────────────────────────────────────────── */}
-        {done && (
+        {finished && done && (
           <div className="setup-body">
             <div className="callout ok">
               <b>That's it — Astrodock is configured.</b>
@@ -240,7 +246,7 @@ export default function SetupPage({ status }) {
         )}
 
         {/* ── step 1: claim the administrator ──────────────────────────────── */}
-        {!done && step === 1 && (
+        {!finished && step === 1 && (
           <form className="setup-body" onSubmit={handleClaim}>
             <div className="callout">
               <b>First, prove this server is yours.</b>
@@ -304,7 +310,7 @@ export default function SetupPage({ status }) {
         )}
 
         {/* ── step 2: domain + HTTPS ───────────────────────────────────────── */}
-        {!done && step === 2 && (
+        {!finished && step === 2 && (
           <form className="setup-body" onSubmit={handleSaveDomain}>
             <div className="callout">
               <b>Where should your apps live?</b>
@@ -491,6 +497,33 @@ export default function SetupPage({ status }) {
               </p>
             </div>
           </form>
+        )}
+
+        {/* ── step 3: email (optional) ─────────────────────────────────────── */}
+        {!finished && step === 3 && (
+          <div className="setup-body">
+            <div className="callout">
+              <b>Where should alerts go?</b>
+              <p>
+                Astrodock emails you when an app goes down, a deploy fails, or a backup does not
+                run. Nothing signs in by email, so this is safe to skip — you would just be
+                relying on checking the dashboard yourself.
+              </p>
+            </div>
+
+            <EmailSetup compact testTo={email} onSaved={() => {}} />
+
+            <button type="button" className="login-btn" onClick={() => setFinished(true)}
+              style={{ marginTop: 8 }}>
+              Continue
+            </button>
+            <div className="setup-skip">
+              <button type="button" className="link-btn" onClick={() => setFinished(true)}>
+                Skip for now
+              </button>
+              <p className="field-help">You can set this up any time under Settings → Email.</p>
+            </div>
+          </div>
         )}
       </div>
     </div>

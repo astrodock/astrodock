@@ -228,6 +228,40 @@ export const getAppAccessLogs = (slug) => request(`/apps/${slug}/access-logs`);
 // Backups
 export const getBackups = () => request('/backups');
 export const runBackup = () => request('/backups', { method: 'POST' });
+export const restoreBackup = (id) =>
+  request(`/backups/${id}/restore`, { method: 'POST' });
+
+// Downloads bypass request(): the body is a gzip stream, not JSON, and it has to
+// reach the browser as a file rather than a parsed object.
+export async function downloadBackup(id) {
+  const res = await fetch(`${API_BASE}/backups/${id}/file`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {}
+  });
+  if (!res.ok) {
+    let message = `Download failed (${res.status})`;
+    try { message = (await res.json()).error || message; } catch { /* keep the default */ }
+    throw new ApiError(message, { status: res.status });
+  }
+  const disposition = res.headers.get('content-disposition') || '';
+  const name = /filename="?([^"]+)"?/.exec(disposition)?.[1] || `astrodock-backup-${id}.sql.gz`;
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  return name;
+}
+
+export async function uploadBackup(file) {
+  const res = await fetch(`${API_BASE}/backups/upload`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/gzip', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    body: file
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new ApiError(body.error || `Upload failed (${res.status})`, { status: res.status, body });
+  return body;
+}
 
 // API Tokens (scoped tokens for the CLI / agents)
 export const getTokens = () => request('/tokens');
@@ -240,6 +274,15 @@ export const deleteToken = (id) =>
 export const getSettings = () => request('/settings');
 export const updateSettings = (updates) =>
   request('/settings', { method: 'PATCH', body: JSON.stringify({ updates }) });
+
+// Email delivery. Separate from the settings PATCH because it carries credentials:
+// they are written encrypted and never read back, so the UI only ever learns
+// whether a credential is set, not what it is.
+export const getEmailConfig = () => request('/settings/email');
+export const updateEmailConfig = (data) =>
+  request('/settings/email', { method: 'PUT', body: JSON.stringify(data) });
+export const sendTestEmail = (to) =>
+  request('/settings/email/test', { method: 'POST', body: JSON.stringify({ to }) });
 
 // Notification rules + delivery log
 export const getNotificationRules = () => request('/notifications');

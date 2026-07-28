@@ -23,6 +23,16 @@ async function call(method, path, { json, raw, query } = {}) {
   return { status: res.status, body };
 }
 
+// Same transport, but hands back the raw Response so a caller can stream a body
+// through instead of buffering a multi-gigabyte dump into a string.
+async function callStream(method, path, { body, headers: extra } = {}) {
+  try {
+    return await fetch(`${config.runnerUrl}${path}`, { method, headers: headers(extra), body, duplex: body ? 'half' : undefined });
+  } catch (err) {
+    const e = new Error(`runner unreachable: ${err.message}`); e.status = 503; throw e;
+  }
+}
+
 // Deploy + process control + storage identity provisioning.
 const runner = {
   deploy: (appSlug, opts = {}) => call('POST', '/deploy', { json: { appSlug, ...opts } }),
@@ -36,6 +46,9 @@ const runner = {
   remove: (slug) => call('POST', `/apps/${slug}/remove`),
   logs: (slug, lines) => call('GET', `/apps/${slug}/logs`, { query: { lines: lines || 100 } }),
   backup: (trigger = 'manual') => call('POST', '/backup', { json: { trigger } }),
+  backupFile: (id) => callStream('GET', `/backup/${id}/file`),
+  backupUpload: (buffer, actor) => call('POST', `/backup/upload?actor=${encodeURIComponent(actor || '')}`, { raw: buffer }),
+  backupRestore: (id, actor) => call('POST', `/backup/${id}/restore`, { json: { actor } }),
   exposure: () => call('GET', '/exposure'),
   opsList: (slug, p) => call('GET', `/apps/${slug}/ops/list`, { query: { path: p || '.' } }),
   opsFile: (slug, p) => call('GET', `/apps/${slug}/ops/file`, { query: { path: p } }),
@@ -44,4 +57,4 @@ const runner = {
   opsRun: (slug, name) => call('POST', `/apps/${slug}/ops/run`, { json: { name } })
 };
 
-module.exports = { runner };
+module.exports = { runner, callStream };

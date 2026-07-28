@@ -2,7 +2,7 @@
   "name": "@astrodock/control-plane",
   "version": "0.1.0",
   "private": true,
-  "description": "Astrodock control plane — Express API, /verify auth gate, deploy orchestration, runner, health monitor.",
+  "description": "Astrodock control plane \u2014 Express API, /verify auth gate, deploy orchestration, runner, health monitor.",
   "license": "MIT",
   "main": "server.js",
   "scripts": {
@@ -10,7 +10,8 @@
     "dev": "ASTRODOCK_ENV=development node --watch server.js",
     "migrate": "node src/db/migrate.js",
     "seed": "node src/seed.js",
-    "test": "node test/unit.mjs && node test/scopes.mjs && node test/pages-unit.mjs && node test/smoke.mjs && node test/auth-factors.test.mjs && node test/oauth.test.mjs && node test/auth.test.mjs && node test/pages.test.mjs"
+    "test": "node test/unit.mjs && node test/scopes.mjs && node test/pages-unit.mjs && node test/smoke.mjs && node test/auth-factors.test.mjs && node test/oauth.test.mjs && node test/auth.test.mjs && node test/pages.test.mjs && node test/backup-restore.test.mjs",
+    "test:restore": "sh test/with-restore-pg.sh"
   },
   "dependencies": {
     "@astrodock/schema": "*",
@@ -25,6 +26,7 @@
     "express-rate-limit": "^7.5.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.0",
+    "nodemailer": "^9.0.3",
     "postgres": "^3.4.5"
   },
   "devDependencies": {

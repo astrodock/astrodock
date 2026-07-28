@@ -56,7 +56,11 @@ export default function OverviewPage() {
     t: rel(ev.createdAt)
   }));
 
-  const dep = (p, okV, downV) => p ? (p.ok ? ['ok', okV] : ['crit', p.error ? 'down' : downV]) : ['', '—'];
+  // `starting` = one failed probe, not yet confirmed; usually a container still booting.
+  const dep = (p, okV, downV) => !p ? ['', '—']
+    : p.ok ? ['ok', okV]
+      : p.starting ? ['warn', 'starting…']
+        : ['crit', p.error ? 'down' : downV];
   const deps = platform ? [
     ['Database', ...dep(platform.database, `${platform.database?.responseTime != null ? '' : ''}ok`, 'down')],
     ['Object store', ...dep(platform.objectstore, 'ok', 'down')],

@@ -138,7 +138,10 @@ const config = {
     dir: process.env.ASTRODOCK_BACKUP_DIR || '/data/backups',
     intervalHours: int(process.env.ASTRODOCK_BACKUP_INTERVAL_HOURS, 24), // 0 = disabled
     keep: int(process.env.ASTRODOCK_BACKUP_KEEP, 7),
-    pgContainer: process.env.ASTRODOCK_PG_CONTAINER || 'astrodock-postgres-1'
+    pgContainer: process.env.ASTRODOCK_PG_CONTAINER || 'astrodock-postgres-1',
+    // Restarted by the runner after a restore, so the api reconnects to the
+    // replaced database instead of serving what it had cached.
+    apiContainer: process.env.ASTRODOCK_API_CONTAINER || 'astrodock-api-1'
   },
 
   // Deploy build timeouts (per command). A hung build fails instead of wedging the runner.

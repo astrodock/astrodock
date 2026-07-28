@@ -150,6 +150,42 @@ app.post('/backup', express.json(), async (req, res) => {
   res.status(result.ok ? 200 : 500).json(result);
 });
 
+// Read a dump back out. The file lives on the runner's volume, so the api
+// streams it through from here rather than mounting the volume itself.
+app.get('/backup/:id/file', async (req, res) => {
+  const backups = require('../lib/backups');
+  try {
+    const { row, file } = await backups.findBackup(req.params.id);
+    res.setHeader('Content-Type', 'application/gzip');
+    res.setHeader('Content-Length', String(row.sizeBytes || 0));
+    res.setHeader('Content-Disposition', `attachment; filename="${require('path').basename(file)}"`);
+    require('fs').createReadStream(file).pipe(res);
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
+// Accept a dump someone is carrying back in.
+app.post('/backup/upload', express.raw({ type: '*/*', limit: '2gb' }), async (req, res) => {
+  const backups = require('../lib/backups');
+  try { res.json(await backups.saveUploadedBackup(req.body, { actor: req.query.actor })); }
+  catch (err) { res.status(400).json({ error: err.message }); }
+});
+
+// Overwrite the live database. Only the runner can do this — the api would be
+// dropping the database it is answering from — and the api is restarted after,
+// once this response is safely out the door.
+app.post('/backup/:id/restore', express.json(), async (req, res) => {
+  const backups = require('../lib/backups');
+  try {
+    const result = await backups.restoreBackup({ id: req.params.id, actor: req.body?.actor });
+    res.json(result);
+    backups.restartApiSoon();
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message, safetyBackup: err.safetyBackup });
+  }
+});
+
 // The base domain can change at runtime (first-run wizard, or an operator moving
 // domains later), and this process renders hostnames for health probes and env
 // injection. It has no way to be notified, so it re-reads the stored value on an
