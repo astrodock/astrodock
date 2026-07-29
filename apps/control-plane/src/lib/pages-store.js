@@ -6,7 +6,7 @@
 
 const {
   S3Client, HeadBucketCommand, CreateBucketCommand,
-  PutObjectCommand, GetObjectCommand, DeleteObjectCommand, DeleteObjectsCommand, ListObjectsV2Command
+  PutObjectCommand, GetObjectCommand, CopyObjectCommand, DeleteObjectCommand, DeleteObjectsCommand, ListObjectsV2Command
 } = require('@aws-sdk/client-s3');
 const config = require('../config');
 
@@ -58,6 +58,33 @@ async function deleteFile(pageId, name) {
 }
 
 // Delete every object under a page's prefix (used on page delete). Best-effort.
+// Move every object from one page prefix to another. Used when a page is given a
+// new public id: the id is baked into the storage key, so the files have to
+// follow it or the page comes back empty.
+async function movePrefix(fromPageId, toPageId) {
+  const c = client();
+  let moved = 0;
+  try {
+    let token;
+    do {
+      const list = await c.send(new ListObjectsV2Command({ Bucket: BUCKET, Prefix: `${fromPageId}/`, ContinuationToken: token }));
+      for (const o of list.Contents || []) {
+        const rest = o.Key.slice(`${fromPageId}/`.length);
+        await c.send(new CopyObjectCommand({
+          Bucket: BUCKET, Key: `${toPageId}/${rest}`,
+          CopySource: `/${BUCKET}/${encodeURIComponent(o.Key).replace(/%2F/g, '/')}`
+        }));
+        moved++;
+      }
+      token = list.IsTruncated ? list.NextContinuationToken : undefined;
+    } while (token);
+  } finally { c.destroy(); }
+  // Only once every copy has succeeded — a half-moved page with its originals
+  // already deleted is unrecoverable.
+  await deleteAll(fromPageId);
+  return moved;
+}
+
 async function deleteAll(pageId) {
   const c = client();
   try {
@@ -72,4 +99,4 @@ async function deleteAll(pageId) {
   finally { c.destroy(); }
 }
 
-module.exports = { putFile, getFile, deleteFile, deleteAll, keyFor, BUCKET };
+module.exports = { movePrefix, putFile, getFile, deleteFile, deleteAll, keyFor, BUCKET };

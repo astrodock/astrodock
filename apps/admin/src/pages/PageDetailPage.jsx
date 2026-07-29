@@ -1,11 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import * as api from '../lib/api';
-import EmptyState from '../components/EmptyState';
-
-const TEXT_EXTS = ['html', 'htm', 'css', 'js', 'mjs', 'json', 'txt', 'md', 'csv', 'xml', 'svg', 'yml', 'yaml'];
-const isText = (n) => TEXT_EXTS.includes((n.split('.').pop() || '').toLowerCase());
-const fmtSize = (b) => (b < 1024 ? `${b} B` : b < 1024 * 1024 ? `${(b / 1024).toFixed(1)} KB` : `${(b / 1048576).toFixed(1)} MB`);
+import PageFiles from '../components/PageFiles';
 
 export default function PageDetailPage() {
   const { pageId } = useParams();
@@ -19,8 +15,7 @@ export default function PageDetailPage() {
   const [editing, setEditing] = useState(null); // { name, content }
   const [busy, setBusy] = useState(false);
   const [views, setViews] = useState(null);
-  const fileRef = useRef();
-  const dirRef = useRef();
+  const [reissue, setReissue] = useState(false);
 
   async function load() {
     try {
@@ -38,19 +33,6 @@ export default function PageDetailPage() {
     catch (err) { setError(err.message); }
   }
 
-  async function uploadFrom(input) {
-    const files = Array.from(input.files || []);
-    if (!files.length) return;
-    setBusy(true); setError('');
-    try {
-      const paths = files.map((f) => (f.webkitRelativePath ? f.webkitRelativePath.split('/').slice(1).join('/') : f.name));
-      await api.uploadPageFiles(pageId, files, paths);
-      input.value = '';
-      await load(); flash(`Uploaded ${files.length} file${files.length > 1 ? 's' : ''}.`);
-    } catch (err) { setError(err.message); }
-    finally { setBusy(false); }
-  }
-
   async function openEditor(name) {
     setError('');
     try { const { content } = await api.getPageFileContent(pageId, name); setEditing({ name, content }); }
@@ -61,18 +43,6 @@ export default function PageDetailPage() {
     try { await api.savePageFileContent(pageId, editing.name, editing.content); setEditing(null); await load(); flash('Saved.'); }
     catch (err) { setError(err.message); }
     finally { setBusy(false); }
-  }
-  async function newFile() {
-    const name = prompt('New file name (e.g. index.html or notes.md):');
-    if (!name) return;
-    try { await api.savePageFileContent(pageId, name, ''); await load(); openEditor(name); }
-    catch (err) { setError(err.message); }
-  }
-  async function removeFile(name) {
-    if (!confirm(`Delete "${name}"?`)) return;
-    setError('');
-    try { await api.deletePageFile(pageId, name); await load(); flash('File deleted.'); }
-    catch (err) { setError(err.message); }
   }
 
   function copy(text, note) { navigator.clipboard?.writeText(text).then(() => flash(note || 'Copied.')); }
@@ -97,21 +67,57 @@ export default function PageDetailPage() {
 
       {/* Share */}
       <div className="card">
-        <h2>Share</h2>
-        <div className="kv"><span>Link</span>
-          <code>{page.url}</code>
-          <button className="link-btn" onClick={() => copy(page.url, 'Link copied.')}>copy</button>
-          <a href={page.url} target="_blank" rel="noopener" className="app-link">open</a>
-          <button className={`toggle-btn ${page.isActive ? 'on' : 'off'}`} onClick={() => patch({ isActive: !page.isActive }, page.isActive ? 'Deactivated.' : 'Activated.')}>
-            {page.isActive ? 'Active' : 'Inactive'}
-          </button>
-        </div>
-        {keyLink && (
-          <div className="kv"><span>Frictionless link</span>
-            <code>{keyLink}</code>
-            <button className="link-btn" onClick={() => copy(keyLink, 'Link with key copied.')}>copy</button>
+        <div className="sec-head" style={{ marginBottom: 12 }}>
+          <div>
+            <h2>Share</h2>
+            <p>Where this page lives, and whether it answers at all.</p>
           </div>
+          <span className={`chip ${page.isActive ? 'ok' : 'warn'}`}>
+            {page.isActive ? 'Published' : 'Unpublished'}
+          </span>
+        </div>
+
+        <div className="linkbar">
+          <code>{page.url}</code>
+          <button onClick={() => copy(page.url, 'Link copied.')}>Copy</button>
+          <a className="btnlike" href={page.url} target="_blank" rel="noopener">Open ↗</a>
+        </div>
+
+        {keyLink && (
+          <>
+            <p className="hint" style={{ marginTop: 14, marginBottom: 6 }}>
+              With the passkey built in — anyone holding this link gets straight in, no prompt.
+            </p>
+            <div className="linkbar">
+              <code>{keyLink}</code>
+              <button onClick={() => copy(keyLink, 'Link with key copied.')}>Copy</button>
+              <a className="btnlike" href={keyLink} target="_blank" rel="noopener">Open ↗</a>
+            </div>
+          </>
         )}
+
+        <div className="opt-list" style={{ marginTop: 16 }}>
+          <div className={`opt-row ${page.isActive ? 'on' : ''}`}>
+            <span className="name">
+              Published
+              <span className="info" data-tip="Unpublished, the address returns 404 for everyone — including anyone holding a link, and including you. Nothing is deleted; switch it back on and it returns.">i</span>
+            </span>
+            <span className={`mini-toggle ${page.isActive ? 'on' : ''}`} role="switch" aria-checked={page.isActive}
+              aria-label="Published"
+              onClick={() => patch({ isActive: !page.isActive }, page.isActive ? 'Unpublished — the address now 404s.' : 'Published.')} />
+          </div>
+        </div>
+
+        <div className="sec-head" style={{ marginTop: 20, marginBottom: 8 }}>
+          <div>
+            <h3 style={{ fontSize: 15, fontWeight: 600 }}>Change the address</h3>
+            <p>
+              Gives this page a brand-new id and moves its files across. Every link anyone
+              already has stops working — which is the point, if one went further than you meant.
+            </p>
+          </div>
+          <button className="danger" onClick={() => setReissue(true)}>New Address</button>
+        </div>
       </div>
 
       {/* Access */}
@@ -165,57 +171,122 @@ export default function PageDetailPage() {
       {/* Analytics */}
       {views && (
         <div className="card">
-          <h2>Analytics</h2>
-          <div className="kv"><span>Total views</span><code>{views.views}</code></div>
-          <div className="kv"><span>Last 7 days</span><code>{views.last7d} accesses</code></div>
-          <div className="kv"><span>Unique visitors</span><code>{views.uniqueIps}</code></div>
-          {views.topReferrers?.length > 0 && (
-            <div className="kv"><span>Top referrers</span><code>{views.topReferrers.map((r) => `${r.key} (${r.count})`).join(', ')}</code></div>
+          <div className="sec-head" style={{ marginBottom: 12 }}>
+            <div>
+              <h2>Analytics</h2>
+              <p>
+                Every request is logged, not just page loads — a stylesheet or an image counts as
+                an access. The split below keeps the two apart.
+              </p>
+            </div>
+          </div>
+
+          <div className="stat-row">
+            <div className="stat"><b>{views.views}</b><span>Page loads, all time</span></div>
+            <div className="stat"><b>{views.uniqueIps}</b><span>Distinct visitors seen</span></div>
+            <div className="stat"><b>{views.last7d}</b><span>Requests, last 7 days</span></div>
+          </div>
+
+          {views.breakdown && (
+            <div className="opt-list" style={{ marginTop: 14 }}>
+              <div className="opt-row">
+                <span className="name">Page loads<code>{views.entryFile}</code></span>
+                <span className="mono">{views.breakdown.loads}</span>
+              </div>
+              <div className="opt-row">
+                <span className="name">
+                  Sub-resources
+                  <span className="info" data-tip="Stylesheets, scripts, images and anything else the page pulls in after it loads.">i</span>
+                </span>
+                <span className="mono">{views.breakdown.assets}</span>
+              </div>
+              {views.breakdown.notFound > 0 && (
+                <div className="opt-row">
+                  <span className="name" style={{ color: 'var(--danger)' }}>Not found</span>
+                  <span className="mono">{views.breakdown.notFound}</span>
+                </div>
+              )}
+              {views.breakdown.denied > 0 && (
+                <div className="opt-row">
+                  <span className="name" style={{ color: 'var(--warning)' }}>Turned away</span>
+                  <span className="mono">{views.breakdown.denied}</span>
+                </div>
+              )}
+            </div>
           )}
+
+          {views.topMissing?.length > 0 && (
+            <>
+              <p className="hint" style={{ marginTop: 14, marginBottom: 6 }}>
+                <b>Requested but missing.</b> Usually a file the page links to that was never uploaded.
+              </p>
+              <div className="opt-list">
+                {views.topMissing.map((m) => (
+                  <div className="opt-row" key={m.key}>
+                    <span className="name mono" style={{ color: 'var(--danger)' }}>{m.key || '(root)'}</span>
+                    <span className="mono">{m.count}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
           {views.topPaths?.length > 0 && (
-            <div className="kv"><span>Top paths</span><code>{views.topPaths.map((p) => `${p.key} (${p.count})`).join(', ')}</code></div>
+            <>
+              <p className="hint" style={{ marginTop: 14, marginBottom: 6 }}>Most requested</p>
+              <div className="opt-list">
+                {views.topPaths.map((t) => (
+                  <div className="opt-row" key={t.key}>
+                    <span className="name mono">{t.key || '(root)'}</span>
+                    <span className="mono">{t.count}</span>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
-          <p className="hint">From the last {views.sampleSize} logged accesses. Visitor-IP capture is controlled in Settings.</p>
+
+          {views.topReferrers?.length > 0 && (
+            <>
+              <p className="hint" style={{ marginTop: 14, marginBottom: 6 }}>Came from</p>
+              <div className="opt-list">
+                {views.topReferrers.map((r) => (
+                  <div className="opt-row" key={r.key}>
+                    <span className="name mono">{r.key}</span>
+                    <span className="mono">{r.count}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          <p className="hint" style={{ marginTop: 14 }}>
+            From the last {views.sampleSize} logged requests. How much of a visitor's IP is kept —
+            or whether any is — is set under Settings → Logs &amp; Privacy.
+          </p>
         </div>
       )}
 
-      {/* Files */}
-      <div className="card">
-        <div className="page-header" style={{ marginBottom: 8 }}>
-          <h2 style={{ margin: 0 }}>Files</h2>
-          <div className="modal-actions" style={{ margin: 0 }}>
-            <button onClick={newFile}>New Text File</button>
-            <button onClick={() => fileRef.current?.click()} disabled={busy}>Upload Files</button>
-            <button onClick={() => dirRef.current?.click()} disabled={busy}>Upload Folder</button>
-            <input ref={fileRef} type="file" multiple hidden onChange={(e) => uploadFrom(e.target)} />
-            <input ref={dirRef} type="file" multiple webkitdirectory="" directory="" hidden onChange={(e) => uploadFrom(e.target)} />
-          </div>
-        </div>
-        {(page.files || []).length === 0 ? (
-          <EmptyState icon="file" title="No Files Yet"
-            body="Upload files or create a text file, and they will be served as part of this page." />
-        ) : (
-          <table className="data-table">
-            <thead><tr><th>Name</th><th>Type</th><th>Size</th><th>Entry</th><th>Actions</th></tr></thead>
-            <tbody>
-              {page.files.map((f) => (
-                <tr key={f.name}>
-                  <td><code>{f.name}</code></td>
-                  <td className="text-muted">{f.contentType?.split(';')[0]}</td>
-                  <td>{fmtSize(f.size)}</td>
-                  <td>{f.name === page.entryFile
-                    ? <span className="pill">entry</span>
-                    : <button className="link-btn" onClick={() => patch({ entryFile: f.name }, 'Entry set.')}>set entry</button>}</td>
-                  <td className="actions">
-                    {isText(f.name) && <button className="link-btn" onClick={() => openEditor(f.name)}>edit</button>}
-                    <button className="danger" onClick={() => removeFile(f.name)}>delete</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+      <PageFiles
+        page={page}
+        pageId={pageId}
+        onChanged={async (body, note) => { if (body) await patch(body, note); else await load(); }}
+        onEdit={openEditor}
+        onError={setError}
+        flash={flash}
+      />
+
+      {reissue && (
+        <ReissueModal
+          page={page}
+          onClose={() => setReissue(false)}
+          onDone={(res) => {
+            setReissue(false);
+            navigate(`/pages/${res.page.pageId}`, { replace: true });
+            flash(`New address issued. ${res.previousPageId} no longer resolves.`);
+          }}
+          onError={setError}
+        />
+      )}
 
       {editing && (
         <div className="modal-overlay" onClick={() => setEditing(null)}>
@@ -229,6 +300,53 @@ export default function PageDetailPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function ReissueModal({ page, onClose, onDone, onError }) {
+  const [typed, setTyped] = useState('');
+  const [busy, setBusy] = useState(false);
+  const ready = typed.trim() === page.pageId;
+
+  return (
+    <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <form className="modal" noValidate onSubmit={async (e) => {
+        e.preventDefault();
+        if (!ready) return;
+        setBusy(true);
+        try { onDone(await api.reissuePageId(page.pageId)); }
+        catch (err) { onError(err.message); setBusy(false); }
+      }}>
+        <h2>Give This Page a New Address</h2>
+
+        <div className="rcard crit" style={{ marginBottom: 14 }}>
+          <span className="led crit" />
+          <span>
+            <b>Every existing link stops working.</b> Anyone who bookmarked it, or was sent it,
+            gets a 404 with no hint of where it went. There is no redirect and no undo.
+          </span>
+        </div>
+
+        <ul className="plain-list">
+          <li>The files are copied to the new address first, then removed from the old one — nothing is lost.</li>
+          <li>Any passkey stays the same. Rotate that separately if the key is what leaked.</li>
+          <li>Your analytics carry over; they follow the page, not the address.</li>
+        </ul>
+
+        <label>
+          Type <code>{page.pageId}</code> to confirm
+          <input value={typed} onChange={(e) => setTyped(e.target.value)} autoFocus spellCheck="false"
+            placeholder={page.pageId} />
+        </label>
+
+        <div className="modal-actions">
+          <button type="button" onClick={onClose}>Cancel</button>
+          <button type="submit" className="danger" disabled={busy || !ready}>
+            {busy ? 'Moving files…' : 'Issue a New Address'}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

@@ -821,3 +821,38 @@ label.has-error > input:focus, input.invalid:focus {
   margin-top: 6px; font-size: 12.5px; font-weight: 500; color: var(--danger);
 }
 .field-error::before { content: "—"; opacity: .6; }
+
+/* ── page files: breadcrumbs, drop target, link bar ──────────── */
+.crumbs { display:flex; align-items:center; gap:2px; margin-bottom:10px; font-size:13px; flex-wrap:wrap; }
+.crumb { background:transparent; border:0; color:var(--text-3); font-family:var(--font); font-size:13px;
+  padding:3px 7px; border-radius:6px; cursor:pointer; }
+.crumb:hover { background:var(--hover); color:var(--text); border:0; }
+.crumb.here { color:var(--text); font-weight:600; }
+.crumb-sep { color:var(--text-3); opacity:.5; }
+
+.dropzone { position:relative; border-radius:var(--r); transition:box-shadow .15s; }
+.dropzone.over { box-shadow:0 0 0 2px var(--accent), 0 0 0 7px var(--accent-dim); }
+.dropzone.busy { opacity:.6; pointer-events:none; }
+.drop-hint { position:absolute; inset:0; z-index:5; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:3px; border-radius:var(--r);
+  background:color-mix(in srgb, var(--accent) 12%, var(--surface)); pointer-events:none; }
+.drop-hint b { font-size:15px; } .drop-hint span { font-size:13px; color:var(--text-2); }
+
+.row-dir, .row-up { cursor:pointer; }
+.row-dir:hover td, .row-up:hover td { background:color-mix(in srgb, var(--text) 4%, transparent); }
+.fname { display:inline-flex; align-items:center; gap:8px; font-weight:500; }
+.row-up .fname { color:var(--text-3); }
+
+.linkbar { display:flex; align-items:center; gap:9px; background:var(--field);
+  border:1px solid var(--line); border-radius:var(--r-sm); padding:8px 8px 8px 13px; }
+.linkbar code { flex:1; font-family:var(--mono); font-size:12.5px; color:var(--text-2);
+  overflow-x:auto; white-space:nowrap; }
+.linkbar button, .linkbar .btnlike { flex-shrink:0; padding:5px 11px; font-size:12px; }
+.btnlike { display:inline-flex; align-items:center; border:1px solid var(--line); border-radius:var(--r-sm);
+  background:var(--surface-2); color:var(--text-2); text-decoration:none; font-weight:500; }
+.btnlike:hover { border-color:var(--accent); color:var(--accent); }
+
+.stat-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; }
+.stat { background:var(--field); border:1px solid var(--line-soft); border-radius:var(--r-sm); padding:13px 15px; }
+.stat b { display:block; font-size:22px; font-weight:650; letter-spacing:-.5px; }
+.stat span { font-size:12.5px; color:var(--text-3); }

@@ -26,6 +26,7 @@ const { app } = require('../server.js');
 const { migrate } = require('../src/db/migrate.js');
 const { seedAdmin } = require('../src/seed.js');
 const { db, schema, close } = require('../src/db/index.js');
+const { eq } = require('drizzle-orm');
 
 let passed = 0, failed = 0;
 async function test(name, fn) {
@@ -148,6 +149,79 @@ try {
   await test('admin paths are 404 on the pages host', async () => {
     const r = await pagesReq('GET', '/admin/pages');
     assert.strictEqual(r.status, 404, r.body);
+  });
+
+
+  // With a store reachable this exercises the real thing; without one it pins
+  // the failure path instead, which matters just as much — renaming the page
+  // anyway would strand every file under the old prefix and serve 404s.
+  const storeUp = await fetch(process.env.ASTRODOCK_OBJECTSTORE_ENDPOINT || 'http://localhost:8333',
+    { signal: AbortSignal.timeout(1500) }).then(() => true).catch(() => false);
+
+  await test(storeUp
+    ? 'a page can be given a new address, and the old one stops resolving'
+    : 'reissuing an address refuses cleanly when the files cannot be moved', async () => {
+    const made = await api('POST', '/admin/pages', {
+      token: adminJwt,
+      body: { title: 'Leaked', ...(storeUp ? { content: '<h1>secret</h1>' } : {}) }
+    });
+    const oldId = made.json.page.pageId;
+
+    const r = await api('POST', `/admin/pages/${oldId}/reissue-id`, { token: adminJwt });
+
+    if (!storeUp) {
+      assert.strictEqual(r.status, 500, JSON.stringify(r.json));
+      assert.match(r.json.error, /could not move the files/i);
+      const after = await api('GET', `/admin/pages/${oldId}`, { token: adminJwt });
+      assert.strictEqual(after.status, 200, 'the page moved despite the failure');
+      assert.strictEqual(after.json.page.pageId, oldId);
+      return;
+    }
+
+    assert.strictEqual(r.status, 200, JSON.stringify(r.json));
+    assert.strictEqual(r.json.previousPageId, oldId);
+    const newId = r.json.page.pageId;
+    assert.match(newId, /^[a-z0-9]{12}$/);
+    assert.notStrictEqual(newId, oldId, 'the id has to actually change');
+
+    assert.strictEqual((await api('GET', `/admin/pages/${oldId}`, { token: adminJwt })).status, 404);
+    assert.strictEqual((await api('GET', `/admin/pages/${newId}`, { token: adminJwt })).status, 200);
+
+    // The storage keys are denormalised onto the file rows; if they are not
+    // rewritten the files look present and read as missing.
+    const row = (await db.select().from(schema.pages).where(eq(schema.pages.pageId, newId)).limit(1))[0];
+    const files = await db.select().from(schema.pageFiles).where(eq(schema.pageFiles.pageId, row.id));
+    assert.ok(files.length > 0, 'the file rows vanished');
+    for (const f of files) {
+      assert.ok(f.storageKey.startsWith(`${newId}/`), `storageKey still points at the old id: ${f.storageKey}`);
+    }
+    // and the content is genuinely readable at the new address
+    const content = await api('GET', `/admin/pages/${newId}/file?path=index.html`, { token: adminJwt });
+    assert.strictEqual(content.status, 200, JSON.stringify(content.json));
+    assert.match(content.json.content, /secret/);
+  });
+
+  await test('analytics separate page loads from the assets a page pulls in', async () => {
+    const made = await api('POST', '/admin/pages', { token: adminJwt, body: { title: 'Counted' } });
+    const id = made.json.page.pageId;
+    const pageRow = (await db.select().from(schema.pages).where(eq(schema.pages.pageId, id)).limit(1))[0];
+
+    await db.insert(schema.pageViews).values([
+      { pageId: pageRow.id, path: 'index.html', status: 200 },
+      { pageId: pageRow.id, path: 'index.html', status: 200 },
+      { pageId: pageRow.id, path: 'styles/main.css', status: 200 },
+      { pageId: pageRow.id, path: 'missing.png', status: 404 },
+      { pageId: pageRow.id, path: 'index.html', status: 401 }
+    ]);
+
+    const r = await api('GET', `/admin/pages/${id}/views`, { token: adminJwt });
+    assert.strictEqual(r.status, 200);
+    const b = r.json.breakdown;
+    assert.strictEqual(b.loads, 2, `loads: ${JSON.stringify(b)}`);
+    assert.strictEqual(b.assets, 1, `assets: ${JSON.stringify(b)}`);
+    assert.strictEqual(b.notFound, 1, `notFound: ${JSON.stringify(b)}`);
+    assert.strictEqual(b.denied, 1, `denied: ${JSON.stringify(b)}`);
+    assert.deepStrictEqual(r.json.topMissing, [{ key: 'missing.png', count: 1 }]);
   });
 
 } finally {

@@ -165,13 +165,22 @@ router.get('/:pageId/*', withPage, async (req, res) => {
   const rest = req.params[0] || '';
   const isEntry = rest === '' || rest === page.entryFile;
   const name = rest === '' ? page.entryFile : rest;
-  if (!P.validFileName(name)) return res.status(404).type('html').send(notFoundHtml());
+  if (!P.validFileName(name)) {
+    recordView(page, req, rest.slice(0, 512), 404, null).catch(() => {});
+    return res.status(404).type('html').send(notFoundHtml());
+  }
 
+  // Only successful reads were ever logged, so the two things an operator most
+  // wants to see — what is 404ing, and who is being turned away — left no trace
+  // at all, despite the table having had a `status` column for them all along.
   const g = gate(page, req, res, { json: false });
-  if (!g.ok) return;
+  if (!g.ok) { recordView(page, req, name, 401, null).catch(() => {}); return; }
 
   const obj = await store().getFile(page.pageId, name).catch(() => null);
-  if (!obj) return res.status(404).type('html').send(notFoundHtml());
+  if (!obj) {
+    recordView(page, req, name, 404, g.user).catch(() => {});
+    return res.status(404).type('html').send(notFoundHtml());
+  }
 
   if (isEntry) {
     db.update(schema.pages).set({ views: page.views + 1, lastViewedAt: new Date() }).where(eq(schema.pages.id, page.id)).catch(() => {});

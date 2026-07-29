@@ -310,6 +310,8 @@ export const createPage = (data) =>
   request('/pages', { method: 'POST', body: JSON.stringify(data) });
 export const updatePage = (pageId, data) =>
   request(`/pages/${pageId}`, { method: 'PATCH', body: JSON.stringify(data) });
+export const reissuePageId = (pageId) =>
+  request(`/pages/${pageId}/reissue-id`, { method: 'POST' });
 export const deletePage = (pageId) =>
   request(`/pages/${pageId}`, { method: 'DELETE' });
 export const generatePagePasskey = (pageId) =>

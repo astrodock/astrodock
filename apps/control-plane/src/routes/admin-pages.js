@@ -123,21 +123,30 @@ router.get('/:pageId/views', async (req, res) => {
   const rows = await db.select().from(schema.pageViews)
     .where(eq(schema.pageViews.pageId, page.id))
     .orderBy(desc(schema.pageViews.createdAt)).limit(500);
-  const referrers = {}, paths = {}, ips = new Set();
+  // Every request is logged, including the CSS and images a page pulls in. That
+  // is useful — a page with 40 hits and 4 loads is 36 sub-resource fetches, not
+  // 40 visitors — but only if the two are told apart rather than added together.
+  const referrers = {}, paths = {}, missing = {}, ips = new Set();
   const weekAgo = Date.now() - 7 * 864e5;
-  let last7 = 0;
+  let last7 = 0, loads = 0, assets = 0, notFound = 0, denied = 0;
   for (const v of rows) {
     if (v.referrer) referrers[v.referrer] = (referrers[v.referrer] || 0) + 1;
     paths[v.path] = (paths[v.path] || 0) + 1;
     if (v.ip) ips.add(v.ip);
     if (new Date(v.createdAt).getTime() >= weekAgo) last7++;
+    if (v.status === 404) { notFound++; missing[v.path] = (missing[v.path] || 0) + 1; }
+    else if (v.status === 401) denied++;
+    else if (v.path === page.entryFile) loads++;
+    else assets++;
   }
   const top = (o) => Object.entries(o).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([key, count]) => ({ key, count }));
   res.json({
     views: page.views, lastViewedAt: page.lastViewedAt,
     sampleSize: rows.length, last7d: last7, uniqueIps: ips.size,
-    topReferrers: top(referrers), topPaths: top(paths),
-    recent: rows.slice(0, 30).map((v) => ({ path: v.path, ip: v.ip, referrer: v.referrer, status: v.status, createdAt: v.createdAt }))
+    entryFile: page.entryFile,
+    breakdown: { loads, assets, notFound, denied },
+    topReferrers: top(referrers), topPaths: top(paths), topMissing: top(missing),
+    recent: rows.slice(0, 50).map((v) => ({ path: v.path, ip: v.ip, referrer: v.referrer, status: v.status, createdAt: v.createdAt }))
   });
 });
 
@@ -169,6 +178,41 @@ router.post('/:pageId/generate-passkey', async (req, res) => {
   const pk = genPasskey();
   const rows = await db.update(schema.pages).set({ accessMode: 'passkey', passkey: encryptSecret(pk), updatedAt: new Date() }).where(eq(schema.pages.id, page.id)).returning();
   res.json({ page: serialize(rows[0], await listFiles(page.id), { includePasskey: true }) });
+});
+
+// Give a page a brand-new public id, invalidating every link anyone has to it.
+//
+// The escape hatch for a page that was shared more widely than intended: there is
+// no way to un-send a URL, but there is a way to make it stop resolving. The id
+// is part of the storage key, so the objects move with it.
+router.post('/:pageId/reissue-id', async (req, res) => {
+  const page = await loadPage(req.params.pageId);
+  if (!page) return res.status(404).json({ error: 'Page not found' });
+  const oldId = page.pageId;
+  const newId = pages.generatePageId();
+  try {
+    await store.movePrefix(oldId, newId);
+    const rows = await db.update(schema.pages)
+      .set({ pageId: newId, updatedAt: new Date() })
+      .where(eq(schema.pages.id, page.id)).returning();
+    // Storage keys are denormalised onto the file rows; leaving them pointing at
+    // the old prefix would make every file look present but read as missing.
+    const files = await listFiles(page.id);
+    for (const f of files) {
+      await db.update(schema.pageFiles).set({ storageKey: store.keyFor(newId, f.name) })
+        .where(eq(schema.pageFiles.id, f.id));
+    }
+    emitEvent({
+      category: 'pages', type: 'page.id_reissued', severity: 'warning',
+      ...actorFromAuth(req.auth), ip: req.ip,
+      targetType: 'page', targetId: newId,
+      message: `Page "${page.title}" got a new address — every previous link is dead`,
+      meta: { previousPageId: oldId, pageId: newId }
+    }).catch(() => {});
+    res.json({ page: serialize(rows[0], await listFiles(page.id), { includePasskey: true }), previousPageId: oldId });
+  } catch (err) {
+    res.status(500).json({ error: `Could not move the files to the new address: ${err.message}` });
+  }
 });
 
 router.delete('/:pageId', async (req, res) => {
