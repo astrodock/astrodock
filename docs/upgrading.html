@@ -12,8 +12,39 @@
     <p class="eyebrow">Guides</p>
     <h1>Upgrading</h1>
     <p class="lead">
-      Upgrading Astrodock is two commands: pull the new image and bring the stack back up. Database
-      migrations run on their own, and your apps' data is preserved across the upgrade.
+      Astrodock updates itself from the dashboard, on request. It never does so unprompted &mdash;
+      you press the button. If you would rather do it from the server, it is two commands.
+    </p>
+
+    <h2>From the dashboard</h2>
+    <p>
+      <b>Settings &rarr; About This Astrodock</b> shows the version you are running and checks
+      whether a newer one has been released. When there is, <b>Update Now</b> does the whole thing:
+    </p>
+    <ol>
+      <li>Confirms who you are, because this replaces every running container.</li>
+      <li>Takes a database backup first, automatically.</li>
+      <li>Pulls the new image and recreates the stack. <b>The dashboard stops responding for a
+        minute or so here</b> &mdash; that is the platform restarting, not a failure. The page
+        reconnects by itself.</li>
+      <li>Checks the new version actually came back. If it did not, it puts the previous one back
+        without being asked, and says so.</li>
+    </ol>
+    <p>
+      Your apps keep running throughout &mdash; this replaces the platform, not the things it hosts.
+    </p>
+    <div class="callout note">
+      <p class="ct">When the button is not there</p>
+      <p>Two installs cannot be updated this way, and the page says which applies to you: one built
+        from source (there is no published image to pull &mdash; use <code>git pull</code> and a
+        rebuild), and one not started by Docker Compose. Everything installed with the standard
+        script can use it.</p>
+    </div>
+
+    <h2>From the server</h2>
+    <p>
+      The same thing by hand. Two commands, from your install directory &mdash;
+      <code>/opt/astrodock</code> unless you chose another:
     </p>
 
     <div class="callout note">
@@ -30,8 +61,6 @@
         goes sideways. It takes one command — see <a href="backups.html">Backups &amp; restore</a>.</p>
     </div>
 
-    <h2>Upgrade in two steps</h2>
-    <p>From your install directory on the server — <code>/opt/astrodock</code> unless you chose another:</p>
     <ol class="steps">
       <li>
         <h3>Pull the new image</h3>

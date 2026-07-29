@@ -1,12 +1,17 @@
 import { useState, useEffect } from 'react';
 import * as api from '../lib/api';
+import UpdateModal from './UpdateModal';
+import ReauthModal from './ReauthModal';
 
 // Version, and whether there is a newer one.
 //
-// Astrodock never updates itself. The dashboard tells you where you stand and
-// hands over the command; a platform that replaces its own running containers
-// on a button press is one bad release away from an unreachable box, and the
-// person who has to fix that is holding an SSH key, not a mouse.
+// Astrodock never updates itself unprompted — but it will update on request.
+// The button asks you to confirm who you are, takes a backup, replaces the
+// stack, and puts the previous version back if the new one does not come up.
+//
+// The command is still here for anyone who would rather do it themselves, or
+// whose install cannot be updated this way (a source build, or anything not
+// started by Compose).
 
 const COMMAND = 'docker compose pull && docker compose up -d';
 
@@ -23,12 +28,16 @@ export default function AboutSection({ diagnostics }) {
   const [info, setInfo] = useState(null);
   const [checking, setChecking] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [canUpdate, setCanUpdate] = useState(null);
+  const [updating, setUpdating] = useState(false);
+  const [reauth, setReauth] = useState(null);
 
   const load = (force) => {
     setChecking(true);
     api.getVersion(force).then(setInfo).catch(() => setInfo(null)).finally(() => setChecking(false));
   };
   useEffect(() => { load(false); }, []);
+  useEffect(() => { api.describeUpdate().then(setCanUpdate).catch(() => setCanUpdate({ ok: false })); }, []);
 
   const current = info?.current?.version || diagnostics?.version;
   const fromSource = info?.current?.source === 'source' || diagnostics?.build === 'from source';
@@ -57,7 +66,17 @@ export default function AboutSection({ diagnostics }) {
             <b>{info.latest} is available.</b> You are on {String(current).replace(/^v/, '')}.{' '}
             <a className="link" href={info.url} target="_blank" rel="noopener">See what changed ↗</a>
           </span>
+          {canUpdate?.ok && (
+            <button className="primary" style={{ marginLeft: 'auto', flexShrink: 0 }}
+              onClick={() => setUpdating(true)}>Update Now</button>
+          )}
         </div>
+      )}
+
+      {state === 'behind' && canUpdate && !canUpdate.ok && canUpdate.reason && (
+        <p className="hint" style={{ marginTop: -4, marginBottom: 12 }}>
+          Astrodock cannot update this install for you: {canUpdate.reason}
+        </p>
       )}
 
       <div className="field-panel">
@@ -89,7 +108,7 @@ export default function AboutSection({ diagnostics }) {
       {(state === 'behind' || state === 'current') && (
         <div className="opt-group" style={{ marginTop: 18 }}>
           <header>
-            <h4>How To Update</h4>
+            <h4>{canUpdate?.ok ? 'Or Update From The Server' : 'How To Update'}</h4>
             <p>
               Run this on the server, in the directory holding your{' '}
               <code>docker-compose.yml</code>. Astrodock applies its own database
@@ -122,6 +141,25 @@ export default function AboutSection({ diagnostics }) {
           Update checking is switched off under Logs &amp; Privacy, so Astrodock is not
           contacting GitHub. You can still update with the command above.
         </p>
+      )}
+      {updating && (
+        <UpdateModal
+          current={current}
+          latest={info?.latest}
+          onClose={() => setUpdating(false)}
+          onDone={(_res, err) => {
+            setUpdating(false);
+            if (err) setReauth({ retry: () => setUpdating(true) });
+          }}
+        />
+      )}
+
+      {reauth && (
+        <ReauthModal
+          action="Updating Astrodock"
+          onConfirm={() => { const again = reauth.retry; setReauth(null); again(); }}
+          onCancel={() => setReauth(null)}
+        />
       )}
     </section>
   );

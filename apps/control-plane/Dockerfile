@@ -25,6 +25,16 @@ RUN apt-get update \
  && mv /tmp/docker/docker /usr/local/bin/docker \
  && rm -rf /tmp/docker \
  && docker --version \
+ # The compose plugin, so the platform can update itself: the updater runs as a
+ # one-shot container from THIS image, which is already on the box, rather than
+ # pulling a compose-capable image at the exact moment the operator is asking for
+ # an update. One less thing that has to work when you most need it to.
+ && case "${TARGETARCH:-amd64}" in arm64) CARCH=aarch64;; *) CARCH=x86_64;; esac \
+ && mkdir -p /usr/local/lib/docker/cli-plugins \
+ && curl -fsSL "https://github.com/docker/compose/releases/download/v2.32.4/docker-compose-linux-${CARCH}" \
+    -o /usr/local/lib/docker/cli-plugins/docker-compose \
+ && chmod +x /usr/local/lib/docker/cli-plugins/docker-compose \
+ && docker compose version \
  && npm install -g pm2
 
 WORKDIR /app

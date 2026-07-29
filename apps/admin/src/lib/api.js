@@ -288,6 +288,11 @@ export const updateSettings = (updates) =>
 export const getEmailConfig = () => request('/settings/email');
 export const updateEmailConfig = (data) =>
   request('/settings/email', { method: 'PUT', body: JSON.stringify(data) });
+// Updating the platform from the dashboard. describeUpdate says whether this
+// install can be updated this way at all; applyUpdate needs recent re-auth.
+export const describeUpdate = () => request('/settings/update/describe');
+export const applyUpdate = (toVersion) =>
+  request('/settings/update', { method: 'POST', body: JSON.stringify({ toVersion }) });
 export const sendTestEmail = (to) =>
   request('/settings/email/test', { method: 'POST', body: JSON.stringify({ to }) });
 

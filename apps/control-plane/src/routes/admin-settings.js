@@ -72,6 +72,44 @@ router.get('/version', async (req, res) => {
   res.json(await updates.check({ force: req.query.force === '1' }));
 });
 
+// Applying an update is the most consequential button in the product: it replaces
+// every running container. Step-up re-auth, and audited before it starts rather
+// than after, since "after" may not arrive.
+const { requireRecentAuth } = require('../lib/sessions');
+
+router.get('/update/describe', async (req, res) => {
+  try {
+    const { runner } = require('../runner/client');
+    const r = await runner.updateDescribe();
+    res.status(r.status === 200 ? 200 : 502).json(r.body || { ok: false, reason: 'The runner did not answer.' });
+  } catch (err) {
+    res.json({ ok: false, reason: `The runner is unreachable, so an update cannot be started: ${err.message}` });
+  }
+});
+
+router.post('/update', requireRecentAuth, async (req, res) => {
+  const updates = require('../lib/updates');
+  const version = require('../lib/version');
+  try {
+    const current = version.resolve();
+    const target = (req.body?.toVersion || '').trim() || null;
+
+    emitEvent({
+      category: 'audit', type: 'update.requested', severity: 'critical',
+      actorType: 'admin', actor: req.auth.email, ip: req.ip,
+      targetType: 'platform', targetId: 'astrodock',
+      message: `requested an update to ${target || 'the latest release'}`
+    }).catch(() => {});
+
+    const { runner } = require('../runner/client');
+    const r = await runner.update({ toVersion: target, currentVersion: current.version, actor: req.auth.email });
+    if (r.status !== 200) return res.status(r.status || 502).json(r.body || { error: 'The runner refused.' });
+
+    updates._reset();   // the version it reports is about to change
+    res.json({ ...r.body, note: 'The dashboard will go away for a minute while the platform restarts.' });
+  } catch (err) { res.status(err.status || 500).json({ error: err.message }); }
+});
+
 // ── Email provider ───────────────────────────────────────────────────────────
 // Kept off the generic settings PATCH: these carry credentials, so they are
 // written through email-config (which encrypts them) and never read back out.

@@ -186,6 +186,20 @@ app.post('/backup/:id/restore', express.json(), async (req, res) => {
   }
 });
 
+// ── self-update ──────────────────────────────────────────────────────────────
+// Only the runner can do this: it holds the Docker socket, and the update
+// replaces the api. The work itself goes into a detached one-shot container so
+// it survives this process being recreated too — see lib/self-update.js.
+app.get('/update/describe', async (req, res) => {
+  try { res.json(await require('../lib/self-update').describe()); }
+  catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/update', express.json(), async (req, res) => {
+  try { res.json(await require('../lib/self-update').launch(req.body || {})); }
+  catch (err) { res.status(err.status || 500).json({ error: err.message }); }
+});
+
 // The base domain can change at runtime (first-run wizard, or an operator moving
 // domains later), and this process renders hostnames for health probes and env
 // injection. It has no way to be notified, so it re-reads the stored value on an

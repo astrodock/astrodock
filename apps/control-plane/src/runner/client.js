@@ -50,6 +50,8 @@ const runner = {
   backupUpload: (buffer, actor) => call('POST', `/backup/upload?actor=${encodeURIComponent(actor || '')}`, { raw: buffer }),
   backupRestore: (id, actor) => call('POST', `/backup/${id}/restore`, { json: { actor } }),
   exposure: () => call('GET', '/exposure'),
+  updateDescribe: () => call('GET', '/update/describe'),
+  update: (body) => call('POST', '/update', { json: body }),
   opsList: (slug, p) => call('GET', `/apps/${slug}/ops/list`, { query: { path: p || '.' } }),
   opsFile: (slug, p) => call('GET', `/apps/${slug}/ops/file`, { query: { path: p } }),
   opsEnv: (slug) => call('GET', `/apps/${slug}/ops/env`),
