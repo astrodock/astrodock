@@ -19,6 +19,7 @@ const jwt = require('jsonwebtoken');
 const dns = require('dns').promises;
 const { eq } = require('drizzle-orm');
 const config = require('../config');
+const sessions = require('../lib/sessions');
 const { db, schema } = require('../db');
 const { hashPassword } = require('../lib/passwords');
 const { requireAdmin } = require('../middleware/auth');
@@ -297,11 +298,18 @@ router.post('/handoff', async (req, res) => {
   if (!entry || entry.expires < Date.now()) {
     return res.status(401).json({ error: 'That sign-in link has expired. Please sign in.' });
   }
-  const token = jwt.sign(
-    { sub: entry.user.id, email: entry.user.email, isAdmin: true },
-    config.adminJwtSecret,
-    { expiresIn: '8h' }
-  );
+  // Must be a real session, not a bare JWT.
+  //
+  // This used to sign its own token with no `sid`. A token with no session has no
+  // session row, so markReauth() had nothing to write to and requireRecentAuth
+  // found reauthAt undefined — every sensitive action answered "confirm it is
+  // you", accepted the password, and then asked again, forever. Everyone who
+  // finished the first-run wizard got one of these and spent the next eight hours
+  // unable to add a passkey, change a password or download a backup. It was also
+  // invisible to "sign out everywhere else", since there was nothing to revoke.
+  const { token } = await sessions.create(entry.user, {
+    ip: req.ip, userAgent: req.get('user-agent') || ''
+  });
   res.json({ token, user: { id: entry.user.id, email: entry.user.email } });
 });
 

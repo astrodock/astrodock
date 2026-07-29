@@ -63,7 +63,7 @@ const REGISTRARS = [
 ];
 
 function Stepper({ step, needsClaim }) {
-  const steps = needsClaim ? ['Administrator', 'Domain & HTTPS', 'Email'] : ['Domain & HTTPS', 'Email'];
+  const steps = needsClaim ? ['Administrator', 'Email', 'Domain & HTTPS'] : ['Email', 'Domain & HTTPS'];
   const offset = needsClaim ? 0 : 1;
   return (
     <div className="setup-steps">
@@ -83,7 +83,7 @@ function Stepper({ step, needsClaim }) {
 
 export default function SetupPage({ status }) {
   const needsClaim = status.needsClaim;
-  const [step, setStep] = useState(needsClaim ? 1 : 2);
+  const [step, setStep] = useState(needsClaim ? 1 : 2);   // 1 claim · 2 email · 3 domain
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -186,7 +186,7 @@ export default function SetupPage({ status }) {
     setError(''); setBusy(true);
     try {
       setDone(await setSetupDomain(baseDomain.trim(), tlsMode, acmeEmail.trim()));
-      setStep(3);
+      setFinished(true);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -247,7 +247,7 @@ export default function SetupPage({ status }) {
 
         {/* ── step 1: claim the administrator ──────────────────────────────── */}
         {!finished && step === 1 && (
-          <form className="setup-body" onSubmit={handleClaim}>
+          <form className="setup-body" onSubmit={handleClaim} noValidate>
             <div className="callout">
               <b>First, prove this server is yours.</b>
               {status.tokenSource === 'preset' ? (
@@ -310,8 +310,8 @@ export default function SetupPage({ status }) {
         )}
 
         {/* ── step 2: domain + HTTPS ───────────────────────────────────────── */}
-        {!finished && step === 2 && (
-          <form className="setup-body" onSubmit={handleSaveDomain}>
+        {!finished && step === 3 && (
+          <form className="setup-body" onSubmit={handleSaveDomain} noValidate>
             <div className="callout">
               <b>Where should your apps live?</b>
               <p>
@@ -499,29 +499,30 @@ export default function SetupPage({ status }) {
           </form>
         )}
 
-        {/* ── step 3: email (optional) ─────────────────────────────────────── */}
-        {!finished && step === 3 && (
+        {/* ── step 2: email (optional) ─────────────────────────────────────── */}
+        {!finished && step === 2 && (
           <div className="setup-body">
             <div className="callout">
               <b>Where should alerts go?</b>
               <p>
                 Astrodock emails you when an app goes down, a deploy fails, or a backup does not
                 run. Nothing signs in by email, so this is safe to skip — you would just be
-                relying on checking the dashboard yourself.
+                relying on checking the dashboard yourself. You can set it up any time later
+                under Settings → Email.
               </p>
             </div>
 
             <EmailSetup compact testTo={email} onSaved={() => {}} />
 
-            <button type="button" className="login-btn" onClick={() => setFinished(true)}
+            <button type="button" className="login-btn" onClick={() => setStep(3)}
               style={{ marginTop: 8 }}>
               Continue
             </button>
             <div className="setup-skip">
-              <button type="button" className="link-btn" onClick={() => setFinished(true)}>
+              <button type="button" className="link-btn" onClick={() => setStep(3)}>
                 Skip for Now
               </button>
-              <p className="field-help">You can set this up any time under Settings → Email.</p>
+              <p className="field-help">On to the last step: your domain.</p>
             </div>
           </div>
         )}

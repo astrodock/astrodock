@@ -23,7 +23,7 @@ export default function UserCreateModal({ onClose, onSave }) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <form className="modal" onClick={e => e.stopPropagation()} onSubmit={handleSubmit}>
+      <form className="modal" onClick={e = noValidate> e.stopPropagation()} onSubmit={handleSubmit}>
         <h2>Add User</h2>
         {error && <div className="error">{error}</div>}
         <label>

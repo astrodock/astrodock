@@ -167,9 +167,14 @@ export const getAppLogs = (slug, lines = 100) =>
 export const getAccount = () => request('/account');
 export const reauth = (proof) =>
   request('/account/reauth', { method: 'POST', body: JSON.stringify(proof), verifiesCredential: true });
-export const setPassword = (password) => request('/account/password', { method: 'PUT', body: JSON.stringify({ password }) });
+export const setPassword = (password, currentPassword) =>
+  request('/account/password', { method: 'PUT', body: JSON.stringify({ password, currentPassword }) });
 export const removePassword = () => request('/account/password', { method: 'DELETE' });
 export const passkeyOptions = () => request('/account/passkeys/options', { method: 'POST' });
+// Step-up: which factors this account can prove itself with, and the passkey challenge.
+export const reauthOptions = () => request('/account/reauth/options');
+export const reauthPasskeyOptions = () =>
+  request('/account/reauth/passkey/options', { method: 'POST' });
 export const passkeyRegister = (body) => request('/account/passkeys', { method: 'POST', body: JSON.stringify(body) });
 export const passkeyRemove = (id) => request(`/account/passkeys/${id}`, { method: 'DELETE' });
 export const totpBegin = () => request('/account/totp/begin', { method: 'POST' });

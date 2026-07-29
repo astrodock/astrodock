@@ -108,6 +108,7 @@ export default function AppsPage() {
     <div>
       <div className="page-header">
         <h1>Apps</h1>
+        <p className="page-sub">Apps are Git repos Astrodock builds, runs and serves, each at its own web address.</p>
         <button onClick={() => setShowCreate(true)}>Register App</button>
       </div>
 
@@ -170,7 +171,7 @@ export default function AppsPage() {
 
       {showCreate && (
         <div className="modal-overlay" onClick={() => setShowCreate(false)}>
-          <form className="modal" onClick={e => e.stopPropagation()} onSubmit={handleCreate}>
+          <form className="modal" onClick={e = noValidate> e.stopPropagation()} onSubmit={handleCreate}>
             <h2>Register App</h2>
             <label>
               Slug

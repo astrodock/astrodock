@@ -98,6 +98,67 @@ await t('the last owner cannot be demoted or deactivated', async()=>{
   A(r2.s===400,'deactivate refused, got '+r2.s);
 });
 
+console.log('\nstep-up re-authentication');
+
+// Signing in IS a confirmation, so the window starts fresh and the first
+// sensitive action within it is allowed through on purpose. Age it to get the
+// challenge this is actually about.
+const stale = async () => db.update(schema.sessions)
+  .set({reauthAt:new Date(Date.now()-60*60*1000)})
+  .where(eq(schema.sessions.userId,owner.id));
+
+await t('a sensitive action asks for confirmation once the window has passed', async()=>{
+  await stale();
+  const r = await J('PUT','/admin/account/password',{password:'brand-new-password'},TOK);
+  A(r.s===403,'expected a challenge, got '+r.s+' '+JSON.stringify(r.d));
+  A(r.d.code==='reauth_required','names the reason, got '+JSON.stringify(r.d));
+});
+
+await t('confirming with a password unblocks it — and actually sticks', async()=>{
+  await stale();
+  // The whole bug: /reauth answered ok, but with nothing to write the timestamp
+  // to, the very next request asked again. Prove the second request gets through.
+  const c = await J('POST','/admin/account/reauth',{password:'correct-horse-battery'},TOK);
+  A(c.s===200,'reauth rejected: '+c.s+' '+JSON.stringify(c.d));
+  const r = await J('PUT','/admin/account/password',{password:'brand-new-password',currentPassword:'correct-horse-battery'},TOK);
+  A(r.s===200,'still blocked after confirming: '+r.s+' '+JSON.stringify(r.d));
+  // put it back so later assertions can still sign in
+  await J('PUT','/admin/account/password',{password:'correct-horse-battery',currentPassword:'brand-new-password'},TOK);
+});
+
+await t('a wrong password is refused without consuming the session', async()=>{
+  await stale();
+  const r = await J('POST','/admin/account/reauth',{password:'not-it'},TOK);
+  A(r.s===401,'got '+r.s);
+  const still = await J('GET','/admin/account',null,TOK);
+  A(still.s===200,'a failed confirmation must not sign you out, got '+still.s);
+});
+
+await t('the prompt reports which factors this account can use', async()=>{
+  const r = await J('GET','/admin/account/reauth/options',null,TOK);
+  A(r.s===200,'got '+r.s);
+  A(r.d.password===true,'password should be available');
+  A('passkey' in r.d && 'totp' in r.d && 'recoveryCode' in r.d,'every factor is reported');
+});
+
+await t('changing a password requires the current one', async()=>{
+  await stale();
+  await J('POST','/admin/account/reauth',{password:'correct-horse-battery'},TOK);
+  const r = await J('PUT','/admin/account/password',{password:'another-password',currentPassword:'wrong'},TOK);
+  A(r.s===401,'expected the current password to be checked, got '+r.s);
+});
+
+await t('a session-less token is told to sign in again, not looped', async()=>{
+  // What the first-run wizard used to hand out. It can never satisfy step-up, so
+  // it must say so once rather than accepting a password and asking forever.
+  const jwt = (await import('jsonwebtoken')).default;
+  const legacy = jwt.sign({sub:owner.id,email:owner.email,isAdmin:true},
+    process.env.ASTRODOCK_ADMIN_JWT_SECRET,{expiresIn:'1h'});
+  const r = await J('POST','/admin/account/reauth',{password:'correct-horse-battery'},legacy);
+  A(r.s===409,'expected a clear refusal, got '+r.s+' '+JSON.stringify(r.d));
+  A(r.d.code==='session_required','names the reason, got '+JSON.stringify(r.d));
+});
+
 console.log('\nscope enforcement on routes');
 await t('a deployer key is refused app deletion', async()=>{
   const r = await J('DELETE','/admin/apps/nonexistent',null,DEPLOYKEY);

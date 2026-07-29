@@ -105,7 +105,7 @@ export default function SettingsTab({ app, onRefresh }) {
             <div className="field"><div className="lab" /><div className="ctl"><button className="danger" onClick={handleDisconnect}>Disconnect Repository</button></div></div>
           </div>
         ) : (
-          <form onSubmit={handleConnect} className="field-panel">
+          <form onSubmit={handleConnect} className="field-panel" noValidate>
             <label>Repository
               <select value={selectedRepo} onChange={(e) => setSelectedRepo(e.target.value)} onFocus={() => repos.length === 0 && loadRepos()}>
                 <option value="">Choose a repository…</option>
@@ -125,7 +125,7 @@ export default function SettingsTab({ app, onRefresh }) {
       {/* Resources & runtime */}
       <section className="set-section">
         <div className="sec-head"><div><h2>Resources &amp; How It Runs</h2><p>What this app needs from Astrodock, and how it’s built. Your app reads any connection details from Variables, so changing these just decides where they point.</p></div><button className="primary" form="cfgform" disabled={savingConfig}>{savingConfig ? 'Saving…' : 'Save'}</button></div>
-        <form id="cfgform" onSubmit={handleSaveConfig} className="field-panel">
+        <form id="cfgform" onSubmit={handleSaveConfig} className="field-panel" noValidate>
           <div className="cfg">
             <label>Sign-in<select value={authMode} onChange={(e) => setAuthMode(e.target.value)}><option value="platform">Astrodock accounts</option><option value="public">Public — no sign-in</option></select></label>
             <p className="field-help">{AUTH_HELP[authMode]}</p>

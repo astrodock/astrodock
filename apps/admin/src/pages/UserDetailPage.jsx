@@ -127,7 +127,7 @@ export default function UserDetailPage() {
       {/* Profile */}
       <section className="set-section">
         <div className="sec-head"><div><h2>Profile</h2><p>Their name, and whether they can open this dashboard at all.</p></div></div>
-        <form onSubmit={handleSave} className="user-form">
+        <form onSubmit={handleSave} className="user-form" noValidate>
           <div className="form-row">
             <label>
               Name
@@ -196,7 +196,7 @@ export default function UserDetailPage() {
       {/* Reset Password */}
       <section className="set-section">
         <div className="sec-head"><div><h2>Reset Password</h2><p>Sets a new password for them. They are not emailed — you will need to pass it on yourself.</p></div></div>
-        <form onSubmit={handleResetPassword} className="reset-pw-form">
+        <form onSubmit={handleResetPassword} className="reset-pw-form" noValidate>
           <input
             type="password"
             value={newPassword}

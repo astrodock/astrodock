@@ -61,7 +61,7 @@ function RuleModal({ initial, onClose, onSaved }) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <form className="modal modal-wide" onClick={(e) => e.stopPropagation()} onSubmit={submit}>
+      <form className="modal modal-wide" onClick={(e) = noValidate> e.stopPropagation()} onSubmit={submit}>
         <h2>{editing ? 'Edit notification rule' : 'New notification rule'}</h2>
         {error && <div className="error">{error}</div>}
 
@@ -159,7 +159,8 @@ export default function SettingsPage() {
 
   return (
     <div className="settings-page">
-      <div className="page-header"><h1>Settings</h1></div>
+      <div className="page-header"><h1>Settings</h1>
+        <p className="page-sub">Platform-wide configuration: alerts, email, security, backups and updates.</p></div>
       {error && <div className="error">{error}</div>}
       {msg && <div className="provision-banner"><strong>{msg}</strong></div>}
 

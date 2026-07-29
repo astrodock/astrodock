@@ -64,14 +64,64 @@ router.get('/', async (req, res) => {
 
 // ── step-up ───────────────────────────────────────────────────────────────────
 // Prove it is still you, without signing out and back in.
+// Which factors can this account actually prove itself with? The prompt asked for
+// a password unconditionally, which is unanswerable for a passkey-only operator —
+// and there is no point offering an authenticator field to someone who has not
+// enrolled one.
+router.get('/reauth/options', async (req, res) => {
+  try {
+    const user = await me(req);
+    const f = await factors.factorsFor(user.id);
+    res.json({
+      password: !!user.passwordHash,
+      passkey: f.passkeys > 0,
+      totp: !!f.totp,
+      recoveryCode: f.recoveryCodesRemaining > 0
+    });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Passkey step-up is a two-step ceremony like sign-in: ask for a challenge, then
+// submit what the authenticator returned.
+router.post('/reauth/passkey/options', async (req, res) => {
+  try {
+    const user = await me(req);
+    res.json(await passkeys.beginAuthentication({ user, handle: user.email }));
+  } catch (err) { res.status(400).json({ error: err.message }); }
+});
+
 router.post('/reauth', async (req, res) => {
   try {
     const user = await me(req);
-    const { password, totp } = req.body || {};
-    const ok = password ? await factors.checkPassword(user, password)
-      : (totp ? await factors.checkTotp(user, totp) : false);
+    const { password, totp, recoveryCode, passkeyResponse } = req.body || {};
+
+    // Every factor the account holds is accepted. It used to be password-or-TOTP
+    // only, which left anyone who had gone passkey-only with no way to satisfy a
+    // step-up at all — they could not add a passkey, change a password, or
+    // download a backup, and the prompt simply asked again.
+    let ok = false;
+    if (passkeyResponse) {
+      const who = await passkeys.finishAuthentication({ handle: user.email, response: passkeyResponse });
+      ok = !!who && who.id === user.id;
+    } else if (password) {
+      ok = await factors.checkPassword(user, password);
+    } else if (totp) {
+      ok = await factors.checkTotp(user, totp);
+    } else if (recoveryCode) {
+      ok = await factors.consumeRecoveryCode(user.id, recoveryCode);
+    }
     if (!ok) return res.status(401).json({ error: 'That did not match.' });
-    if (req.auth.sessionId) await sessions.markReauth(req.auth.sessionId);
+
+    // Without a session there is nowhere to record that this happened, so the
+    // next request would find no recent auth and ask again — forever. Say so
+    // instead of pretending it worked.
+    if (!req.auth.sessionId) {
+      return res.status(409).json({
+        error: 'This sign-in predates session tracking, so it cannot confirm sensitive actions. Sign out and back in.',
+        code: 'session_required'
+      });
+    }
+    await sessions.markReauth(req.auth.sessionId);
     res.json({ ok: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -79,6 +129,14 @@ router.post('/reauth', async (req, res) => {
 // ── password ──────────────────────────────────────────────────────────────────
 router.put('/password', sessions.requireRecentAuth, async (req, res) => {
   try {
+    // Knowing the current password is a separate question from being present at
+    // the keyboard, which is all step-up establishes. An account that has one
+    // must prove it before replacing it.
+    const user = await me(req);
+    if (user.passwordHash) {
+      const ok = await factors.checkPassword(user, (req.body || {}).currentPassword);
+      if (!ok) return res.status(401).json({ error: 'That is not your current password.' });
+    }
     await factors.setPassword(req.auth.sub, (req.body || {}).password);
     await audit(req, 'account.password_changed', `${req.auth.email} changed their password`);
     res.json({ ok: true });

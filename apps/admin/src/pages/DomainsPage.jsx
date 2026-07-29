@@ -61,7 +61,8 @@ export default function DomainsPage() {
 
   return (
     <div>
-      <div className="page-header"><h1>Domains</h1><button onClick={() => setAddOpen(true)}>+ Add a domain</button></div>
+      <div className="page-header"><h1>Domains</h1>
+        <p className="page-sub">Every web address this platform answers on, automatic and custom.</p><button onClick={() => setAddOpen(true)}>+ Add a domain</button></div>
       {error && <div className="error">{error}</div>}
       {msg && <div className="provision-banner"><strong>{msg}</strong></div>}
 
@@ -114,7 +115,7 @@ export default function DomainsPage() {
       {/* add */}
       {addOpen && (
         <div className="modal-overlay" onClick={() => setAddOpen(false)}>
-          <form className="modal" onClick={(e) => e.stopPropagation()} onSubmit={addDomain}>
+          <form className="modal" onClick={(e) = noValidate> e.stopPropagation()} onSubmit={addDomain}>
             <h2>Add a Domain</h2>
             <label>Which app should it open?
               <select value={addApp} onChange={(e) => setAddApp(e.target.value)} required>

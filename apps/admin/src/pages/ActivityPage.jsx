@@ -27,6 +27,7 @@ const SEVERITY_COLOR = { info: 'var(--text-3)', warning: 'var(--warning)', criti
 
 export default function ActivityPage() {
   const [tab, setTab] = useState('auth');
+  const [q, setQ] = useState('');
   const [authLogs, setAuthLogs] = useState([]);
   const [deployments, setDeployments] = useState([]);
   const [events, setEvents] = useState([]);
@@ -62,6 +63,7 @@ export default function ActivityPage() {
   }
 
   useEffect(() => {
+    setQ('');
     if (tab === 'auth') loadAuth();
     else if (tab === 'deploys') loadDeploys();
     else loadEvents();
@@ -87,10 +89,20 @@ export default function ActivityPage() {
     return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
 
+  // One box per tab, matching across whichever fields that tab actually shows.
+  const hay = (...parts) => parts.filter(Boolean).join(' ').toLowerCase();
+  const needle = q.trim().toLowerCase();
+  const matches = (s) => !needle || s.includes(needle);
+  const matchedEvents = events.filter((ev) =>
+    matches(hay(ev.type, ev.message, ev.appSlug, ev.actor, ev.severity)));
+  const matchedDeploys = deployments.filter((d) =>
+    matches(hay(d.appSlug, d.status, d.commitMessage, d.commitSha, d.trigger, d.branch)));
+
   return (
     <div>
       <div className="page-header">
         <h1>Activity</h1>
+        <p className="page-sub">The record of what happened — deploys, sign-ins, and every administrative change.</p>
       </div>
 
       <div className="tabs">
@@ -171,13 +183,19 @@ export default function ActivityPage() {
                 <option key={c} value={c}>{c}</option>
               ))}
             </select>
+            <input value={q} onChange={(e) => setQ(e.target.value)}
+              placeholder="Search events, apps, people…" />
           </div>
           {events.length === 0 ? (
             <EmptyState icon="activity" title="Nothing Recorded Yet"
               body="Deploys, administrative changes and platform events appear here as they happen." />
           ) : (
+            matchedEvents.length === 0 ? (
+              <EmptyState icon="search" title="No Matches"
+                body={`Nothing in the audit trail matches “${q}”.`} />
+            ) : (
             <div className="activity-list">
-              {events.map(ev => (
+              {matchedEvents.map(ev => (
                 <div key={ev.id} className="activity-row">
                   <span className="activity-result" style={{ color: SEVERITY_COLOR[ev.severity] || 'var(--text-3)' }}>
                     {ev.type}
@@ -193,18 +211,26 @@ export default function ActivityPage() {
                 </div>
               ))}
             </div>
-          )}
+          ))}
         </div>
       )}
 
       {tab === 'deploys' && (
         <div>
+          <div className="activity-filters">
+            <input value={q} onChange={(e) => setQ(e.target.value)}
+              placeholder="Search apps, commits, messages…" />
+          </div>
           {deployments.length === 0 ? (
             <EmptyState icon="deploy" title="No Deployments Yet"
               body="Every build and release across your apps is listed here as it happens." />
           ) : (
+            matchedDeploys.length === 0 ? (
+              <EmptyState icon="search" title="No Matches"
+                body={`No deployment matches “${q}”.`} />
+            ) : (
             <div className="activity-list">
-              {deployments.map(d => {
+              {matchedDeploys.map(d => {
                 const style = DEPLOY_STYLES[d.status] || {};
                 return (
                   <div key={d.id} className="activity-row">
@@ -231,7 +257,7 @@ export default function ActivityPage() {
                 );
               })}
             </div>
-          )}
+          ))}
         </div>
       )}
     </div>

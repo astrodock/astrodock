@@ -4,8 +4,13 @@
 // in the dashboard says what would go here and how to start.
 
 const ICONS = {
-  key: <path d="M13.5 6.5a4 4 0 1 0-4.3 4l-1 1v1.6H6.6v2H4.9V17H2v-2.9l5.3-5.3a4 4 0 0 1 6.2-2.3z"
-    stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />,
+  // Bow at the top-right, blade running down-left to two teeth. The previous
+  // path doubled back on itself and rendered as a blob.
+  key: <>
+    <circle cx="15.8" cy="8.2" r="4.2" stroke="currentColor" strokeWidth="1.5" />
+    <path d="M12.8 11.2 4.6 19.4v2h3v-2h2v-2h2v-1.9l1.2-1.2"
+      stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+  </>,
   apps: <>
     <rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
     <rect x="14" y="3" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.5" />

@@ -347,6 +347,21 @@ if ! docker compose pull -q; then
 fi
 
 say "Starting…"
+
+# Port 80 has to change hands here: the placeholder must let go before the stack's
+# own Caddy can bind it, and for the seconds in between NOTHING is listening. A
+# browser sitting on the install page refreshes into a connection error and looks
+# like the install died — which is exactly what it looks like from the outside.
+#
+# The gap cannot be closed without a proxy handoff, so instead: say what is about
+# to happen, and set the refresh long enough that the automatic one lands after
+# Caddy is up rather than in the hole.
+serve_page "$(page 'Astrodock is starting' \
+  'The platform is starting up. This page will be briefly unavailable while it takes over the port.' \
+  'That is expected. Give it up to a minute and reload — setup will be waiting.' \
+  'Starting' 45)"
+sleep 2   # let the message actually reach a browser that is mid-refresh
+
 # Free port 80 for Caddy before compose claims it — from BOTH placeholders, since
 # the Docker one is skipped when its image could not be pulled.
 stop_early_page
@@ -365,6 +380,12 @@ say ""
 say "  ┌─ Astrodock is starting ───────────────────────────────────"
 say "  │"
 say "  │  Open   http://$IP"
+say "  │"
+say "  │  Give it 60-90 seconds on a small server. The containers"
+say "  │  have to start, Postgres has to accept connections, and"
+say "  │  the schema is migrated before anything answers — a"
+say "  │  refused connection in the first minute is the platform"
+say "  │  still coming up, not a failure."
 say "  │"
 say "  │  Finish setup there: create the administrator account,"
 say "  │  choose your domain, add the DNS record it shows you,"

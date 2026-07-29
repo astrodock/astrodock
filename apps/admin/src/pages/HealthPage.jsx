@@ -43,7 +43,9 @@ function depLabel(d) {
 }
 
 function Sparkline({ values, color, max }) {
-  if (!values || values.length < 2) return <div className="spark-empty">collecting…</div>;
+  // One point is a dot, not a line — but say what is happening rather than
+  // leaving an unexplained gap where a chart belongs.
+  if (!values || values.length < 2) return <div className="spark-empty">measuring…</div>;
   const mx = max || Math.max(...values, 1);
   const w = 100, h = 30;
   const pts = values.map((v, i) => `${(i / (values.length - 1)) * w},${(h - (Math.min(v, mx) / mx) * h).toFixed(1)}`).join(' ');
@@ -55,10 +57,19 @@ function Sparkline({ values, color, max }) {
   );
 }
 
+// The sparklines need two points before they can draw a line, and the poll was
+// 15 seconds — so every visit opened on "collecting…" for a quarter of a minute,
+// and navigating away threw the history out and started over. The buffer now
+// outlives the component, and the first few samples come quickly.
+const SERIES = [];
+const FAST_SAMPLES = 3;
+const FAST_MS = 1500;
+const STEADY_MS = 15000;
+
 export default function HealthPage() {
   const [data, setData] = useState(null);
   const [platform, setPlatform] = useState(null);
-  const [samples, setSamples] = useState([]);
+  const [samples, setSamples] = useState(SERIES);
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
@@ -67,13 +78,27 @@ export default function HealthPage() {
       const result = await api.getHealth();
       setData(result);
       if (result?.server) {
-        setSamples((s) => [...s.slice(-29), { cpu: result.server.cpu.load1m, mem: result.server.memory.usedPercent, disk: result.server.disk.usedPercent }]);
+        SERIES.push({
+          cpu: result.server.cpu.load1m,
+          mem: result.server.memory.usedPercent,
+          disk: result.server.disk.usedPercent
+        });
+        if (SERIES.length > 30) SERIES.splice(0, SERIES.length - 30);
+        setSamples([...SERIES]);
       }
       setError('');
     } catch (err) { setError(err.message); }
     try { setPlatform(await api.getPlatformHealth()); } catch { /* non-fatal */ }
   }
-  useEffect(() => { load(); const t = setInterval(load, 15000); return () => clearInterval(t); }, []);
+  useEffect(() => {
+    let timer;
+    const tick = () => {
+      load();
+      timer = setTimeout(tick, SERIES.length < FAST_SAMPLES ? FAST_MS : STEADY_MS);
+    };
+    tick();
+    return () => clearTimeout(timer);
+  }, []);
 
   if (!data && !error) return <p style={{ color: 'var(--text-3)' }}>Loading…</p>;
 
@@ -89,6 +114,7 @@ export default function HealthPage() {
     <div>
       <div className="page-header">
         <h1>Health</h1>
+        <p className="page-sub">Live condition of the server and of every app running on it.</p>
         {data && <span className="health-updated">Last checked {formatTime(data.checkedAt)}</span>}
       </div>
       {error && <div className="error">{error}</div>}

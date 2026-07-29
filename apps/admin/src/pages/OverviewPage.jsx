@@ -74,6 +74,7 @@ export default function OverviewPage() {
       <div className="ov-topbar">
         <h1>Overview</h1>
         <span className="ov-checked">updated {rel(health.checkedAt)}</span>
+        <p className="page-sub">Everything at a glance — what is running, what needs attention, and what changed recently.</p>
       </div>
 
       <section className={`hero ${isDegraded ? 'degraded' : ''}`}>

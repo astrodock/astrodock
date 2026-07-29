@@ -128,13 +128,32 @@ ASTRODOCK_SETUP_TOKEN='<span data-setup-token>REPLACE-THIS-WITH-A-LONG-RANDOM-ST
         <h3>Finish setup in your browser</h3>
         <p><em>If you used the user-data box when creating the droplet, skip straight past the SSH steps — Astrodock is already
         installing itself. Give it about two minutes from droplet creation, then come straight here.</em></p>
-        <p>Open <strong>http://&lt;your droplet IP&gt;</strong>. Astrodock starts up unconfigured and
-        serves a short setup wizard there, which walks you through the rest:</p>
+        <p>Open <strong>http://&lt;your droplet IP&gt;</strong>.</p>
+
+        <div class="callout note">
+          <p class="ct">Give it 60&ndash;90 seconds, and expect one blank moment</p>
+          <p>On a small droplet the first load takes a minute or so: Docker pulls the images, the
+            containers start, Postgres has to accept connections, and the schema is migrated before
+            anything answers. <strong>A refused connection in the first minute is the platform still
+            coming up, not a failure.</strong></p>
+          <p>There is also a deliberate gap partway through. The install serves a holding page on
+            port 80, and it has to let go of that port so the platform's own web server can take it
+            over. For a few seconds in between, nothing is listening &mdash; the holding page says so
+            when it reaches that point. Reload after a minute and the wizard will be there.</p>
+          <p>Still nothing after two or three minutes? The install log is at
+            <code>/var/log/cloud-init-output.log</code>, and a failed install replaces the holding
+            page with the reason rather than leaving you at a dead port.</p>
+        </div>
+
+        <p>Astrodock starts up unconfigured and serves a short setup wizard there, which walks you
+        through the rest:</p>
         <ol>
           <li><strong>Create your administrator account</strong>, using the setup token. If you set one
           in user-data, that's the one. If you installed by hand without choosing a token, Astrodock
           generated one and printed it to its log:
           <pre><code>cd /opt/astrodock &amp;&amp; docker compose logs api | grep -A2 'first-run setup'</code></pre></li>
+          <li><strong>Set up email</strong> (optional). Where alerts go if an app falls over. Nothing
+          signs in by email, so this is safe to skip.</li>
           <li><strong>Enter your domain.</strong> The wizard shows you the exact DNS record to create,
           filled in with your server's IP, and a <strong>Check DNS</strong> button that tells you
           whether it's live yet — so you find out here rather than after a certificate has failed.</li>

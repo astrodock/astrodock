@@ -54,6 +54,7 @@ export default function TokensPage() {
     <div className="settings-page">
       <div className="page-header">
         <h1>Access Keys</h1>
+        <p className="page-sub">Keys that let the CLI or an AI agent act on your behalf, with only the permissions you give them.</p>
         <button onClick={() => { setOpen(true); setCreated(null); }}>+ New Key</button>
       </div>
 

@@ -39,7 +39,7 @@ export default function LoginPage({ onLogin }) {
   return (
     <div className="login-page">
       <div className="login-bg-grid" />
-      <form className="login-form" onSubmit={handleSubmit}>
+      <form className="login-form" onSubmit={handleSubmit} noValidate>
         <div className="login-logo">
           <div className="logo-mark">
             <svg width="38" height="38" viewBox="0 0 34 34" fill="none">

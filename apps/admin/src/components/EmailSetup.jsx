@@ -78,7 +78,23 @@ export default function EmailSetup({ initial, onSaved, compact = false, testTo =
     } catch (err) { setError(err.message); } finally { setTesting(false); }
   }
 
-  if (!cfg) return <p className="hint">Loading…</p>;
+  // A failed load used to sit on "Loading…" forever: the error was stored but the
+  // guard below returned before anything could render it, so every failure looked
+  // identical to a slow network and told you nothing.
+  if (!cfg) {
+    return error ? (
+      <>
+        <div className="error">{error}</div>
+        <button type="button" onClick={() => {
+          setError('');
+          api.getEmailConfig().then((d) => {
+            setCfg(d); setProvider(d.provider); setFrom(d.from || '');
+            setSmtp({ host: d.smtp.host || '', port: d.smtp.port || 587, secure: !!d.smtp.secure, user: d.smtp.user || '', password: '' });
+          }).catch((e) => setError(e.message));
+        }}>Try Again</button>
+      </>
+    ) : <p className="hint">Loading…</p>;
+  }
 
   const chosen = PROVIDERS.find((p) => p.key === provider);
 
@@ -96,7 +112,7 @@ export default function EmailSetup({ initial, onSaved, compact = false, testTo =
 
       <div className="opt-group">
         <header><h4>Provider</h4></header>
-        <div className="seg" style={{ display: 'flex' }}>
+        <div className="seg seg-fit">
           {PROVIDERS.map((p) => (
             <button type="button" key={p.key} className={provider === p.key ? 'sel' : ''}
               onClick={() => setProvider(p.key)}>{p.label}</button>

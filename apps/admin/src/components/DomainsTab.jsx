@@ -57,7 +57,7 @@ export default function DomainsTab({ app }) {
       {error && <div className="error">{error}</div>}
       {msg && <div className="provision-banner"><strong>{msg}</strong></div>}
 
-      <form onSubmit={add} className="dom-add">
+      <form onSubmit={add} className="dom-add" noValidate>
         <input className="mono" value={hostname} onChange={(e) => setHostname(e.target.value)} placeholder="app.example.com" />
         <button type="submit" disabled={busy}>{busy ? 'Adding…' : 'Add domain'}</button>
       </form>

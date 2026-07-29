@@ -57,7 +57,7 @@ export default function NewKeyModal({ options, apps, onCancel, onCreated }) {
   return (
     <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onCancel()}>
       <form className="modal modal-wide" onSubmit={create}
-        style={{ maxHeight: '88vh', overflowY: 'auto' }}>
+        style={{ maxHeight: '88vh', overflowY: 'auto' }} noValidate>
         <h2>New Access Key</h2>
 
         <p className="hint" style={{ marginTop: '-.9rem' }}>
@@ -78,7 +78,7 @@ export default function NewKeyModal({ options, apps, onCancel, onCreated }) {
           <div className="opt-group" style={{ marginBottom: 8 }}>
             <header><h4>Starting Point</h4></header>
           </div>
-          <div className="seg" style={{ display: 'flex' }}>
+          <div className="seg seg-fit">
             {presets.map((p) => (
               <button type="button" key={p.key} className={!custom && preset === p.key ? 'sel' : ''}
                 onClick={() => { setPreset(p.key); setCustom(null); }}>{p.label}</button>
@@ -87,6 +87,43 @@ export default function NewKeyModal({ options, apps, onCancel, onCreated }) {
           <p className="hint" style={{ marginTop: 7 }}>
             {custom ? 'Adjusted by hand — pick a starting point to reset.' : chosen?.description}
           </p>
+        </div>
+
+        <div className="opt-group">
+          <header>
+            <h4>Expires</h4>
+            <p>A key that never expires is one you will forget you issued.</p>
+          </header>
+          <div className="seg seg-fit">
+            {EXPIRY_CHOICES.map((c) => (
+              <button type="button" key={c.label} className={expiryDays === c.days ? 'sel' : ''}
+                onClick={() => setExpiryDays(c.days)}>{c.label}</button>
+            ))}
+          </div>
+        </div>
+
+        <div className="opt-group">
+          <header>
+            <h4>Limit To Certain Apps</h4>
+            <p>Leave all off for every app, including ones created later.</p>
+          </header>
+          {apps.length ? (
+            <div className="opt-list">
+              {apps.map((a) => {
+                const on = appScope.includes(a.slug);
+                return (
+                  <div className={`opt-row ${on ? 'on' : ''}`} key={a.slug}>
+                    <span className="name">{a.name}<code>{a.slug}</code></span>
+                    <span className={`mini-toggle ${on ? 'on' : ''}`} role="switch" aria-checked={on}
+                      aria-label={a.name}
+                      onClick={() => setAppScope(on ? appScope.filter((x) => x !== a.slug) : [...appScope, a.slug])} />
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="hint">No apps yet — this key will cover any you create.</p>
+          )}
         </div>
 
         {groups.map((g) => {
@@ -139,43 +176,6 @@ export default function NewKeyModal({ options, apps, onCancel, onCreated }) {
             <span><b>Running commands is unrestricted.</b> Grant it only to something you would trust with the machine.</span>
           </div>
         )}
-
-        <div className="opt-group">
-          <header>
-            <h4>Limit To Certain Apps</h4>
-            <p>Leave all off for every app, including ones created later.</p>
-          </header>
-          {apps.length ? (
-            <div className="opt-list">
-              {apps.map((a) => {
-                const on = appScope.includes(a.slug);
-                return (
-                  <div className={`opt-row ${on ? 'on' : ''}`} key={a.slug}>
-                    <span className="name">{a.name}<code>{a.slug}</code></span>
-                    <span className={`mini-toggle ${on ? 'on' : ''}`} role="switch" aria-checked={on}
-                      aria-label={a.name}
-                      onClick={() => setAppScope(on ? appScope.filter((x) => x !== a.slug) : [...appScope, a.slug])} />
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <p className="hint">No apps yet — this key will cover any you create.</p>
-          )}
-        </div>
-
-        <div className="opt-group">
-          <header>
-            <h4>Expires</h4>
-            <p>A key that never expires is one you will forget you issued.</p>
-          </header>
-          <div className="seg" style={{ display: 'flex' }}>
-            {EXPIRY_CHOICES.map((c) => (
-              <button type="button" key={c.label} className={expiryDays === c.days ? 'sel' : ''}
-                onClick={() => setExpiryDays(c.days)}>{c.label}</button>
-            ))}
-          </div>
-        </div>
 
         <div className="modal-actions">
           <button type="button" onClick={onCancel}>Cancel</button>

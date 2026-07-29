@@ -182,8 +182,13 @@ button.secondary, .cancel-btn { background:var(--surface-2); color:var(--text-2)
 .link-btn.danger { color:var(--danger); }
 
 /* ── Page header / tabs ─────────────────────────────────── */
-.page-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1.6rem; gap:16px; }
+.page-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1.6rem; gap:16px;
+  flex-wrap:wrap; }
 .page-header h1 { font-size:26px; font-weight:700; letter-spacing:-.5px; }
+/* The description takes the full row under the title, so the action button on
+   the right keeps sitting beside the heading rather than being pushed down. */
+.page-sub { flex-basis:100%; order:3; font-size:13.5px; color:var(--text-3);
+  margin-top:-4px; max-width:720px; line-height:1.55; }
 .subtitle, .hint { color:var(--text-3); font-size:13px; margin-bottom:.6rem; }
 .hint { margin-top:-.25rem; }
 .tabs { display:flex; gap:0; border-bottom:1px solid var(--line); margin-bottom:1.6rem; }
@@ -360,8 +365,18 @@ button.secondary, .cancel-btn { background:var(--surface-2); color:var(--text-2)
 
 /* ── Activity ───────────────────────────────────────────── */
 .activity-filters { display:flex; gap:.5rem; margin-bottom:1.25rem; }
-.activity-filters input { flex:1; margin-top:0; }
-.activity-filters select { margin-top:0; width:auto; }
+.activity-filters input, .activity-filters select {
+  margin-top:0; background:var(--surface); border:1px solid var(--line); border-radius:var(--r-sm);
+  color:var(--text); font-family:var(--font); font-size:13.5px; padding:8px 12px; outline:none;
+  transition:border-color .15s, box-shadow .15s;
+}
+.activity-filters input:focus, .activity-filters select:focus {
+  border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-dim);
+}
+.activity-filters input { flex:1; }
+.activity-filters select { width:auto; }
+.activity-list { background:var(--surface); border:1px solid var(--line-soft); border-radius:var(--r-lg);
+  overflow:hidden; box-shadow:var(--shadow-sm); }
 .activity-row { display:flex; align-items:center; padding:.65rem 1rem; gap:1rem; border-bottom:1px solid var(--line-soft); font-size:13.5px; }
 .activity-row:last-child { border-bottom:0; }
 .activity-row:hover { background:var(--hover); }
@@ -403,7 +418,7 @@ button.secondary, .cancel-btn { background:var(--surface-2); color:var(--text-2)
 .led.run { background:var(--info); box-shadow:0 0 8px var(--info); }
 @keyframes alarm { 50% { opacity:.4; } }
 
-.ov-topbar { display:flex; align-items:baseline; gap:14px; margin-bottom:18px; }
+.ov-topbar { display:flex; align-items:baseline; gap:14px; margin-bottom:18px; flex-wrap:wrap; }
 .ov-topbar h1 { font-size:26px; font-weight:700; letter-spacing:-.5px; }
 .ov-checked { font-family:var(--mono); font-size:12px; color:var(--text-3); }
 
@@ -560,7 +575,11 @@ button.secondary, .cancel-btn { background:var(--surface-2); color:var(--text-2)
 .src { font-family:var(--mono); font-size:10px; letter-spacing:.8px; text-transform:uppercase; color:var(--text-3); border:1px solid var(--line); border-radius:6px; padding:3px 8px; }
 .src.override { color:var(--info); border-color:var(--info-dim); background:var(--info-dim); }
 .soon { font-family:var(--mono); font-size:9.5px; letter-spacing:.5px; text-transform:uppercase; color:var(--text-3); border:1px dashed var(--line); border-radius:5px; padding:3px 8px; }
-.seg { display:inline-flex; border:1px solid var(--line); border-radius:22px; overflow:hidden; background:var(--field); }
+.seg { display:inline-flex; border:1px solid var(--line); overflow:hidden; background:var(--field); }
+/* Sizes to its options. Three of these were given an inline display:flex, which
+   stretched a four-option picker across the full width of the page. */
+.seg-fit { display:inline-flex; }
+.seg-fill { display:flex; } .seg-fill button { flex:1; }
 .seg button { background:transparent; border:0; color:var(--text-2); font-family:var(--font); font-size:13px; padding:8px 15px; cursor:pointer; font-weight:500; border-radius:0; }
 .seg button:hover { background:transparent; border:0; }
 .seg button.sel { background:var(--accent); color:var(--accent-ink); font-weight:600; }
@@ -684,7 +703,9 @@ button.secondary, .cancel-btn { background:var(--surface-2); color:var(--text-2)
 .opt-group > header p { font-size: 12.5px; color: var(--text-3); margin-top: 3px; }
 .opt-group.danger > header h4 { color: var(--danger); }
 
-.opt-list { border: 1px solid var(--line-soft); border-radius: var(--r); background: var(--surface); }
+.opt-list { border: 1px solid var(--line-soft); border-radius: var(--r); background: var(--surface);
+  overflow: hidden; }   /* .opt-row.on paints a background; without this its square
+                           corners poke out through the panel's rounded ones */
 .opt-row {
   display: flex; align-items: center; gap: 14px;
   padding: 11px 16px 11px 26px;               /* indent: these sit under a group */
@@ -781,3 +802,22 @@ button.secondary, .cancel-btn { background:var(--surface-2); color:var(--text-2)
 .cmdline code { flex:1; font-family:var(--mono); font-size:12.5px; color:var(--log-ink);
   overflow-x:auto; white-space:nowrap; }
 .cmdline button { flex-shrink:0; padding:5px 11px; font-size:12px; }
+
+/* ── field validation ─────────────────────────────────────────────
+   Replaces the browser's native bubble — the white callout with the yellow
+   warning triangle that appears above a `required` input. It cannot be styled,
+   it points at the wrong place on a scrolled page, and it looks nothing like
+   the rest of the product. Forms carry noValidate and say it themselves. */
+label.has-error > input, label.has-error > select, label.has-error > textarea,
+input.invalid, select.invalid, textarea.invalid {
+  border-color: var(--danger) !important;
+  background: var(--danger-dim) !important;
+}
+label.has-error > input:focus, input.invalid:focus {
+  box-shadow: 0 0 0 3px var(--danger-dim) !important;
+}
+.field-error {
+  display: flex; align-items: flex-start; gap: 6px;
+  margin-top: 6px; font-size: 12.5px; font-weight: 500; color: var(--danger);
+}
+.field-error::before { content: "—"; opacity: .6; }

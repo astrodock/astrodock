@@ -129,13 +129,13 @@ export default function App() {
               Pages
             </NavLink>
           </li>
+          <li className="nav-sec">Network &amp; Access</li>
           <li>
             <NavLink to="/users" className={({ isActive }) => isActive ? 'active' : ''}>
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5.4" r="2.6" stroke="currentColor" strokeWidth="1.4"/><path d="M2.8 13.6c0-2.5 2.3-4.2 5.2-4.2s5.2 1.7 5.2 4.2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>
               Users
             </NavLink>
           </li>
-          <li className="nav-sec">Network &amp; Access</li>
           <li>
             <NavLink to="/domains" className={({ isActive }) => isActive ? 'active' : ''}>
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.4"/><path d="M2 8h12M8 2c1.7 2 1.7 10 0 12M8 2c-1.7 2-1.7 10 0 12" stroke="currentColor" strokeWidth="1.2"/></svg>
@@ -161,6 +161,7 @@ export default function App() {
               Health
             </NavLink>
           </li>
+          <li className="nav-sec">Manage</li>
           <li>
             <NavLink to="/account" className={({ isActive }) => isActive ? 'active' : ''}>
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1.9 3.2 3.9v3.5c0 3 2 5.7 4.8 6.7 2.8-1 4.8-3.7 4.8-6.7V3.9L8 1.9z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"/><path d="m5.9 7.9 1.5 1.5 2.9-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -169,7 +170,7 @@ export default function App() {
           </li>
           <li>
             <NavLink to="/settings" className={({ isActive }) => isActive ? 'active' : ''}>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.1" stroke="currentColor" strokeWidth="1.4"/><path d="M8 1.6v1.7M8 12.7v1.7M1.6 8h1.7M12.7 8h1.7M3.5 3.5l1.2 1.2M11.3 11.3l1.2 1.2M12.5 3.5l-1.2 1.2M4.7 11.3l-1.2 1.2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6.6 1.9h2.8l.3 1.7 1.3.75 1.6-.63 1.4 2.42-1.3 1.1v1.5l1.3 1.1-1.4 2.42-1.6-.63-1.3.75-.3 1.7H6.6l-.3-1.7-1.3-.75-1.6.63-1.4-2.42 1.3-1.1v-1.5l-1.3-1.1 1.4-2.42 1.6.63 1.3-.75.3-1.7z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/><circle cx="8" cy="8" r="2" stroke="currentColor" strokeWidth="1.3"/></svg>
               Settings
             </NavLink>
           </li>
@@ -189,8 +190,11 @@ export default function App() {
               <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
             </button>
             <button className="logout-btn" onClick={handleLogout}>
+              {/* The label goes in a span like its neighbour: a bare text node
+                  after the icon picks up JSX whitespace and sits half a space
+                  off from the theme toggle beside it. */}
               <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M6 2H3a1 1 0 00-1 1v10a1 1 0 001 1h3M11 11l3-3-3-3M6 8h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              Log out
+              <span>Sign Out</span>
             </button>
           </div>
           {/* Which Astrodock is this? Previously unanswerable without SSHing in

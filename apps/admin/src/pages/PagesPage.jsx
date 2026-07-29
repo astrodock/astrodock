@@ -58,6 +58,7 @@ export default function PagesPage() {
     <div>
       <div className="page-header">
         <h1>Pages</h1>
+        <p className="page-sub">Lightweight documents and mini-sites hosted without a full app — docs, notes, a landing page.</p>
         <button onClick={() => setShowCreate(true)}>New Page</button>
       </div>
 
@@ -102,7 +103,7 @@ export default function PagesPage() {
 
       {showCreate && (
         <div className="modal-overlay" onClick={() => setShowCreate(false)}>
-          <form className="modal" onClick={(e) => e.stopPropagation()} onSubmit={handleCreate}>
+          <form className="modal" onClick={(e) = noValidate> e.stopPropagation()} onSubmit={handleCreate}>
             <h2>New Page</h2>
             {error && <div className="error">{error}</div>}
             <label>

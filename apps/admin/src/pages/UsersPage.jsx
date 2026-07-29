@@ -29,6 +29,7 @@ export default function UsersPage() {
     <div>
       <div className="page-header">
         <h1>Users</h1>
+        <p className="page-sub">People who can sign in — to the apps you grant them, and to this dashboard if you give them a role.</p>
         <button onClick={() => setShowCreate(true)}>Add User</button>
       </div>
 

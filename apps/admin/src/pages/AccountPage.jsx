@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import * as api from '../lib/api';
 import ReauthModal from '../components/ReauthModal';
+import PasswordModal from '../components/PasswordModal';
 
 // How you sign in, and where you're signed in from.
 //
@@ -37,7 +38,8 @@ export default function AccountPage() {
   if (!data) {
     return (
       <div className="settings-page">
-        <div className="page-header"><h1>Your Account</h1></div>
+        <div className="page-header"><h1>Your Account</h1>
+        <p className="page-sub">How you sign in, and where you are signed in right now.</p></div>
         {error && <div className="error">{error}</div>}
       </div>
     );
@@ -96,7 +98,7 @@ export default function AccountPage() {
       <Passkeys data={data} guarded={guarded} />
       <Totp data={data} guarded={guarded} />
       <Recovery data={data} guarded={guarded} />
-      <PasswordSection data={data} guarded={guarded} />
+      <PasswordSection data={data} guarded={guarded} reload={load} flash={setMsg} />
       <Sessions data={data} guarded={guarded} />
     </div>
   );
@@ -305,8 +307,8 @@ function Recovery({ data, guarded }) {
   );
 }
 
-function PasswordSection({ data, guarded }) {
-  const [pw, setPw] = useState('');
+function PasswordSection({ data, guarded, reload, flash }) {
+  const [pwOpen, setPwOpen] = useState(false);
   const has = data.factors.password;
   const canDrop = has && data.factors.passkeys.length > 0;
 
@@ -320,15 +322,15 @@ function PasswordSection({ data, guarded }) {
       <div className="field-panel">
         <div className="field">
           <div className="lab">
-            <b>{has ? 'Change password' : 'Set a password'}</b>
-            <span className="desc">At least 8 characters.</span>
+            <b>{has ? 'Your password' : 'No password set'}</b>
+            <span className="desc">
+              {has
+                ? 'Changing it asks for the current one, and for the new one twice.'
+                : 'You sign in with a passkey. A password is an optional fallback.'}
+            </span>
           </div>
           <div className="ctl">
-            <input type="password" value={pw} placeholder="New password"
-              onChange={(e) => setPw(e.target.value)} style={{ width: 220 }} />
-            <button className="pillbtn sel" disabled={!pw} onClick={() => guarded(async () => {
-              await api.setPassword(pw); setPw('');
-            }, has ? 'Password changed.' : 'Password set.', has ? 'Changing your password' : 'Setting a password')}>Save</button>
+            <button onClick={() => setPwOpen(true)}>{has ? 'Change Password' : 'Set a Password'}</button>
           </div>
         </div>
 
@@ -349,6 +351,14 @@ function PasswordSection({ data, guarded }) {
           </div>
         )}
       </div>
+
+      {pwOpen && (
+        <PasswordModal
+          hasPassword={has}
+          onClose={() => setPwOpen(false)}
+          onSaved={(msg) => { setPwOpen(false); flash(msg); reload(); }}
+        />
+      )}
     </Section>
   );
 }
