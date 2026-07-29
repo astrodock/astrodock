@@ -27,13 +27,15 @@ const PROJECT_NAME = process.env.ASTRODOCK_UPDATE_PROJECT || 'astrodock';
 const HEALTH_TRIES = 60;      // 60 × 3s = three minutes for the stack to come back
 const HEALTH_EVERY_MS = 3000;
 
-function run(cmd, args, { timeout = 15 * 60 * 1000 } = {}) {
+function run(cmd, args, { timeout = 15 * 60 * 1000, input = null } = {}) {
   return new Promise((resolve, reject) => {
-    execFile(cmd, args, { timeout, encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 },
+    const child = execFile(cmd, args, { timeout, encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 },
       (err, stdout, stderr) => {
         if (err) return reject(new Error((stderr || err.message).trim().slice(0, 2000)));
         resolve(String(stdout || ''));
       });
+    // Secrets go down stdin, never onto a command line other processes can read.
+    if (input != null) { child.stdin.end(input); }
   });
 }
 // Compose looks for its file in the working directory, and this process starts in
@@ -117,17 +119,50 @@ async function main() {
     process.exit(1);
   }
 
-  // 2/3. Pin, pull, recreate.
+  // 2. Registry credentials, if this is a private image.
+  //
+  // `docker login` on the host writes to the host user's client config, and this
+  // container does not share it — the Docker socket carries no credentials, only
+  // the client does. So a private image fails here with a bare "unauthorized"
+  // unless the token is passed through and used.
+  const regUser = process.env.ASTRODOCK_REGISTRY_USER || 'oauth2';
+  const regToken = process.env.ASTRODOCK_REGISTRY_TOKEN;
+  if (regToken) {
+    const host = (process.env.ASTRODOCK_IMAGE || 'ghcr.io/astrodock/astrodock').split('/')[0];
+    try {
+      await run('docker', ['login', host, '-u', regUser, '--password-stdin'], { input: regToken });
+      console.log(`[update] signed in to ${host}`);
+    } catch (err) {
+      console.error(`[update] registry sign-in failed: ${err.message}`);
+    }
+  }
+
+  // 3. Pin, pull, recreate. Pull and recreate are reported separately: a refused
+  //    pull has changed nothing, which is a very different situation to a stack
+  //    that came down and would not come back.
   const previousPin = TO ? pinVersion(TO) : null;
   try {
     console.log('[update] pulling…');
     await compose('pull');
+  } catch (err) {
+    if (TO) pinVersion(previousPin);
+    const denied = /unauthorized|authentication required|denied/i.test(err.message);
+    await record('update.failed', 'critical',
+      denied
+        ? 'Update stopped: the registry refused the download. If the Astrodock image is private, set ASTRODOCK_REGISTRY_USER and ASTRODOCK_REGISTRY_TOKEN in .env — the dashboard update runs the pull inside a container, which does not inherit the host\'s docker login. Nothing was changed.'
+        : `Update stopped: the new version could not be downloaded. Nothing was changed. ${err.message}`,
+      { from: FROM, to: TO, backup: backupFile, stage: 'pull', denied });
+    process.exit(1);
+  }
+
+  try {
     console.log('[update] recreating…');
     await compose('up', '-d');
   } catch (err) {
     if (TO) pinVersion(previousPin);
     await record('update.failed', 'critical',
-      `Update failed while starting the new version: ${err.message}`, { from: FROM, to: TO, backup: backupFile });
+      `Update failed while starting the new version: ${err.message}`,
+      { from: FROM, to: TO, backup: backupFile, stage: 'up' });
     process.exit(1);
   }
 

@@ -36,32 +36,62 @@ export default function UpdateModal({ current, latest, onClose, onDone }) {
       setError(err.message); setPhase('failed'); return;
     }
 
-    // From here the answer comes from whether the platform reappears, not from a
-    // response — the process that would have sent one is being replaced.
+    // Two things are watched, because success and failure arrive by different
+    // routes. Success shows up as /health reporting a new version — the api that
+    // would have replied to the request is gone by then. Failure shows up as an
+    // event the updater wrote before exiting, and the api may never have gone
+    // down at all: a refused pull is over in two seconds.
+    //
+    // Watching only /health meant failures ran to a five-minute timeout while the
+    // reason sat in the database the whole time.
     setStage(1);
     poll.current = setInterval(async () => {
       const elapsed = Date.now() - startedAt.current;
-      if (elapsed > 12000 && stage < 2) setStage(2);
+      if (elapsed > 12000) setStage((s) => (s < 2 ? 2 : s));
 
+      // Did the updater record an outcome?
+      try {
+        const st = await api.updateStatus();
+        const latest = st?.latest;
+        if (latest && new Date(latest.at).getTime() >= startedAt.current - 5000) {
+          if (latest.type === 'update.failed' || latest.type === 'update.rolled_back') {
+            clearInterval(poll.current);
+            setResult({ meta: latest.meta, type: latest.type });
+            setError(latest.message);
+            setPhase('failed');
+            return;
+          }
+          if (latest.type === 'update.succeeded') {
+            clearInterval(poll.current);
+            setStage(3);
+            setResult({ version: latest.meta?.to || st.version });
+            setPhase('done');
+            return;
+          }
+        }
+      } catch { /* the api is being replaced — expected mid-restart */ }
+
+      // Or has it simply come back as something new?
       try {
         const res = await fetch('/health', { cache: 'no-store' });
-        if (!res.ok) return;
-        const body = await res.json();
-        const now = String(body.version || '').replace(/^v/, '');
-        const was = String(current || '').replace(/^v/, '');
-        if (now && now !== was) {
-          clearInterval(poll.current);
-          setStage(3); setResult({ version: now }); setPhase('done');
+        if (res.ok) {
+          const body = await res.json();
+          const now = String(body.version || '').replace(/^v/, '');
+          const was = String(current || '').replace(/^v/, '');
+          if (now && now !== was) {
+            clearInterval(poll.current);
+            setStage(3); setResult({ version: now }); setPhase('done');
+            return;
+          }
         }
       } catch { /* still down — expected */ }
 
-      // Long enough that something has gone wrong, or the rollback ran.
       if (elapsed > 5 * 60 * 1000) {
         clearInterval(poll.current);
         setPhase('failed');
-        setError('The platform has not come back after five minutes. Check Activity for what the updater recorded — it takes a backup first and rolls back on its own if the new version does not start.');
+        setError('The platform has not come back after five minutes, and the updater recorded nothing. Check Activity, and the containers on the server.');
       }
-    }, 3000);
+    }, 2000);
   }
 
   return (
@@ -124,10 +154,21 @@ export default function UpdateModal({ current, latest, onClose, onDone }) {
 
         {phase === 'failed' && (
           <>
-            <h2>Update Did Not Finish</h2>
+            <h2>{result?.type === 'update.rolled_back' ? 'Rolled Back' : 'Update Did Not Finish'}</h2>
             <div className="error">{error}</div>
+            {result?.meta?.stage === 'pull' && (
+              <div className="rcard ok" style={{ marginBottom: 12 }}>
+                <span className="led ok" />
+                <span>
+                  <b>Nothing was changed.</b> It stopped before touching the running platform, so
+                  you are still on the version you started on.
+                </span>
+              </div>
+            )}
             <p className="hint">
-              A backup was taken before anything changed, and it is listed under Settings → Backups.
+              {result?.meta?.backup
+                ? <>A backup was taken first — <code>{result.meta.backup}</code>, listed under Settings → Backups. </>
+                : <>A backup is taken before anything changes; see Settings → Backups. </>}
               You can also update from the server with
               <code> docker compose pull &amp;&amp; docker compose up -d</code>.
             </p>

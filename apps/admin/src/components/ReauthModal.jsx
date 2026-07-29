@@ -75,7 +75,7 @@ export default function ReauthModal({ action, onConfirm, onCancel }) {
             {action
               ? <><b>{action}</b> is a sensitive action, so Astrodock asks you to prove it is you — even though you are already signed in.</>
               : <>This is a sensitive action, so Astrodock asks you to prove it is you — even though you are already signed in.</>}
-            {' '}It keeps someone who finds an unlocked screen from taking the account over.
+            {' '}It keeps someone who finds an unlocked screen from acting as you.
           </span>
         </div>
 

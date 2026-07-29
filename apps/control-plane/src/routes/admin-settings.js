@@ -10,6 +10,7 @@
 const express = require('express');
 const { requireAdmin } = require('../middleware/auth');
 const settings = require('../lib/settings');
+const { db, schema } = require('../db');
 const { emitEvent } = require('../lib/events');
 
 const router = express.Router();
@@ -87,7 +88,46 @@ router.get('/update/describe', async (req, res) => {
   }
 });
 
-router.post('/update', requireRecentAuth, async (req, res) => {
+// What has the updater recorded? The progress UI polls this.
+//
+// It previously watched only /health, waiting for the reported version to change
+// — so it could detect success and nothing else. A refused pull, which changes
+// nothing and is over in two seconds, looked identical to a slow restart right up
+// until a five-minute timeout. The updater writes its outcome to the events table
+// precisely so it can be read back; this reads it.
+router.get('/update/status', async (req, res, next) => {
+  try {
+    const { desc, like } = require('drizzle-orm');
+    const rows = await db.select().from(schema.events)
+      .where(like(schema.events.type, 'update.%'))
+      .orderBy(desc(schema.events.createdAt)).limit(5);
+    const latest = rows[0] || null;
+    res.json({
+      latest: latest && {
+        type: latest.type, severity: latest.severity, message: latest.message,
+        meta: latest.meta || {}, at: latest.createdAt
+      },
+      recent: rows.map((r) => ({ type: r.type, at: r.createdAt })),
+      version: require('../lib/version').resolve().version
+    });
+  } catch (err) { next(err); }
+});
+
+// Always a fresh confirmation, not merely a recent one. Signing in counts as a
+// confirmation for fifteen minutes, which is right for most sensitive actions and
+// wrong for this one: replacing every running container should ask every time,
+// however recently you authenticated.
+function requireFreshAuth(req, res, next) {
+  if (req.auth?.type === 'token') return next();
+  const at = req.auth?.reauthAt ? new Date(req.auth.reauthAt).getTime() : 0;
+  if (at && Date.now() - at < 2 * 60 * 1000) return next();
+  return res.status(403).json({
+    error: 'Confirm it is you before updating the platform.',
+    code: 'reauth_required'
+  });
+}
+
+router.post('/update', requireFreshAuth, async (req, res) => {
   const updates = require('../lib/updates');
   const version = require('../lib/version');
   try {

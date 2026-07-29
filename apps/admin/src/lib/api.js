@@ -291,6 +291,7 @@ export const updateEmailConfig = (data) =>
 // Updating the platform from the dashboard. describeUpdate says whether this
 // install can be updated this way at all; applyUpdate needs recent re-auth.
 export const describeUpdate = () => request('/settings/update/describe');
+export const updateStatus = () => request('/settings/update/status');
 export const applyUpdate = (toVersion) =>
   request('/settings/update', { method: 'POST', body: JSON.stringify({ toVersion }) });
 export const sendTestEmail = (to) =>

@@ -271,6 +271,10 @@ while IFS= read -r line || [ -n "$line" ]; do
     ASTRODOCK_SETUP_TOKEN=*)            printf 'ASTRODOCK_SETUP_TOKEN=%s\n' "${ASTRODOCK_SETUP_TOKEN:-}" ;;
     ASTRODOCK_ADMIN_EMAIL=*)            printf 'ASTRODOCK_ADMIN_EMAIL=%s\n' "${ASTRODOCK_ADMIN_EMAIL:-}" ;;
     ASTRODOCK_ADMIN_PASSWORD=*)         printf 'ASTRODOCK_ADMIN_PASSWORD=%s\n' "${ASTRODOCK_ADMIN_PASSWORD:-}" ;;
+    # Kept for updates, not just for this install: `docker login` writes to the
+    # host's client config, which the in-app updater's container cannot see.
+    ASTRODOCK_REGISTRY_USER=*)          printf 'ASTRODOCK_REGISTRY_USER=%s\n' "${ASTRODOCK_REGISTRY_USER:-}" ;;
+    ASTRODOCK_REGISTRY_TOKEN=*)         printf 'ASTRODOCK_REGISTRY_TOKEN=%s\n' "${ASTRODOCK_REGISTRY_TOKEN:-}" ;;
     *)                                  printf '%s\n' "$line" ;;
   esac
 done < "$DIR/.env.example" > "$tmp"

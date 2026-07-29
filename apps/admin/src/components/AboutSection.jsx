@@ -68,7 +68,7 @@ export default function AboutSection({ diagnostics }) {
           </span>
           {canUpdate?.ok && (
             <button className="primary" style={{ marginLeft: 'auto', flexShrink: 0 }}
-              onClick={() => setUpdating(true)}>Update Now</button>
+              onClick={() => setReauth({ retry: () => setUpdating(true) })}>Update Now</button>
           )}
         </div>
       )}

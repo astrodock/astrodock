@@ -89,8 +89,17 @@ async function launch({ toVersion, actor, currentVersion }) {
   const network = await require('../runner/network').resolveDockerNetwork().catch(() => null);
   const self = await docker(['inspect', os.hostname(), '--format', '{{.Config.Image}}']);
 
+  // Sweep up after previous runs, since these are deliberately NOT --rm.
+  try {
+    const stale = await docker(['ps', '-aq', '--filter', 'name=astrodock-updater-']);
+    if (stale) await docker(['rm', '-f', ...stale.split('\n').filter(Boolean)]);
+  } catch { /* nothing to clean */ }
+
   const args = [
-    'run', '--detach', '--rm',
+    // Deliberately not --rm: the container's logs are wanted exactly when it
+    // failed, and --rm threw them away at that moment. The next run clears the
+    // old one, so at most one carcass is ever lying around.
+    'run', '--detach',
     '--name', `astrodock-updater-${Date.now().toString(36)}`,
     '-v', '/var/run/docker.sock:/var/run/docker.sock',
     '-v', `${info.workingDir}:/project`,
@@ -104,7 +113,11 @@ async function launch({ toVersion, actor, currentVersion }) {
   if (network) args.push('--network', network);
   // Same database and secrets as this process — it is the same platform.
   for (const k of ['ASTRODOCK_PG_HOST', 'ASTRODOCK_PG_PORT', 'ASTRODOCK_PG_USER',
-    'ASTRODOCK_PG_PASSWORD', 'ASTRODOCK_PG_DATABASE', 'ASTRODOCK_SECRET_KEY']) {
+    'ASTRODOCK_PG_PASSWORD', 'ASTRODOCK_PG_DATABASE', 'ASTRODOCK_SECRET_KEY',
+    // Without these a private image is refused: the Docker socket carries no
+    // registry credentials, and `docker login` on the host wrote them to a
+    // client config this container cannot see.
+    'ASTRODOCK_REGISTRY_USER', 'ASTRODOCK_REGISTRY_TOKEN', 'ASTRODOCK_IMAGE']) {
     if (process.env[k] != null) args.push('-e', `${k}=${process.env[k]}`);
   }
   args.push('--workdir', '/app/apps/control-plane', '--entrypoint', 'node',
