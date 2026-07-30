@@ -170,5 +170,27 @@ test('every relative bind mount in the compose file is covered by that', () => {
     'the worker must use the host project path, not a hardcoded container path');
 });
 
+console.log('\nself-update: a half-finished recreate has to be undone');
+
+test('both failure paths restore the stack, not just the version pin', () => {
+  // `docker compose up -d` fails PART WAY THROUGH — by the time it errors it has
+  // stopped the api and recreated whatever it reached. Restoring the pin and
+  // exiting, which is what the recreate path used to do, walks away from a
+  // platform that is down. Observed for real: a bad bind mount took Caddy out,
+  // the recreate errored, and the box was left with no api at all.
+  const src = fs.readFileSync(new URL('../src/runner/update-worker.js', import.meta.url), 'utf8');
+
+  const restoreCalls = (src.match(/await restore\(/g) || []).length;
+  assert.ok(restoreCalls >= 2,
+    `both the failed-recreate and failed-health-check paths must restore; found ${restoreCalls} call(s)`);
+  assert.match(src, /async function restore\(/, 'expected a shared restore()');
+
+  // The recreate catch must not simply pin-and-exit.
+  const recreateCatch = /await compose\('up', '-d'\);\s*\}\s*catch \(err\) \{([\s\S]*?)process\.exit/.exec(src);
+  assert.ok(recreateCatch, 'could not find the recreate failure handler');
+  assert.match(recreateCatch[1], /restore\(/,
+    'a failed recreate must put the stack back, not just the version pin');
+});
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

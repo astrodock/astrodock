@@ -162,11 +162,19 @@ async function main() {
     console.log('[update] recreating…');
     await compose('up', '-d');
   } catch (err) {
-    if (TO) pinVersion(previousPin);
-    await record('update.failed', 'critical',
-      `Update failed while starting the new version: ${err.message}`,
-      { from: FROM, to: TO, backup: backupFile, stage: 'up' });
-    process.exit(1);
+    // `up -d` fails PART WAY THROUGH. By the time it errors it has already
+    // stopped the api and recreated whatever it got to, so the platform is down
+    // — and simply restoring the version pin and exiting, which is what this did,
+    // walks away from a broken stack. It has to put it back, the same as a failed
+    // health check does.
+    console.error('[update] recreate failed; restoring the previous version');
+    const back = await restore(previousPin);
+    await record(back.ok ? 'update.rolled_back' : 'update.failed', 'critical',
+      back.ok
+        ? `Update to ${TO || 'the latest release'} could not start: ${err.message.slice(0, 400)} — put back on ${back.version || FROM || 'the previous version'}.`
+        : `Update to ${TO || 'the latest release'} could not start, and neither could the previous version. Restore ${backupFile} and start the stack by hand. ${err.message.slice(0, 400)}`,
+      { from: FROM, to: TO, backup: backupFile, stage: 'up', recovered: back.ok });
+    process.exit(back.ok ? 1 : 2);
   }
 
   // 4. Did it actually come back, as the thing we asked for?
@@ -181,22 +189,30 @@ async function main() {
 
   // 5. It did not. Put it back.
   console.error('[update] the new version did not come up; rolling back');
+  const back = await restore(previousPin);
+  await record('update.rolled_back', 'critical',
+    back.ok
+      ? `Update to ${TO || 'the latest release'} did not come up. Rolled back to ${back.version || FROM || 'the previous version'}.`
+      : `Update to ${TO || 'the latest release'} did not come up, and neither did the rollback. Restore ${backupFile} and start the stack by hand.`,
+    { from: FROM, to: TO, backup: backupFile, rollbackHealthy: back.ok });
+  process.exit(back.ok ? 1 : 2);
+}
+
+// Put the platform back on the version it was running, and wait for it to answer.
+// Shared by both failure paths: a recreate that died half-done leaves the stack in
+// the same state as one that came up wrong — down — and both need the same cure.
+async function restore(previousPin) {
   try {
+    // A pin we added ourselves is removed entirely; one that was already there is
+    // put back verbatim. Leaving our pin behind would freeze a `latest`-tracking
+    // install on the version that just failed.
     pinVersion(previousPin === null && TO ? null : (previousPin || FROM || null));
     await compose('pull');
     await compose('up', '-d');
-    const back = await waitForApi(null);
-    await record('update.rolled_back', 'critical',
-      back.ok
-        ? `Update to ${TO || 'the latest release'} did not come up. Rolled back to ${back.version || FROM || 'the previous version'}.`
-        : `Update to ${TO || 'the latest release'} did not come up, and neither did the rollback. Restore ${backupFile} and start the stack by hand.`,
-      { from: FROM, to: TO, backup: backupFile, rollbackHealthy: back.ok });
-    process.exit(back.ok ? 1 : 2);
+    return await waitForApi(null);
   } catch (err) {
-    await record('update.rolled_back', 'critical',
-      `Update failed and the rollback also failed: ${err.message}. The database backup ${backupFile} is on the server.`,
-      { from: FROM, to: TO, backup: backupFile });
-    process.exit(2);
+    console.error('[update] restore failed:', err.message);
+    return { ok: false, version: null, error: err.message };
   }
 }
 
