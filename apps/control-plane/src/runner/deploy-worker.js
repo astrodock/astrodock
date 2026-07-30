@@ -179,6 +179,22 @@ async function deployNode(app, deployRoot, env, { appendLog, setStatus }) {
     } catch (e) { await appendLog(`(note) per-app user unavailable, building as runner user: ${e.message}`); }
   }
 
+  // Losing the per-app user is a security downgrade, not a footnote. Build and
+  // install commands come from the repo and from app.buildCommand, so without it
+  // they run as the runner process user — inside a container holding the Docker
+  // socket. That was a line in a deploy log nobody reads; it is now an event, so
+  // it reaches Activity and whatever notification rules exist.
+  if (!ids) {
+    await appendLog('WARNING: building WITHOUT a per-app user — app build commands run with the runner\'s own privileges.');
+    require('../lib/events').emitEvent({
+      category: 'system', type: 'deploy.unsandboxed_build', severity: 'critical',
+      targetType: 'app', targetId: app.slug,
+      message: `Built "${app.slug}" without a per-app user — its build commands ran with the runner's privileges`,
+      meta: { app: app.slug, useraddAvailable: haveUseradd },
+      dedupeKey: `deploy:unsandboxed:${app.slug}`, dedupeWindowMs: 6 * 3600 * 1000
+    }).catch(() => {});
+  }
+
   // The build env is the app's OWN computed env ONLY (no platform stack secrets like
   // the Postgres superuser pw, object-store master key, or ASTRODOCK_SECRET_KEY — those
   // live in process.env but must never reach app build/install code). npm cache → app HOME.

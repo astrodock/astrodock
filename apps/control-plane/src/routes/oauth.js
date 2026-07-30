@@ -17,6 +17,9 @@ const factors = require('../lib/auth-factors');
 const passkeys = require('../lib/passkeys');
 const { decryptSecret } = require('../lib/crypto');
 const { emitEvent } = require('../lib/events');
+// The hosted sign-in is the replacement for /verify, which was rate limited.
+// This one was not — same exposure, no throttle.
+const { pageLoginLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
 
@@ -57,7 +60,7 @@ router.get('/authorize', async (req, res) => {
 
 // ── /login ────────────────────────────────────────────────────────────────────
 // Credentials arrive HERE, on the platform's own origin — the app never sees them.
-router.post('/login', express.json(), async (req, res) => {
+router.post('/login', pageLoginLimiter, express.json(), async (req, res) => {
   const { appId, redirectUri, email, password, totp, recoveryCode, passkeyResponse, handle } = req.body || {};
   const ip = req.ip || '';
 
@@ -136,7 +139,7 @@ router.post('/token', express.json(), async (req, res) => {
 });
 
 // Passkey challenge for the hosted login page.
-router.post('/login/passkey/options', express.json(), async (req, res) => {
+router.post('/login/passkey/options', pageLoginLimiter, express.json(), async (req, res) => {
   try {
     const handle = `login:${Math.random().toString(36).slice(2)}${Date.now()}`;
     const options = await passkeys.beginAuthentication({ handle });

@@ -16,6 +16,8 @@ const sessions = require('../lib/sessions');
 const roles = require('../lib/roles');
 const { getSetting } = require('../lib/settings');
 const { emitEvent } = require('../lib/events');
+// Unauthenticated password guessing: the limiter existed but was never applied here.
+const { adminLoginLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
 
@@ -41,7 +43,7 @@ async function issue(res, user, req) {
   });
 }
 
-router.post('/login', async (req, res) => {
+router.post('/login', adminLoginLimiter, async (req, res) => {
   const { email, password, totp, recoveryCode } = req.body || {};
   try {
     const addr = String(email || '').toLowerCase().trim();
@@ -85,7 +87,7 @@ router.post('/login', async (req, res) => {
 // Discoverable credentials, so there is no username step: the authenticator says
 // who it is, and user verification means it also proved the person is present.
 
-router.post('/login/passkey/options', async (req, res) => {
+router.post('/login/passkey/options', adminLoginLimiter, async (req, res) => {
   try {
     const handle = `op:${Math.random().toString(36).slice(2)}${Date.now()}`;
     res.json({ handle, options: await passkeys.beginAuthentication({ handle }) });
@@ -94,7 +96,7 @@ router.post('/login/passkey/options', async (req, res) => {
   }
 });
 
-router.post('/login/passkey', async (req, res) => {
+router.post('/login/passkey', adminLoginLimiter, async (req, res) => {
   try {
     const { handle, response } = req.body || {};
     const user = await passkeys.finishAuthentication({ handle, response });

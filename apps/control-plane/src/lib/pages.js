@@ -52,6 +52,19 @@ const PASSKEY_COOKIE = (pageId) => `ad_pk_${pageId}`;
 function passkeyToken(pageId, passkey) {
   return crypto.createHmac('sha256', sessionKey()).update(`${pageId}:${passkey}`).digest('base64url');
 }
+// Length-independent equality for secrets. Comparing with === leaks how much of a
+// value matched through timing; every other secret comparison in the codebase
+// already used this, and the page passkey check in the ?key= path did not.
+function constantTimeEqual(a, b) {
+  const x = Buffer.from(String(a ?? ''));
+  const y = Buffer.from(String(b ?? ''));
+  if (!x.length || !y.length) return false;
+  // Hash both first so a length mismatch cannot short-circuit and leak the length.
+  const hx = crypto.createHash('sha256').update(x).digest();
+  const hy = crypto.createHash('sha256').update(y).digest();
+  return crypto.timingSafeEqual(hx, hy);
+}
+
 function passkeyValid(pageId, passkey, presented) {
   if (!passkey || !presented) return false;
   const expected = passkeyToken(pageId, passkey);
@@ -72,6 +85,6 @@ function verifySession(token) {
 
 module.exports = {
   generatePageId, validFileName, contentTypeFor, isTextFile,
-  PASSKEY_COOKIE, passkeyToken, passkeyValid,
+  PASSKEY_COOKIE, passkeyToken, passkeyValid, constantTimeEqual,
   SESSION_COOKIE, signSession, verifySession
 };

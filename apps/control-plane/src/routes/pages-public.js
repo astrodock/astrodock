@@ -42,7 +42,9 @@ function gate(page, req, res, { json = false } = {}) {
   if (page.accessMode === 'passkey') {
     const real = decryptSecret(page.passkey);
     const cookie = req.cookies?.[P.PASSKEY_COOKIE(page.pageId)];
-    if (req.query.key && req.query.key === real) {
+    // Constant-time, like every other secret comparison in the codebase. This
+    // one was a plain === — the odd one out.
+    if (req.query.key && P.constantTimeEqual(String(req.query.key), String(real || ''))) {
       res.cookie(P.PASSKEY_COOKIE(page.pageId), P.passkeyToken(page.pageId, real), cookieOpts(true));
       return { ok: true, user: null };
     }

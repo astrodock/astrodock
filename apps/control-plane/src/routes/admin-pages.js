@@ -17,7 +17,13 @@ const pages = require('../lib/pages');
 const store = require('../lib/pages-store');
 
 const router = express.Router();
+// Read is the floor for the whole router; every mutating route below adds
+// pages:write on top. It used to stop at this line, which meant a key holding
+// only pages:read could create, modify, DELETE and re-address pages and their
+// files — while the Read-only preset that carries it is described as "see
+// everything, change nothing".
 router.use(requireScope('pages:read'));
+const canWrite = requireScope('pages:write');
 router.use(express.json({ limit: config.pages.editTextMaxBytes }));
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: config.pages.maxFileBytes, files: config.pages.maxFilesPerUpload } });
@@ -78,7 +84,7 @@ function accessFields(body, current) {
 }
 
 // ── CRUD ──
-router.post('/', async (req, res) => {
+router.post('/', canWrite, async (req, res) => {
   try {
     const b = req.body || {};
     const access = accessFields(b, null);
@@ -150,7 +156,7 @@ router.get('/:pageId/views', async (req, res) => {
   });
 });
 
-router.patch('/:pageId', async (req, res) => {
+router.patch('/:pageId', canWrite, async (req, res) => {
   const page = await loadPage(req.params.pageId);
   if (!page) return res.status(404).json({ error: 'Page not found' });
   const b = req.body || {};
@@ -172,7 +178,7 @@ router.patch('/:pageId', async (req, res) => {
   } catch (err) { res.status(err.status || 500).json({ error: err.message }); }
 });
 
-router.post('/:pageId/generate-passkey', async (req, res) => {
+router.post('/:pageId/generate-passkey', canWrite, async (req, res) => {
   const page = await loadPage(req.params.pageId);
   if (!page) return res.status(404).json({ error: 'Page not found' });
   const pk = genPasskey();
@@ -185,7 +191,7 @@ router.post('/:pageId/generate-passkey', async (req, res) => {
 // The escape hatch for a page that was shared more widely than intended: there is
 // no way to un-send a URL, but there is a way to make it stop resolving. The id
 // is part of the storage key, so the objects move with it.
-router.post('/:pageId/reissue-id', async (req, res) => {
+router.post('/:pageId/reissue-id', canWrite, async (req, res) => {
   const page = await loadPage(req.params.pageId);
   if (!page) return res.status(404).json({ error: 'Page not found' });
   const oldId = page.pageId;
@@ -215,7 +221,7 @@ router.post('/:pageId/reissue-id', async (req, res) => {
   }
 });
 
-router.delete('/:pageId', async (req, res) => {
+router.delete('/:pageId', canWrite, async (req, res) => {
   const page = await loadPage(req.params.pageId);
   if (!page) return res.status(404).json({ error: 'Page not found' });
   await store.deleteAll(page.pageId);
@@ -230,7 +236,7 @@ router.delete('/:pageId', async (req, res) => {
 });
 
 // ── files ──
-router.post('/:pageId/files', upload.array('files', config.pages.maxFilesPerUpload), async (req, res) => {
+router.post('/:pageId/files', canWrite, upload.array('files', config.pages.maxFilesPerUpload), async (req, res) => {
   const page = await loadPage(req.params.pageId);
   if (!page) return res.status(404).json({ error: 'Page not found' });
   const files = req.files || [];
@@ -269,7 +275,7 @@ router.get('/:pageId/file', async (req, res) => {
   res.json({ content: obj.body.toString('utf8') });
 });
 
-router.put('/:pageId/file', async (req, res) => {
+router.put('/:pageId/file', canWrite, async (req, res) => {
   const page = await loadPage(req.params.pageId);
   if (!page) return res.status(404).json({ error: 'Page not found' });
   const { path: name, content } = req.body || {};
@@ -284,7 +290,7 @@ router.put('/:pageId/file', async (req, res) => {
   res.json({ ok: true });
 });
 
-router.delete('/:pageId/file', async (req, res) => {
+router.delete('/:pageId/file', canWrite, async (req, res) => {
   const page = await loadPage(req.params.pageId);
   if (!page) return res.status(404).json({ error: 'Page not found' });
   const name = req.query.path;

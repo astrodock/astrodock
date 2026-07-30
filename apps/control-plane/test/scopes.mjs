@@ -141,5 +141,42 @@ test('keys manage end users only, and never their own principal', () => {
   assert.strictEqual(R.keyCanManageUser(auth, { id: 'u2', operatorRole: null }).ok, true);
 });
 
+
+console.log('\nread scopes must not grant writes');
+
+// A router-level requireScope('x:read') covers reads AND writes unless each
+// mutating route adds its own guard. admin-pages did not, so a key holding only
+// pages:read could create, modify, DELETE and re-address pages and their files —
+// while the preset carrying it is described as "see everything, change nothing".
+// This walks the route files and insists that mutating verbs name a write guard.
+{
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const dir = new URL('../src/routes/', import.meta.url);
+  const files = fs.readdirSync(dir).filter((f) => f.startsWith('admin-') && f.endsWith('.js'));
+
+  const offenders = [];
+  for (const name of files) {
+    const src = fs.readFileSync(new URL(name, dir), 'utf8');
+    // Routers gated on requireAdmin are operator-only; scoped keys never reach them.
+    if (/router\.use\(requireAdmin\)/.test(src)) continue;
+
+    const routerScope = /router\.use\(requireScope\('([a-z]+):read'\)\)/.exec(src);
+    if (!routerScope) continue;
+
+    for (const line of src.split('\n')) {
+      const m = /^router\.(post|put|patch|delete)\('([^']*)'\s*,\s*([^)]*)/.exec(line);
+      if (!m) continue;
+      const [, verb, route, rest] = m;
+      const guarded = /requireScope|requirePermission|canWrite|requireRecentAuth|requireFreshAuth/.test(rest);
+      if (!guarded) offenders.push(`${name}: ${verb.toUpperCase()} ${route}`);
+    }
+  }
+  test('every mutating route under a read-scoped router names a write guard', () => {
+    assert.deepStrictEqual(offenders, [],
+      'these mutating routes are covered only by a :read scope');
+  });
+}
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
