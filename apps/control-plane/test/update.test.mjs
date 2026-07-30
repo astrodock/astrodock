@@ -144,5 +144,31 @@ test('a path merely containing the words is not mistaken for a build overlay', (
   assert.strictEqual(r.ok, true, r.reason);
 });
 
+console.log('\nself-update: paths the host daemon has to be able to resolve');
+
+test('the project is mounted at its own path, never a synthetic one', () => {
+  // Compose resolves relative bind mounts against the project directory and hands
+  // the result to the HOST daemon. Mounting the project at /project made
+  // `./infra/caddy/Caddyfile` resolve to /project/infra/caddy/Caddyfile, which
+  // does not exist on the host — so Docker created a DIRECTORY there and mounted
+  // it over Caddy's config. The platform came up with no routing at all.
+  const src = fs.readFileSync(new URL('../src/lib/self-update.js', import.meta.url), 'utf8');
+  assert.doesNotMatch(src, /:\/project`/,
+    'the project must be mounted at its own host path, not at /project');
+  assert.match(src, /\$\{info\.workingDir\}:\$\{info\.workingDir\}/,
+    'expected -v <workingDir>:<workingDir>');
+});
+
+test('every relative bind mount in the compose file is covered by that', () => {
+  // If a relative mount is ever added, this is the thing that keeps it working:
+  // the two paths only agree because the mount point equals the host path.
+  const compose = fs.readFileSync(new URL('../../../docker-compose.yml', import.meta.url), 'utf8');
+  const relative = [...compose.matchAll(/^\s*-\s+(\.\/[^:]+):/gm)].map((m) => m[1]);
+  assert.ok(relative.length > 0, 'expected at least one relative bind mount to protect');
+  const worker = fs.readFileSync(new URL('../src/runner/update-worker.js', import.meta.url), 'utf8');
+  assert.match(worker, /ASTRODOCK_UPDATE_DIR/,
+    'the worker must use the host project path, not a hardcoded container path');
+});
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

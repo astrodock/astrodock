@@ -17,7 +17,10 @@ const fs = require('fs');
 const path = require('path');
 const { execFile } = require('child_process');
 
-const PROJECT = '/project';
+// The host path of the compose project, mounted here at the same path so that
+// bind mounts inside docker-compose.yml resolve identically for us and for the
+// daemon. See the note in lib/self-update.js.
+const PROJECT = process.env.ASTRODOCK_UPDATE_DIR || '/project';
 const ENV_FILE = process.env.ASTRODOCK_UPDATE_ENV_FILE || path.join(PROJECT, '.env');
 const TO = (process.env.ASTRODOCK_UPDATE_TO || '').trim();
 const FROM = (process.env.ASTRODOCK_UPDATE_FROM || '').trim();

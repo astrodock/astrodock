@@ -102,11 +102,23 @@ async function launch({ toVersion, actor, currentVersion }) {
     'run', '--detach',
     '--name', `astrodock-updater-${Date.now().toString(36)}`,
     '-v', '/var/run/docker.sock:/var/run/docker.sock',
-    '-v', `${info.workingDir}:/project`,
+    // Mounted at its OWN path, not at /project.
+    //
+    // Compose resolves relative bind mounts against the project directory and
+    // hands the result to the HOST daemon — so with the project mounted at
+    // /project, `./infra/caddy/Caddyfile` became /project/infra/caddy/Caddyfile,
+    // a path that does not exist on the host. Docker then created a DIRECTORY
+    // there and mounted it over Caddy's config file, which left the platform
+    // running with no routing at all.
+    //
+    // Mounting at the same path inside and out makes every path mean the same
+    // thing to the updater and to the daemon it is talking to.
+    '-v', `${info.workingDir}:${info.workingDir}`,
     '-e', `ASTRODOCK_UPDATE_TO=${toVersion || ''}`,
     '-e', `ASTRODOCK_UPDATE_FROM=${currentVersion || ''}`,
     '-e', `ASTRODOCK_UPDATE_ACTOR=${actor || ''}`,
-    '-e', `ASTRODOCK_UPDATE_PROJECT=${info.project}`
+    '-e', `ASTRODOCK_UPDATE_PROJECT=${info.project}`,
+    '-e', `ASTRODOCK_UPDATE_DIR=${info.workingDir}`
   ];
   // The updater has to reach Postgres to record what happened and the api to
   // health-check it, both by service name.
