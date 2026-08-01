@@ -151,7 +151,7 @@ router.post('/', requirePermission('apps:write'), async (req, res) => {
     schemaVersion: '1',
     slug: b.slug, name: b.name, subdomain: b.subdomain, description: b.description || '',
     source: { branch: b.branch || 'main', repoPath: b.repoPath || '' },
-    runtime: { type: b.runtimeType || b.runtime?.type || 'node' },
+    runtime: { type: b.runtimeType || b.runtime?.type || 'node', spa: b.spa !== false },
     auth: { mode: b.authMode || b.auth?.mode || 'platform' },
     database: { mode: b.databaseMode || b.database?.mode || 'none' },
     storage: { mode: b.storageMode || b.storage?.mode || 'none' },
@@ -180,6 +180,7 @@ const PATCH_VALIDATORS = {
   databaseMode: (v) => ['internal', 'external', 'none'].includes(v),
   storageMode: (v) => ['internal', 'external', 'none'].includes(v),
   buildCommand: (v) => typeof v === 'string' && v.length <= 500,
+  spa: (v) => v === 'true' || v === 'false',
   // Interpolated into the sign-in page's stylesheet and an <img src>. Rejected
   // here as well as at render time — a bad value should never reach the column.
   brandColor: (v) => v === '' || /^#[0-9a-fA-F]{6}$/.test(v),
@@ -194,7 +195,7 @@ router.patch('/:slug', requirePermission('apps:write'), async (req, res) => {
   const map = {
     name: 'name', description: 'description',
     authMode: 'authMode', databaseMode: 'databaseMode', storageMode: 'storageMode',
-    runtimeType: 'runtimeType', buildCommand: 'buildCommand', dockerfile: 'dockerfile',
+    runtimeType: 'runtimeType', buildCommand: 'buildCommand', dockerfile: 'dockerfile', spa: 'spa',
     branch: 'branch', repoPath: 'repoPath', subdomain: 'subdomain',
     brandColor: 'brandColor', logoUrl: 'logoUrl'
   };
@@ -210,6 +211,13 @@ router.patch('/:slug', requirePermission('apps:write'), async (req, res) => {
     if (clash[0]) return res.status(409).json({ error: 'subdomain already in use' });
   }
   const rows = await db.update(schema.apps).set(update).where(eq(schema.apps.id, app.id)).returning();
+
+  // Three of these fields are written into the generated Caddyfile. Without this
+  // the change sat in the database until the reconciler's next pass — so renaming
+  // a subdomain appeared to work and the old address kept serving.
+  if (['subdomain', 'spa', 'runtimeType'].some((k) => b[k] !== undefined)) {
+    await reloadCaddyFromDb().catch(() => {});
+  }
   res.json({ app: serializeApp(rows[0]) });
 });
 

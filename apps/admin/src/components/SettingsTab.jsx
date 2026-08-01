@@ -55,6 +55,7 @@ export default function SettingsTab({ app, onRefresh }) {
   const [runtimeType, setRuntimeType] = useState(app.runtime?.type || 'node');
   const [buildCommand, setBuildCommand] = useState(app.runtime?.buildCommand || '');
   const [dockerfile, setDockerfile] = useState(app.runtime?.dockerfile || '');
+  const [spa, setSpa] = useState(app.runtime?.spa !== false);
   const [savingConfig, setSavingConfig] = useState(false);
 
   const [repos, setRepos] = useState([]);
@@ -74,6 +75,7 @@ export default function SettingsTab({ app, onRefresh }) {
     setAuthMode(app.auth?.mode || 'platform'); setDatabaseMode(app.database?.mode || 'none');
     setStorageMode(app.storage?.mode || 'none'); setRuntimeType(app.runtime?.type || 'node');
     setBuildCommand(app.runtime?.buildCommand || ''); setDockerfile(app.runtime?.dockerfile || '');
+    setSpa(app.runtime?.spa !== false);
     setSelectedRepo(app.source?.githubRepo || ''); setBranch(app.source?.branch || 'main'); setRepoPath(app.source?.repoPath || '');
   }, [app]);
 
@@ -102,7 +104,7 @@ export default function SettingsTab({ app, onRefresh }) {
   async function handleSaveConfig(e) {
     e.preventDefault(); setSavingConfig(true); setError(''); setSuccess('');
     try {
-      await api.updateApp(app.slug, { authMode, databaseMode, storageMode, runtimeType, buildCommand, dockerfile });
+      await api.updateApp(app.slug, { authMode, databaseMode, storageMode, runtimeType, buildCommand, dockerfile, spa });
       setSuccess('Saved. If you changed Database or Storage, re-provision below, then redeploy.');
       onRefresh();
     } catch (err) { setError(err.message); } finally { setSavingConfig(false); }
@@ -379,6 +381,26 @@ export default function SettingsTab({ app, onRefresh }) {
               <Select value={runtimeType} onChange={setRuntimeType} options={RUNTIME_OPTIONS} />
             </div>
           </div>
+          {runtimeType === 'node' && (
+            <div className="field">
+              <div className="lab">
+                <b>Unknown web addresses</b>
+                <span className="desc">
+                  {spa
+                    ? 'Anything that is not a file is handed to your app to deal with. Right for an app whose pages are drawn in the browser.'
+                    : 'Anything that is not a file returns a real "not found". Right for a site of ordinary pages — a stale link then says it is broken instead of quietly showing the front page.'}
+                </span>
+              </div>
+              <div className="ctl" style={{ width: 280 }}>
+                <Select value={spa ? 'spa' : 'static'} onChange={(v) => setSpa(v === 'spa')} options={[
+                  { value: 'spa', label: 'Hand them to the app',
+                    description: 'For apps that draw their own pages — React, Vue and the like.' },
+                  { value: 'static', label: 'Show a "not found" page',
+                    description: 'For ordinary pages and documentation. Serves your 404.html with a real 404.' }
+                ]} />
+              </div>
+            </div>
+          )}
           {runtimeType === 'node' ? (
             <div className="field">
               <div className="lab">

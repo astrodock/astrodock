@@ -24,6 +24,7 @@ function structuralFromManifest(m) {
     subdomain: m.subdomain,
     runtimeType: m.runtime?.type || 'node',
     buildCommand: m.runtime?.buildCommand || 'npm run build',
+    spa: m.runtime?.spa !== false,   // default true: unknown paths reach the client router
     dockerfile: m.runtime?.dockerfile || 'Dockerfile',
     branch: m.source?.branch || 'main',
     repoPath: m.source?.repoPath || '',

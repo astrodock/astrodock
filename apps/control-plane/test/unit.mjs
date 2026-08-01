@@ -146,6 +146,47 @@ test('the apex honours the TLS mode instead of assuming https', () => {
   }
 });
 
+console.log('\nstatic sites vs single-page apps');
+
+test('an SPA sends unknown paths to index.html', () => {
+  const cfg = generateCaddyfile([{ ...internalApp, spa: true }]);
+  assert.ok(cfg.includes('try_files {path} /index.html'), 'client router owns the URL');
+  assert.ok(!cfg.includes('handle_errors'), 'no error page: there is nothing missing to report');
+});
+
+test('a static site returns a real 404 instead of the homepage', () => {
+  // Scoped to the app's own block: the dashboard is an SPA and legitimately has
+  // the index.html fallback, so a whole-config search proves nothing.
+  const cfg = generateCaddyfile([{ ...internalApp, spa: false }]);
+  const block = cfg.slice(cfg.indexOf(`${internalApp.subdomain}.${config.baseDomain} {`));
+  const app = block.slice(0, block.indexOf('\n}\n') + 3);
+  assert.ok(!app.includes('try_files {path} /index.html'),
+    'serving the homepage for a dead link hides it from visitors and crawlers');
+  assert.ok(app.includes('{path}.html'), '/install should find install.html');
+  assert.ok(cfg.includes('rewrite * /{err.status_code}.html'), 'serves 404.html, keeping the 404');
+});
+
+test('handle_errors sits beside handle, never inside it', () => {
+  // Caddy rejects handle_errors as a nested handler; nesting it would have made
+  // every site block fail to load. Cheap to assert, catastrophic to get wrong.
+  const cfg = generateCaddyfile([{ ...internalApp, spa: false }]);
+  const block = cfg.slice(cfg.indexOf(`${internalApp.subdomain}.`));
+  const handleEnd = block.indexOf('\n\t}');
+  assert.ok(block.indexOf('handle_errors') > handleEnd, 'handle_errors is outside the handle block');
+});
+
+test('spa defaults to true for an app that never declared it', () => {
+  const { spa, ...noSpa } = internalApp; // eslint-disable-line no-unused-vars
+  const cfg = generateCaddyfile([noSpa]);
+  assert.ok(cfg.includes('try_files {path} /index.html'), 'existing apps keep the behaviour they had');
+});
+
+test('a static app at the apex gets the same treatment', () => {
+  const cfg = generateCaddyfile([{ ...internalApp, spa: false }], { apexApp: internalApp.slug });
+  const apexPart = cfg.slice(cfg.indexOf(`\n${config.tlsMode === 'off' ? 'http://' : ''}${config.baseDomain} {`));
+  assert.ok(apexPart.includes('handle_errors'), 'the apex is not a second-class route');
+});
+
 console.log('\naddress redirects');
 
 test('a well-formed line becomes a redirect that keeps the path', () => {

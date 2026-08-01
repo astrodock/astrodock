@@ -22,7 +22,7 @@ function serializeApp(app) {
     description: app.description,
     subdomain: app.subdomain,
     port: app.port,
-    runtime: { type: app.runtimeType, buildCommand: app.buildCommand, dockerfile: app.dockerfile },
+    runtime: { type: app.runtimeType, buildCommand: app.buildCommand, dockerfile: app.dockerfile, spa: app.spa !== false },
     source: { branch: app.branch, repoPath: app.repoPath, githubRepo: app.githubRepo },
     auth: {
       mode: app.authMode,

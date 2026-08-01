@@ -2,53 +2,158 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://astrodock.ai/app.schema.json",
   "title": "app.json",
-  "description": "Astrodock app manifest. Declared configuration and environment-variable NAMES only — never secret values.",
+  "description": "Astrodock app manifest. Declared configuration and environment-variable NAMES only \u2014 never secret values.",
   "type": "object",
-  "required": ["schemaVersion", "slug", "name", "subdomain", "source", "runtime", "auth", "database", "storage"],
+  "required": [
+    "schemaVersion",
+    "slug",
+    "name",
+    "subdomain",
+    "source",
+    "runtime",
+    "auth",
+    "database",
+    "storage"
+  ],
   "additionalProperties": false,
   "properties": {
-    "schemaVersion": { "const": "1" },
-    "slug":      { "type": "string", "pattern": "^[a-z0-9-]+$", "maxLength": 40 },
-    "name":      { "type": "string", "minLength": 1 },
-    "description": { "type": "string" },
-    "subdomain": { "type": "string", "pattern": "^[a-z0-9-]+$", "maxLength": 40 },
+    "schemaVersion": {
+      "const": "1"
+    },
+    "slug": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$",
+      "maxLength": 40
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string"
+    },
+    "subdomain": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$",
+      "maxLength": 40
+    },
     "source": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "branch":   { "type": "string", "default": "main", "pattern": "^[A-Za-z0-9._/-]+$", "maxLength": 200 },
-        "repoPath": { "type": "string", "default": "", "pattern": "^(?!.*\\.\\.)[A-Za-z0-9._/-]*$", "maxLength": 200 },
-        "githubRepo": { "type": "string", "pattern": "^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$", "description": "owner/repo — optional; can also be set via the CLI/admin UI." }
+        "branch": {
+          "type": "string",
+          "default": "main",
+          "pattern": "^[A-Za-z0-9._/-]+$",
+          "maxLength": 200
+        },
+        "repoPath": {
+          "type": "string",
+          "default": "",
+          "pattern": "^(?!.*\\.\\.)[A-Za-z0-9._/-]*$",
+          "maxLength": 200
+        },
+        "githubRepo": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$",
+          "description": "owner/repo \u2014 optional; can also be set via the CLI/admin UI."
+        }
       }
     },
     "runtime": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["type"],
+      "required": [
+        "type"
+      ],
       "properties": {
-        "type":         { "enum": ["node", "docker"] },
-        "buildCommand": { "type": "string", "maxLength": 500 },
-        "dockerfile":   { "type": "string", "pattern": "^(?!.*\\.\\.)[A-Za-z0-9._/-]+$", "maxLength": 200 }
+        "type": {
+          "enum": [
+            "node",
+            "docker"
+          ]
+        },
+        "buildCommand": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "dockerfile": {
+          "type": "string",
+          "pattern": "^(?!.*\\.\\.)[A-Za-z0-9._/-]+$",
+          "maxLength": 200
+        },
+        "spa": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether the frontend is a single-page app. True (the default) sends unknown paths to index.html so a client router can handle them. Set false for a static site: unknown paths then get a real 404 from 404.html instead of the homepage."
+        }
       }
     },
-    "auth":     { "type": "object", "additionalProperties": false,
-                  "properties": { "mode": { "enum": ["platform", "public"] } } },
-    "database": { "type": "object", "additionalProperties": false,
-                  "properties": { "mode": { "enum": ["internal", "external", "none"] } } },
-    "storage":  { "type": "object", "additionalProperties": false,
-                  "properties": { "mode": { "enum": ["internal", "external", "none"] } } },
+    "auth": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "enum": [
+            "platform",
+            "public"
+          ]
+        }
+      }
+    },
+    "database": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "enum": [
+            "internal",
+            "external",
+            "none"
+          ]
+        }
+      }
+    },
+    "storage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "enum": [
+            "internal",
+            "external",
+            "none"
+          ]
+        }
+      }
+    },
     "env": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["key"],
+        "required": [
+          "key"
+        ],
         "properties": {
-          "key":         { "type": "string", "pattern": "^(?!ASTRODOCK_)[A-Z][A-Z0-9_]*$" },
-          "secret":      { "type": "boolean", "default": false },
-          "required":    { "type": "boolean", "default": false },
-          "default":     { "type": "string" },
-          "description": { "type": "string" }
+          "key": {
+            "type": "string",
+            "pattern": "^(?!ASTRODOCK_)[A-Z][A-Z0-9_]*$"
+          },
+          "secret": {
+            "type": "boolean",
+            "default": false
+          },
+          "required": {
+            "type": "boolean",
+            "default": false
+          },
+          "default": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
         }
       }
     }

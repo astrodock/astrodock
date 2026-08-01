@@ -46,6 +46,8 @@ const apps = pgTable('apps', {
   runtimeType: text('runtime_type').notNull().default('node'), // node | docker
   buildCommand: text('build_command').notNull().default('npm run build'),
   dockerfile: text('dockerfile').notNull().default('Dockerfile'),
+  // false => a static site: unknown paths get a real 404, not the homepage
+  spa: boolean('spa').notNull().default(true),
 
   // source
   branch: text('branch').notNull().default('main'),

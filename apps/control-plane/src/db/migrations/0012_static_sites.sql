@@ -1,0 +1,11 @@
+-- Whether an app's frontend is a single-page app.
+--
+-- Caddy has always served every Node app with `try_files {path} /index.html`,
+-- which is right for an SPA — the client router owns the URL, so an unknown
+-- path must reach it. For a static site it is wrong in a way that hides
+-- problems: a stale link serves the homepage with a 200, so a broken link is
+-- invisible to the visitor, who thinks they arrived, and to a crawler, which
+-- indexes the homepage under a dozen dead URLs.
+--
+-- Defaults to true, which is what every existing app was already getting.
+ALTER TABLE apps ADD COLUMN IF NOT EXISTS spa boolean NOT NULL DEFAULT true;

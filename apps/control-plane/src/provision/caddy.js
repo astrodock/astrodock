@@ -9,6 +9,31 @@ const config = require('../config');
 const API = `api:${config.port}`;
 // Node buildpack apps run as PM2 processes INSIDE the runner container, so their
 // /api/* traffic must be proxied to the runner (not the control-plane api).
+// How a static root answers a path that is not a file on disk.
+//
+// An SPA needs every unknown path to reach index.html, because the client router
+// owns the URL. A static site needs the opposite: an unknown path is a broken
+// link, and answering it with the homepage and a 200 hides that from the visitor
+// (who thinks they arrived) and from crawlers (which index the homepage under a
+// dozen dead URLs).
+//
+// The error routes live at the SITE level, not inside handle{} — Caddy refuses
+// handle_errors as a nested handler ("not an ordered HTTP handler"), which a
+// real `caddy validate` catches and reading the docs does not.
+function staticRoot(dir, spa) {
+  if (spa !== false) {
+    return `\t\troot * ${dir}\n\t\ttry_files {path} /index.html\n\t\tfile_server\n`;
+  }
+  // {path}.html lets /install serve install.html, which is what a docs site wants.
+  return `\t\troot * ${dir}\n\t\ttry_files {path} {path}.html {path}/index.html\n\t\tfile_server\n`;
+}
+
+// Sibling of handle{}: serves 404.html with a real 404 rather than 200.
+function staticErrors(dir, spa) {
+  if (spa !== false) return '';
+  return `\thandle_errors {\n\t\troot * ${dir}\n\t\trewrite * /{err.status_code}.html\n\t\tfile_server\n\t}\n`;
+}
+
 function runnerHost() {
   try { return new URL(config.runnerUrl).hostname; } catch { return 'runner'; }
 }
@@ -114,8 +139,8 @@ function customDomainBlock(d, accessLogs, onDemand, canonicalHost) {
   if (d.runtimeType === 'docker') {
     return `\n${site(host)} {\n${tlsLine}${logLine}\treverse_proxy app-${d.appSlug}:${d.port}\n}\n`;
   }
-  const staticRoot = `${config.paths.caddyStatic}/${d.appSlug}`;
-  return `\n${site(host)} {\n${tlsLine}${logLine}\thandle /api/* {\n\t\treverse_proxy ${runnerHost()}:${d.port}\n\t}\n\thandle {\n\t\troot * ${staticRoot}\n\t\ttry_files {path} /index.html\n\t\tfile_server\n\t}\n}\n`;
+  const dir = `${config.paths.caddyStatic}/${d.appSlug}`;
+  return `\n${site(host)} {\n${tlsLine}${logLine}\thandle /api/* {\n\t\treverse_proxy ${runnerHost()}:${d.port}\n\t}\n\thandle {\n${staticRoot(dir, d.spa)}\t}\n${staticErrors(dir, d.spa)}}\n`;
 }
 
 // The hosted sign-in, on auth.<domain>.
@@ -160,18 +185,15 @@ ${apiHandles(ADMIN_PATHS)}
 
 function nodeAppBlock(app, accessLogs) {
   const host = `${app.subdomain}.${config.baseDomain}`;
-  const staticRoot = `${config.paths.caddyStatic}/${app.slug}`;
+  const dir = `${config.paths.caddyStatic}/${app.slug}`;
   return `
 ${site(host)} {
 ${appLog(app, accessLogs)}\thandle /api/* {
 \t\treverse_proxy ${runnerHost()}:${app.port}
 \t}
 \thandle {
-\t\troot * ${staticRoot}
-\t\ttry_files {path} /index.html
-\t\tfile_server
-\t}
-}
+${staticRoot(dir, app.spa)}\t}
+${staticErrors(dir, app.spa)}}
 `;
 }
 
@@ -237,8 +259,8 @@ function apexBlock(app, accessLogs, includeWww) {
     out += `\n${site(host)} {\n${appLog(app, accessLogs)}\treverse_proxy app-${app.slug}:${app.port}\n}\n`;
     return out;
   }
-  const staticRoot = `${config.paths.caddyStatic}/${app.slug}`;
-  out += `\n${site(host)} {\n${appLog(app, accessLogs)}\thandle /api/* {\n\t\treverse_proxy ${runnerHost()}:${app.port}\n\t}\n\thandle {\n\t\troot * ${staticRoot}\n\t\ttry_files {path} /index.html\n\t\tfile_server\n\t}\n}\n`;
+  const dir = `${config.paths.caddyStatic}/${app.slug}`;
+  out += `\n${site(host)} {\n${appLog(app, accessLogs)}\thandle /api/* {\n\t\treverse_proxy ${runnerHost()}:${app.port}\n\t}\n\thandle {\n${staticRoot(dir, app.spa)}\t}\n${staticErrors(dir, app.spa)}}\n`;
   return out;
 }
 
