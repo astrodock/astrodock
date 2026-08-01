@@ -3,13 +3,18 @@ import { useNavigate } from 'react-router-dom';
 import * as api from '../lib/api';
 import EmptyState from '../components/EmptyState';
 import UserCreateModal from '../components/UserCreateModal';
+import PageHeader from '../components/PageHeader';
+import { SkeletonRows } from '../components/Loading';
 
 // Roles are not interchangeable, so they should not all look alike: an owner
 // can hand the platform away, a viewer can only read.
-const ROLE_TONE = { owner: 'crit', admin: 'warn', operator: 'ok', viewer: '' };
+// Not danger colours: an owner is the most senior role, not the most dangerous
+// thing on the page. Red is reserved for destructive things and failures.
+const ROLE_TONE = { owner: 'role-owner', admin: 'role-admin', operator: 'role-operator', viewer: 'role-viewer' };
 
 export default function UsersPage() {
   const [users, setUsers] = useState([]);
+  const [loaded, setLoaded] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -21,23 +26,24 @@ export default function UsersPage() {
     } catch (err) {
       setError(err.message);
     }
+    setLoaded(true);
   }
 
   useEffect(() => { load(); }, []);
 
   return (
     <div>
-      <div className="page-header">
-        <h1>Users</h1>
-        <p className="page-sub">People who can sign in — to the apps you grant them, and to this dashboard if you give them a role.</p>
-        <button onClick={() => setShowCreate(true)}>Add User</button>
-      </div>
+      <PageHeader
+        title="Users"
+        description="People who can sign in — to the apps you grant them, and to this dashboard if you give them a role."
+        action={<button onClick={() => setShowCreate(true)}>Add User</button>}
+      />
 
       {error && <div className="error">{error}</div>}
 
-      {users.length === 0 ? (
-        <EmptyState icon="users" title="No People Yet"
-          body="People here can sign in to the apps you grant them. Give someone a dashboard role and they can open this dashboard too."
+      {!loaded ? <SkeletonRows rows={4} cols={5} /> : users.length === 0 ? (
+        <EmptyState icon="users" title="No people yet"
+          body="Add someone to give them access to your apps."
           action={<button onClick={() => setShowCreate(true)}>Add User</button>} />
       ) : (
       <table className="data-table clickable">

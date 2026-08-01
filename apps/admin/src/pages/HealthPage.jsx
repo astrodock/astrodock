@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import * as api from '../lib/api';
 import { appHost } from '../lib/appUrl';
 import EmptyState from '../components/EmptyState';
+import PageHeader from '../components/PageHeader';
 
 const STATUS_CONFIG = {
   healthy: { label: 'Healthy', dotClass: 'active', textClass: 'health-healthy' },
@@ -112,11 +113,11 @@ export default function HealthPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1>Health</h1>
-        <p className="page-sub">Live condition of the server and of every app running on it.</p>
-        {data && <span className="health-updated">Last checked {formatTime(data.checkedAt)}</span>}
-      </div>
+      <PageHeader
+        title="Health"
+        description="Live condition of the server and of every app running on it."
+        note={data ? `Last checked ${formatTime(data.checkedAt)}` : null}
+      />
       {error && <div className="error">{error}</div>}
       {downCount > 0 && <div className="health-alert health-alert-danger">{downCount} app{downCount > 1 ? 's' : ''} down</div>}
       {degradedCount > 0 && <div className="health-alert health-alert-warning">{degradedCount} app{degradedCount > 1 ? 's' : ''} degraded</div>}

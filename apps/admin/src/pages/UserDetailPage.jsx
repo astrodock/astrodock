@@ -3,7 +3,9 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import * as api from '../lib/api';
 import EmptyState from '../components/EmptyState';
 
-const ROLE_TONE = { owner: 'crit', admin: 'warn', operator: 'ok', viewer: '' };
+// Not danger colours: an owner is the most senior role, not the most dangerous
+// thing on the page. Red is reserved for destructive things and failures.
+const ROLE_TONE = { owner: 'role-owner', admin: 'role-admin', operator: 'role-operator', viewer: 'role-viewer' };
 
 export default function UserDetailPage() {
   const { id } = useParams();

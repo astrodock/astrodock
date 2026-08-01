@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import * as api from '../lib/api';
+import { ModalForm } from './Modal';
+import Field, { FieldGroup } from './Field';
 
 // Creating an access key.
 //
@@ -55,52 +57,49 @@ export default function NewKeyModal({ options, apps, onCancel, onCreated }) {
   }
 
   return (
-    <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onCancel()}>
-      <form className="modal modal-wide" onSubmit={create}
-        style={{ maxHeight: '88vh', overflowY: 'auto' }} noValidate>
-        <h2>New Access Key</h2>
-
-        <p className="hint" style={{ marginTop: '-.9rem' }}>
-          {options.delegating
-            ? 'This key can only pass on part of what it holds, and cannot let its own keys make further keys.'
-            : 'Give it only what it needs — you can always issue another.'}
-        </p>
-
+    <ModalForm
+      title="New Access Key"
+      subtitle={options.delegating
+        ? 'This key can only pass on part of what it holds, and cannot let its own keys make further keys.'
+        : 'Give it only what it needs — you can always issue another.'}
+      onClose={onCancel}
+      onSubmit={create}
+      busy={busy}
+      wide
+      footer={
+        <>
+          <button type="button" onClick={onCancel} disabled={busy}>Cancel</button>
+          <button type="submit" className="primary" disabled={busy || !name.trim() || !effective.length}>
+            {busy ? 'Creating…' : 'Create Key'}
+          </button>
+        </>
+      }
+    >
         {error && <div className="error">{error}</div>}
 
-        <label>
-          Name
-          <input value={name} onChange={(e) => setName(e.target.value)} autoFocus
-            placeholder="e.g. Invoices deploy key" />
-        </label>
+      <Field label="Name" hint="Something you will recognise in six months.">
+        <input value={name} onChange={(e) => setName(e.target.value)} autoFocus
+          placeholder="e.g. Invoices deploy key" />
+      </Field>
 
-        <div style={{ marginBottom: '1.3rem' }}>
-          <div className="opt-group" style={{ marginBottom: 8 }}>
-            <header><h4>Starting Point</h4></header>
-          </div>
-          <div className="seg seg-fit">
-            {presets.map((p) => (
-              <button type="button" key={p.key} className={!custom && preset === p.key ? 'sel' : ''}
-                onClick={() => { setPreset(p.key); setCustom(null); }}>{p.label}</button>
-            ))}
-          </div>
-          <p className="hint" style={{ marginTop: 7 }}>
-            {custom ? 'Adjusted by hand — pick a starting point to reset.' : chosen?.description}
-          </p>
+      <FieldGroup label="Starting point"
+        hint={custom ? 'Adjusted by hand — pick a starting point to reset.' : chosen?.description}>
+        <div className="seg seg-fit">
+          {presets.map((p) => (
+            <button type="button" key={p.key} className={!custom && preset === p.key ? 'sel' : ''}
+              onClick={() => { setPreset(p.key); setCustom(null); }}>{p.label}</button>
+          ))}
         </div>
+      </FieldGroup>
 
-        <div className="opt-group">
-          <header>
-            <h4>Expires</h4>
-            <p>A key that never expires is one you will forget you issued.</p>
-          </header>
-          <div className="seg seg-fit">
-            {EXPIRY_CHOICES.map((c) => (
-              <button type="button" key={c.label} className={expiryDays === c.days ? 'sel' : ''}
-                onClick={() => setExpiryDays(c.days)}>{c.label}</button>
-            ))}
-          </div>
+      <FieldGroup label="Expires" hint="A key that never expires is one you will forget you issued.">
+        <div className="seg seg-fit">
+          {EXPIRY_CHOICES.map((c) => (
+            <button type="button" key={c.label} className={expiryDays === c.days ? 'sel' : ''}
+              onClick={() => setExpiryDays(c.days)}>{c.label}</button>
+          ))}
         </div>
+      </FieldGroup>
 
         <div className="opt-group">
           <header>
@@ -177,13 +176,6 @@ export default function NewKeyModal({ options, apps, onCancel, onCreated }) {
           </div>
         )}
 
-        <div className="modal-actions">
-          <button type="button" onClick={onCancel}>Cancel</button>
-          <button type="submit" disabled={busy || !name.trim() || !effective.length}>
-            {busy ? 'Creating…' : 'Create Key'}
-          </button>
-        </div>
-      </form>
-    </div>
+    </ModalForm>
   );
 }

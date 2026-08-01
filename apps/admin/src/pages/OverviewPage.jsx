@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../lib/api';
 import EmptyState from '../components/EmptyState';
+import PageHeader from '../components/PageHeader';
 
 function rel(dateStr) {
   if (!dateStr) return '';
@@ -71,11 +72,11 @@ export default function OverviewPage() {
 
   return (
     <div>
-      <div className="ov-topbar">
-        <h1>Overview</h1>
-        <span className="ov-checked">updated {rel(health.checkedAt)}</span>
-        <p className="page-sub">Everything at a glance — what is running, what needs attention, and what changed recently.</p>
-      </div>
+      <PageHeader
+        title="Overview"
+        note={`updated ${rel(health.checkedAt)}`}
+        description="Everything at a glance: what is running, what needs attention, and what changed recently."
+      />
 
       <section className={`hero ${isDegraded ? 'degraded' : ''}`}>
         <div className="beacon"><span className="ring" /><span className="ring" /><span className="core" /></div>

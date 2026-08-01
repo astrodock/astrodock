@@ -2,11 +2,14 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../lib/api';
 import EmptyState from '../components/EmptyState';
+import PageHeader from '../components/PageHeader';
+import { SkeletonRows } from '../components/Loading';
 
 const BLANK = { title: '', accessMode: 'public', dataMode: 'none', passkeyMode: 'generate', passkey: '' };
 
 export default function PagesPage() {
   const [pages, setPages] = useState([]);
+  const [loaded, setLoaded] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [draft, setDraft] = useState(BLANK);
   const [creating, setCreating] = useState(false);
@@ -17,6 +20,7 @@ export default function PagesPage() {
   async function load() {
     try { setPages((await api.getPages()).pages || []); }
     catch (err) { setError(err.message); }
+    setLoaded(true);
   }
   useEffect(() => { load(); }, []);
 
@@ -56,11 +60,11 @@ export default function PagesPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1>Pages</h1>
-        <p className="page-sub">Lightweight documents and mini-sites hosted without a full app — docs, notes, a landing page.</p>
-        <button onClick={() => setShowCreate(true)}>New Page</button>
-      </div>
+      <PageHeader
+        title="Pages"
+        description="Lightweight documents and mini-sites hosted without a full app — docs, notes, a landing page."
+        action={<button onClick={() => setShowCreate(true)}>New Page</button>}
+      />
 
       <p className="hint">
         Pages host one-off documents, static mini-sites, and file shares — no repo, build, or deploy.
@@ -69,9 +73,10 @@ export default function PagesPage() {
 
       {error && <div className="error">{error}</div>}
 
-      {pages.length === 0 ? (
-        <EmptyState icon="pages" title="No Pages Yet"
-          body="A page is a lightweight document or mini-site hosted without a full app — handy for docs, notes or a landing page. You can also run: astrodock pages push ./dir" />
+      {!loaded ? <SkeletonRows rows={3} cols={4} /> : pages.length === 0 ? (
+        <EmptyState icon="pages" title="No pages yet"
+          body="Create one here, or push a folder with astrodock pages push ./dir"
+          action={<button onClick={() => setShowCreate(true)}>New Page</button>} />
       ) : (
         <table className="data-table clickable">
           <thead>

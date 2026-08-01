@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import * as api from '../lib/api';
 import NewKeyModal from '../components/NewKeyModal';
 import EmptyState from '../components/EmptyState';
+import PageHeader from '../components/PageHeader';
 
 // Access keys — what you hand an agent.
 //
@@ -52,11 +53,11 @@ export default function TokensPage() {
 
   return (
     <div className="settings-page">
-      <div className="page-header">
-        <h1>Access Keys</h1>
-        <p className="page-sub">Keys that let the CLI or an AI agent act on your behalf, with only the permissions you give them.</p>
-        <button onClick={() => { setOpen(true); setCreated(null); }}>+ New Key</button>
-      </div>
+      <PageHeader
+        title="Access Keys"
+        description="Keys that let the CLI or an AI agent act on your behalf, with only the permissions you give them."
+        action={<button onClick={() => { setOpen(true); setCreated(null); }}>New Key</button>}
+      />
 
       <p className="hint">
         A key lets the <code>astrodock</code> CLI or an AI agent act on your behalf. Each one carries

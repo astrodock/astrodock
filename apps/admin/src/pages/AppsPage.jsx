@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import * as api from '../lib/api';
 import EmptyState from '../components/EmptyState';
 import { appHost, appUrl } from '../lib/appUrl';
+import PageHeader from '../components/PageHeader';
+import { SkeletonRows } from '../components/Loading';
 
 const STMAP = {
   running: { badge: 'Running', cls: 'running', led: 'ok' },
@@ -28,6 +30,7 @@ const BLANK_APP = {
 
 export default function AppsPage() {
   const [apps, setApps] = useState([]);
+  const [loaded, setLoaded] = useState(false);
   const [statuses, setStatuses] = useState({});
   const [health, setHealth] = useState({});
   const [showCreate, setShowCreate] = useState(false);
@@ -53,6 +56,7 @@ export default function AppsPage() {
     } catch (err) {
       setError(err.message);
     }
+    setLoaded(true);
   }
 
   useEffect(() => { load(); const t = setInterval(load, 15000); return () => clearInterval(t); }, []);
@@ -106,11 +110,11 @@ export default function AppsPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1>Apps</h1>
-        <p className="page-sub">Apps are Git repos Astrodock builds, runs and serves, each at its own web address.</p>
-        <button onClick={() => setShowCreate(true)}>Register App</button>
-      </div>
+      <PageHeader
+        title="Apps"
+        description="Apps are Git repos Astrodock builds, runs and serves, each at its own web address."
+        action={<button onClick={() => setShowCreate(true)}>Register App</button>}
+      />
 
       {apps.length > 0 && (
         <div className="apps-summary">
@@ -135,9 +139,10 @@ export default function AppsPage() {
         </div>
       )}
 
-      {apps.length === 0 ? (
-        <EmptyState icon="apps" title="No Apps Yet"
-          body="An app is a Git repo Astrodock builds, runs and serves at its own web address. Create one to get started." />
+      {!loaded ? <SkeletonRows rows={3} cols={4} /> : apps.length === 0 ? (
+        <EmptyState icon="apps" title="No apps yet"
+          body="Register one to build, run and serve it."
+          action={<button onClick={() => setShowCreate(true)}>Register App</button>} />
       ) : (
         <div className="app-grid">
           {sorted.map((app) => {

@@ -868,3 +868,133 @@ label.has-error > input:focus, input.invalid:focus {
 .stages li.done .dot { background:var(--accent); }
 .stages li.now .dot { background:var(--warning); box-shadow:0 0 0 4px var(--warning-dim); animation:pulse 1.4s ease-in-out infinite; }
 @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.45; } }
+
+/* ═══════════════════════════════════════════════════════════════
+   Standard modal — header, scrolling body, pinned footer
+   ═══════════════════════════════════════════════════════════════ */
+.modal2 {
+  display:flex; flex-direction:column; max-height:88vh; width:min(94vw, 520px);
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--r-lg);
+  box-shadow:var(--shadow); overflow:hidden;   /* the corners stay round however long the body */
+  animation:fadeUp .18s ease;
+}
+.modal2-wide { width:min(94vw, 700px); }
+.modal2:focus { outline:none; }
+
+.modal2-head { display:flex; align-items:flex-start; gap:16px; padding:18px 20px 14px;
+  border-bottom:1px solid var(--line-soft); flex-shrink:0; }
+.modal2-head h2 { font-size:17px; font-weight:650; letter-spacing:-.2px; }
+.modal2-head p { font-size:13px; color:var(--text-3); margin-top:4px; line-height:1.5; }
+.modal2-close { margin-left:auto; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+  width:30px; height:30px; padding:0; background:transparent; border:1px solid transparent;
+  border-radius:var(--r-sm); color:var(--text-3); cursor:pointer; }
+.modal2-close:hover { background:var(--hover); color:var(--text); border-color:var(--line-soft); }
+.modal2-close:disabled { opacity:.4; cursor:default; }
+
+.modal2-body { padding:18px 20px; overflow-y:auto; flex:1; min-height:0; }
+.modal2-body > :last-child { margin-bottom:0; }
+
+.modal2-foot { display:flex; align-items:center; justify-content:flex-end; gap:9px;
+  padding:14px 20px; border-top:1px solid var(--line-soft); background:var(--surface-2);
+  flex-shrink:0; }
+.modal2-foot .spacer { margin-right:auto; }
+
+/* ── one field shape ─────────────────────────────────────────── */
+.fld { margin-bottom:1.15rem; }
+.fld:last-child { margin-bottom:0; }
+.fld-label { display:block; font-size:13px; font-weight:600; color:var(--text-2); margin-bottom:6px; }
+.fld-control input, .fld-control select, .fld-control textarea {
+  width:100%; background:var(--field); border:1px solid var(--line); border-radius:var(--r-sm);
+  color:var(--text); font-family:var(--font); font-size:14px; padding:9px 12px; outline:none;
+  transition:border-color .15s, box-shadow .15s;
+}
+.fld-control input:focus, .fld-control select:focus, .fld-control textarea:focus {
+  border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-dim);
+}
+/* Help text sits under the control it explains — consistently, in both directions. */
+.fld-hint { display:block; margin-top:6px; font-size:12.5px; color:var(--text-3); line-height:1.5; }
+.fld.has-error .fld-control input, .fld.has-error .fld-control select {
+  border-color:var(--danger); background:var(--danger-dim);
+}
+
+/* ── loading skeletons ───────────────────────────────────────── */
+.sk { display:block; height:11px; border-radius:5px;
+  background:linear-gradient(90deg, var(--line-soft) 25%, var(--hover) 50%, var(--line-soft) 75%);
+  background-size:200% 100%; animation:shimmer 1.3s linear infinite; }
+.sk-strong { height:13px; }
+.sk-th { height:9px; width:60px; }
+@keyframes shimmer { from { background-position:200% 0; } to { background-position:-200% 0; } }
+@media (prefers-reduced-motion: reduce) { .sk { animation:none; } }
+
+.skeleton-table { background:var(--surface); border:1px solid var(--line-soft);
+  border-radius:var(--r-lg); overflow:hidden; box-shadow:var(--shadow-sm); }
+.skeleton-head { display:flex; gap:24px; padding:.75rem 1rem; background:var(--surface-2);
+  border-bottom:1px solid var(--line-soft); }
+.skeleton-row { display:flex; gap:24px; align-items:center; padding:1rem;
+  border-bottom:1px solid var(--line-soft); }
+.skeleton-row:last-child { border-bottom:0; }
+.skeleton-row .sk { flex:1; }
+
+.skeleton-cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:14px; }
+.skeleton-card { background:var(--surface); border:1px solid var(--line-soft); border-radius:var(--r);
+  padding:18px; display:flex; flex-direction:column; gap:10px; }
+.skeleton-panel { background:var(--surface); border:1px solid var(--line-soft); border-radius:var(--r);
+  padding:18px; display:flex; flex-direction:column; gap:11px; }
+
+.load-error { display:flex; flex-direction:column; align-items:flex-start; gap:6px;
+  background:var(--danger-dim); border:1px solid var(--danger-dim); border-radius:var(--r);
+  padding:16px 18px; }
+.load-error b { color:var(--danger); font-size:14px; }
+.load-error span { font-size:13px; color:var(--text-2); }
+.load-error button { margin-top:6px; }
+
+.sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden;
+  clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+
+/* ── page header ─────────────────────────────────────────────── */
+.pagehead { margin-bottom:1.6rem; }
+.pagehead-top { display:flex; align-items:center; gap:14px; }
+.pagehead-top h1 { font-size:26px; font-weight:700; letter-spacing:-.5px; }
+.pagehead-note { font-size:12px; color:var(--text-3); font-family:var(--mono); }
+.pagehead-action { margin-left:auto; display:flex; gap:9px; flex-shrink:0; }
+/* Its own line, full width — a sentence, not a caption on the button. */
+.pagehead-desc { margin-top:7px; font-size:13.5px; color:var(--text-3);
+  max-width:70ch; line-height:1.55; }
+
+/* ── authenticator setup + recovery codes ────────────────────── */
+.qr-wrap { display:flex; justify-content:center; margin-bottom:14px; }
+.qr-wrap img { border-radius:var(--r-sm); background:#fff; padding:10px;
+  border:1px solid var(--line-soft); }
+
+.codes-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px; }
+.codes-grid code { font-family:var(--mono); font-size:13.5px; letter-spacing:.5px;
+  background:var(--field); border:1px solid var(--line-soft); border-radius:var(--r-sm);
+  padding:9px 11px; text-align:center; color:var(--text); }
+
+.ack { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text-2);
+  cursor:pointer; font-weight:500; }
+.ack input { width:15px; height:15px; accent-color:var(--accent); cursor:pointer; }
+
+/* The last section on Your Account ended flush with the viewport, so the row of
+   Sign Out buttons had nothing beneath it. Give every settings page a floor. */
+.settings-page { padding-bottom:2.5rem; }
+.settings-page .data-table:last-child { margin-bottom:0; }
+
+/* ── sign-in: the passkey alternative ────────────────────────── */
+.or-rule { display:flex; align-items:center; gap:12px; margin:16px 0 12px;
+  color:var(--text-3); font-size:12px; }
+.or-rule::before, .or-rule::after { content:""; flex:1; height:1px; background:var(--line); }
+.login-btn.secondary { display:flex; align-items:center; justify-content:center; gap:9px;
+  background:transparent; border:1px solid var(--line); color:var(--text-2); }
+.login-btn.secondary:hover:not(:disabled) { border-color:var(--accent); color:var(--accent); }
+
+/* ── operator roles ──────────────────────────────────────────── */
+/* Seniority, not severity. Owner used to render in the danger colour, which in
+   this product means "this will break something". */
+.chip.role-owner    { color:var(--accent); border-color:var(--accent-dim); background:var(--accent-dim); font-weight:600; }
+.chip.role-admin    { color:var(--info);   border-color:var(--info-dim);   background:var(--info-dim); }
+.chip.role-operator { color:var(--text-2); border-color:var(--line);       background:var(--surface-2); }
+.chip.role-viewer   { color:var(--text-3); border-color:var(--line-soft);  background:transparent; }
+
+/* ── domains hero ────────────────────────────────────────────── */
+.hero-side { display:flex; flex-direction:column; align-items:flex-end; gap:6px; }

@@ -57,6 +57,14 @@ async function request(path, options = {}) {
 export const login = (email, password, extra = {}) =>
   request('/login', { method: 'POST', body: JSON.stringify({ email, password, ...extra }) });
 
+// Passwordless sign-in. The routes have existed since passkeys were added; the
+// dashboard simply never called them, so signing in with one was impossible from
+// the only page that offers to sign you in.
+export const loginPasskeyOptions = () =>
+  request('/login/passkey/options', { method: 'POST' });
+export const loginPasskey = (handle, response) =>
+  request('/login/passkey', { method: 'POST', body: JSON.stringify({ handle, response }) });
+
 // ── First-run setup ───────────────────────────────────────────────────────────
 // Lives outside /admin: /setup/status has to answer before an admin exists, and
 // before the platform has a domain at all (it is served over http://<server-ip>).

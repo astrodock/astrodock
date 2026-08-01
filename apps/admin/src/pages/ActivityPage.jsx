@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import * as api from '../lib/api';
 import EmptyState from '../components/EmptyState';
+import PageHeader from '../components/PageHeader';
 
 const RESULT_STYLES = {
   SUCCESS: { color: 'var(--accent)', label: 'Success' },
@@ -100,10 +101,10 @@ export default function ActivityPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1>Activity</h1>
-        <p className="page-sub">The record of what happened — deploys, sign-ins, and every administrative change.</p>
-      </div>
+      <PageHeader
+        title="Activity"
+        description="The record of what happened — deploys, sign-ins, and every administrative change."
+      />
 
       <div className="tabs">
         <button className={`tab ${tab === 'auth' ? 'active' : ''}`} onClick={() => setTab('auth')}>

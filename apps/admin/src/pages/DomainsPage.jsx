@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import * as api from '../lib/api';
 import EmptyState from '../components/EmptyState';
+import PageHeader from '../components/PageHeader';
+import ChangeBaseDomainModal from '../components/ChangeBaseDomainModal';
+import ReauthModal from '../components/ReauthModal';
 
 const STC = { active: 'ok', pending: 'warn', failed: 'crit' };
 const STLABEL = { active: 'live', pending: 'waiting for DNS', failed: 'not connected' };
@@ -11,6 +14,8 @@ export default function DomainsPage() {
   const [error, setError] = useState('');
   const [msg, setMsg] = useState('');
   const [addOpen, setAddOpen] = useState(false);
+  const [changeBase, setChangeBase] = useState(false);
+  const [reauth, setReauth] = useState(null);
   const [addApp, setAddApp] = useState('');
   const [addHost, setAddHost] = useState('');
   const [setup, setSetup] = useState(null);   // a custom-domain object
@@ -61,8 +66,11 @@ export default function DomainsPage() {
 
   return (
     <div>
-      <div className="page-header"><h1>Domains</h1>
-        <p className="page-sub">Every web address this platform answers on, automatic and custom.</p><button onClick={() => setAddOpen(true)}>+ Add a domain</button></div>
+      <PageHeader
+        title="Domains"
+        description="Every web address this platform answers on, automatic and custom."
+        action={<button onClick={() => setAddOpen(true)}>Add a Domain</button>}
+      />
       {error && <div className="error">{error}</div>}
       {msg && <div className="provision-banner"><strong>{msg}</strong></div>}
 
@@ -73,11 +81,16 @@ export default function DomainsPage() {
           <div className="dom">{data.baseDomain}</div>
           <div className="meta">Every app and page lives under this. <code>*.{data.baseDomain}</code> already points to your server, so new apps just work — no setup needed.</div>
         </div>
-        <div className="pill-ok"><span className="led ok" /> {data.tlsMode === 'auto' ? 'HTTPS on · renews itself' : `HTTPS: ${data.tlsMode}`}</div>
+        <div className="hero-side">
+          <div className="pill-ok"><span className="led ok" /> {data.tlsMode === 'auto' ? 'HTTPS on · renews itself' : `HTTPS: ${data.tlsMode}`}</div>
+          <button className="link-btn" onClick={() => setChangeBase(true)}>Change</button>
+        </div>
       </div>
-      <p className="howset"><b>Where does this come from?</b> You chose it when you first set up Astrodock. Changing it later is a bigger job (you’d re-point your DNS and get new security certificates), so it’s done back on the server — not from this page.</p>
 
-      <div className="sec-head"><div><h2>Your Custom Domains</h2><p>Addresses you own and point at Astrodock yourself.</p></div></div>
+      <div className="sec-head" style={{ marginTop: 34 }}>
+        <div><h2>Your Custom Domains</h2><p>Addresses you own and point at Astrodock yourself.</p></div>
+        <button onClick={() => setAddOpen(true)}>Add a Domain</button>
+      </div>
       {custom.length === 0 ? (
         <EmptyState icon="domains" title="No Custom Domains"
           body="Every app already answers at its own subdomain. Add a custom domain when you want one served at an address you own." />
@@ -102,7 +115,7 @@ export default function DomainsPage() {
         </table>
       )}
 
-      <div className="sec-head"><div><h2>Automatic Addresses</h2><p>Given to every app under your base domain. Nothing to set up, and nothing to maintain.</p></div></div>
+      <div className="sec-head" style={{ marginTop: 34 }}><div><h2>Automatic Addresses</h2><p>Given to every app under your base domain. Nothing to set up, and nothing to maintain.</p></div></div>
       <div className="autolist">
         {(data.platform || []).map((p) => (
           <div className="autorow" key={p.host}><span className="led ok" /><span className="ahost">{p.host}</span><span className="agoes">→ {p.label}</span><a className="open" href={`https://${p.host}`} target="_blank" rel="noopener">Open ↗</a></div>
@@ -113,6 +126,24 @@ export default function DomainsPage() {
       </div>
 
       {/* add */}
+      {changeBase && (
+        <ChangeBaseDomainModal
+          current={data.baseDomain}
+          tlsMode={data.tlsMode}
+          onClose={() => setChangeBase(false)}
+          onDone={(msg) => { setChangeBase(false); flash(msg); load(); }}
+          onReauth={(retry) => { setChangeBase(false); setReauth({ retry }); }}
+        />
+      )}
+
+      {reauth && (
+        <ReauthModal
+          action="Changing your main web address"
+          onConfirm={() => { const again = reauth.retry; setReauth(null); again(); }}
+          onCancel={() => setReauth(null)}
+        />
+      )}
+
       {addOpen && (
         <div className="modal-overlay" onClick={() => setAddOpen(false)}>
           <form className="modal" onClick={(e) => e.stopPropagation()} noValidate onSubmit={addDomain}>

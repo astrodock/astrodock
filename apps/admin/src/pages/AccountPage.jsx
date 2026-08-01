@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import * as api from '../lib/api';
 import ReauthModal from '../components/ReauthModal';
 import PasswordModal from '../components/PasswordModal';
+import PageHeader from '../components/PageHeader';
+import TotpSetupModal from '../components/TotpSetupModal';
+import RecoveryCodesModal from '../components/RecoveryCodesModal';
 
 // How you sign in, and where you're signed in from.
 //
@@ -38,8 +41,8 @@ export default function AccountPage() {
   if (!data) {
     return (
       <div className="settings-page">
-        <div className="page-header"><h1>Your Account</h1>
-        <p className="page-sub">How you sign in, and where you are signed in right now.</p></div>
+        <PageHeader title="Your Account"
+          description="How you sign in, and where you are signed in right now." />
         {error && <div className="error">{error}</div>}
       </div>
     );
@@ -50,9 +53,8 @@ export default function AccountPage() {
 
   return (
     <div className="settings-page">
-      <div className="page-header">
-        <h1>Your Account</h1>
-      </div>
+      <PageHeader title="Your Account"
+        description="How you sign in, and where you are signed in right now." />
 
       {error && <div className="error">{error}</div>}
       {msg && <div className="provision-banner"><strong>{msg}</strong></div>}
@@ -96,7 +98,8 @@ export default function AccountPage() {
       )}
 
       <Passkeys data={data} guarded={guarded} />
-      <Totp data={data} guarded={guarded} />
+      <Totp data={data} guarded={guarded} reload={load} flash={setMsg}
+        onReauth={(err, retry) => err.body?.code === 'reauth_required' ? setReauth({ action: 'Adding an authenticator app', retry }) : setError(err.message)} />
       <Recovery data={data} guarded={guarded} />
       <PasswordSection data={data} guarded={guarded} reload={load} flash={setMsg} />
       <Sessions data={data} guarded={guarded} />
@@ -208,15 +211,15 @@ function Passkeys({ data, guarded }) {
   );
 }
 
-function Totp({ data, guarded }) {
-  const [setup, setSetup] = useState(null);
-  const [code, setCode] = useState('');
+function Totp({ data, guarded, reload, flash, onReauth }) {
+  const [adding, setAdding] = useState(false);
   const on = data.factors.totp;
 
   return (
     <Section
       title="Authenticator App"
       description="A six-digit code from an app like 1Password or Google Authenticator. Useful where passkeys don't travel — a shared machine, or a device that can't sync them."
+      action={!on && <button onClick={() => setAdding(true)}>Add Authenticator</button>}
     >
       <div className="field-panel">
         <div className="field">
@@ -228,36 +231,25 @@ function Totp({ data, guarded }) {
             </span>
           </div>
           <div className="ctl">
-            <span className={`mini-toggle ${on ? 'on' : ''}`} title={on ? 'Turn off' : 'Set up'}
-              onClick={() => {
-                if (on) guarded(() => api.totpRemove(), 'Authenticator app removed.', 'Removing your authenticator app');
-                else guarded(async () => setSetup(await api.totpBegin()), null, 'Setting up an authenticator app');
-              }} />
+            {on ? (
+              <>
+                <span className="chip ok">on</span>
+                <button className="link-btn danger" onClick={() => guarded(
+                  () => api.totpRemove(), 'Authenticator app removed.', 'Removing your authenticator app'
+                )}>Remove</button>
+              </>
+            ) : <span className="chip">off</span>}
           </div>
         </div>
-
-        {setup && !on && (
-          <div className="field" style={{ display: 'block' }}>
-            <div className="lab" style={{ marginBottom: 12 }}>
-              <b>Add this key to your authenticator app</b>
-              <span className="desc">
-                Most apps scan a QR code; if yours can't, type the key. Nothing is switched on until
-                you enter a working code below.
-              </span>
-            </div>
-            <div className="preview-box" style={{ marginBottom: 12 }}>
-              <span className="prow"><code>{setup.secret}</code></span>
-            </div>
-            <div className="seg-pills" style={{ alignItems: 'center' }}>
-              <input inputMode="numeric" placeholder="123456" value={code}
-                onChange={(e) => setCode(e.target.value)} style={{ width: 130, marginTop: 0 }} />
-              <button className="pillbtn sel" onClick={() => guarded(async () => {
-                await api.totpConfirm(code); setSetup(null); setCode('');
-              }, 'Authenticator app enabled.', 'Enabling an authenticator app')}>Confirm</button>
-            </div>
-          </div>
-        )}
       </div>
+
+      {adding && (
+        <TotpSetupModal
+          onClose={() => setAdding(false)}
+          onDone={(msg) => { setAdding(false); flash(msg); reload(); }}
+          onError={(err) => onReauth(err, () => setAdding(true))}
+        />
+      )}
     </Section>
   );
 }
@@ -282,27 +274,20 @@ function Recovery({ data, guarded }) {
         <div className="field">
           <div className="lab">
             <b>Unused codes</b>
-            <span className="desc">Generating a new set invalidates any codes you already have.</span>
+            <span className="desc">
+              Generating a set replaces any you already have — which is also how you revoke them.
+            </span>
           </div>
           <div className="ctl">
             <span className={`chip ${n > 0 ? 'ok' : 'warn'}`}>{n} left</span>
-            <button className="pillbtn" onClick={() => guarded(async () => {
+            <button onClick={() => guarded(async () => {
               const r = await api.generateRecoveryCodes(); setCodes(r.codes);
-            }, null, 'Generating recovery codes')}>{n > 0 ? 'Generate new' : 'Generate'}</button>
+            }, null, 'Generating recovery codes')}>{n > 0 ? 'Generate New' : 'Generate'}</button>
           </div>
         </div>
       </div>
-      {codes && (
-        <>
-          <div className="rcard warn" style={{ marginTop: 12 }}>
-            <span className="led warn" />
-            <span><b>Save these now.</b> They aren't shown again.</span>
-          </div>
-          <div className="preview-box" style={{ marginTop: 10 }}>
-            {codes.map((c) => <span className="prow" key={c}><code>{c}</code></span>)}
-          </div>
-        </>
-      )}
+
+      {codes && <RecoveryCodesModal codes={codes} onClose={() => setCodes(null)} />}
     </Section>
   );
 }

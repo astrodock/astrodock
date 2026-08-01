@@ -5,6 +5,7 @@ import SettingsGroup from '../components/SettingsGroup';
 import EmailSetup from '../components/EmailSetup';
 import BackupsSection from '../components/BackupsSection';
 import AboutSection from '../components/AboutSection';
+import PageHeader from '../components/PageHeader';
 
 const CATEGORIES = [
   { key: 'health', label: 'App health' }, { key: 'deploy', label: 'Deploys' },
@@ -159,8 +160,10 @@ export default function SettingsPage() {
 
   return (
     <div className="settings-page">
-      <div className="page-header"><h1>Settings</h1>
-        <p className="page-sub">Platform-wide configuration: alerts, email, security, backups and updates.</p></div>
+      <PageHeader
+        title="Settings"
+        description="Platform-wide configuration: alerts, email, security, backups and updates."
+      />
       {error && <div className="error">{error}</div>}
       {msg && <div className="provision-banner"><strong>{msg}</strong></div>}
 
