@@ -81,7 +81,9 @@ The single documented unprefixed alias is `PORT = ASTRODOCK_PORT`.
 
 1. Register your callback URL for the app (admin UI → the app → Sign-in). It is matched exactly.
 2. Redirect the browser to the platform, with a `state` you generate and store:
-   `${ASTRODOCK_AUTH_URL}/authorize?app_id=…&redirect_uri=…&state=…`
+   `${ASTRODOCK_AUTHORIZE_URL}?app_id=…&redirect_uri=…&state=…`
+   (public, on `auth.<base-domain>` — NOT `ASTRODOCK_AUTH_URL`, which is internal and
+   unreachable from a browser)
 3. The platform authenticates them — password, passkey, second factor, its problem not yours —
    checks they have access to your app, and redirects back with `?code=…&state=…`.
 4. **Compare the returned `state` to the one you stored.** If it differs, abandon the sign-in.

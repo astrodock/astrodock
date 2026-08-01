@@ -395,6 +395,44 @@ test('the package version matches what the image build would stamp', () => {
   assert.ok(version.isSemver(pkg.version), `package.json version "${pkg.version}" is not a version`);
 });
 
+// ── auth URLs an app is handed ───────────────────────────────────────────────
+
+console.log('\nauth URLs given to apps');
+
+{
+  const { computeEnv } = require('../src/lib/env-compute.js');
+  const app = {
+    slug: 'demo', name: 'Demo', subdomain: 'demo', authMode: 'platform',
+    databaseMode: 'none', storageMode: 'none', port: 39100,
+    appSecret: 'sec', appJwtSecret: 'jwt'
+  };
+
+  test('the browser-facing authorize URL is public, not the internal one', () => {
+    // The app redirects the USER'S BROWSER here. It used to be handed
+    // http://api:3100 — a Docker network name no browser can resolve — so every
+    // app that followed the documented pattern had an unreachable sign-in.
+    const env = computeEnv(app, []);
+    assert.ok(env.ASTRODOCK_AUTHORIZE_URL, 'no authorize URL was injected');
+    assert.doesNotMatch(env.ASTRODOCK_AUTHORIZE_URL, /^https?:\/\/api[:/]/,
+      'the browser was given the internal address');
+    assert.match(env.ASTRODOCK_AUTHORIZE_URL, /^https?:\/\/auth\./,
+      'the authorize URL should be on the auth host');
+  });
+
+  test('the token exchange keeps the internal address', () => {
+    // Server-to-server, so it should not leave the box.
+    const env = computeEnv(app, []);
+    assert.match(env.ASTRODOCK_AUTH_URL, /api/, 'the code exchange should stay internal');
+  });
+
+  test('a public app is given no auth variables at all', () => {
+    const env = computeEnv({ ...app, authMode: 'public' }, []);
+    for (const k of ['ASTRODOCK_AUTH_URL', 'ASTRODOCK_AUTHORIZE_URL', 'ASTRODOCK_APP_SECRET']) {
+      assert.strictEqual(env[k], undefined, `${k} leaked to a public app`);
+    }
+  });
+}
+
 // ── reserved subdomains ──────────────────────────────────────────────────────
 
 console.log('\nreserved subdomains');

@@ -20,7 +20,14 @@ const cookieParser = require('cookie-parser');
 const jwt = require('jsonwebtoken');
 
 const PORT = process.env.ASTRODOCK_PORT || process.env.PORT || 3000;
+// Two URLs, because two different things reach them. AUTHORIZE_URL is followed by
+// the user's BROWSER, so it must be public. AUTH_URL is where this server
+// exchanges the returned code, and is an internal address that never leaves the
+// box. Redirecting a browser at the internal one sends it to a hostname only
+// Docker can resolve — which is what this example used to do.
 const AUTH_URL = (process.env.ASTRODOCK_AUTH_URL || '').replace(/\/$/, '');
+const AUTHORIZE_URL = (process.env.ASTRODOCK_AUTHORIZE_URL || `${AUTH_URL}/authorize`).replace(/\/$/, '');
+const LOGOUT_URL = (process.env.ASTRODOCK_LOGOUT_URL || `${AUTH_URL}/logout`).replace(/\/$/, '');
 const APP_URL = process.env.ASTRODOCK_APP_URL || 'http://localhost:3000';
 const APP_ID = process.env.ASTRODOCK_APP_ID;
 const APP_SECRET = process.env.ASTRODOCK_APP_SECRET;
@@ -53,7 +60,7 @@ app.get('/api/login', (req, res) => {
     redirect_uri: `${APP_URL}/auth/callback`,
     state
   });
-  res.redirect(`${AUTH_URL}/authorize?${params}`);
+  res.redirect(`${AUTHORIZE_URL}?${params}`);
 });
 
 app.get('/auth/callback', async (req, res) => {

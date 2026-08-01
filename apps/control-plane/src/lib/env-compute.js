@@ -80,7 +80,19 @@ function computeEnv(app, envVars) {
 
   // ── auth ──
   if (app.authMode === 'platform') {
+    // Two URLs, because they are reached by two different things.
+    //
+    // ASTRODOCK_AUTH_URL is internal (http://api:3100) and is right for the
+    // server-to-server code exchange: it never leaves the box. But the app was
+    // also told to send the USER'S BROWSER to `${ASTRODOCK_AUTH_URL}/authorize`,
+    // and a browser cannot resolve "api" — it is a Docker network name. Every app
+    // that followed the documented pattern had an unreachable sign-in.
     env.ASTRODOCK_AUTH_URL = config.internalAuthUrl;
+    const publicAuth = config.authBaseUrl();
+    if (publicAuth) {
+      env.ASTRODOCK_AUTHORIZE_URL = `${publicAuth}/authorize`;
+      env.ASTRODOCK_LOGOUT_URL = `${publicAuth}/logout`;
+    }
     env.ASTRODOCK_APP_ID = app.slug;
     env.ASTRODOCK_APP_SECRET = decryptSecret(app.appSecret);
     env.ASTRODOCK_APP_JWT_SECRET = decryptSecret(app.appJwtSecret);

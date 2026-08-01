@@ -43,7 +43,15 @@ class AstrodockAuth {
    * @param {string} [opts.appSecret] Defaults to process.env.ASTRODOCK_APP_SECRET
    */
   constructor(opts = {}) {
+    // Two URLs, deliberately, because two different things reach them.
+    //
+    // The token exchange is server-to-server and uses the INTERNAL address, so it
+    // never leaves the box. The authorize URL is followed by the USER'S BROWSER
+    // and must therefore be public — this used to use the internal one for both,
+    // which meant every app redirected its users to http://api:3100, a name only
+    // resolvable inside the Docker network. Sign-in simply did not work.
     const authUrl = opts.authUrl || process.env.ASTRODOCK_AUTH_URL || 'http://localhost:3100';
+    const authorizeUrl = opts.authorizeUrl || process.env.ASTRODOCK_AUTHORIZE_URL || null;
     const appId = opts.appId || process.env.ASTRODOCK_APP_ID;
     const appSecret = opts.appSecret || process.env.ASTRODOCK_APP_SECRET;
 
@@ -51,6 +59,9 @@ class AstrodockAuth {
     if (!appSecret) throw new Error('appSecret is required (set ASTRODOCK_APP_SECRET or pass appSecret)');
 
     this.authUrl = authUrl.replace(/\/$/, '');
+    this.authorizeEndpoint = (authorizeUrl || `${this.authUrl}/authorize`).replace(/\/$/, '');
+    this.logoutEndpoint = process.env.ASTRODOCK_LOGOUT_URL
+      || this.authorizeEndpoint.replace(/\/authorize$/, '/logout');
     this.appId = appId;
     this.appSecret = appSecret;
   }
@@ -70,7 +81,17 @@ class AstrodockAuth {
     const p = new URLSearchParams({ app_id: this.appId, redirect_uri: redirectUri });
     if (state) p.set('state', state);
     if (nonce) p.set('nonce', nonce);
-    return `${this.authUrl}/authorize?${p}`;
+    return `${this.authorizeEndpoint}?${p}`;
+  }
+
+  /**
+   * Where to send the browser to sign OUT of every app on this platform.
+   * Signing out of your own app only ends your own session; this ends theirs.
+   */
+  logoutUrl({ redirectUri } = {}) {
+    return redirectUri
+      ? `${this.logoutEndpoint}?redirect_uri=${encodeURIComponent(redirectUri)}`
+      : this.logoutEndpoint;
   }
 
   /**
