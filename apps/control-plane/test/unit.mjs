@@ -12,7 +12,7 @@ const require = createRequire(import.meta.url);
 process.env.ASTRODOCK_BASE_DOMAIN = 'localhost';
 
 const { computeEnv, computeMissingRequired } = require('../src/lib/env-compute.js');
-const { generateCaddyfile } = require('../src/provision/caddy.js');
+const { generateCaddyfile, parseRedirects } = require('../src/provision/caddy.js');
 const config = require('../src/config.js');
 
 let passed = 0, failed = 0;
@@ -121,6 +121,41 @@ test('a docker app at the apex is whole-proxied, not split', () => {
   const d = { ...internalApp, slug: 'site', subdomain: 'site', runtimeType: 'docker', port: 3105 };
   const cfg = generateCaddyfile([d], { apexApp: 'site' });
   assert.ok(cfg.includes('reverse_proxy app-site:3105'), 'whole-proxy at the apex too');
+});
+
+console.log('\naddress redirects');
+
+test('a well-formed line becomes a redirect that keeps the path', () => {
+  const cfg = generateCaddyfile([internalApp], { redirects: 'get https://example.com/install.sh' });
+  assert.ok(cfg.includes(`get.${config.baseDomain} {`), 'the host gets a block');
+  assert.ok(cfg.includes('redir https://example.com/install.sh{uri} temporary'),
+    'path and query are carried through, and it is not cached forever');
+});
+
+test('blank lines and comments are ignored, not treated as errors', () => {
+  const { redirects, errors } = parseRedirects('\n# a note\n\nget https://example.com/x\n');
+  assert.strictEqual(errors.length, 0);
+  assert.strictEqual(redirects.length, 1);
+});
+
+test('a malformed line is reported rather than silently dropped', () => {
+  assert.ok(parseRedirects('get').errors.length, 'a name with no target');
+  assert.ok(parseRedirects('get example.com').errors.length, 'target needs a scheme');
+  assert.ok(parseRedirects('GET https://example.com').errors.length, 'names are lowercase');
+  assert.ok(parseRedirects('get https://a.com https://b.com').errors.length, 'two targets');
+});
+
+test('a redirect can never shadow an app that is already served there', () => {
+  const cfg = generateCaddyfile([internalApp], {
+    redirects: `${internalApp.subdomain} https://evil.example.com`
+  });
+  assert.ok(!cfg.includes('https://evil.example.com'), 'the app keeps its own subdomain');
+  assert.ok(cfg.includes(`${internalApp.subdomain}.${config.baseDomain} {`), 'and is still served');
+});
+
+test('no redirects configured emits nothing', () => {
+  const cfg = generateCaddyfile([internalApp], {});
+  assert.ok(!cfg.includes('redir http'), 'nothing invented when the setting is empty');
 });
 
 console.log('\nfirst-run setup mode');

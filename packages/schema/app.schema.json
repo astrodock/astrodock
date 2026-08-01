@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://astrodock.dev/app.schema.json",
+  "$id": "https://astrodock.ai/app.schema.json",
   "title": "app.json",
   "description": "Astrodock app manifest. Declared configuration and environment-variable NAMES only — never secret values.",
   "type": "object",

@@ -15,6 +15,7 @@ async function reloadCaddyFromDb() {
   const accessLogs = (await getSetting('logging.app_access_logs', 'off')) === 'on';
   const apexApp = await getSetting('routing.apex_app', '');
   const apexWww = (await getSetting('routing.apex_www', 'on')) !== 'off';
+  const redirects = await getSetting('routing.redirects', '');
   // Active custom domains, joined to their (provisioned) app for routing.
   const domains = await db.select({
     hostname: schema.customDomains.hostname,
@@ -24,7 +25,7 @@ async function reloadCaddyFromDb() {
   }).from(schema.customDomains)
     .innerJoin(schema.apps, eq(schema.customDomains.appId, schema.apps.id))
     .where(and(eq(schema.customDomains.status, 'active'), eq(schema.apps.provisioned, true)));
-  return loadCaddyfile(generateCaddyfile(provisioned, { accessLogs, domains, apexApp, apexWww }));
+  return loadCaddyfile(generateCaddyfile(provisioned, { accessLogs, domains, apexApp, apexWww, redirects }));
 }
 
 // Push with a few retries + backoff — Caddy may still be booting on cold start.

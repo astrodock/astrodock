@@ -82,6 +82,17 @@ const REGISTRY = {
     description: 'Visitors typing www in front of your domain are redirected to the address without it, so you have one address rather than two.',
     values: ['on', 'off'], default: () => 'on'
   },
+  // Hostname redirects under the base domain. An app owns a subdomain and a
+  // custom domain must sit outside the base domain, so "send get.<domain>
+  // somewhere else" had no home — and the shape it wants (a vanity install URL
+  // that forwards to wherever the script really lives) is a normal thing to want
+  // from a host.
+  'routing.redirects': {
+    label: 'Address redirects', type: 'text',
+    description: 'One per line: a name on your domain, a space, then where it should send people. Lines starting with # are ignored.',
+    placeholder: 'get   https://raw.githubusercontent.com/you/repo/main/install.sh',
+    default: () => ''
+  },
   'alerts.disk_threshold_percent': {
     label: 'Disk-usage alert threshold (%)', type: 'int',
     description: 'Raise a warning once the disk is this full.',
@@ -246,6 +257,7 @@ async function effective() {
       type: def.type,
       values: def.type === 'app' ? appChoices : (def.values || null),
       description: def.description || null,
+      placeholder: def.placeholder || null,
       value: has ? overrides.get(key) : def.default(),
       source: has ? 'override' : 'default'
     };

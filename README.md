@@ -47,7 +47,7 @@ database/storage, users, secrets, backups…). The quickstart below is the short
 ## Quickstart
 On a fresh server:
 ```bash
-curl -fsSL https://get.astrodock.dev | sh
+curl -fsSL https://get.astrodock.ai | sh
 ```
 Then open `http://<your-server-ip>` and finish in the browser. That one line downloads the compose
 file, generates every secret, pulls the images, and starts the stack — no source tree, no build, no

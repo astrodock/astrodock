@@ -349,7 +349,7 @@ app-facing contract is stable; everything else there is additive.
   the last thing standing between this and being an actual open-source project.
   **Stage 17 raised the stakes:** the one-line install pulls images from
   `ghcr.io/astrodock/astrodock` and fetches files from `raw.githubusercontent.com/astrodock/astrodock`,
-  and `get.astrodock.dev` needs to exist and serve `scripts/install.sh`. Both are parameterised
+  and `get.astrodock.ai` needs to exist and serve `scripts/install.sh`. Both are parameterised
   (`ASTRODOCK_IMAGE`, `ASTRODOCK_RAW_BASE`) so nothing is hard-baked, but **the default install
   path does not work until the repo is published and one release tag is pushed.** Building from
   source still works today.

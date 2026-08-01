@@ -62,6 +62,20 @@ router.patch('/', async (req, res, next) => {
       }
     }
 
+    // A malformed redirect line would otherwise save cleanly and then quietly not
+    // exist in the generated config. Refuse it here, naming the line.
+    if (updates['routing.redirects'] !== undefined) {
+      const { parseRedirects } = require('../provision/caddy');
+      const { redirects, errors } = parseRedirects(updates['routing.redirects']);
+      if (errors.length) return res.status(400).json({ error: errors.join(' ') });
+
+      const reserved = require('./admin-apps').reservedReason;
+      for (const r of redirects) {
+        const why = reserved ? reserved(r.name) : null;
+        if (why) return res.status(400).json({ error: `"${r.name}" is reserved — it is ${why}.` });
+      }
+    }
+
     const changed = [];
     for (const [key, value] of Object.entries(updates)) {
       if (key === 'updates') continue;

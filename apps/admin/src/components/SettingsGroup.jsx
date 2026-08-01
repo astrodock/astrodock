@@ -72,7 +72,16 @@ export default function SettingsGroup({
                 {s.description && <span className="desc">{s.description}</span>}
               </div>
               <div className="ctl">
-                {s.type === 'app' ? (
+                {s.type === 'text' ? (
+                  <textarea
+                    className="bulk-textarea"
+                    style={{ width: 420, minHeight: 120 }}
+                    spellCheck="false"
+                    value={valueOf(s.key) ?? ''}
+                    placeholder={s.placeholder || ''}
+                    onChange={(e) => setField(s, e.target.value)}
+                  />
+                ) : s.type === 'app' ? (
                   <div style={{ width: 260 }}>
                     <Select
                       value={valueOf(s.key) ?? ''}

@@ -678,4 +678,8 @@ router.post('/:slug/ops/run', requirePermission('runtime:write'), async (req, re
 // trade worth making. Replaced by structured operations (runner/app-ops.js), which
 // cover what it was used for without arbitrary execution. See AUTH_DESIGN.md.
 
+// Attached to the router so the settings route can refuse a redirect that would
+// shadow a platform host, without a second copy of the list going stale.
+router.reservedReason = reservedReason;
+
 module.exports = router;

@@ -1,7 +1,7 @@
 #!/bin/sh
 # Astrodock installer. Intended to be piped from the web:
 #
-#   curl -fsSL https://get.astrodock.dev | sh
+#   curl -fsSL https://get.astrodock.ai | sh
 #
 # It installs no source tree and builds nothing: it installs Docker if the machine
 # does not have it, fetches the compose file and the env template, generates every

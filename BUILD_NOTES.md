@@ -312,7 +312,7 @@ domains. Setting the domain at runtime was re-use, not new capability.
    YAML could not even be lint-parsed here (no yaml module available, docker socket blocked), so
    treat both as unproven syntax.
 6. **The published-image install path does not work yet** — `ghcr.io/astrodock/astrodock` and
-   `get.astrodock.dev` don't exist until the repo is published and a release is tagged. Both are
+   `get.astrodock.ai` don't exist until the repo is published and a release is tagged. Both are
    parameterised (`ASTRODOCK_IMAGE`, `ASTRODOCK_RAW_BASE`), and the build-from-source path works
    today, but the README's headline command is *aspirational until then*.
 

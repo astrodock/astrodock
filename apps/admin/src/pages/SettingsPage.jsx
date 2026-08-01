@@ -124,7 +124,7 @@ function RuleModal({ initial, onClose, onSaved }) {
 
 const ALERT_KEYS = ['alerts.email_to', 'alerts.disk_threshold_percent'];
 const SECURITY_KEYS = ['security.require_mfa'];
-const SITE_KEYS = ['routing.apex_app', 'routing.apex_www'];
+const SITE_KEYS = ['routing.apex_app', 'routing.apex_www', 'routing.redirects'];
 const LOG_KEYS = ['logging.page_view_ip', 'logging.auth_log_retention_days',
   'logging.page_view_retention_days', 'logging.app_access_logs', 'updates.check'];
 

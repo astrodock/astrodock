@@ -175,6 +175,45 @@ ${appLog(app, accessLogs)}\thandle /api/* {
 `;
 }
 
+// Operator-defined redirects, as "<name> <target>" lines.
+//
+// Parsing lives here and is exported, so the settings route can reject a bad
+// line at the moment someone types it rather than silently dropping it out of
+// the generated config — a redirect that vanishes without a word is worse than
+// one that refuses to save.
+function parseRedirects(text) {
+  const out = [];
+  const errors = [];
+  for (const raw of String(text || '').split('\n')) {
+    const line = raw.trim();
+    if (!line || line.startsWith('#')) continue;
+    const [name, target, ...rest] = line.split(/\s+/);
+    if (!target || rest.length) {
+      errors.push(`"${line}" — write a name, a space, and one address.`);
+      continue;
+    }
+    if (!/^[a-z0-9]([a-z0-9-]{0,38}[a-z0-9])?$/.test(name)) {
+      errors.push(`"${name}" is not a valid name. Use letters, numbers and hyphens.`);
+      continue;
+    }
+    if (!/^https?:\/\/[^\s]+$/i.test(target)) {
+      errors.push(`"${target}" must start with http:// or https://`);
+      continue;
+    }
+    out.push({ name, target });
+  }
+  return { redirects: out, errors };
+}
+
+// A redirect keeps the path and query: get.example.com/x?y lands on <target>/x?y.
+// 302 rather than 301 — a permanent redirect is cached by browsers effectively
+// forever, and an operator who mistypes one should be able to fix it without
+// telling everybody to clear their cache.
+function redirectBlock(r) {
+  const host = `${r.name}.${config.baseDomain}`;
+  return `\n${site(host)} {\n\tredir ${r.target}{uri} temporary\n}\n`;
+}
+
 // The bare base domain — astrodock.ai, not <anything>.astrodock.ai.
 //
 // Every other block here is keyed on a subdomain, so until this existed the apex
@@ -241,6 +280,13 @@ function generateCaddyfile(apps, opts = {}) {
   // address for it, it does not move it.
   const apex = opts.apexApp && apps.find((a) => a.slug === opts.apexApp);
   if (apex) out += apexBlock(apex, accessLogs, opts.apexWww !== false);
+
+  // An app's subdomain always wins: a redirect must never be able to take over a
+  // name something is already served on.
+  const taken = new Set(apps.map((a) => a.subdomain));
+  for (const r of parseRedirects(opts.redirects).redirects) {
+    if (!taken.has(r.name)) out += redirectBlock(r);
+  }
   for (const app of apps) {
     out += app.runtimeType === 'docker' ? dockerAppBlock(app, accessLogs) : nodeAppBlock(app, accessLogs);
   }
@@ -277,4 +323,4 @@ async function loadCaddyfile(text) {
   }
 }
 
-module.exports = { generateCaddyfile, loadCaddyfile, API };
+module.exports = { generateCaddyfile, loadCaddyfile, parseRedirects, API };
