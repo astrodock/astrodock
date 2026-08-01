@@ -91,6 +91,7 @@ function computeEnv(app, envVars) {
     const publicAuth = config.authBaseUrl();
     if (publicAuth) {
       env.ASTRODOCK_AUTHORIZE_URL = `${publicAuth}/authorize`;
+      // Ends the platform session only — it cannot clear an app's own cookie.
       env.ASTRODOCK_LOGOUT_URL = `${publicAuth}/logout`;
     }
     env.ASTRODOCK_APP_ID = app.slug;

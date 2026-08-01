@@ -7,6 +7,7 @@
 // of what follows is the refusals.
 
 import assert from 'node:assert';
+import fs from 'node:fs';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 
@@ -140,6 +141,17 @@ try {
   await test('a forged session cookie is ignored', async () => {
     const res = await authorize('ssotwo', 'https://two.example.com/cb', 'ad_user_session=not.a.real.jwt');
     assert.strictEqual(res.status, 200, 'a junk cookie was treated as a session');
+  });
+
+  await test('the platform session cookie is host-only, so logout cannot reach an app', () => {
+    // A "sign out everywhere" button is a reasonable thing to want and an
+    // unreasonable thing to claim: the cookie carries no domain attribute, so it
+    // belongs to the auth host alone and cannot clear anything an app set on its
+    // own subdomain. The docs said otherwise until an app author read the code.
+    const src = fs.readFileSync(new URL('../src/lib/user-session.js', import.meta.url), 'utf8');
+    assert.doesNotMatch(src, /domain\s*:/,
+      'a domain attribute here would span subdomains — that is a different security decision, '
+      + 'and the docs describing logout would need to change with it');
   });
 
   await test('logout clears the session, and the next app asks again', async () => {

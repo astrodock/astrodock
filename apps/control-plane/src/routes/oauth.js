@@ -87,13 +87,22 @@ router.get('/authorize', async (req, res) => {
   }));
 });
 
-// Ends the platform session. An app signing a user out of itself should send them
-// here if they mean "sign out of everything", not just its own session.
+// Ends the PLATFORM session — the one that lets /authorize skip the sign-in form.
+//
+// It cannot end an app's session, and nothing here pretends otherwise: the cookie
+// is host-only to the auth host, and an app's own session cookie lives on the
+// app's own subdomain where this origin cannot reach it. What this does is stop
+// the silent re-authentication, so the next app has to ask again.
+//
+// A real "sign out everywhere" would need each app to clear its own cookie. The
+// honest instruction to an app author is: clear yours, then send them here.
 router.get('/logout', (req, res) => {
   userSession.clear(res);
   const back = req.query.redirect_uri;
   if (back && /^https?:\/\//.test(String(back))) return res.redirect(String(back));
-  res.type('html').send(errorPage('Signed out', 'You have been signed out of every app on this server.'));
+  res.type('html').send(errorPage('Signed out',
+    'You have been signed out of Astrodock, so apps will ask who you are again. '
+    + 'Any app you are still signed into keeps its own session until you sign out of it.'));
 });
 
 // ── /login ────────────────────────────────────────────────────────────────────

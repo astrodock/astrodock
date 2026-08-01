@@ -85,8 +85,16 @@ class AstrodockAuth {
   }
 
   /**
-   * Where to send the browser to sign OUT of every app on this platform.
-   * Signing out of your own app only ends your own session; this ends theirs.
+   * Where to send the browser to end the PLATFORM session.
+   *
+   * This does NOT sign the user out of any app, including yours — cookies are
+   * scoped to the host that set them, and each app sets its own on its own
+   * subdomain. What it does is stop Astrodock silently re-authenticating them,
+   * so the next app asks for a password again.
+   *
+   * For "sign out everywhere": clear your own session cookie first, then send
+   * them here. Anything already signed in elsewhere stays signed in until that
+   * app's own session expires.
    */
   logoutUrl({ redirectUri } = {}) {
     return redirectUri
