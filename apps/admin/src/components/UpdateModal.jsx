@@ -73,7 +73,7 @@ export default function UpdateModal({ current, latest, onClose, onDone }) {
 
       // Or has it simply come back as something new?
       try {
-        const res = await fetch('/health', { cache: 'no-store' });
+        const res = await fetch('/healthz', { cache: 'no-store' });
         if (res.ok) {
           const body = await res.json();
           const now = String(body.version || '').replace(/^v/, '');

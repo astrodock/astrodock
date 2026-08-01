@@ -50,7 +50,19 @@ function setupGlobalOptions() {
 // block and the configured admin block proxy exactly this list — when they each
 // kept their own copy, a route added to one returned index.html from the other,
 // which fails as a successful-looking HTML response rather than a 404.
-const API_PATHS = ['/setup/*', '/admin/*', '/whoami', '/authorize', '/token', '/login*', '/verify', '/webhooks/*', '/health', '/account*'];
+// Split by WHO reaches them, which is also what keeps them from colliding with
+// the dashboard's own routes.
+//
+// The admin host serves a single-page app, so every path Caddy sends to the API
+// is a path the SPA can never own. `/login*`, `/account*` and `/health` were all
+// in this list AND client-side routes, so hard-loading /login — a refresh, a
+// bookmark, a new tab — reached Express instead of the app and answered
+// "Cannot GET /login". Same for Your Account and Health.
+const ADMIN_PATHS = ['/setup/*', '/admin/*', '/whoami', '/webhooks/*', '/healthz'];
+
+// End-user surfaces. These belong to auth.<domain> and nothing on that host
+// serves an SPA, so there is nothing for them to collide with.
+const AUTH_PATHS = ['/authorize', '/login*', '/token', '/logout', '/verify', '/account*', '/health'];
 
 function apiHandles(paths) {
   return paths.map((p) => `\thandle ${p} {\n\t\treverse_proxy ${API}\n\t}`).join('\n');
@@ -60,7 +72,7 @@ function setupBlock() {
   const staticRoot = `${config.paths.caddyStatic}/__admin`;
   return `
 :80 {
-${apiHandles(['/setup/*', '/admin/*', '/whoami', '/health'])}
+${apiHandles(ADMIN_PATHS)}
 \thandle {
 \t\troot * ${staticRoot}
 \t\ttry_files {path} /index.html
@@ -115,8 +127,6 @@ function customDomainBlock(d, accessLogs, onDemand, canonicalHost) {
 // Serves ONLY the auth endpoints. Nothing else, and no app content ever: the
 // isolation that stops an app from seeing a password only holds while the app's
 // code cannot run on this origin.
-const AUTH_PATHS = ['/authorize', '/login*', '/token', '/logout', '/verify', '/health'];
-
 function authBlock() {
   const host = `${config.authSubdomain}.${config.baseDomain}`;
   return `
@@ -131,11 +141,14 @@ ${apiHandles(AUTH_PATHS)}
 
 function adminBlock() {
   const host = `${config.adminSubdomain}.${config.baseDomain}`;
+  const authHost = `${config.authSubdomain}.${config.baseDomain}`;
   const staticRoot = `${config.paths.caddyStatic}/__admin`;
   // Derived from API_PATHS rather than listed again — see the note there.
   return `
 ${site(host)} {
-${apiHandles(API_PATHS)}
+${apiHandles(ADMIN_PATHS)}
+\t# Apps registered before sign-in moved to its own host still point here.
+\tredir /authorize{uri} https://${authHost}/authorize{uri} permanent
 \thandle {
 \t\troot * ${staticRoot}
 \t\ttry_files {path} /index.html

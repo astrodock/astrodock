@@ -406,6 +406,50 @@ test('the package version matches what the image build would stamp', () => {
   assert.ok(version.isSemver(pkg.version), `package.json version "${pkg.version}" is not a version`);
 });
 
+// ── the SPA and the API cannot both own a path ───────────────────────────────
+
+console.log('\ndashboard routing');
+
+test('no dashboard route is intercepted by the API', () => {
+  // The admin host serves a single-page app, so any path Caddy sends to Express
+  // is a path the app can never own. /login, /account and /health were all in
+  // both lists: hard-loading them — a refresh, a bookmark, a new tab — reached
+  // Express and answered "Cannot GET /login" instead of showing the page.
+  const caddy = fs.readFileSync(new URL('../src/provision/caddy.js', import.meta.url), 'utf8');
+  const appJsx = fs.readFileSync(new URL('../../admin/src/App.jsx', import.meta.url), 'utf8');
+
+  const adminPaths = /const ADMIN_PATHS = \[([^\]]*)\]/.exec(caddy);
+  assert.ok(adminPaths, 'could not find ADMIN_PATHS');
+  const apiPaths = [...adminPaths[1].matchAll(/'([^']+)'/g)].map((m) => m[1]);
+
+  const spaRoutes = [...appJsx.matchAll(/path="(\/[a-z-]*)"/g)].map((m) => m[1]);
+  assert.ok(spaRoutes.length > 5, `expected the dashboard's routes, found ${spaRoutes.length}`);
+
+  const clashes = [];
+  for (const route of spaRoutes) {
+    for (const api of apiPaths) {
+      // Caddy path matchers are exact unless they end in `*`, which is a prefix
+      // match on everything before it. So `/setup/*` covers `/setup/x` but NOT
+      // `/setup`, while `/login*` DOES cover `/login`.
+      const matches = api.endsWith('*')
+        ? route.startsWith(api.slice(0, -1))
+        : route === api;
+      if (matches) clashes.push(`${route} is served by the API rule ${api}`);
+    }
+  }
+  assert.deepStrictEqual(clashes, [], 'the API would intercept these dashboard routes');
+});
+
+test('the setup block and the admin block route the same paths', () => {
+  // They each kept their own copy once, and drifted — a route added to one
+  // returned index.html from the other, which fails as a successful-looking
+  // HTML response rather than as a 404.
+  const caddy = fs.readFileSync(new URL('../src/provision/caddy.js', import.meta.url), 'utf8');
+  const inlineLists = [...caddy.matchAll(/apiHandles\(\[/g)];
+  assert.strictEqual(inlineLists.length, 0,
+    'a block is listing paths inline instead of sharing ADMIN_PATHS');
+});
+
 // ── auth URLs an app is handed ───────────────────────────────────────────────
 
 console.log('\nauth URLs given to apps');

@@ -57,7 +57,10 @@ app.use('/admin/pages', require('./src/routes/admin-pages'));
 app.use(express.json({ limit: '1mb' }));
 
 // Control-plane liveness (distinct from /admin/health monitor data).
-app.get('/health', (req, res) => {
+// /healthz is the same thing under a machine-facing name. The admin host routes
+// that one, so the dashboard's own /health page can exist without Caddy sending
+// the request to Express instead of the app.
+app.get(['/health', '/healthz'], (req, res) => {
   const v = require('./src/lib/version').resolve();
   res.json({ status: 'ok', service: 'astrodock-control-plane', version: v.version, build: v.source });
 });
