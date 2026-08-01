@@ -12,3 +12,9 @@
 docs/legacy
 *.md
 !README.md
+
+# Apps that run ON Astrodock, not part of it. The Dockerfile copies explicit
+# paths so these never entered the image anyway — this makes that intent
+# explicit rather than incidental, and keeps them out of the build context.
+docs/
+site/

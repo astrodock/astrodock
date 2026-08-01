@@ -85,35 +85,44 @@ test('docker app block whole-proxies the subdomain', () => {
 
 console.log('\napex routing');
 
+// These assertions used to hardcode the https shape of a site address and passed
+// only because the machine running them happened to have TLS on. CI runs with
+// ASTRODOCK_TLS_MODE=off, where a site block is written `http://host {` and a
+// redirect target is http — so the tests failed while the code was right. Derive
+// the expected text the way the generator does, and check both modes on purpose.
+const siteAddr = (host) => (config.tlsMode === 'off' ? `http://${host}` : host);
+const hasBlock = (cfg, host) => cfg.includes(`\n${siteAddr(host)} {`);
+
 test('no apex app: the bare base domain gets no site block', () => {
   const cfg = generateCaddyfile([internalApp]);
-  const base = config.baseDomain;
-  assert.ok(!new RegExp(`(^|\\n)${base.replace(/\./g, '\\.')} \\{`).test(cfg),
+  assert.ok(!hasBlock(cfg, config.baseDomain),
     'nothing answers the apex unless an operator asked for it');
 });
 
 test('apex app serves the bare domain AND keeps its own subdomain', () => {
   const cfg = generateCaddyfile([internalApp], { apexApp: internalApp.slug });
-  const base = config.baseDomain;
-  assert.ok(new RegExp(`(^|\\n)${base.replace(/\./g, '\\.')} \\{`).test(cfg), 'apex block exists');
-  assert.ok(cfg.includes(`${internalApp.subdomain}.${base} {`), 'the subdomain is not moved, it is added to');
+  assert.ok(hasBlock(cfg, config.baseDomain), 'apex block exists');
+  assert.ok(hasBlock(cfg, `${internalApp.subdomain}.${config.baseDomain}`),
+    'the subdomain is not moved, it is added to');
 });
 
 test('www redirects to the apex rather than serving a second copy', () => {
   const cfg = generateCaddyfile([internalApp], { apexApp: internalApp.slug });
-  assert.ok(new RegExp(`www\\.${config.baseDomain.replace(/\./g, '\\.')} \\{`).test(cfg), 'www block exists');
-  assert.ok(cfg.includes(`redir https://${config.baseDomain}{uri} permanent`), 'permanent redirect, path preserved');
+  const scheme = config.tlsMode === 'off' ? 'http' : 'https';
+  assert.ok(hasBlock(cfg, `www.${config.baseDomain}`), 'www block exists');
+  assert.ok(cfg.includes(`redir ${scheme}://${config.baseDomain}{uri} permanent`),
+    'permanent redirect, path preserved');
 });
 
 test('www can be turned off without losing the apex', () => {
   const cfg = generateCaddyfile([internalApp], { apexApp: internalApp.slug, apexWww: false });
-  assert.ok(!cfg.includes(`www.${config.baseDomain} {`), 'no www block');
-  assert.ok(new RegExp(`(^|\\n)${config.baseDomain.replace(/\./g, '\\.')} \\{`).test(cfg), 'apex still served');
+  assert.ok(!hasBlock(cfg, `www.${config.baseDomain}`), 'no www block');
+  assert.ok(hasBlock(cfg, config.baseDomain), 'apex still served');
 });
 
 test('an apex pointing at an app that is not deployed routes nothing', () => {
   const cfg = generateCaddyfile([internalApp], { apexApp: 'ghost' });
-  assert.ok(!new RegExp(`(^|\\n)${config.baseDomain.replace(/\./g, '\\.')} \\{`).test(cfg),
+  assert.ok(!hasBlock(cfg, config.baseDomain),
     'a stale slug must not produce a block pointing at nothing');
 });
 
@@ -121,6 +130,20 @@ test('a docker app at the apex is whole-proxied, not split', () => {
   const d = { ...internalApp, slug: 'site', subdomain: 'site', runtimeType: 'docker', port: 3105 };
   const cfg = generateCaddyfile([d], { apexApp: 'site' });
   assert.ok(cfg.includes('reverse_proxy app-site:3105'), 'whole-proxy at the apex too');
+});
+
+test('the apex honours the TLS mode instead of assuming https', () => {
+  const saved = config.tlsMode;
+  try {
+    for (const [mode, expected] of [['off', `http://${config.baseDomain} {`],
+                                    ['auto', `${config.baseDomain} {`]]) {
+      config.applyRuntimeDomain({ tlsMode: mode });
+      const cfg = generateCaddyfile([internalApp], { apexApp: internalApp.slug });
+      assert.ok(cfg.includes(expected), `tlsMode=${mode} should write "${expected.trim()}"`);
+    }
+  } finally {
+    config.applyRuntimeDomain({ tlsMode: saved });
+  }
 });
 
 console.log('\naddress redirects');
