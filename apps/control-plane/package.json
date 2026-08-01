@@ -1,6 +1,6 @@
 {
   "name": "@astrodock/control-plane",
-  "version": "0.0.16",
+  "version": "0.0.17",
   "private": true,
   "description": "Astrodock control plane \u2014 Express API, /verify auth gate, deploy orchestration, runner, health monitor.",
   "license": "MIT",

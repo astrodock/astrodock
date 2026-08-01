@@ -1,6 +1,6 @@
 {
   "name": "@astrodock/schema",
-  "version": "0.0.16",
+  "version": "0.0.17",
   "description": "Shared app.json JSON Schema + validator and the reserved ASTRODOCK_* env catalog.",
   "license": "MIT",
   "main": "index.js",
