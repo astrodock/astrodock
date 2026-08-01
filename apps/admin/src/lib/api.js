@@ -121,6 +121,9 @@ export const rotateSecret = (slug) =>
 export const provisionApp = (slug) =>
   request(`/apps/${slug}/provision`, { method: 'POST' });
 
+// Names an app cannot take, and why.
+export const getReservedSubdomains = () => request('/apps/meta/reserved-subdomains');
+
 // GitHub
 export const getGithubRepos = () => request('/apps/github/repos');
 export const connectRepo = (slug, githubRepo, branch, repoPath) =>

@@ -31,6 +31,7 @@ const BLANK_APP = {
 export default function AppsPage() {
   const [apps, setApps] = useState([]);
   const [loaded, setLoaded] = useState(false);
+  const [reserved, setReserved] = useState([]);
   const [statuses, setStatuses] = useState({});
   const [health, setHealth] = useState({});
   const [showCreate, setShowCreate] = useState(false);
@@ -60,6 +61,12 @@ export default function AppsPage() {
   }
 
   useEffect(() => { load(); const t = setInterval(load, 15000); return () => clearInterval(t); }, []);
+  useEffect(() => { api.getReservedSubdomains().then((d) => setReserved(d.reserved || [])).catch(() => {}); }, []);
+
+  // Checked as you type rather than on submit, so a reserved name never gets as
+  // far as a round trip that comes back saying no.
+  const wanted = (newApp.subdomain || newApp.slug || '').toLowerCase();
+  const takenReason = reserved.find((r) => r.name === wanted)?.reason || null;
 
   function statusOf(app) {
     if (!app.provisioned) return 'unprovisioned';
@@ -198,15 +205,19 @@ export default function AppsPage() {
                 required
               />
             </label>
-            <label>
+            <label className={takenReason ? 'has-error' : ''}>
               Subdomain
               <input
                 value={newApp.subdomain}
                 onChange={e => setNewApp({ ...newApp, subdomain: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
                 placeholder="model"
-                pattern="[a-z0-9\-]+"
-                required
               />
+              {takenReason
+                ? <span className="field-error">That name is reserved for {takenReason}.</span>
+                : <span className="hint">
+                    Its address will be <code>{appHost(newApp.subdomain || newApp.slug || 'name')}</code>.
+                    {reserved.length > 0 && <> Reserved: {reserved.map((r) => r.name).join(', ')}.</>}
+                  </span>}
             </label>
             <label>
               Description

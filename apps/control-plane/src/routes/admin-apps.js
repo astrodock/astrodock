@@ -22,7 +22,25 @@ const { emitEvent, actorFromAuth } = require('../lib/events');
 const oauth = require('../lib/oauth');
 
 // Subdomains may not collide with platform hosts or be invalid DNS labels.
-const RESERVED_SUBDOMAINS = new Set(['admin', 'pages', 'api', 'www', 'mail', 'ftp', config.adminSubdomain, config.pages.subdomain].filter(Boolean));
+//
+// Each of these is refused for a reason worth stating, because "reserved" on its
+// own tells someone nothing about whether the name will ever be available. The
+// list is served to the dashboard so the form can show it up front, rather than
+// letting people find out one rejected name at a time.
+const RESERVED_SUBDOMAINS = new Map([
+  ['admin', 'the dashboard'],
+  ['pages', 'hosted Pages'],
+  ['auth', 'reserved for hosted sign-in'],
+  ['api', 'reserved for the platform API'],
+  ['www', 'conventionally the site itself, not an app'],
+  ['mail', 'clashes with mail servers and MX records'],
+  ['ftp', 'clashes with file-transfer conventions'],
+  [config.adminSubdomain, 'the dashboard'],
+  [config.pages.subdomain, 'hosted Pages']
+].filter(([k]) => k));
+
+function reservedReason(v) { return RESERVED_SUBDOMAINS.get(v) || null; }
+
 function validSubdomain(v) {
   return typeof v === 'string'
     && v.length <= 40
@@ -120,7 +138,13 @@ router.post('/', requirePermission('apps:write'), async (req, res) => {
     return res.status(403).json({ error: `Token is not scoped to app "${b.slug}"` });
   }
   if (b.subdomain !== undefined && !validSubdomain(String(b.subdomain))) {
-    return res.status(400).json({ error: 'Invalid or reserved subdomain' });
+    const why = reservedReason(String(b.subdomain || '').toLowerCase());
+    return res.status(400).json({
+      error: why
+        ? `"${b.subdomain}" is reserved — it is used for ${why}.`
+        : 'That subdomain is not valid. Use letters, numbers and hyphens, starting and ending with a letter or number.',
+      reserved: [...RESERVED_SUBDOMAINS.keys()]
+    });
   }
   const manifest = {
     schemaVersion: '1',
@@ -263,6 +287,12 @@ router.post('/:slug/disconnect-repo', requirePermission('apps:write'), async (re
   if (app.githubRepo && app.webhookId) { try { await deleteWebhook(app.githubRepo, app.webhookId); } catch { /* best effort */ } }
   await db.update(schema.apps).set({ githubRepo: '', webhookId: null, webhookSecret: '', updatedAt: new Date() }).where(eq(schema.apps.id, app.id));
   res.json({ message: 'Repository disconnected', app: serializeApp(await getAppBySlug(app.slug)) });
+});
+
+// The names an app cannot take, with the reason for each. Read by the create-app
+// form so the constraint is visible before it is hit.
+router.get('/meta/reserved-subdomains', (req, res) => {
+  res.json({ reserved: [...RESERVED_SUBDOMAINS].map(([name, reason]) => ({ name, reason })) });
 });
 
 // ── deploys ───────────────────────────────────────────────────────────────────

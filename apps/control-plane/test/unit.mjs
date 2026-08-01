@@ -395,6 +395,33 @@ test('the package version matches what the image build would stamp', () => {
   assert.ok(version.isSemver(pkg.version), `package.json version "${pkg.version}" is not a version`);
 });
 
+// ── reserved subdomains ──────────────────────────────────────────────────────
+
+console.log('\nreserved subdomains');
+
+test('the reserved list covers every host the platform itself serves', () => {
+  // A subdomain that collides with a platform host would be shadowed by it and
+  // simply never resolve to the app — so the refusal has to be exhaustive.
+  const src = fs.readFileSync(new URL('../src/routes/admin-apps.js', import.meta.url), 'utf8');
+  const block = /const RESERVED_SUBDOMAINS = new Map\(\[([\s\S]*?)\]\.filter/.exec(src);
+  assert.ok(block, 'could not find the reserved list');
+  const names = [...block[1].matchAll(/\['([a-z]+)',/g)].map((m) => m[1]);
+
+  for (const required of ['admin', 'pages', 'auth', 'api', 'www', 'mail', 'ftp']) {
+    assert.ok(names.includes(required), `"${required}" is not reserved`);
+  }
+});
+
+test('every reserved name carries a reason', () => {
+  // "Reserved" alone does not tell anyone whether it will ever be available.
+  const src = fs.readFileSync(new URL('../src/routes/admin-apps.js', import.meta.url), 'utf8');
+  const block = /const RESERVED_SUBDOMAINS = new Map\(\[([\s\S]*?)\]\.filter/.exec(src);
+  assert.ok(block, 'could not find the reserved list');
+  const pairs = [...block[1].matchAll(/\[[^,]+,\s*'([^']*)'\]/g)].map((m) => m[1]);
+  assert.ok(pairs.length >= 7, `expected a reason per name, found ${pairs.length}`);
+  for (const reason of pairs) assert.ok(reason.length > 4, `reason too thin: "${reason}"`);
+});
+
 // ── the suite must not depend on the shell it is run from ────────────────────
 
 console.log('\ntest hygiene');
