@@ -106,6 +106,19 @@ async function run() {
       throw new Error(`repoPath "${app.repoPath}" does not exist in the repository`);
     }
 
+    // This runs in a FORKED, detached process. The api and the runner server each
+    // hydrate the stored base domain at startup; this one never did, so it
+    // computed every app's environment with config.baseDomain === ''.
+    //
+    // Only visible when the domain came from the setup wizard — an install that
+    // sets ASTRODOCK_BASE_DOMAIN in .env looks fine, which is why an audit of the
+    // environment catalogue run in-process did not find it. The symptoms were an
+    // empty ASTRODOCK_BASE_DOMAIN, an ASTRODOCK_APP_URL truncated to
+    // "https://<slug>.", and — worst — no ASTRODOCK_AUTHORIZE_URL at all, because
+    // env-compute only sets it when a domain is configured. Apps then fell back to
+    // the internal address, silently reinstating the exact bug v0.0.15 fixed.
+    await require('../lib/settings').applyBootstrapSettings().catch(() => {});
+
     const env = computeEnv(app, envVars);
 
     if (app.runtimeType === 'docker') {
@@ -117,7 +130,9 @@ async function run() {
     // health probe (best-effort; failure marks the deploy failed)
     await setStatus('deploying');
     const healthy = await probe(app);
-    await appendLog(healthy ? 'Health probe: app is responding' : 'Health probe: no response yet (app may still be starting)');
+    await appendLog(healthy
+      ? 'Health probe: app is responding'
+      : `Health probe: no response after ${PROBE_ATTEMPTS}s — the app may still be starting, or it is not listening on ASTRODOCK_PORT`);
 
     await appendLog('Deploy complete');
     await db.update(schema.deployments).set({
@@ -206,7 +221,15 @@ async function deployNode(app, deployRoot, env, { appendLog, setStatus }) {
   // npm ci needs a lockfile; fall back to npm install when there isn't one
   const installCmd = (dir, prod) => {
     const ci = fs.existsSync(path.join(dir, 'package-lock.json'));
-    return ci ? `npm ci${prod ? ' --omit=dev' : ''}` : `npm install${prod ? ' --omit=dev' : ''}`;
+    // --include=dev is not redundant: the build env sets NODE_ENV=production (apps
+    // need it at runtime), and npm honours that by skipping devDependencies even
+    // when you did not ask it to. A frontend with its build tool in
+    // devDependencies — which is where vite, esbuild and tsc normally live — then
+    // failed with "vite: not found". Say which one is wanted so the environment
+    // cannot decide it for us.
+    return ci
+      ? `npm ci${prod ? ' --omit=dev' : ' --include=dev'}`
+      : `npm install${prod ? ' --omit=dev' : ' --include=dev'}`;
   };
   // Run an app-supplied command (install/build) as the unprivileged app user, with the
   // scrubbed build env. execFileSync({uid,gid}) avoids any su/shell-quoting pitfalls.
@@ -316,17 +339,34 @@ async function deployDocker(app, deployRoot, env, { appendLog, setStatus, commit
 }
 
 // ── health probe (unified) ─────────────────────────────────────────────────────
-function probe(app) {
+// Give the app a moment to bind before deciding it is not there.
+//
+// This used to fire once, immediately after the process was started, so a healthy
+// app that took a second to listen was reported as "no response yet" — which is
+// to say: almost always. The line was there to reassure, and instead it made
+// every successful deploy look doubtful.
+const PROBE_ATTEMPTS = 10;
+const PROBE_GAP_MS = 1000;
+
+function probeOnce(app) {
   const http = require('http');
   const host = app.runtimeType === 'docker' ? `app-${app.slug}` : 'localhost';
   return new Promise((resolve) => {
-    const req = http.get({ host, port: app.port, path: '/health', timeout: 5000 }, (res) => {
+    const req = http.get({ host, port: app.port, path: '/health', timeout: 3000 }, (res) => {
       res.resume();
       resolve(true); // any HTTP response means the process is up
     });
     req.on('error', () => resolve(false));
     req.on('timeout', () => { req.destroy(); resolve(false); });
   });
+}
+
+async function probe(app) {
+  for (let i = 0; i < PROBE_ATTEMPTS; i++) {
+    if (await probeOnce(app)) return true;
+    if (i < PROBE_ATTEMPTS - 1) await new Promise((r) => setTimeout(r, PROBE_GAP_MS));
+  }
+  return false;
 }
 
 run().catch((err) => { console.error('deploy worker crashed:', err); process.exit(1); });

@@ -112,6 +112,21 @@ async function localDeploy(client, slug) {
   }
   const buf = fs.readFileSync(tmp);
   fs.rmSync(tmp, { force: true });
+
+  // Ask before uploading. The required-variable gate runs in the deploy worker,
+  // which only starts once the whole archive has been sent — so a blocked deploy
+  // used to upload a hundred megabytes and then refuse. The check is one small
+  // request and the answer is the same.
+  try {
+    const pre = await client.request('GET', `/admin/apps/${slug}`);
+    const missing = pre?.json?.app?.missingRequired || pre?.json?.missingRequired;
+    if (Array.isArray(missing) && missing.length) {
+      console.error('Deploy blocked — set these first (astrodock set-secret KEY):');
+      for (const m of missing) console.error(`  - ${m.key || m} ${m.reason ? `(${m.reason})` : ''}`);
+      process.exit(2);
+    }
+  } catch { /* the server will say so after the upload if this could not be checked */ }
+
   console.log(`Uploading ${(buf.length / 1024).toFixed(0)} KB for "${slug}"…`);
   const { status, json } = await client.uploadRaw(`/admin/apps/${slug}/deploy-local`, buf);
   if (status === 422 && json?.missing) {

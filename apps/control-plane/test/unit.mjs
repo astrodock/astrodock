@@ -406,6 +406,47 @@ test('the package version matches what the image build would stamp', () => {
   assert.ok(version.isSemver(pkg.version), `package.json version "${pkg.version}" is not a version`);
 });
 
+// ── the deploy worker is its own process ─────────────────────────────────────
+
+console.log('\ndeploy worker configuration');
+
+test('the worker hydrates the stored domain before computing an app environment', () => {
+  // deploy-worker.js is FORKED, detached. The api and the runner server each call
+  // applyBootstrapSettings() at startup; this one did not, so it computed every
+  // app's environment with config.baseDomain === ''. That produced an empty
+  // ASTRODOCK_BASE_DOMAIN, an ASTRODOCK_APP_URL truncated to "https://<slug>.",
+  // and no ASTRODOCK_AUTHORIZE_URL at all — silently sending apps back to the
+  // internal address that v0.0.15 existed to stop them using.
+  //
+  // Only reproducible when the domain came from the setup wizard rather than from
+  // ASTRODOCK_BASE_DOMAIN, which is why running computeEnv in-process looked fine.
+  const src = fs.readFileSync(new URL('../src/runner/deploy-worker.js', import.meta.url), 'utf8');
+  const hydrate = src.indexOf('applyBootstrapSettings');
+  const compute = src.indexOf('computeEnv(app, envVars)');
+  assert.ok(hydrate > -1, 'the worker never hydrates the stored base domain');
+  assert.ok(compute > -1, 'could not find the computeEnv call');
+  assert.ok(hydrate < compute,
+    'applyBootstrapSettings() must run BEFORE computeEnv, or the domain is still empty');
+});
+
+test('every process that computes an app environment hydrates first', () => {
+  // Three processes: api, runner server, deploy worker. Two of them were right.
+  for (const f of ['../server.js', '../src/runner/server.js', '../src/runner/deploy-worker.js']) {
+    const src = fs.readFileSync(new URL(f, import.meta.url), 'utf8');
+    assert.match(src, /applyBootstrapSettings/, `${f} never hydrates the stored domain`);
+  }
+});
+
+test('a frontend build is given its devDependencies', () => {
+  // The build env sets NODE_ENV=production, and npm honours that by skipping
+  // devDependencies whether or not you asked — so a frontend whose build tool
+  // lives there (vite, esbuild, tsc: all of them) died at "vite: not found".
+  const src = fs.readFileSync(new URL('../src/runner/deploy-worker.js', import.meta.url), 'utf8');
+  assert.match(src, /--include=dev/,
+    'the install command must ask for dev dependencies explicitly; NODE_ENV silently overrides');
+  assert.match(src, /NODE_ENV: config\.env/, 'expected NODE_ENV in the build env — if it is gone, revisit this');
+});
+
 // ── the SPA and the API cannot both own a path ───────────────────────────────
 
 console.log('\ndashboard routing');
