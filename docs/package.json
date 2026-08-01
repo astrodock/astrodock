@@ -1,0 +1,9 @@
+{
+  "name": "@astrodock/docs",
+  "version": "0.0.16",
+  "private": true,
+  "description": "The Astrodock docs site. Static HTML — the build is a copy into dist/.",
+  "scripts": {
+    "build": "node build.mjs"
+  }
+}
