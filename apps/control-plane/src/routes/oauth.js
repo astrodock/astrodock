@@ -158,6 +158,23 @@ function esc(s) {
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+// Embedding data inside a <script> is not the same problem as embedding it in
+// HTML, and the HTML escaper is actively wrong here: browsers do not decode
+// entities inside a script block, so esc() produced `const CFG = {&quot;appId&quot;...}`
+// — a syntax error that killed the entire inline script, and with it the sign-in
+// form and the passkey button.
+//
+// What actually needs escaping is anything that could end the script element or
+// be read as a line terminator. The result stays valid JSON.
+function scriptJson(value) {
+  return JSON.stringify(value)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
+}
+
 function shell(title, body) {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title>
@@ -213,7 +230,7 @@ function errorPage(title, message) {
 }
 
 function loginPage({ appName, appId, redirectUri, state, nonce }) {
-  const cfg = esc(JSON.stringify({ appId, redirectUri, state, nonce }));
+  const cfg = scriptJson({ appId, redirectUri, state, nonce });
   return shell(`Sign in to ${appName}`, `
 <svg class="mark" width="34" height="34" viewBox="0 0 34 34" fill="none" aria-hidden="true">
   <circle cx="17" cy="17" r="15" stroke="var(--accent)" stroke-width="1.4" opacity=".4"/>
@@ -276,7 +293,7 @@ const b64uToBuf = (s) => {
   return Uint8Array.from(b, (c) => c.charCodeAt(0));
 };
 const bufToB64u = (b) => btoa(String.fromCharCode(...new Uint8Array(b)))
-  .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  .replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/, '');
 
 document.getElementById('pk').addEventListener('click', async () => {
   err.style.display='none';
@@ -310,4 +327,4 @@ document.getElementById('pk').addEventListener('click', async () => {
 }
 
 module.exports = router;
-module.exports._internal = { loginPage, errorPage };
+module.exports._internal = { loginPage, errorPage, scriptJson };

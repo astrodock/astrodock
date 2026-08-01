@@ -136,7 +136,7 @@ export default function EnvVarsTab({ app, onRefresh }) {
 
       {showBulk && (
         <div className="modal-overlay" onClick={() => setShowBulk(false)}>
-          <form className="modal bulk-modal" onClick={(e) = noValidate> e.stopPropagation()} onSubmit={handleBulkImport}>
+          <form className="modal bulk-modal" onClick={(e) => e.stopPropagation()} noValidate onSubmit={handleBulkImport}>
             <h2>Import variables from a .env file</h2>
             <p className="hint">Paste the contents of a <code>.env</code> file. Lines starting with <code>#</code> are ignored, and Astrodock-managed (<code>ASTRODOCK_</code>) names are skipped.</p>
             {bulkResult && <div className="provision-banner"><strong>{bulkResult.added} variable{bulkResult.added !== 1 ? 's' : ''} imported{bulkResult.skipped > 0 ? `, ${bulkResult.skipped} skipped` : ''}</strong></div>}

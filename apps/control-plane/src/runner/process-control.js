@@ -67,6 +67,7 @@ function remove(app) {
   else { try { sh(`pm2 delete ${app.slug} 2>&1`, 15000); sh('pm2 save 2>&1', 10000); } catch { /* gone */ } }
 }
 
+// eslint-disable-next-line no-control-regex -- matching ANSI escapes is the point
 function stripAnsi(s) { return s.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, ''); }
 
 function readLogs(app, lines = 100) {

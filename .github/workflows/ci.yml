@@ -47,6 +47,12 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      # Catches code that parses but cannot run — a bulk edit once turned
+      # `onClick={e => ...}` into `onClick={e = noValidate}` across seven modals.
+      # Valid JSX, so the build passed; every "add" dialog threw on click.
+      - name: lint
+        run: npm run lint
+
       - name: schema tests
         run: npm test -w @astrodock/schema
       - name: migrate

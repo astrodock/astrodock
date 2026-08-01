@@ -10,7 +10,7 @@
     "dev": "ASTRODOCK_ENV=development node --watch server.js",
     "migrate": "node src/db/migrate.js",
     "seed": "node src/seed.js",
-    "test": "node test/unit.mjs && node test/scopes.mjs && node test/update.test.mjs && node test/pages-unit.mjs && node test/smoke.mjs && node test/auth-factors.test.mjs && node test/oauth.test.mjs && node test/auth.test.mjs && node test/pages.test.mjs && node test/backup-restore.test.mjs && node test/pages-store.test.mjs",
+    "test": "node test/unit.mjs && node test/scopes.mjs && node test/update.test.mjs && node test/pages-unit.mjs && node test/smoke.mjs && node test/auth-factors.test.mjs && node test/oauth.test.mjs && node test/login-page.test.mjs && node test/auth.test.mjs && node test/pages.test.mjs && node test/backup-restore.test.mjs && node test/pages-store.test.mjs",
     "test:restore": "sh test/with-restore-pg.sh",
     "test:store": "sh test/with-pages-store.sh"
   },

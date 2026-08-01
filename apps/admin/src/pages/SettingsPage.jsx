@@ -61,7 +61,7 @@ function RuleModal({ initial, onClose, onSaved }) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <form className="modal modal-wide" onClick={(e) = noValidate> e.stopPropagation()} onSubmit={submit}>
+      <form className="modal modal-wide" onClick={(e) => e.stopPropagation()} noValidate onSubmit={submit}>
         <h2>{editing ? 'Edit notification rule' : 'New notification rule'}</h2>
         {error && <div className="error">{error}</div>}
 

@@ -171,7 +171,7 @@ export default function AppsPage() {
 
       {showCreate && (
         <div className="modal-overlay" onClick={() => setShowCreate(false)}>
-          <form className="modal" onClick={e = noValidate> e.stopPropagation()} onSubmit={handleCreate}>
+          <form className="modal" onClick={(e) => e.stopPropagation()} noValidate onSubmit={handleCreate}>
             <h2>Register App</h2>
             <label>
               Slug

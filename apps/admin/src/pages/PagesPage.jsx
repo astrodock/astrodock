@@ -103,7 +103,7 @@ export default function PagesPage() {
 
       {showCreate && (
         <div className="modal-overlay" onClick={() => setShowCreate(false)}>
-          <form className="modal" onClick={(e) = noValidate> e.stopPropagation()} onSubmit={handleCreate}>
+          <form className="modal" onClick={(e) => e.stopPropagation()} noValidate onSubmit={handleCreate}>
             <h2>New Page</h2>
             {error && <div className="error">{error}</div>}
             <label>

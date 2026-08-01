@@ -15,9 +15,15 @@
     "migrate": "npm run migrate -w @astrodock/control-plane",
     "seed": "npm run seed -w @astrodock/control-plane",
     "test": "npm test --workspaces --if-present",
-    "cli": "node packages/cli/bin/astrodock.js"
+    "cli": "node packages/cli/bin/astrodock.js",
+    "lint": "eslint ."
   },
   "engines": {
     "node": ">=20"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "eslint": "^9.39.5",
+    "globals": "^17.8.0"
   }
 }
