@@ -26,9 +26,10 @@ const ICONS = {
     <path d="M13 3v5h5M9 13h6M9 17h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
   </>,
   domains: <>
-    <circle cx="12" cy="12" r="8.6" stroke="currentColor" strokeWidth="1.5" />
-    <path d="M3.4 12h17.2M12 3.4c2.4 2.8 2.4 14 0 17.2M12 3.4c-2.4 2.8-2.4 14 0 17.2"
-      stroke="currentColor" strokeWidth="1.3" />
+    <path d="M9.9 14.1a3.9 3.9 0 0 0 5.7.3l3-3a4 4 0 0 0-5.7-5.7l-1.5 1.5"
+      stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    <path d="M14.1 9.9a3.9 3.9 0 0 0-5.7-.3l-3 3a4 4 0 0 0 5.7 5.7l1.5-1.5"
+      stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
   </>,
   activity: <path d="M3 12h3l3-6 5 12 3-6h4" stroke="currentColor" strokeWidth="1.6"
     strokeLinecap="round" strokeLinejoin="round" />,

@@ -138,7 +138,7 @@ export default function App() {
           </li>
           <li>
             <NavLink to="/domains" className={({ isActive }) => isActive ? 'active' : ''}>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.4"/><path d="M2 8h12M8 2c1.7 2 1.7 10 0 12M8 2c-1.7 2-1.7 10 0 12" stroke="currentColor" strokeWidth="1.2"/></svg>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6.6 9.4a2.6 2.6 0 0 0 3.8.2l2-2a2.7 2.7 0 0 0-3.8-3.8l-1 1" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/><path d="M9.4 6.6a2.6 2.6 0 0 0-3.8-.2l-2 2a2.7 2.7 0 0 0 3.8 3.8l1-1" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>
               Domains
             </NavLink>
           </li>
