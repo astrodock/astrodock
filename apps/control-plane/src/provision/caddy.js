@@ -106,6 +106,29 @@ function customDomainBlock(d, accessLogs, onDemand, canonicalHost) {
   return `\n${site(host)} {\n${tlsLine}${logLine}\thandle /api/* {\n\t\treverse_proxy ${runnerHost()}:${d.port}\n\t}\n\thandle {\n\t\troot * ${staticRoot}\n\t\ttry_files {path} /index.html\n\t\tfile_server\n\t}\n}\n`;
 }
 
+// The hosted sign-in, on auth.<domain>.
+//
+// It has always been served from the admin host, which meant an app's users were
+// sent to a hostname called "admin" to sign in — confusing for them, and it told
+// everyone who ever signed into anything where the dashboard lives.
+//
+// Serves ONLY the auth endpoints. Nothing else, and no app content ever: the
+// isolation that stops an app from seeing a password only holds while the app's
+// code cannot run on this origin.
+const AUTH_PATHS = ['/authorize', '/login*', '/token', '/logout', '/verify', '/health'];
+
+function authBlock() {
+  const host = `${config.authSubdomain}.${config.baseDomain}`;
+  return `
+${site(host)} {
+${apiHandles(AUTH_PATHS)}
+\thandle {
+\t\trespond "Not found" 404
+\t}
+}
+`;
+}
+
 function adminBlock() {
   const host = `${config.adminSubdomain}.${config.baseDomain}`;
   const staticRoot = `${config.paths.caddyStatic}/__admin`;
@@ -171,6 +194,7 @@ function generateCaddyfile(apps, opts = {}) {
   const onDemand = config.tlsMode === 'auto' && domains.length > 0;
   let out = globalOptions(onDemand);
   out += adminBlock();
+  out += authBlock();
   out += pagesBlock();
   for (const app of apps) {
     out += app.runtimeType === 'docker' ? dockerAppBlock(app, accessLogs) : nodeAppBlock(app, accessLogs);

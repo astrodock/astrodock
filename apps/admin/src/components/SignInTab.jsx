@@ -23,7 +23,10 @@ export default function SignInTab({ app }) {
     finally { setBusy(false); }
   }
 
-  const authUrl = `https://${window.location.host}/authorize`;
+  // From the server, not from window.location: the sign-in host is auth.<domain>,
+  // and the dashboard is somewhere else entirely.
+  const authUrl = app.auth?.authorizeUrl || `https://${window.location.host}/authorize`;
+  const tokenUrl = app.auth?.tokenUrl || `https://${window.location.host}/token`;
 
   return (
     <div>
@@ -90,7 +93,7 @@ res.redirect('${authUrl}?app_id=${app.slug}'
   + '&state=' + state);
 
 // 2. on the callback, check state, then exchange server-side
-const r = await fetch('https://${window.location.host}/token', {
+const r = await fetch('${tokenUrl}', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({

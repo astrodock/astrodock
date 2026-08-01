@@ -2,6 +2,7 @@
 
 const { eq, asc } = require('drizzle-orm');
 const { db, schema } = require('../db');
+const config = require('../config');
 
 async function getAppBySlug(slug) {
   const rows = await db.select().from(schema.apps).where(eq(schema.apps.slug, slug)).limit(1);
@@ -23,7 +24,17 @@ function serializeApp(app) {
     port: app.port,
     runtime: { type: app.runtimeType, buildCommand: app.buildCommand, dockerfile: app.dockerfile },
     source: { branch: app.branch, repoPath: app.repoPath, githubRepo: app.githubRepo },
-    auth: { mode: app.authMode },
+    auth: {
+      mode: app.authMode,
+      // Where this app sends its users to sign in. Read from config so it follows
+      // the auth host rather than whichever host the dashboard happens to be on —
+      // the docs used to build this from window.location, which meant they told
+      // every operator to point their users at the admin hostname.
+      authorizeUrl: config.authBaseUrl() ? `${config.authBaseUrl()}/authorize` : '',
+      tokenUrl: config.authBaseUrl() ? `${config.authBaseUrl()}/token` : '',
+      logoutUrl: config.authBaseUrl() ? `${config.authBaseUrl()}/logout` : ''
+    },
+    brand: { color: app.brandColor || '', logoUrl: app.logoUrl || '' },
     database: { mode: app.databaseMode },
     storage: { mode: app.storageMode },
     repoConnected: !!app.githubRepo,

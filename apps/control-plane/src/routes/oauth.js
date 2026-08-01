@@ -13,6 +13,7 @@ const { eq } = require('drizzle-orm');
 const config = require('../config');
 const { db, schema } = require('../db');
 const oauth = require('../lib/oauth');
+const userSession = require('../lib/user-session');
 const factors = require('../lib/auth-factors');
 const passkeys = require('../lib/passkeys');
 const { decryptSecret } = require('../lib/crypto');
@@ -49,13 +50,50 @@ router.get('/authorize', async (req, res) => {
     ));
   }
 
+  // Already signed in to the platform? Then there is no new trust decision to
+  // make — an administrator granted this person access to this app, and the
+  // redirect is allowlisted — so send them straight back. This is what makes the
+  // second and third app feel like part of the same product rather than three
+  // separate sign-ins.
+  //
+  // `prompt=login` forces the form anyway, for an app that wants proof of
+  // presence before something consequential.
+  const session = userSession.read(req);
+  if (session && req.query.prompt !== 'login') {
+    const rows = await db.select().from(schema.users).where(eq(schema.users.id, session.sub)).limit(1);
+    const user = rows[0];
+    const access = Array.isArray(user?.appAccess) ? user.appAccess : [];
+    if (user && user.isActive && access.includes(app.slug)) {
+      const code = await oauth.issueCode({ appId: app.id, userId: user.id, redirectUri: String(redirectUri) });
+      logAttempt(user.email, app.slug, 'SUCCESS_SSO', req.ip || '');
+      const back = new URL(String(redirectUri));
+      back.searchParams.set('code', code);
+      if (state) back.searchParams.set('state', String(state));
+      return res.redirect(back.toString());
+    }
+    // A stale session — deactivated, or access revoked since. Fall through to the
+    // form rather than showing a confusing "no access" dead end.
+  }
+
   res.type('html').send(loginPage({
     appName: app.name,
     appId: app.slug,
     redirectUri: String(redirectUri),
     state: String(state),
-    nonce: String(nonce)
+    nonce: String(nonce),
+    brandColor: app.brandColor || '',
+    logoUrl: app.logoUrl || '',
+    signedInAs: session?.email || ''
   }));
+});
+
+// Ends the platform session. An app signing a user out of itself should send them
+// here if they mean "sign out of everything", not just its own session.
+router.get('/logout', (req, res) => {
+  userSession.clear(res);
+  const back = req.query.redirect_uri;
+  if (back && /^https?:\/\//.test(String(back))) return res.redirect(String(back));
+  res.type('html').send(errorPage('Signed out', 'You have been signed out of every app on this server.'));
 });
 
 // ── /login ────────────────────────────────────────────────────────────────────
@@ -111,6 +149,9 @@ router.post('/login', pageLoginLimiter, express.json(), async (req, res) => {
       logAttempt(user.email, app.slug, 'NO_ACCESS', ip);
       return res.status(403).json({ error: 'You do not have access to this app.' });
     }
+
+    // From here on, other apps on this platform will not ask again.
+    userSession.set(res, user);
 
     const code = await oauth.issueCode({ appId: app.id, userId: user.id, redirectUri });
     logAttempt(user.email, app.slug, 'SUCCESS', ip);
@@ -175,7 +216,14 @@ function scriptJson(value) {
     .replace(/\u2029/g, '\\u2029');
 }
 
-function shell(title, body) {
+// A hex colour from the app record, or nothing. Validated rather than trusted:
+// it is interpolated into a stylesheet, and "red;} body{display:none" is a
+// perfectly good string.
+function safeColor(v) {
+  return /^#[0-9a-fA-F]{6}$/.test(String(v || '')) ? String(v) : null;
+}
+
+function shell(title, body, { accent = null } = {}) {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
@@ -189,14 +237,14 @@ function shell(title, body) {
   color-scheme:light dark;
   --bg:#f4f6fa; --surface:#fff; --line:#dce2ec; --field:#f4f7fb;
   --text:#121823; --text-2:#445064; --text-3:#626e7d;
-  --accent:#0b7c56; --accent-ink:#fff;
+  --accent:${accent || '#0b7c56'}; --accent-ink:#fff;
   --danger:#d12536; --danger-bg:rgba(209,37,54,.10);
   --r:14px; --r-sm:9px;
 }
 @media(prefers-color-scheme:dark){:root{
   --bg:#0a0e15; --surface:#0f141d; --line:#222d3b; --field:#0c121b;
   --text:#f1f5fa; --text-2:#b6c4d4; --text-3:#8595a8;
-  --accent:#2fe6a8; --accent-ink:#06120d;
+  --accent:${accent || '#2fe6a8'}; --accent-ink:#06120d;
   --danger:#ff6573; --danger-bg:rgba(255,101,115,.13);
 }}
 *{box-sizing:border-box}
@@ -205,6 +253,7 @@ body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:v
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:2.1rem;
   width:min(92vw,24rem);box-shadow:0 14px 40px rgba(20,30,60,.09)}
 .mark{display:block;margin:0 auto .9rem}
+.brand-logo{display:block;margin:0 auto 1rem;max-height:48px;max-width:180px;object-fit:contain}
 h1{font-size:1.2rem;font-weight:650;letter-spacing:-.3px;margin:0 0 .3rem;text-align:center}
 p.sub{margin:0 0 1.5rem;color:var(--text-3);font-size:.88rem;text-align:center}
 label{display:block;font-size:.79rem;font-weight:600;color:var(--text-2);margin:0 0 .35rem}
@@ -229,15 +278,21 @@ function errorPage(title, message) {
   return shell(title, `<h1>${esc(title)}</h1><p class="sub">${esc(message)}</p>`);
 }
 
-function loginPage({ appName, appId, redirectUri, state, nonce }) {
+function loginPage({ appName, appId, redirectUri, state, nonce, brandColor, logoUrl, signedInAs }) {
+  const accent = safeColor(brandColor);
+  // Only https, and no referrer — the platform should not tell a third party who
+  // is signing in to what, merely because someone pasted a logo URL.
+  const logo = /^https:\/\/[^\s"'<>]+$/.test(String(logoUrl || '')) ? String(logoUrl) : null;
   const cfg = scriptJson({ appId, redirectUri, state, nonce });
   return shell(`Sign in to ${appName}`, `
-<svg class="mark" width="34" height="34" viewBox="0 0 34 34" fill="none" aria-hidden="true">
+${logo
+    ? `<img class="brand-logo" src="${esc(logo)}" alt="${esc(appName)}" referrerpolicy="no-referrer">`
+    : `<svg class="mark" width="34" height="34" viewBox="0 0 34 34" fill="none" aria-hidden="true">
   <circle cx="17" cy="17" r="15" stroke="var(--accent)" stroke-width="1.4" opacity=".4"/>
   <circle cx="17" cy="17" r="9.5" stroke="var(--accent)" stroke-width="1.4" opacity=".7"/>
   <circle cx="17" cy="17" r="3.6" fill="var(--accent)"/>
   <circle cx="32" cy="17" r="2.3" fill="var(--text-3)"/>
-</svg>
+</svg>`}
 <h1>Sign in to ${esc(appName)}</h1>
 <p class="sub">Use your ${esc(config.baseDomain || 'Astrodock')} account.</p>
 <div class="err" id="err"></div>
@@ -253,6 +308,7 @@ function loginPage({ appName, appId, redirectUri, state, nonce }) {
   <button type="submit" id="go">Sign in</button>
 </form>
 <button class="secondary" id="pk" type="button">Sign in with a passkey</button>
+${signedInAs ? `<p class="muted">Signed in as ${esc(signedInAs)} — sign in again to continue.</p>` : ''}
 <p class="muted">Protected by Astrodock</p>
 <script>
 const CFG = ${cfg};
@@ -323,7 +379,7 @@ document.getElementById('pk').addEventListener('click', async () => {
     handoff(d.code);
   } catch (ex) { show(ex.message || 'Passkey sign-in failed.'); }
 });
-</script>`);
+</script>`, { accent });
 }
 
 module.exports = router;

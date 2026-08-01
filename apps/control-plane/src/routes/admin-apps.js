@@ -178,7 +178,11 @@ const PATCH_VALIDATORS = {
   authMode: (v) => v === 'platform' || v === 'public',
   databaseMode: (v) => ['internal', 'external', 'none'].includes(v),
   storageMode: (v) => ['internal', 'external', 'none'].includes(v),
-  buildCommand: (v) => typeof v === 'string' && v.length <= 500
+  buildCommand: (v) => typeof v === 'string' && v.length <= 500,
+  // Interpolated into the sign-in page's stylesheet and an <img src>. Rejected
+  // here as well as at render time — a bad value should never reach the column.
+  brandColor: (v) => v === '' || /^#[0-9a-fA-F]{6}$/.test(v),
+  logoUrl: (v) => v === '' || (/^https:\/\/[^\s"'<>]+$/.test(v) && v.length <= 500)
 };
 
 router.patch('/:slug', requirePermission('apps:write'), async (req, res) => {
@@ -190,7 +194,8 @@ router.patch('/:slug', requirePermission('apps:write'), async (req, res) => {
     name: 'name', description: 'description',
     authMode: 'authMode', databaseMode: 'databaseMode', storageMode: 'storageMode',
     runtimeType: 'runtimeType', buildCommand: 'buildCommand', dockerfile: 'dockerfile',
-    branch: 'branch', repoPath: 'repoPath', subdomain: 'subdomain'
+    branch: 'branch', repoPath: 'repoPath', subdomain: 'subdomain',
+    brandColor: 'brandColor', logoUrl: 'logoUrl'
   };
   for (const [k, col] of Object.entries(map)) {
     if (b[k] === undefined) continue;

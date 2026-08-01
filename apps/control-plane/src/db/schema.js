@@ -35,6 +35,10 @@ const apps = pgTable('apps', {
   slug: text('slug').notNull(),
   name: text('name').notNull(),
   description: text('description').notNull().default(''),
+  // Appearance of the hosted sign-in page. Not a security boundary — the page is
+  // still served by the platform, on the platform's origin.
+  brandColor: text('brand_color').notNull().default(''),
+  logoUrl: text('logo_url').notNull().default(''),
   subdomain: text('subdomain').notNull(),
   port: integer('port').notNull(),
 

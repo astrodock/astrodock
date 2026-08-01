@@ -51,6 +51,11 @@ const config = {
   // The wizard sets this at runtime via applyRuntimeDomain().
   baseDomain: process.env.ASTRODOCK_BASE_DOMAIN || '',
   adminSubdomain: process.env.ASTRODOCK_ADMIN_SUBDOMAIN || 'admin',
+  // The hosted sign-in lives on its own host. It used to be served from the admin
+  // host, so an app's users were sent to a hostname called "admin" to sign in —
+  // confusing for them, and it advertised where the dashboard lives to everyone
+  // who ever signed into anything.
+  authSubdomain: process.env.ASTRODOCK_AUTH_SUBDOMAIN || 'auth',
   tlsMode: (process.env.ASTRODOCK_TLS_MODE || 'internal').toLowerCase(), // auto | internal | off
   acmeEmail: process.env.ASTRODOCK_ACME_EMAIL || '',
   // Override the CORS allowed-origin regex; otherwise derived from baseDomain.
@@ -171,6 +176,7 @@ config.internalAuthUrl = process.env.ASTRODOCK_INTERNAL_AUTH_URL || `http://api:
 // rest of the bootstrap tier — PG creds, secret key, runner token — stays env-only.)
 function recomputeDerived() {
   config.pages.host = `${config.pages.subdomain}.${config.baseDomain}`;
+  config.authHost = `${config.authSubdomain}.${config.baseDomain}`;
 }
 
 config.isConfigured = function isConfigured() {
@@ -189,6 +195,20 @@ config.applyRuntimeDomain = function applyRuntimeDomain({ baseDomain, tlsMode, a
 
 // The host Pages are served on, e.g. pages.example.com.
 recomputeDerived();
+// The host the hosted sign-in is served on, e.g. auth.example.com.
+config.isAuthHost = function isAuthHost(hostname) {
+  if (!config.isConfigured()) return false;
+  return (hostname || '').toLowerCase() === String(config.authHost || '').toLowerCase();
+};
+
+// Where an app should send its users. Falls back to the admin host before setup,
+// which is the only host that exists then.
+config.authBaseUrl = function authBaseUrl() {
+  const scheme = config.tlsMode === 'off' ? 'http' : 'https';
+  if (!config.isConfigured()) return '';
+  return `${scheme}://${config.authHost}`;
+};
+
 config.isPagesHost = function isPagesHost(hostname) {
   // Before setup there is no Pages host; an empty base domain would make this
   // match "pages." and hijack every request.
