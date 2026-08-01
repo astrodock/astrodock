@@ -82,16 +82,6 @@ export default function NewKeyModal({ options, apps, onCancel, onCreated }) {
           placeholder="e.g. Invoices deploy key" />
       </Field>
 
-      <FieldGroup label="Starting point"
-        hint={custom ? 'Adjusted by hand — pick a starting point to reset.' : chosen?.description}>
-        <div className="seg seg-fit">
-          {presets.map((p) => (
-            <button type="button" key={p.key} className={!custom && preset === p.key ? 'sel' : ''}
-              onClick={() => { setPreset(p.key); setCustom(null); }}>{p.label}</button>
-          ))}
-        </div>
-      </FieldGroup>
-
       <FieldGroup label="Expires" hint="A key that never expires is one you will forget you issued.">
         <div className="seg seg-fit">
           {EXPIRY_CHOICES.map((c) => (
@@ -101,30 +91,44 @@ export default function NewKeyModal({ options, apps, onCancel, onCreated }) {
         </div>
       </FieldGroup>
 
-        <div className="opt-group">
-          <header>
-            <h4>Limit To Certain Apps</h4>
-            <p>Leave all off for every app, including ones created later.</p>
-          </header>
-          {apps.length ? (
-            <div className="opt-list">
-              {apps.map((a) => {
-                const on = appScope.includes(a.slug);
-                return (
-                  <div className={`opt-row ${on ? 'on' : ''}`} key={a.slug}>
-                    <span className="name">{a.name}<code>{a.slug}</code></span>
-                    <span className={`mini-toggle ${on ? 'on' : ''}`} role="switch" aria-checked={on}
-                      aria-label={a.name}
-                      onClick={() => setAppScope(on ? appScope.filter((x) => x !== a.slug) : [...appScope, a.slug])} />
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <p className="hint">No apps yet — this key will cover any you create.</p>
-          )}
-        </div>
+      {/* Only worth asking once there is something to limit it to. With no apps
+          the question read as a broken control rather than an option. */}
+      {apps.length > 0 && (
+        <FieldGroup label="Limit to certain apps"
+          hint="Leave them all off and the key covers every app, including ones you add later.">
+          <div className="opt-list">
+            {apps.map((a) => {
+              const on = appScope.includes(a.slug);
+              return (
+                <div className={`opt-row ${on ? 'on' : ''}`} key={a.slug}>
+                  <span className="name"><b>{a.name}</b></span>
+                  <code className="opt-key">{a.slug}</code>
+                  <span className={`mini-toggle ${on ? 'on' : ''}`} role="switch" aria-checked={on}
+                    aria-label={a.name}
+                    onClick={() => setAppScope(on ? appScope.filter((x) => x !== a.slug) : [...appScope, a.slug])} />
+                </div>
+              );
+            })}
+          </div>
+        </FieldGroup>
+      )}
 
+      {/* The starting point and the permission list are one decision: the preset
+          fills the switches in, and touching a switch adjusts the preset. They
+          used to sit at opposite ends of the dialog with nothing joining them. */}
+      <FieldGroup label="What this key can do"
+        hint={custom
+          ? 'Adjusted by hand. Pick a starting point again to reset it.'
+          : chosen?.description}>
+        <div className="seg seg-fit">
+          {presets.map((p) => (
+            <button type="button" key={p.key} className={!custom && preset === p.key ? 'sel' : ''}
+              onClick={() => { setPreset(p.key); setCustom(null); }}>{p.label}</button>
+          ))}
+        </div>
+      </FieldGroup>
+
+      <div className="perm-groups">
         {groups.map((g) => {
           const rows = (options.scopes || []).filter((s) => s.group === g.key);
           if (!rows.length) return null;
@@ -139,13 +143,17 @@ export default function NewKeyModal({ options, apps, onCancel, onCreated }) {
                   const on = effective.includes(s.key);
                   return (
                     <div className={`opt-row ${on ? 'on' : ''} ${s.grantable ? '' : 'disabled'}`} key={s.key}>
+                      {/* The description reads inline. It was a hover tooltip,
+                          which the scrolling dialog clipped — so the explanation
+                          was unreachable exactly where it was needed. */}
                       <span className="name">
-                        {s.label}
-                        <span className="info" data-tip={s.grantable
-                          ? s.description
-                          : `${s.description} — this key does not hold it, so it cannot pass it on`}>i</span>
-                        <code>{s.key}</code>
+                        <b>{s.label}</b>
+                        <span className="opt-desc">
+                          {s.grantable ? s.description
+                            : `${s.description} — this key does not hold it, so it cannot pass it on`}
+                        </span>
                       </span>
+                      <code className="opt-key">{s.key}</code>
                       <span
                         className={`mini-toggle ${on ? 'on' : ''}`}
                         role="switch"
@@ -162,6 +170,7 @@ export default function NewKeyModal({ options, apps, onCancel, onCreated }) {
             </div>
           );
         })}
+      </div>
 
         {effective.includes('apps:delete') && (
           <div className="rcard crit" style={{ marginBottom: 14 }}>

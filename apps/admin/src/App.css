@@ -694,45 +694,51 @@ button.secondary, .cancel-btn { background:var(--surface-2); color:var(--text-2)
 .mini-toggle::after, .led, .setup-step-num, .avatar, .dot { border-radius: 50%; }
 
 /* ── permission / option rows ────────────────────────────────── */
-.opt-group { margin-bottom: 18px; }
+.opt-group { margin-bottom: 22px; }
+.opt-group:last-child { margin-bottom: 0; }
 .opt-group > header { margin-bottom: 8px; }
+/* Same treatment as .fld-label. These were 11px uppercase mono while the field
+   labels beside them were 13px sans — two heading styles in one dialog. */
 .opt-group > header h4 {
-  font-size: 11px; font-family: var(--mono); letter-spacing: 1.3px; text-transform: uppercase;
-  color: var(--text-3); font-weight: 500;
+  font-size: 13px; font-weight: 600; color: var(--text-2); letter-spacing: 0;
+  font-family: var(--font); text-transform: none;
 }
-.opt-group > header p { font-size: 12.5px; color: var(--text-3); margin-top: 3px; }
+.opt-group > header p { font-size: 12.5px; color: var(--text-3); margin-top: 3px; line-height: 1.5; }
 .opt-group.danger > header h4 { color: var(--danger); }
+
+/* The permission groups belong to the picker above them, so they are inset as a
+   set rather than floating free of it. */
+.perm-groups { margin-top: 4px; padding-left: 12px; border-left: 2px solid var(--line-soft); }
 
 .opt-list { border: 1px solid var(--line-soft); border-radius: var(--r); background: var(--surface);
   overflow: hidden; }   /* .opt-row.on paints a background; without this its square
                            corners poke out through the panel's rounded ones */
 .opt-row {
-  display: flex; align-items: center; gap: 14px;
-  padding: 11px 16px 11px 26px;               /* indent: these sit under a group */
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--line-soft);
 }
 .opt-row:last-child { border-bottom: 0; }
-.opt-row .name { flex: 1; min-width: 0; display: flex; align-items: center; gap: 7px; font-size: 14px; }
-.opt-row .name code { font-family: var(--mono); font-size: 11.5px; color: var(--text-3); }
+.opt-row .name { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; font-size: 14px; }
+.opt-row .name b { font-weight: 550; }
+/* Inline, not a tooltip: the dialog scrolls, and a tooltip anchored inside it was
+   clipped by the scroll container — unreadable exactly where it was needed. */
+.opt-desc { font-size: 12.5px; color: var(--text-3); line-height: 1.45; }
+/* The scope name matters to someone writing API calls and to nobody else, so it
+   sits quietly beside the switch rather than in the middle of the sentence. */
+.opt-key { font-family: var(--mono); font-size: 11px; color: var(--text-3);
+  flex-shrink: 0; opacity: .75; }
 .opt-row.disabled { opacity: .45; }
-.opt-row.on { background: var(--accent-dim); }
+/* An accent tint met a grey rule at the row edge and the two fought. The whole
+   row shifts to the accent's own palette instead, separator included. */
+.opt-row.on { background: var(--accent-dim); border-bottom-color: color-mix(in srgb, var(--accent) 22%, transparent); }
+.opt-row.on .opt-key { color: var(--accent); opacity: .9; }
+.opt-row.on + .opt-row { border-top: 0; }
 
-/* ── info affordance ─────────────────────────────────────────── */
-.info {
-  display: inline-grid; place-items: center; width: 15px; height: 15px; flex-shrink: 0;
-  border: 1px solid var(--line); border-radius: 50%; color: var(--text-3);
-  font-size: 10px; font-weight: 700; font-family: var(--mono); cursor: help; position: relative;
-}
-.info:hover { color: var(--accent); border-color: var(--accent); }
-.info::after {
-  content: attr(data-tip); position: absolute; bottom: calc(100% + 8px); left: 50%;
-  transform: translateX(-50%); width: max-content; max-width: 280px;
-  background: var(--bg-deep); color: var(--text-2); border: 1px solid var(--line);
-  border-radius: var(--r-sm); padding: 8px 11px; font-size: 12.5px; font-weight: 400;
-  font-family: var(--font); line-height: 1.45; letter-spacing: 0; text-align: left;
-  box-shadow: var(--shadow); opacity: 0; pointer-events: none; transition: opacity .12s; z-index: 40;
-}
-.info:hover::after { opacity: 1; }
+/* The `.info` hover tooltip is gone. Every place it was used sat inside a
+   container with `overflow: hidden` or a scrolling dialog, so the explanation was
+   clipped in exactly the situations it existed for. Descriptions read inline
+   instead — see .opt-desc. */
 
 /* ── empty states ────────────────────────────────────────────── */
 /* A list with nothing in it should say what it is and how to start, not render

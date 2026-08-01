@@ -55,14 +55,9 @@ export default function TokensPage() {
     <div className="settings-page">
       <PageHeader
         title="Access Keys"
-        description="Keys that let the CLI or an AI agent act on your behalf, with only the permissions you give them."
+        description="A key lets a tool or an AI agent do things here on your behalf — deploy an app, read its logs, change a setting. You decide what each key is allowed to do, and everything it does is recorded under your name."
         action={<button onClick={() => { setOpen(true); setCreated(null); }}>New Key</button>}
       />
-
-      <p className="hint">
-        A key lets the <code>astrodock</code> CLI or an AI agent act on your behalf. Each one carries
-        only the permissions you give it, and every action it takes is recorded against you.
-      </p>
 
       {error && <div className="error">{error}</div>}
 

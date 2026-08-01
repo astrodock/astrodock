@@ -99,8 +99,11 @@ export default function PageDetailPage() {
         <div className="opt-list" style={{ marginTop: 16 }}>
           <div className={`opt-row ${page.isActive ? 'on' : ''}`}>
             <span className="name">
-              Published
-              <span className="info" data-tip="Unpublished, the address returns 404 for everyone — including anyone holding a link, and including you. Nothing is deleted; switch it back on and it returns.">i</span>
+              <b>Published</b>
+              <span className="opt-desc">
+                Unpublished, the address returns 404 for everyone — including anyone holding a link,
+                and including you. Nothing is deleted; switch it back on and it returns.
+              </span>
             </span>
             <span className={`mini-toggle ${page.isActive ? 'on' : ''}`} role="switch" aria-checked={page.isActive}
               aria-label="Published"
@@ -195,8 +198,10 @@ export default function PageDetailPage() {
               </div>
               <div className="opt-row">
                 <span className="name">
-                  Sub-resources
-                  <span className="info" data-tip="Stylesheets, scripts, images and anything else the page pulls in after it loads.">i</span>
+                  <b>Sub-resources</b>
+                  <span className="opt-desc">
+                    Stylesheets, scripts, images and anything else the page pulls in after it loads.
+                  </span>
                 </span>
                 <span className="mono">{views.breakdown.assets}</span>
               </div>
