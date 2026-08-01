@@ -83,6 +83,46 @@ test('docker app block whole-proxies the subdomain', () => {
   assert.ok(!/handle \/api\/\*[\s\S]*app-pytool/.test(cfg), 'docker app has no /api split');
 });
 
+console.log('\napex routing');
+
+test('no apex app: the bare base domain gets no site block', () => {
+  const cfg = generateCaddyfile([internalApp]);
+  const base = config.baseDomain;
+  assert.ok(!new RegExp(`(^|\\n)${base.replace(/\./g, '\\.')} \\{`).test(cfg),
+    'nothing answers the apex unless an operator asked for it');
+});
+
+test('apex app serves the bare domain AND keeps its own subdomain', () => {
+  const cfg = generateCaddyfile([internalApp], { apexApp: internalApp.slug });
+  const base = config.baseDomain;
+  assert.ok(new RegExp(`(^|\\n)${base.replace(/\./g, '\\.')} \\{`).test(cfg), 'apex block exists');
+  assert.ok(cfg.includes(`${internalApp.subdomain}.${base} {`), 'the subdomain is not moved, it is added to');
+});
+
+test('www redirects to the apex rather than serving a second copy', () => {
+  const cfg = generateCaddyfile([internalApp], { apexApp: internalApp.slug });
+  assert.ok(new RegExp(`www\\.${config.baseDomain.replace(/\./g, '\\.')} \\{`).test(cfg), 'www block exists');
+  assert.ok(cfg.includes(`redir https://${config.baseDomain}{uri} permanent`), 'permanent redirect, path preserved');
+});
+
+test('www can be turned off without losing the apex', () => {
+  const cfg = generateCaddyfile([internalApp], { apexApp: internalApp.slug, apexWww: false });
+  assert.ok(!cfg.includes(`www.${config.baseDomain} {`), 'no www block');
+  assert.ok(new RegExp(`(^|\\n)${config.baseDomain.replace(/\./g, '\\.')} \\{`).test(cfg), 'apex still served');
+});
+
+test('an apex pointing at an app that is not deployed routes nothing', () => {
+  const cfg = generateCaddyfile([internalApp], { apexApp: 'ghost' });
+  assert.ok(!new RegExp(`(^|\\n)${config.baseDomain.replace(/\./g, '\\.')} \\{`).test(cfg),
+    'a stale slug must not produce a block pointing at nothing');
+});
+
+test('a docker app at the apex is whole-proxied, not split', () => {
+  const d = { ...internalApp, slug: 'site', subdomain: 'site', runtimeType: 'docker', port: 3105 };
+  const cfg = generateCaddyfile([d], { apexApp: 'site' });
+  assert.ok(cfg.includes('reverse_proxy app-site:3105'), 'whole-proxy at the apex too');
+});
+
 console.log('\nfirst-run setup mode');
 
 test('unconfigured: serves the wizard on :80 with auto_https off', () => {

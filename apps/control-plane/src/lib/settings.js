@@ -67,6 +67,21 @@ const REGISTRY = {
     description: 'Asks GitHub once every six hours whether a newer version has been tagged. This is the only request Astrodock makes to the internet on its own. It never installs anything.',
     values: ['on', 'off'], default: () => 'on'
   },
+  // The bare base domain. Every route Caddy generates is <something>.<base>, so
+  // until this exists the apex answers nothing at all — which is a strange thing
+  // for a platform that owns the whole domain to do. Empty means "nothing there",
+  // which stays the default: an operator who has not chosen a site should not
+  // have one picked for them.
+  'routing.apex_app': {
+    label: 'App at your main domain', type: 'app',
+    description: 'Which app answers at your domain with no subdomain in front of it. Leave it unset and that address serves nothing.',
+    default: () => ''
+  },
+  'routing.apex_www': {
+    label: 'Send www to it as well', type: 'enum',
+    description: 'Visitors typing www in front of your domain are redirected to the address without it, so you have one address rather than two.',
+    values: ['on', 'off'], default: () => 'on'
+  },
   'alerts.disk_threshold_percent': {
     label: 'Disk-usage alert threshold (%)', type: 'int',
     description: 'Raise a warning once the disk is this full.',
@@ -115,6 +130,11 @@ function coerce(key, value) {
   }
   if (def.type === 'enum' && !def.values.includes(value)) {
     throw new Error(`${key} must be one of: ${def.values.join(', ')}`);
+  }
+  if (def.type === 'app') {
+    const v = String(value || '').trim();
+    if (v && !/^[a-z0-9]([a-z0-9-]{0,38}[a-z0-9])?$/.test(v)) throw new Error(`${key} must be an app slug`);
+    return v;
   }
   return value;
 }
@@ -205,13 +225,26 @@ async function applyBootstrapSettings() {
 // The full operational set with effective values + source, for the Settings UI.
 async function effective() {
   const overrides = await loadOverrides();
+
+  // A setting whose choices are other rows in the database cannot declare them in
+  // a static registry, so the app-typed settings get their options filled in here.
+  let appChoices = null;
+  if (Object.values(REGISTRY).some((d) => d.type === 'app')) {
+    try {
+      const { eq } = require('drizzle-orm');
+      const rows = await db.select({ slug: schema.apps.slug, name: schema.apps.name })
+        .from(schema.apps).where(eq(schema.apps.provisioned, true));
+      appChoices = rows.map((r) => ({ value: r.slug, label: r.name || r.slug }));
+    } catch { appChoices = []; }
+  }
+
   return Object.entries(REGISTRY).map(([key, def]) => {
     const has = overrides.has(key);
     return {
       key,
       label: def.label,
       type: def.type,
-      values: def.values || null,
+      values: def.type === 'app' ? appChoices : (def.values || null),
       description: def.description || null,
       value: has ? overrides.get(key) : def.default(),
       source: has ? 'override' : 'default'
@@ -234,6 +267,7 @@ function diagnostics() {
     env: config.env,
     configured: config.isConfigured(),
     baseDomain: config.baseDomain || '(not set — first-run setup pending)',
+    publicIp: config.publicIp || null,
     adminSubdomain: config.adminSubdomain,
     pagesHost: config.pages.host,
     tlsMode: config.tlsMode,

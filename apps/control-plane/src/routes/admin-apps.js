@@ -33,7 +33,7 @@ const RESERVED_SUBDOMAINS = new Map([
   ['pages', 'hosted Pages'],
   ['auth', 'reserved for hosted sign-in'],
   ['api', 'reserved for the platform API'],
-  ['www', 'conventionally the site itself, not an app'],
+  ['www', 'redirects to your main address — set that under Settings'],
   ['mail', 'clashes with mail servers and MX records'],
   ['ftp', 'clashes with file-transfer conventions'],
   [config.adminSubdomain, 'the dashboard'],

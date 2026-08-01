@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Select from './Select';
 
 // A settings section that owns its own draft and its own Save.
 //
@@ -71,7 +72,19 @@ export default function SettingsGroup({
                 {s.description && <span className="desc">{s.description}</span>}
               </div>
               <div className="ctl">
-                {s.type === 'enum' ? (
+                {s.type === 'app' ? (
+                  <div style={{ width: 260 }}>
+                    <Select
+                      value={valueOf(s.key) ?? ''}
+                      onChange={(v) => setField(s, v)}
+                      placeholder="Nothing — this address serves no site"
+                      options={[
+                        { value: '', label: 'Nothing', description: 'The address answers nothing.' },
+                        ...(s.values || [])
+                      ]}
+                    />
+                  </div>
+                ) : s.type === 'enum' ? (
                   <div className="seg">
                     {s.values.map((v) => (
                       <button key={v} type="button" className={String(valueOf(s.key)) === String(v) ? 'sel' : ''}

@@ -46,6 +46,22 @@ router.patch('/', async (req, res, next) => {
     }
     const body = req.body && typeof req.body === 'object' ? req.body : {};
     const updates = body.updates && typeof body.updates === 'object' ? body.updates : body;
+
+    // Pointing the base domain at an app that cannot serve it produces a hostname
+    // that answers nothing, and the operator finds out by visiting their own site.
+    if (updates['routing.apex_app']) {
+      const slug = String(updates['routing.apex_app']).trim();
+      const { db, schema } = require('../db');
+      const { eq } = require('drizzle-orm');
+      const rows = await db.select().from(schema.apps).where(eq(schema.apps.slug, slug)).limit(1);
+      if (!rows[0]) return res.status(400).json({ error: `There is no app called "${slug}".` });
+      if (!rows[0].provisioned) {
+        return res.status(400).json({
+          error: `"${slug}" has not been set up yet. Provision it on its Settings tab, then point your domain at it.`
+        });
+      }
+    }
+
     const changed = [];
     for (const [key, value] of Object.entries(updates)) {
       if (key === 'updates') continue;
@@ -59,6 +75,10 @@ router.patch('/', async (req, res, next) => {
         targetType: 'setting', targetId: changed.join(','),
         message: `updated ${changed.join(', ')}`
       }).catch(() => {});
+    }
+    // These two are routing, not preferences: stored and not pushed, they do nothing.
+    if (changed.some((k) => k.startsWith('routing.'))) {
+      await require('../provision').reloadCaddyFromDb().catch(() => {});
     }
     res.json({ settings: await settings.effective(), updated: changed });
   } catch (err) { next(err); }

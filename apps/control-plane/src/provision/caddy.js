@@ -175,6 +175,34 @@ ${appLog(app, accessLogs)}\thandle /api/* {
 `;
 }
 
+// The bare base domain — astrodock.ai, not <anything>.astrodock.ai.
+//
+// Every other block here is keyed on a subdomain, so until this existed the apex
+// answered nothing: not the dashboard, not an app, not a 404 we chose. The
+// custom-domain path could not cover it either, and correctly so — that check
+// refuses anything at or under the base domain, which is what stops someone
+// claiming admin.<base> as a "custom" domain and taking over the dashboard.
+//
+// So the apex is its own thing: an operator names an app, and that app answers
+// there. www redirects to it rather than serving a second copy, because two
+// addresses serving identical content is a decision nobody wants to have made.
+function apexBlock(app, accessLogs, includeWww) {
+  const host = config.baseDomain;
+  let out = '';
+
+  if (includeWww) {
+    out += `\n${site(`www.${host}`)} {\n\tredir ${schemeFor()}://${host}{uri} permanent\n}\n`;
+  }
+
+  if (app.runtimeType === 'docker') {
+    out += `\n${site(host)} {\n${appLog(app, accessLogs)}\treverse_proxy app-${app.slug}:${app.port}\n}\n`;
+    return out;
+  }
+  const staticRoot = `${config.paths.caddyStatic}/${app.slug}`;
+  out += `\n${site(host)} {\n${appLog(app, accessLogs)}\thandle /api/* {\n\t\treverse_proxy ${runnerHost()}:${app.port}\n\t}\n\thandle {\n\t\troot * ${staticRoot}\n\t\ttry_files {path} /index.html\n\t\tfile_server\n\t}\n}\n`;
+  return out;
+}
+
 function dockerAppBlock(app, accessLogs) {
   const host = `${app.subdomain}.${config.baseDomain}`;
   return `
@@ -209,6 +237,10 @@ function generateCaddyfile(apps, opts = {}) {
   out += adminBlock();
   out += authBlock();
   out += pagesBlock();
+  // The apex app is also a normal app on its own subdomain — this adds a second
+  // address for it, it does not move it.
+  const apex = opts.apexApp && apps.find((a) => a.slug === opts.apexApp);
+  if (apex) out += apexBlock(apex, accessLogs, opts.apexWww !== false);
   for (const app of apps) {
     out += app.runtimeType === 'docker' ? dockerAppBlock(app, accessLogs) : nodeAppBlock(app, accessLogs);
   }

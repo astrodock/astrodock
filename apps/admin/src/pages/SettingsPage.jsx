@@ -124,6 +124,7 @@ function RuleModal({ initial, onClose, onSaved }) {
 
 const ALERT_KEYS = ['alerts.email_to', 'alerts.disk_threshold_percent'];
 const SECURITY_KEYS = ['security.require_mfa'];
+const SITE_KEYS = ['routing.apex_app', 'routing.apex_www'];
 const LOG_KEYS = ['logging.page_view_ip', 'logging.auth_log_retention_days',
   'logging.page_view_retention_days', 'logging.app_access_logs', 'updates.check'];
 
@@ -148,6 +149,8 @@ export default function SettingsPage() {
   }
   useEffect(() => { load(); }, []);
   const alertTo = settings.find((s) => s.key === 'alerts.email_to')?.value || '';
+  const baseDomain = diagnostics?.baseDomain && !diagnostics.baseDomain.startsWith('(')
+    ? diagnostics.baseDomain : '';
   function flash(m) { setMsg(m); setTimeout(() => setMsg(''), 3000); }
 
   function removeRule(rule) {
@@ -244,6 +247,32 @@ export default function SettingsPage() {
           <EmailSetup initial={email} onSaved={load} testTo={alertTo} />
         </div>
       </section>
+
+      <SettingsGroup
+        title="Your Main Address"
+        description={`Everything Astrodock hosts sits on a subdomain — the dashboard, sign-in, each app. ${baseDomain || 'Your domain'} with nothing in front of it is separate, and answers nothing until you point it at an app here.`}
+        keys={SITE_KEYS}
+        settings={settings}
+        onSave={api.updateSettings}
+        onSaved={load}
+      >
+        <div className="field">
+          <div className="lab">
+            <b>Before this works</b>
+            <span className="desc">
+              A wildcard DNS record does not cover the address itself: <code>*.{baseDomain || 'example.com'}</code> matches
+              <code> www.{baseDomain || 'example.com'}</code> but not <code>{baseDomain || 'example.com'}</code>. Add an
+              <b> A record</b> for <code>{baseDomain || 'your domain'}</code> pointing at this server, or the address stays
+              unreachable and no certificate can be issued for it.
+            </span>
+          </div>
+          <div className="ctl">
+            {diagnostics?.publicIp
+              ? <code>{diagnostics.publicIp}</code>
+              : <span style={{ color: 'var(--text-3)', fontSize: 13 }}>server IP not set</span>}
+          </div>
+        </div>
+      </SettingsGroup>
 
       <SettingsGroup
         title="Alerts"
