@@ -24,6 +24,26 @@ app.use(cors({
 }));
 app.use(cookieParser());
 
+// Security headers.
+//
+// There were none. The hosted login page — the one that collects passwords — could
+// be embedded in an iframe by any site on the internet, which is clickjacking with
+// the credential form of every app on the platform. It is also the shortcut an app
+// author would reach for to make sign-in feel "in place", so refusing it in the
+// product matters as much as refusing it in a policy.
+//
+// Pages are deliberately exempt from the frame rule: they are user-published
+// content and embedding one is a legitimate thing to want.
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  if (!config.isPagesHost(req.hostname)) {
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('Content-Security-Policy', "frame-ancestors 'none'");
+  }
+  next();
+});
+
 // The pages.<base-domain> host serves entirely from the public Pages router (which has
 // its own body parsers and ends in a 404, so /admin/* is never reachable there).
 const pagesPublic = require('./src/routes/pages-public');

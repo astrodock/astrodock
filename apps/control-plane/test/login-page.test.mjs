@@ -19,8 +19,8 @@ const require = createRequire(import.meta.url);
 const { _internal } = require('../src/routes/oauth.js');
 
 let passed = 0, failed = 0;
-function test(name, fn) {
-  try { fn(); console.log(`  ok  ${name}`); passed++; }
+async function test(name, fn) {
+  try { await fn(); console.log(`  ok  ${name}`); passed++; }
   catch (e) { console.error(`  FAIL ${name}\n       ${e.message}`); failed++; }
 }
 
@@ -35,11 +35,11 @@ function scripts(doc) {
   return [...doc.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
 }
 
-test('the page carries an inline script', () => {
+await test('the page carries an inline script', () => {
   assert.ok(scripts(html).length >= 1, 'no <script> found in the rendered page');
 });
 
-test('every inline script parses as JavaScript', () => {
+await test('every inline script parses as JavaScript', () => {
   // new vm.Script throws on a syntax error without running anything, which is
   // exactly the check a browser performs before binding a single handler.
   for (const [i, code] of scripts(html).entries()) {
@@ -48,7 +48,7 @@ test('every inline script parses as JavaScript', () => {
   }
 });
 
-test('the base64url helpers survived the template literal intact', () => {
+await test('the base64url helpers survived the template literal intact', () => {
   const code = scripts(html).join('\n');
   // The precise regressions: these must reach the browser as regexes escaping a
   // literal + and /, not as /+/ and // .
@@ -59,7 +59,7 @@ test('the base64url helpers survived the template literal intact', () => {
   assert.ok(!/replace\(\/\+\/g/.test(code), 'emitted an unescaped /+/ — invalid regex');
 });
 
-test('the round trip actually works when run', () => {
+await test('the round trip actually works when run', () => {
   // Execute just the two helpers in a sandbox and check they agree.
   const code = scripts(html).join('\n');
   const start = code.indexOf('const b64uToBuf');
@@ -79,7 +79,7 @@ test('the round trip actually works when run', () => {
   assert.deepStrictEqual([...ctx.__t.b64uToBuf(encoded)], [...bytes], 'round trip lost data');
 });
 
-test('the config reaches the browser as usable data, not HTML entities', () => {
+await test('the config reaches the browser as usable data, not HTML entities', () => {
   const code = scripts(html).join('\n');
   assert.doesNotMatch(code, /&quot;|&amp;|&lt;|&gt;/,
     'HTML entities inside a <script> are not decoded by the browser');
@@ -94,7 +94,7 @@ test('the config reaches the browser as usable data, not HTML entities', () => {
   assert.strictEqual(ctx.__c.state, 'st');
 });
 
-test('a value containing </script> cannot break out of the block', () => {
+await test('a value containing </script> cannot break out of the block', () => {
   // The reason the embedding needs escaping at all. An app name or redirect is
   // attacker-influenced in the sense that it comes from a registered app record.
   const nasty = _internal.loginPage({
@@ -111,9 +111,26 @@ test('a value containing </script> cannot break out of the block', () => {
     'a value ended the script element and started a new one');
 });
 
-test('no third-party script is pulled onto the login page', () => {
+await test('no third-party script is pulled onto the login page', () => {
   // A CDN import here would put someone else inside the authentication path.
   assert.doesNotMatch(html, /<script[^>]+src=/i, 'the login page loads an external script');
+});
+
+console.log('\nlogin page: framing');
+
+await test('the sign-in page refuses to be embedded', async () => {
+  // Clickjacking a credential form is the obvious attack, and framing it is also
+  // the shortcut someone would reach for to make sign-in feel "in place".
+  const express = require('express');
+  const { app } = require('../server.js');
+  const srv = app.listen(0);
+  await new Promise((r) => srv.once('listening', r));
+  try {
+    const res = await fetch(`http://127.0.0.1:${srv.address().port}/health`);
+    assert.strictEqual(res.headers.get('x-frame-options'), 'DENY');
+    assert.match(res.headers.get('content-security-policy') || '', /frame-ancestors 'none'/);
+    assert.strictEqual(res.headers.get('x-content-type-options'), 'nosniff');
+  } finally { srv.close(); }
 });
 
 console.log(`\n${passed} passed, ${failed} failed`);
