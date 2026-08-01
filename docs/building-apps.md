@@ -28,6 +28,7 @@ The runner auto-detects node shapes. For Docker, set `runtime.type: "docker"` an
 | `name` | yes | display name |
 | `description` | no | shown in the admin UI |
 | `subdomain` | yes | `^[a-z0-9-]+$`; app served at `https://<subdomain>.<base-domain>` (mutable) |
+| `source` | yes | the object must be present, even as `{}` — its fields are all optional |
 | `source.branch` | no | default `main` |
 | `source.repoPath` | no | subdir to deploy from (monorepos) |
 | `source.githubRepo` | no | `owner/repo`; can also be set via CLI/admin |
