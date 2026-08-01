@@ -1,6 +1,7 @@
 import { useState, useRef, useMemo } from 'react';
 import * as api from '../lib/api';
 import EmptyState from './EmptyState';
+import useConfirm from '../lib/useConfirm';
 
 // The files that make up a page.
 //
@@ -109,6 +110,7 @@ function NewFolderModal({ parent, existing, onClose, onCreate }) {
 
 export default function PageFiles({ page, pageId, onChanged, onEdit, onError, flash }) {
   const [cwd, setCwd] = useState('');
+  const [confirmNode, ask] = useConfirm();
   const [extraDirs, setExtraDirs] = useState([]);   // folders made but not yet filled
   const [dragging, setDragging] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -192,6 +194,8 @@ export default function PageFiles({ page, pageId, onChanged, onEdit, onError, fl
   const allNames = files.map((f) => f.name).concat(extraDirs);
 
   return (
+    <>
+      {confirmNode}
     <div className="card">
       <div className="sec-head" style={{ marginBottom: 12 }}>
         <div>
@@ -282,11 +286,22 @@ export default function PageFiles({ page, pageId, onChanged, onEdit, onError, fl
                   <td className="actions">
                     <a className="link-btn" href={`${page.url}${f.name}`} target="_blank" rel="noopener">Open</a>
                     {isText(f.name) && <button className="link-btn" onClick={() => onEdit(f.name)}>Edit</button>}
-                    <button className="link-btn danger" onClick={async () => {
-                      if (!confirm(`Delete "${f.name}"?`)) return;
-                      try { await api.deletePageFile(pageId, f.name); await onChanged(); flash('File deleted.'); }
-                      catch (err) { onError(err.message); }
-                    }}>Delete</button>
+                    <button className="link-btn danger" onClick={() => ask({
+                      title: 'Delete this file?',
+                      danger: true,
+                      confirmLabel: 'Delete file',
+                      body: (
+                        <>
+                          <p><code>{f.name}</code> is removed from this page. Any link pointing
+                            straight at it stops working.</p>
+                          <p className="hint">There is no undo — upload it again if you need it back.</p>
+                        </>
+                      ),
+                      onConfirm: async () => {
+                        try { await api.deletePageFile(pageId, f.name); await onChanged(); flash('File deleted.'); }
+                        catch (err) { onError(err.message); }
+                      }
+                    })}>Delete</button>
                   </td>
                 </tr>
               ))}
@@ -324,5 +339,6 @@ export default function PageFiles({ page, pageId, onChanged, onEdit, onError, fl
         />
       )}
     </div>
+    </>
   );
 }

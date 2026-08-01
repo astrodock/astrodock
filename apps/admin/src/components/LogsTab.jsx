@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import * as api from '../lib/api';
 import EmptyState from './EmptyState';
+import Select from './Select';
 
 export default function LogsTab({ app }) {
   const [view, setView] = useState('runtime'); // runtime | access
@@ -9,7 +10,9 @@ export default function LogsTab({ app }) {
   const [lines, setLines] = useState(100);
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [error, setError] = useState('');
+  const [q, setQ] = useState('');
   const logRef = useRef(null);
+  const stick = useRef(true);
 
   async function load() {
     setError('');
@@ -33,26 +36,40 @@ export default function LogsTab({ app }) {
     return () => clearInterval(interval);
   }, [autoRefresh, app.slug, lines, view]);
 
+  // Follow the tail only if you are already at the tail. Auto-refresh used to
+  // snap the view to the bottom every five seconds, so reading anything further
+  // up while an app was busy was impossible.
   useEffect(() => {
-    if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
-  }, [logs]);
+    const el = logRef.current;
+    if (el && stick.current) el.scrollTop = el.scrollHeight;
+  }, [logs, q]);
+
+  function onScroll() {
+    const el = logRef.current;
+    if (!el) return;
+    stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+  }
+
+  const shown = q.trim()
+    ? (logs || '').split('\n').filter((l) => l.toLowerCase().includes(q.trim().toLowerCase())).join('\n')
+    : logs;
 
   return (
     <div>
       <div className="tab-header">
         <h2>Logs</h2>
         <div className="log-controls">
-          <select value={view} onChange={e => setView(e.target.value)}>
-            <option value="runtime">Runtime (stdout/stderr)</option>
-            <option value="access">HTTP access</option>
-          </select>
+          <Select value={view} onChange={setView} options={[
+            { value: 'runtime', label: 'Runtime', description: 'What your app itself prints — console output and crashes.' },
+            { value: 'access', label: 'HTTP access', description: 'One line per request that reached this app.' }
+          ]} />
           {view === 'runtime' && (
-            <select value={lines} onChange={e => setLines(Number(e.target.value))}>
-              <option value={50}>50 lines</option>
-              <option value={100}>100 lines</option>
-              <option value={250}>250 lines</option>
-              <option value={500}>500 lines</option>
-            </select>
+            <Select value={lines} onChange={setLines} options={[
+              { value: 50, label: '50 lines' },
+              { value: 100, label: '100 lines' },
+              { value: 250, label: '250 lines' },
+              { value: 500, label: '500 lines' }
+            ]} />
           )}
           <label className="checkbox-label">
             <span className={`mini-toggle sm ${autoRefresh ? 'on' : ''}`} role="switch"
@@ -70,9 +87,23 @@ export default function LogsTab({ app }) {
       {error && <div className="error">{error}</div>}
 
       {view === 'runtime' && (
-        <pre className="log-viewer" ref={logRef}>
-          {logs || 'No logs available. The app may not be running yet.'}
-        </pre>
+        <>
+          <div className="log-filter">
+            <input value={q} onChange={(e) => setQ(e.target.value)} spellCheck="false"
+              placeholder="Filter these lines…" />
+            {q && (
+              <span className="log-filter-count">
+                {shown ? `${shown.split('\n').length} matching` : 'no matches'}
+                <button type="button" onClick={() => setQ('')}>Clear</button>
+              </span>
+            )}
+          </div>
+          <pre className="log-viewer" ref={logRef} onScroll={onScroll}>
+            {logs
+              ? (shown || `Nothing in the last ${lines} lines matches “${q}”.`)
+              : 'No logs available. The app may not be running yet.'}
+          </pre>
+        </>
       )}
 
       {view === 'access' && access && (

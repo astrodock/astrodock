@@ -322,7 +322,23 @@ router.post('/:slug/rollback', requirePermission('deploys:write'), deployLimiter
   const successes = deps.filter((d) => d.status === 'success' && d.commitHash && d.commitHash !== 'local');
   if (!successes.length) return res.status(400).json({ error: 'No previous successful build to roll back to' });
   const liveCommit = deps[0] && deps[0].status === 'success' ? deps[0].commitHash : null;
-  const target = successes.find((d) => d.commitHash !== liveCommit) || successes[0];
+
+  // A caller may name the build. "The last successful one" is the right default
+  // and the wrong only option: a deploy can succeed and still be wrong — code
+  // that builds, starts and passes a health check while doing the incorrect
+  // thing — and then the most recent success is exactly what you want to skip.
+  const wanted = (req.body || {}).commitHash;
+  let target;
+  if (wanted) {
+    target = successes.find((d) => d.commitHash === wanted);
+    if (!target) {
+      return res.status(400).json({
+        error: 'That build is not in this app\'s recent successful deploys, so there is nothing to redeploy.'
+      });
+    }
+  } else {
+    target = successes.find((d) => d.commitHash !== liveCommit) || successes[0];
+  }
   const r = await runner.deploy(app.slug, { trigger: 'rollback', targetCommit: target.commitHash, commitHash: target.commitHash, commitMessage: `Rollback to ${target.commitHash}` })
     .catch((e) => ({ status: e.status || 503, body: { error: e.message } }));
   if (r.status === 200) return res.json({ message: `Rolling back to ${target.commitHash}`, deploymentId: r.body.deploymentId, commitHash: target.commitHash });

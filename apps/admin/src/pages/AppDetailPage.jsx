@@ -9,6 +9,7 @@ import SettingsTab from '../components/SettingsTab';
 import OperationsTab from '../components/OperationsTab';
 import SignInTab from '../components/SignInTab';
 import DomainsTab from '../components/DomainsTab';
+import useConfirm from '../lib/useConfirm';
 
 const TABS = ['deploys', 'env', 'domains', 'signin', 'logs', 'operations', 'settings'];
 const TAB_LABELS = { deploys: 'Deploys', env: 'Variables', domains: 'Domains', signin: 'Sign-in', logs: 'Logs', operations: 'Operations', settings: 'Settings' };
@@ -41,6 +42,7 @@ export default function AppDetailPage() {
   const [procStatus, setProcStatus] = useState(null);
   const [activeTab, setActiveTab] = useState('deploys');
   const [error, setError] = useState('');
+  const [confirmNode, ask] = useConfirm();
 
   async function load() {
     try {
@@ -76,14 +78,27 @@ export default function AppDetailPage() {
     }
   }
 
-  async function handleStop() {
-    if (!confirm('Stop this app? It will no longer respond to requests.')) return;
-    try {
-      await api.stopApp(slug);
-      setTimeout(loadStatus, 1000);
-    } catch (err) {
-      setError(err.message);
-    }
+  function handleStop() {
+    ask({
+      title: 'Stop this app?',
+      danger: true,
+      confirmLabel: 'Stop it',
+      body: (
+        <>
+          <p>It stops answering requests immediately. Anyone using it right now gets an error.</p>
+          <p className="hint">Nothing is deleted — its data, files and settings are all still here,
+            and you can start it again whenever you like.</p>
+        </>
+      ),
+      onConfirm: async () => {
+        try {
+          await api.stopApp(slug);
+          setTimeout(loadStatus, 1000);
+        } catch (err) {
+          setError(err.message);
+        }
+      }
+    });
   }
 
   if (error && !app) return <div className="error">{error}</div>;
@@ -93,6 +108,8 @@ export default function AppDetailPage() {
   const ledClass = procStatus?.status === 'online' ? 'ok' : (procStatus?.status === 'errored' ? 'crit' : '');
 
   return (
+    <>
+      {confirmNode}
     <div>
       <div className="app-detail-head">
         <Link to="/apps" className="adh-back">← Apps</Link>
@@ -151,5 +168,6 @@ export default function AppDetailPage() {
         {activeTab === 'settings' && <SettingsTab app={app} onRefresh={load} />}
       </div>
     </div>
+    </>
   );
 }

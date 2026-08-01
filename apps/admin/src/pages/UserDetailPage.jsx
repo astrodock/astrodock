@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import * as api from '../lib/api';
 import EmptyState from '../components/EmptyState';
+import useConfirm from '../lib/useConfirm';
 
 // Not danger colours: an owner is the most senior role, not the most dangerous
 // thing on the page. Red is reserved for destructive things and failures.
@@ -13,6 +14,7 @@ export default function UserDetailPage() {
   const [user, setUser] = useState(null);
   const [apps, setApps] = useState([]);
   const [error, setError] = useState('');
+  const [confirmNode, ask] = useConfirm();
   const [success, setSuccess] = useState('');
 
   // Editable fields
@@ -57,26 +59,56 @@ export default function UserDetailPage() {
     }
   }
 
-  async function handleToggleActive() {
-    const action = user.isActive ? 'deactivate' : 'activate';
-    if (!confirm(`${action.charAt(0).toUpperCase() + action.slice(1)} ${user.email}?`)) return;
-    setError('');
-    try {
-      await api.updateUser(id, { isActive: !user.isActive });
-      load();
-    } catch (err) {
-      setError(err.message);
-    }
+  function handleToggleActive() {
+    const deactivating = user.isActive;
+    ask({
+      title: deactivating ? 'Deactivate this account?' : 'Reactivate this account?',
+      danger: deactivating,
+      confirmLabel: deactivating ? 'Deactivate' : 'Reactivate',
+      body: deactivating ? (
+        <>
+          <p><b>{user.email}</b> will not be able to sign in to any app on this server, and
+            existing sessions stop working.</p>
+          <p className="hint">Nothing is deleted. Reactivating restores access exactly as it was.</p>
+        </>
+      ) : (
+        <p><b>{user.email}</b> will be able to sign in again, with the same access they had before.</p>
+      ),
+      onConfirm: async () => {
+        setError('');
+        try {
+          await api.updateUser(id, { isActive: !user.isActive });
+          load();
+        } catch (err) {
+          setError(err.message);
+        }
+      }
+    });
   }
 
-  async function handleDelete() {
-    if (!confirm(`Permanently delete ${user.email}? This cannot be undone.`)) return;
-    try {
-      await api.deleteUser(id);
-      navigate('/users');
-    } catch (err) {
-      setError(err.message);
-    }
+  function handleDelete() {
+    ask({
+      title: 'Permanently delete this account?',
+      danger: true,
+      confirmLabel: 'Delete account',
+      typeToConfirm: user.email,
+      body: (
+        <>
+          <p><b>{user.email}</b>, their passkeys, their two-factor setup and their sign-in history
+            are all removed. They lose access to every app on this server immediately.</p>
+          <p className="hint">There is no undo. If you only want to block them for now,
+            deactivate the account instead — that is reversible.</p>
+        </>
+      ),
+      onConfirm: async () => {
+        try {
+          await api.deleteUser(id);
+          navigate('/users');
+        } catch (err) {
+          setError(err.message);
+        }
+      }
+    });
   }
 
   async function handleResetPassword(e) {
@@ -109,6 +141,8 @@ export default function UserDetailPage() {
   if (!user) return <p className="text-muted">Loading…</p>;
 
   return (
+    <>
+      {confirmNode}
     <div>
       <div className="detail-header">
         <Link to="/users" className="back-link">Users</Link>
@@ -240,5 +274,6 @@ export default function UserDetailPage() {
         </div>
       </section>
     </div>
+    </>
   );
 }

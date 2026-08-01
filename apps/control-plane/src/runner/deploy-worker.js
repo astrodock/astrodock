@@ -240,6 +240,10 @@ async function deployNode(app, deployRoot, env, { appendLog, setStatus }) {
   // the app user must own the build tree it writes into
   if (ids) { try { exec(`chown -R ${appUser}:${appUser} "${repoDir}"`); } catch { /* best effort */ } }
 
+  // Set when a built frontend is staged and waiting to go live; called once the
+  // server side has actually started, so the two halves change over together.
+  let publishFrontend = null;
+
   // frontend
   if (appSrc) {
     await appendLog('Installing frontend deps…');
@@ -250,9 +254,23 @@ async function deployNode(app, deployRoot, env, { appendLog, setStatus }) {
     const distDir = path.join(appSrc, 'dist');
     const staticPath = path.join(config.paths.static, app.slug);
     if (fs.existsSync(distDir)) {
-      fs.mkdirSync(staticPath, { recursive: true });
-      await appendLog(`Syncing frontend → ${staticPath}`);
-      exec(`rsync -a --delete "${distDir}/" "${staticPath}/"`); // root → static (served publicly)
+      // Build into a staging directory, don't publish it yet. The frontend used to
+      // land here directly, several minutes before the server was restarted — so a
+      // failure anywhere in between left the new UI live against the old API, with
+      // nothing anywhere saying the two halves had come apart. Now the swap happens
+      // after the server is up, below.
+      const incoming = `${staticPath}.incoming`;
+      exec(`rm -rf "${incoming}"`);
+      fs.mkdirSync(incoming, { recursive: true });
+      await appendLog(`Staging frontend → ${staticPath}`);
+      exec(`rsync -a --delete "${distDir}/" "${incoming}/"`);
+      publishFrontend = () => {
+        const old = `${staticPath}.previous`;
+        exec(`rm -rf "${old}"`);
+        if (fs.existsSync(staticPath)) exec(`mv "${staticPath}" "${old}"`);
+        exec(`mv "${incoming}" "${staticPath}"`); // root → static (served publicly)
+        exec(`rm -rf "${old}"`);
+      };
     } else {
       await appendLog('WARNING: no dist/ after build');
     }
@@ -298,6 +316,12 @@ async function deployNode(app, deployRoot, env, { appendLog, setStatus }) {
     try { exec('pm2 save 2>&1'); } catch { /* ignore */ } // #5: persist for resurrect on restart
   } else if (ids) {
     try { exec(`chmod 700 "${repoDir}"`); } catch { /* best effort */ }
+  }
+
+  // Everything that could fail has now run. Put the new frontend live.
+  if (publishFrontend) {
+    await appendLog('Publishing frontend');
+    publishFrontend();
   }
 }
 

@@ -3,6 +3,28 @@ import { Link } from 'react-router-dom';
 import * as api from '../lib/api';
 import EmptyState from '../components/EmptyState';
 import PageHeader from '../components/PageHeader';
+import Select from '../components/Select';
+
+const RESULT_OPTS = [
+  { value: '', label: 'All results' },
+  { value: 'SUCCESS', label: 'Success' },
+  { value: 'BAD_PASSWORD', label: 'Wrong password' },
+  { value: 'USER_NOT_FOUND', label: 'No such account' },
+  { value: 'INACTIVE_USER', label: 'Account deactivated' },
+  { value: 'NO_ACCESS', label: 'No access to that app' },
+  { value: 'INVALID_APP_SECRET', label: 'Bad app secret' },
+  { value: 'PASSWORD_CHANGED', label: 'Password changed' },
+  { value: 'PASSWORD_CHANGE_BAD_PASSWORD', label: 'Password change refused' }
+];
+const CATEGORY_OPTS = [
+  { value: '', label: 'All categories' },
+  { value: 'health', label: 'Health' },
+  { value: 'deploy', label: 'Deploys' },
+  { value: 'pages', label: 'Pages' },
+  { value: 'auth', label: 'Sign-in' },
+  { value: 'audit', label: 'Admin actions' },
+  { value: 'system', label: 'System' }
+];
 
 const RESULT_STYLES = {
   SUCCESS: { color: 'var(--accent)', label: 'Success' },
@@ -123,17 +145,8 @@ export default function ActivityPage() {
       {tab === 'auth' && (
         <div>
           <div className="activity-filters">
-            <select value={filter.result} onChange={e => setFilter({ ...filter, result: e.target.value })}>
-              <option value="">All results</option>
-              <option value="SUCCESS">Success</option>
-              <option value="BAD_PASSWORD">Bad Password</option>
-              <option value="USER_NOT_FOUND">User Not Found</option>
-              <option value="INACTIVE_USER">Inactive User</option>
-              <option value="NO_ACCESS">No Access</option>
-              <option value="INVALID_APP_SECRET">Invalid App Secret</option>
-              <option value="PASSWORD_CHANGED">Password Changed</option>
-              <option value="PASSWORD_CHANGE_BAD_PASSWORD">Password Change Failed</option>
-            </select>
+            <Select value={filter.result} onChange={v => setFilter({ ...filter, result: v })}
+              placeholder="All results" options={RESULT_OPTS} />
             <input
               placeholder="Filter by email..."
               value={filter.email}
@@ -178,12 +191,8 @@ export default function ActivityPage() {
       {tab === 'audit' && (
         <div>
           <div className="activity-filters">
-            <select value={eventCategory} onChange={e => setEventCategory(e.target.value)}>
-              <option value="">All categories</option>
-              {['health', 'deploy', 'pages', 'auth', 'audit', 'system'].map(c => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
+            <Select value={eventCategory} onChange={setEventCategory}
+              placeholder="All categories" options={CATEGORY_OPTS} />
             <input value={q} onChange={(e) => setQ(e.target.value)}
               placeholder="Search events, apps, people…" />
           </div>

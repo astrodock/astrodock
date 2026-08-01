@@ -2,12 +2,15 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import * as api from '../lib/api';
 import PageFiles from '../components/PageFiles';
+import useConfirm from '../lib/useConfirm';
+import Select from '../components/Select';
 
 export default function PageDetailPage() {
   const { pageId } = useParams();
   const navigate = useNavigate();
   const [page, setPage] = useState(null);
   const [error, setError] = useState('');
+  const [confirmNode, ask] = useConfirm();
   const [msg, setMsg] = useState('');
   const [title, setTitle] = useState('');
   const [allowlist, setAllowlist] = useState('');
@@ -52,6 +55,8 @@ export default function PageDetailPage() {
   const keyLink = page.accessMode === 'passkey' && page.passkey ? `${page.url}?key=${encodeURIComponent(page.passkey)}` : null;
 
   return (
+    <>
+      {confirmNode}
     <div>
       <div className="page-header">
         <div>
@@ -59,7 +64,21 @@ export default function PageDetailPage() {
           <h1 style={{ margin: '4px 0 0' }}>{page.title || 'Untitled'}</h1>
           <span className="row-subtitle">{page.pageId} · {page.views} views</span>
         </div>
-        <button className="danger" onClick={async () => { if (confirm('Delete this page and all its files? This cannot be undone.')) { await api.deletePage(pageId); navigate('/pages'); } }}>Delete Page</button>
+        <button className="danger" onClick={() => ask({
+          title: 'Delete this page?',
+          danger: true,
+          confirmLabel: 'Delete page',
+          typeToConfirm: page.pageId,
+          body: (
+            <>
+              <p>The page and every file uploaded to it are removed. Its address stops working
+                right away, and any link you have shared to it breaks.</p>
+              <p className="hint">There is no undo and no copy kept. Download anything you want
+                to keep first.</p>
+            </>
+          ),
+          onConfirm: async () => { await api.deletePage(pageId); navigate('/pages'); }
+        })}>Delete Page</button>
       </div>
 
       {error && <div className="error">{error}</div>}
@@ -129,11 +148,11 @@ export default function PageDetailPage() {
         <div className="form-row">
           <label>
             Mode
-            <select value={page.accessMode} onChange={(e) => patch({ accessMode: e.target.value }, 'Access updated.')}>
-              <option value="public">Public</option>
-              <option value="passkey">Passkey</option>
-              <option value="platform">Platform login</option>
-            </select>
+            <Select value={page.accessMode} onChange={(v) => patch({ accessMode: v }, 'Access updated.')} options={[
+              { value: 'public', label: 'Public', description: 'Anyone with the link can open it.' },
+              { value: 'passkey', label: 'Passkey', description: 'One shared word or phrase you hand out. No accounts.' },
+              { value: 'platform', label: 'Platform login', description: 'People sign in with their Astrodock account.' }
+            ]} />
           </label>
         </div>
         {page.accessMode === 'passkey' && (
@@ -163,11 +182,11 @@ export default function PageDetailPage() {
         <p className="hint">A small JSON blob your page reads/writes at <code>{page.url}_data</code> (≤ 1 MB). Writes require a passkey or login.</p>
         <label>
           Mode
-          <select value={page.dataMode} onChange={(e) => patch({ dataMode: e.target.value }, 'Data mode updated.')}>
-            <option value="none">Off</option>
-            <option value="shared" disabled={page.accessMode === 'public'}>Shared (one blob)</option>
-            <option value="per-user" disabled={page.accessMode !== 'platform'}>Per-user (needs platform login)</option>
-          </select>
+          <Select value={page.dataMode} onChange={(v) => patch({ dataMode: v }, 'Data mode updated.')} options={[
+            { value: 'none', label: 'Off', description: 'The page saves nothing.' },
+            { value: 'shared', label: 'Shared', description: 'One set of data everyone reads and writes. Needs a passkey or login.', disabled: page.accessMode === 'public' },
+            { value: 'per-user', label: 'Per-user', description: 'Each person gets their own private data. Needs platform login.', disabled: page.accessMode !== 'platform' }
+          ]} />
         </label>
       </div>
 
@@ -306,6 +325,7 @@ export default function PageDetailPage() {
         </div>
       )}
     </div>
+    </>
   );
 }
 

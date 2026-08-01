@@ -16,6 +16,7 @@ import TokensPage from './pages/TokensPage';
 import DomainsPage from './pages/DomainsPage';
 import SettingsPage from './pages/SettingsPage';
 import NotFoundPage from './pages/NotFoundPage';
+import Footer from './components/Footer';
 import AccountPage from './pages/AccountPage';
 import './App.css';
 
@@ -224,6 +225,7 @@ export default function App() {
           <Route path="/setup" element={<SetupPage status={setup} />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
+        <Footer version={setup?.version} baseDomain={setup?.baseDomain} />
       </main>
     </div>
   );

@@ -6,6 +6,8 @@ import EmailSetup from '../components/EmailSetup';
 import BackupsSection from '../components/BackupsSection';
 import AboutSection from '../components/AboutSection';
 import PageHeader from '../components/PageHeader';
+import useConfirm from '../lib/useConfirm';
+import Select from '../components/Select';
 
 const CATEGORIES = [
   { key: 'health', label: 'App health' }, { key: 'deploy', label: 'Deploys' },
@@ -79,7 +81,10 @@ function RuleModal({ initial, onClose, onSaved }) {
         ) : (
           <>
             <label>Webhook URL<input value={r.target.url} onChange={(e) => setR({ ...r, target: { ...r.target, url: e.target.value } })} placeholder="https://hooks.slack.com/services/…" required /></label>
-            <label>Payload format<select value={r.target.format} onChange={(e) => setR({ ...r, target: { ...r.target, format: e.target.value } })}>{FORMATS.map((f) => <option key={f} value={f}>{f}</option>)}</select></label>
+            <label>Payload format
+              <Select value={r.target.format} onChange={(v) => setR({ ...r, target: { ...r.target, format: v } })}
+                options={FORMATS.map((f) => ({ value: f, label: f }))} />
+            </label>
           </>
         )}
 
@@ -132,6 +137,7 @@ export default function SettingsPage() {
   const [editRule, setEditRule] = useState(null);
   const [msg, setMsg] = useState('');
   const [error, setError] = useState('');
+  const [confirmNode, ask] = useConfirm();
 
   async function load() {
     try {
@@ -144,9 +150,23 @@ export default function SettingsPage() {
   const alertTo = settings.find((s) => s.key === 'alerts.email_to')?.value || '';
   function flash(m) { setMsg(m); setTimeout(() => setMsg(''), 3000); }
 
-  async function removeRule(rule) {
-    if (!confirm(`Delete notification rule "${rule.name || rule.channel}"?`)) return;
-    try { await api.deleteNotificationRule(rule.id); await load(); } catch (err) { setError(err.message); }
+  function removeRule(rule) {
+    ask({
+      title: 'Delete this notification rule?',
+      danger: true,
+      confirmLabel: 'Delete rule',
+      body: (
+        <>
+          <p>Astrodock will stop sending <b>{rule.name || rule.channel}</b> anywhere. Whatever this
+            rule was watching still happens — you just won't hear about it.</p>
+          <p className="hint">With no rules at all, Astrodock falls back to emailing your alert
+            address about health and deploy problems.</p>
+        </>
+      ),
+      onConfirm: async () => {
+        try { await api.deleteNotificationRule(rule.id); await load(); } catch (err) { setError(err.message); }
+      }
+    });
   }
   async function toggleRule(rule) {
     try { await api.updateNotificationRule(rule.id, { enabled: !rule.enabled }); await load(); } catch (err) { setError(err.message); }
@@ -159,6 +179,8 @@ export default function SettingsPage() {
 
 
   return (
+    <>
+      {confirmNode}
     <div className="settings-page">
       <PageHeader
         title="Settings"
@@ -270,5 +292,6 @@ export default function SettingsPage() {
 
       {editRule && <RuleModal initial={editRule} onClose={() => setEditRule(null)} onSaved={() => { setEditRule(null); load(); }} />}
     </div>
+    </>
   );
 }

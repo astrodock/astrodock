@@ -5,6 +5,28 @@ import EmptyState from '../components/EmptyState';
 import { appHost, appUrl } from '../lib/appUrl';
 import PageHeader from '../components/PageHeader';
 import { SkeletonRows } from '../components/Loading';
+import Select from '../components/Select';
+
+// Same wording as the app's Settings tab — the choice you make here is the same
+// choice, and it should not be described two different ways.
+const RUNTIME_OPTS = [
+  { value: 'node', label: 'Node (zero-config)', description: 'Astrodock builds and runs your Node.js app. Nothing to set up.' },
+  { value: 'docker', label: 'Dockerfile', description: 'You supply a Dockerfile — any language, full control.' }
+];
+const AUTH_OPTS = [
+  { value: 'platform', label: 'Astrodock accounts', description: 'People sign in with their Astrodock account. You write no login code.' },
+  { value: 'public', label: 'Public — no sign-in', description: 'Anyone with the address can use it.' }
+];
+const DB_OPTS = [
+  { value: 'internal', label: 'Built-in', description: 'Astrodock runs a database just for this app. The easy choice.' },
+  { value: 'external', label: 'Bring your own', description: 'A database you host elsewhere.' },
+  { value: 'none', label: 'None', description: 'This app does not use a database.' }
+];
+const STORAGE_OPTS = [
+  { value: 'internal', label: 'Built-in', description: 'Astrodock gives this app its own space for uploads and files.' },
+  { value: 'external', label: 'Bring your own', description: 'Your own storage, like Amazon S3.' },
+  { value: 'none', label: 'None', description: 'This app does not store files.' }
+];
 
 const STMAP = {
   running: { badge: 'Running', cls: 'running', led: 'ok' },
@@ -231,48 +253,26 @@ export default function AppsPage() {
             <div className="form-row">
               <label>
                 Runtime
-                <select
-                  value={newApp.runtimeType}
-                  onChange={e => setNewApp({ ...newApp, runtimeType: e.target.value })}
-                >
-                  <option value="node">Node buildpack</option>
-                  <option value="docker">Dockerfile</option>
-                </select>
+                <Select value={newApp.runtimeType} onChange={v => setNewApp({ ...newApp, runtimeType: v })}
+                  options={RUNTIME_OPTS} />
               </label>
               <label>
                 Authentication
-                <select
-                  value={newApp.authMode}
-                  onChange={e => setNewApp({ ...newApp, authMode: e.target.value })}
-                >
-                  <option value="platform">Platform-managed</option>
-                  <option value="public">Public (no auth)</option>
-                </select>
+                <Select value={newApp.authMode} onChange={v => setNewApp({ ...newApp, authMode: v })}
+                  options={AUTH_OPTS} />
               </label>
             </div>
 
             <div className="form-row">
               <label>
                 Database
-                <select
-                  value={newApp.databaseMode}
-                  onChange={e => setNewApp({ ...newApp, databaseMode: e.target.value })}
-                >
-                  <option value="internal">Internal</option>
-                  <option value="external">External</option>
-                  <option value="none">None</option>
-                </select>
+                <Select value={newApp.databaseMode} onChange={v => setNewApp({ ...newApp, databaseMode: v })}
+                  options={DB_OPTS} />
               </label>
               <label>
                 Object Storage
-                <select
-                  value={newApp.storageMode}
-                  onChange={e => setNewApp({ ...newApp, storageMode: e.target.value })}
-                >
-                  <option value="internal">Internal</option>
-                  <option value="external">External</option>
-                  <option value="none">None</option>
-                </select>
+                <Select value={newApp.storageMode} onChange={v => setNewApp({ ...newApp, storageMode: v })}
+                  options={STORAGE_OPTS} />
               </label>
             </div>
 

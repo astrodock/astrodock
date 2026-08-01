@@ -4,6 +4,7 @@ import * as api from '../lib/api';
 import EmptyState from '../components/EmptyState';
 import PageHeader from '../components/PageHeader';
 import { SkeletonRows } from '../components/Loading';
+import Select from '../components/Select';
 
 const BLANK = { title: '', accessMode: 'public', dataMode: 'none', passkeyMode: 'generate', passkey: '' };
 
@@ -118,27 +119,26 @@ export default function PagesPage() {
             <div className="form-row">
               <label>
                 Access
-                <select value={draft.accessMode} onChange={(e) => setDraft({ ...draft, accessMode: e.target.value, dataMode: 'none' })}>
-                  <option value="public">Public</option>
-                  <option value="passkey">Passkey</option>
-                  <option value="platform">Platform login</option>
-                </select>
+                <Select value={draft.accessMode} onChange={(v) => setDraft({ ...draft, accessMode: v, dataMode: 'none' })} options={[
+                  { value: 'public', label: 'Public', description: 'Anyone with the link can open it.' },
+                  { value: 'passkey', label: 'Passkey', description: 'One shared word or phrase you hand out. No accounts.' },
+                  { value: 'platform', label: 'Platform login', description: 'People sign in with their Astrodock account.' }
+                ]} />
               </label>
               <label>
                 Saved Data
-                <select value={draft.dataMode} onChange={(e) => setDraft({ ...draft, dataMode: e.target.value })}>
-                  {dataModes.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                </select>
+                <Select value={draft.dataMode} onChange={(v) => setDraft({ ...draft, dataMode: v })}
+                  options={dataModes.map(([v, l]) => ({ value: v, label: l }))} />
               </label>
             </div>
             {draft.accessMode === 'passkey' && (
               <div className="form-row">
                 <label>
                   Passkey
-                  <select value={draft.passkeyMode} onChange={(e) => setDraft({ ...draft, passkeyMode: e.target.value })}>
-                    <option value="generate">Generate one</option>
-                    <option value="custom">Set my own</option>
-                  </select>
+                  <Select value={draft.passkeyMode} onChange={(v) => setDraft({ ...draft, passkeyMode: v })} options={[
+                    { value: 'generate', label: 'Generate one', description: 'Astrodock picks something hard to guess.' },
+                    { value: 'custom', label: 'Set my own', description: 'Choose a word or phrase yourself.' }
+                  ]} />
                 </label>
                 {draft.passkeyMode === 'custom' && (
                   <label>

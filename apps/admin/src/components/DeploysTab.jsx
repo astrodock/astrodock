@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import * as api from '../lib/api';
 import EmptyState from './EmptyState';
+import RollbackModal from './RollbackModal';
+import Modal from './Modal';
 
 const STATUS = {
   pending: { led: 'run', label: 'Queued' },
@@ -21,6 +23,8 @@ export default function DeploysTab({ app, missingRequired = [], onRefresh }) {
   const [deploying, setDeploying] = useState(false);
   const [error, setError] = useState('');
   const [missing, setMissing] = useState(missingRequired);
+  const [showRollback, setShowRollback] = useState(false);
+  const [showNoRepo, setShowNoRepo] = useState(false);
   const intervalRef = useRef(null);
   const expandedIdRef = useRef(null);
   const logRef = useRef(null);
@@ -83,7 +87,7 @@ export default function DeploysTab({ app, missingRequired = [], onRefresh }) {
 
   async function handleDeploy() {
     if (!app.repoConnected) {
-      setError('Connect a GitHub repo first (Settings tab)');
+      setShowNoRepo(true);
       return;
     }
     if (!app.provisioned) {
@@ -120,12 +124,12 @@ export default function DeploysTab({ app, missingRequired = [], onRefresh }) {
     }
   }
 
-  async function handleRollback() {
-    if (!confirm('Roll back to the last successful build? This redeploys the previous good commit.')) return;
+  async function doRollback(targetCommit) {
     setDeploying(true);
     setError('');
     try {
-      const result = await api.rollbackApp(app.slug);
+      setShowRollback(false);
+      const result = await api.rollbackApp(app.slug, targetCommit);
       setTimeout(async () => {
         const deps = await loadDeployments();
         setDeploying(false);
@@ -188,14 +192,19 @@ export default function DeploysTab({ app, missingRequired = [], onRefresh }) {
         <h2>Deploys</h2>
         <div className="modal-actions" style={{ margin: 0 }}>
           {deployments.some(d => d.status === 'success') && (
-            <button className="secondary" onClick={handleRollback} disabled={deploying}>Roll Back</button>
+            <button className="secondary" onClick={() => setShowRollback(true)} disabled={deploying}>Roll Back</button>
           )}
           <button onClick={handleDeploy} disabled={deploying}>
             {deploying ? 'Deploying...' : 'Deploy now'}
           </button>
         </div>
       </div>
-      <p className="hint">A deploy pulls your latest code, builds it, and puts it live. Pushing to your connected branch deploys automatically; or click <b>Deploy now</b>. <b>Roll Back</b> redeploys the last build that worked.</p>
+      <p className="hint">
+        A deploy pulls your latest code, builds it, and puts it live. Pushing to your connected
+        branch deploys automatically; or click <b>Deploy now</b>. A failed deploy is not undone
+        for you — what is already live keeps running, and you decide whether to fix forward or
+        use <b>Roll Back</b> to put an earlier build back.
+      </p>
 
       {error && <div className="error">{error}</div>}
 
@@ -218,15 +227,16 @@ export default function DeploysTab({ app, missingRequired = [], onRefresh }) {
         <EmptyState icon="deploy" title="No Deploys Yet"
           body="Connect a repository under Settings, then deploy — each build and its result is kept here." />
       ) : (
-        <div className="deploy-list">
-          {deployments.map(d => {
+        <div className="dep-list">
+          {deployments.map((d, i) => {
             const isActive = IN_PROGRESS.includes(d.status);
+            const isCurrentFailure = i === 0 && d.status === 'failed';
             const st = STATUS[d.status] || { led: '', label: d.status };
             const expanded = expandedId === d.id;
             return (
               <div key={d.id} className={`dep-item ${isActive ? 'active' : ''} ${d.status === 'failed' ? 'failed' : ''}`}>
                 <div className="dep-row" onClick={() => handleExpand(d.id)}>
-                  <span className="dep-st">{isActive ? <span className="runspin" /> : <span className={`led ${st.led}`} />}<b>{st.label}</b></span>
+                  <span className="dep-st">{isActive ? <span className="runspin" /> : <span className={`led ${st.led} ${isCurrentFailure ? 'pulse' : ''}`} />}<b>{st.label}</b></span>
                   <span className="dep-commit">
                     <code className={d.commitHash ? '' : 'muted'}>{d.commitHash || '—'}</code>
                     {d.commitMessage && <span className="dep-msg">{d.commitMessage}</span>}
@@ -244,6 +254,41 @@ export default function DeploysTab({ app, missingRequired = [], onRefresh }) {
             );
           })}
         </div>
+      )}
+
+      {showRollback && (
+        <RollbackModal
+          deployments={deployments}
+          current={deployments.find((d) => d.status === 'success')?.commitHash}
+          onClose={() => setShowRollback(false)}
+          onRollback={doRollback}
+        />
+      )}
+
+      {showNoRepo && (
+        <Modal
+          title="No Repository Connected"
+          subtitle="Deploy now builds from a Git repository, and this app doesn't have one yet."
+          onClose={() => setShowNoRepo(false)}
+          footer={<button type="button" className="primary" onClick={() => setShowNoRepo(false)}>Got It</button>}
+        >
+          <p>
+            This app's code was uploaded directly rather than pulled from a repository, so there
+            is nothing here for Astrodock to fetch and rebuild.
+          </p>
+          <p>You have two ways forward:</p>
+          <ul className="plain-list">
+            <li>
+              <b>Push again the same way</b> — using the CLI (<code>astrodock deploy</code>) or
+              whatever you used the first time. Nothing to set up.
+            </li>
+            <li>
+              <b>Connect a repository</b> under <b>Settings</b>. After that, every push to your
+              chosen branch deploys on its own, and <b>Deploy now</b> and <b>Roll Back</b> start
+              working here.
+            </li>
+          </ul>
+        </Modal>
       )}
     </div>
   );

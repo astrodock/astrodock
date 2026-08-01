@@ -134,8 +134,8 @@ export const disconnectRepo = (slug) =>
 // Deploys
 export const triggerDeploy = (slug) =>
   request(`/apps/${slug}/deploy`, { method: 'POST' });
-export const rollbackApp = (slug) =>
-  request(`/apps/${slug}/rollback`, { method: 'POST' });
+export const rollbackApp = (slug, commitHash) =>
+  request(`/apps/${slug}/rollback`, { method: 'POST', body: JSON.stringify({ commitHash }) });
 
 // Custom domains
 export const getAllDomains = () => request('/domains');

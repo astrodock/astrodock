@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import EmailSetup from '../components/EmailSetup';
 import { claimAdmin, checkSetupDns, setSetupDomain, deferSetupDomain, getDnsProviders, createDnsRecord, login, setToken } from '../lib/api';
+import Select from '../components/Select';
 
 // First-run setup. This is what replaces hand-editing .env before the first boot:
 // the stack comes up with no domain and no administrator, serves this page over
@@ -415,9 +416,8 @@ export default function SetupPage({ status }) {
                     </p>
                     <label>
                       DNS provider
-                      <select value={dnsProvider} onChange={(e) => setDnsProvider(e.target.value)}>
-                        {providers.map((p) => <option key={p.key} value={p.key}>{p.label}</option>)}
-                      </select>
+                      <Select value={dnsProvider} onChange={setDnsProvider}
+                        options={providers.map((p) => ({ value: p.key, label: p.label }))} />
                     </label>
                     <label>
                       API token
@@ -450,11 +450,11 @@ export default function SetupPage({ status }) {
 
             <label>
               HTTPS
-              <select value={tlsMode} onChange={(e) => setTlsMode(e.target.value)}>
-                <option value="auto">Automatic — free certificate from Let's Encrypt</option>
-                <option value="internal">Self-signed — private network, no public DNS</option>
-                <option value="off">Off — plain HTTP, behind another proxy</option>
-              </select>
+              <Select value={tlsMode} onChange={setTlsMode} options={[
+                { value: 'auto', label: 'Automatic', description: 'A free, real certificate from Let\u2019s Encrypt. What you want for a public server.' },
+                { value: 'internal', label: 'Self-signed', description: 'For a private network with no public DNS. Browsers will warn about the certificate.' },
+                { value: 'off', label: 'Off', description: 'Plain HTTP. Only if something in front of Astrodock already handles HTTPS.' }
+              ]} />
               <span className="field-help">
                 Automatic is what you want for a public server. It needs the DNS record above to be
                 live first, because the certificate authority checks it.

@@ -3,6 +3,7 @@ import * as api from '../lib/api';
 import NewKeyModal from '../components/NewKeyModal';
 import EmptyState from '../components/EmptyState';
 import PageHeader from '../components/PageHeader';
+import useConfirm from '../lib/useConfirm';
 
 // Access keys — what you hand an agent.
 //
@@ -36,6 +37,7 @@ export default function TokensPage() {
   const [apps, setApps] = useState([]);
   const [options, setOptions] = useState(null);
   const [error, setError] = useState('');
+  const [confirmNode, ask] = useConfirm();
   const [created, setCreated] = useState(null);
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -52,6 +54,8 @@ export default function TokensPage() {
   const legacy = live.filter((t) => t.legacy);
 
   return (
+    <>
+      {confirmNode}
     <div className="settings-page">
       <PageHeader
         title="Access Keys"
@@ -127,14 +131,26 @@ export default function TokensPage() {
               <td>{t.lastUsedAt ? new Date(t.lastUsedAt).toLocaleDateString()
                 : <span style={{ color: 'var(--text-3)' }}>never</span>}</td>
               <td style={{ textAlign: 'right' }}>
-                <button className="link-btn danger" onClick={async () => {
-                  if (!confirm(`Revoke "${t.name}"? Anything using it stops working immediately.`)) return;
-                  try {
-                    const r = await api.deleteToken(t.id);
-                    if (r?.revokedChildren) setError(`Also revoked ${r.revokedChildren} key(s) this one created.`);
-                    load();
-                  } catch (e) { setError(e.message); }
-                }}>Revoke</button>
+                <button className="link-btn danger" onClick={() => ask({
+                  title: 'Revoke this key?',
+                  danger: true,
+                  confirmLabel: 'Revoke it',
+                  body: (
+                    <>
+                      <p>Anything still using <b>{t.name}</b> — a script, an agent, a deploy job —
+                        stops working the moment you do this, with no warning on its end.</p>
+                      <p className="hint">Keys this one created are revoked along with it. You can
+                        always issue a new key; you cannot bring this one back.</p>
+                    </>
+                  ),
+                  onConfirm: async () => {
+                    try {
+                      const r = await api.deleteToken(t.id);
+                      if (r?.revokedChildren) setError(`Also revoked ${r.revokedChildren} key(s) this one created.`);
+                      load();
+                    } catch (e) { setError(e.message); }
+                  }
+                })}>Revoke</button>
               </td>
             </tr>
           ))}
@@ -151,5 +167,6 @@ export default function TokensPage() {
         />
       )}
     </div>
+    </>
   );
 }

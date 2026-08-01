@@ -4,6 +4,7 @@ import EmptyState from './EmptyState';
 import EnvVarRow from './EnvVarRow';
 import ReauthModal from './ReauthModal';
 import useConfirm from '../lib/useConfirm';
+import { ModalForm } from './Modal';
 
 export default function EnvVarsTab({ app, onRefresh }) {
   const [envVars, setEnvVars] = useState([]);
@@ -202,18 +203,37 @@ export default function EnvVarsTab({ app, onRefresh }) {
       )}
 
       {showBulk && (
-        <div className="modal-overlay" onClick={() => setShowBulk(false)}>
-          <form className="modal bulk-modal" onClick={(e) => e.stopPropagation()} noValidate onSubmit={handleBulkImport}>
-            <h2>Import variables from a .env file</h2>
-            <p className="hint">Paste the contents of a <code>.env</code> file. Lines starting with <code>#</code> are ignored, and Astrodock-managed (<code>ASTRODOCK_</code>) names are skipped.</p>
-            {bulkResult && <div className="provision-banner"><strong>{bulkResult.added} variable{bulkResult.added !== 1 ? 's' : ''} imported{bulkResult.skipped > 0 ? `, ${bulkResult.skipped} skipped` : ''}</strong></div>}
-            <textarea className="bulk-textarea" value={bulkText} onChange={(e) => setBulkText(e.target.value)} placeholder={'DATABASE_URL=postgres://…\nAPI_KEY=sk_live_…\n# comments are ignored'} rows={12} autoFocus />
-            <div className="modal-actions">
-              <button type="button" onClick={() => { setShowBulk(false); setBulkResult(null); }}>{bulkResult ? 'Done' : 'Cancel'}</button>
-              <button type="submit" disabled={!bulkText.trim()}>Import</button>
+        <ModalForm
+          wide
+          title="Import From a .env File"
+          subtitle="Paste the file's contents. Comment lines are ignored, and platform-managed ASTRODOCK_ names are skipped."
+          onClose={() => { setShowBulk(false); setBulkResult(null); }}
+          onSubmit={handleBulkImport}
+          footer={
+            <>
+              <button type="button" onClick={() => { setShowBulk(false); setBulkResult(null); }}>
+                {bulkResult ? 'Done' : 'Cancel'}
+              </button>
+              <button type="submit" className="primary" disabled={!bulkText.trim()}>Import</button>
+            </>
+          }
+        >
+          {bulkResult && (
+            <div className="provision-banner" style={{ marginBottom: 12 }}>
+              <strong>
+                {bulkResult.added} variable{bulkResult.added !== 1 ? 's' : ''} imported
+                {bulkResult.skipped > 0 ? `, ${bulkResult.skipped} skipped` : ''}
+              </strong>
             </div>
-          </form>
-        </div>
+          )}
+          <textarea className="bulk-textarea" value={bulkText}
+            onChange={(e) => setBulkText(e.target.value)} spellCheck="false"
+            placeholder={'DATABASE_URL=postgres://…\nAPI_KEY=sk_live_…\n# comments are ignored'}
+            rows={12} autoFocus />
+          <p className="hint" style={{ marginTop: 10, marginBottom: 0 }}>
+            A name already set here is overwritten with the value you paste.
+          </p>
+        </ModalForm>
       )}
     </div>
   );

@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getRedirectUris, addRedirectUri, removeRedirectUri } from '../lib/api';
+import useConfirm from '../lib/useConfirm';
+import EmptyState from './EmptyState';
 
 // Where this app may send people back after they sign in.
 //
@@ -12,6 +14,8 @@ export default function SignInTab({ app }) {
   const [uri, setUri] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [confirmNode, ask] = useConfirm();
 
   const load = () => getRedirectUris(app.slug).then((d) => setUris(d.uris || [])).catch((e) => setError(e.message));
   useEffect(() => { load(); }, [app.slug]);
@@ -23,71 +27,36 @@ export default function SignInTab({ app }) {
     finally { setBusy(false); }
   }
 
+  function confirmRemove(u) {
+    ask({
+      title: 'Stop allowing this address?',
+      danger: true,
+      confirmLabel: 'Stop allowing it',
+      body: (
+        <>
+          <p>
+            Sign-ins that try to come back to <code>{u.uri}</code> will be refused from now on. If
+            your app is still using this address, signing in will break for everyone on it.
+          </p>
+          <p className="hint">
+            Nobody is signed out — sessions people already have keep working. You can add the
+            address back at any time.
+          </p>
+        </>
+      ),
+      onConfirm: async () => {
+        try { await removeRedirectUri(app.slug, u.id); await load(); }
+        catch (e) { setError(e.message); }
+      }
+    });
+  }
+
   // From the server, not from window.location: the sign-in host is auth.<domain>,
   // and the dashboard is somewhere else entirely.
   const authUrl = app.auth?.authorizeUrl || `https://${window.location.host}/authorize`;
   const tokenUrl = app.auth?.tokenUrl || `https://${window.location.host}/token`;
 
-  return (
-    <div>
-      <div className="sec-head">
-        <div>
-          <h2>How People Sign In to This App</h2>
-          <p>
-            Your app sends people here, and Astrodock sends them back with a one-time code you
-            exchange on your server. Your app never sees their password — which is also what lets it
-            offer passkeys and two-factor without you building either.
-          </p>
-        </div>
-      </div>
-
-      {error && <div className="error">{error}</div>}
-
-
-      {uris.length === 0 ? (
-        <div className="rcard warn">
-          <span className="led warn" />
-          <span>
-            <b>None registered yet, so sign-in will be refused.</b> Add the URL your app handles the
-            callback at — typically <code>/auth/callback</code>.
-          </span>
-        </div>
-      ) : (
-        <div className="field-panel">
-          {uris.map((u) => (
-            <div className="field" key={u.id}>
-              <div className="lab"><b style={{ fontFamily: 'var(--mono)', fontSize: 13 }}>{u.uri}</b></div>
-              <div className="ctl">
-                <button className="link-btn danger"
-                  onClick={async () => { await removeRedirectUri(app.slug, u.id); load(); }}>Remove</button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <div className="field-panel" style={{ marginTop: 14 }}>
-        <div className="field">
-          <div className="lab">
-            <b>Allow a callback URL</b>
-            <span className="desc">
-              Matched exactly, so add every address your app really uses — including
-              <code> http://localhost:…</code> while developing. Must be https, except on localhost
-              where there is no network to intercept.
-            </span>
-          </div>
-          <div className="ctl">
-            <input value={uri} onChange={(e) => setUri(e.target.value)} spellCheck="false"
-              placeholder="https://yourapp.example.com/auth/callback" style={{ width: 320 }} />
-            <button className="pillbtn sel" onClick={add} disabled={busy || !uri.trim()}>
-              {busy ? 'Adding…' : 'Allow'}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="sec-head" style={{ marginTop: 26 }}><div><h2>What Your App Does</h2></div></div>
-      <pre className="log-viewer" style={{ whiteSpace: 'pre-wrap' }}>{`// 1. send them here (keep the state — you compare it on return)
+  const code = `// 1. send them here (keep the state — you compare it on return)
 res.redirect('${authUrl}?app_id=${app.slug}'
   + '&redirect_uri=' + encodeURIComponent(CALLBACK)
   + '&state=' + state);
@@ -103,13 +72,101 @@ const r = await fetch('${tokenUrl}', {
     redirect_uri: CALLBACK
   })
 });
-const user = await r.json();   // { userId, email, name }`}</pre>
-      <div className="rcard warn" style={{ marginTop: 12 }}>
-        <span className="led warn" />
-        <span>
-          <b>Compare the <code>state</code> you sent to the one that comes back.</b> Without it,
-          someone can hand your users a crafted link and sign them in as somebody else.
-        </span>
+const user = await r.json();   // { userId, email, name }`;
+
+  return (
+    <div>
+      {confirmNode}
+
+      <div className="sec-head">
+        <div>
+          <h2>How People Sign In to This App</h2>
+          <p>
+            Your app sends people here, and Astrodock sends them back with a one-time code you
+            exchange on your server. Your app never sees their password — which is also what lets it
+            offer passkeys and two-factor without you building either.
+          </p>
+        </div>
+      </div>
+
+      {error && <div className="error">{error}</div>}
+
+      <div className="sec-head" style={{ marginTop: 22 }}>
+        <div>
+          <h3>Allowed Return Addresses</h3>
+          <p>
+            After someone signs in, Astrodock will only send them back to an address on this list.
+            The match is exact — same protocol, host, port and path — so a stolen sign-in code
+            cannot be redirected to somebody else's server.
+          </p>
+        </div>
+      </div>
+
+      {uris.length === 0 ? (
+        <EmptyState
+          icon="key"
+          title="No Return Addresses Yet"
+          body="Sign-in will be refused until you add one. It's the URL in your app that handles the callback — usually something ending in /auth/callback."
+        />
+      ) : (
+        <div className="uri-list">
+          {uris.map((u) => (
+            <div className="uri-row" key={u.id}>
+              <code>{u.uri}</code>
+              <button type="button" className="secondary" onClick={() => confirmRemove(u)}>
+                Stop Allowing
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="field-panel" style={{ marginTop: 14 }}>
+        <div className="field">
+          <div className="lab">
+            <b>Add a return address</b>
+            <span className="desc">
+              Add every address your app actually uses, including
+              <code> http://localhost:…</code> while you are developing. Must start with
+              <code> https://</code>, except on localhost, where there is no network to intercept.
+            </span>
+          </div>
+          <div className="ctl">
+            <input value={uri} onChange={(e) => setUri(e.target.value)} spellCheck="false"
+              onKeyDown={(e) => { if (e.key === 'Enter' && uri.trim()) add(); }}
+              placeholder="https://yourapp.example.com/auth/callback" style={{ width: 320 }} />
+            <button className="primary" onClick={add} disabled={busy || !uri.trim()}>
+              {busy ? 'Adding…' : 'Add'}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="sec-head" style={{ marginTop: 26 }}>
+        <div>
+          <h3>Wiring It Up in Your Code</h3>
+          <p>
+            Two steps. Send people to the sign-in page with a <code>state</code> value you generate,
+            then trade the code they come back with for the user, from your server — never from the
+            browser, because the exchange uses your app secret.
+          </p>
+        </div>
+      </div>
+
+      <div className="code-block">
+        <div className="code-head">
+          <span>Your server</span>
+          <button type="button" onClick={async () => {
+            try { await navigator.clipboard.writeText(code); setCopied(true); setTimeout(() => setCopied(false), 1400); }
+            catch { /* clipboard blocked — the code is on screen to select */ }
+          }}>{copied ? 'Copied' : 'Copy'}</button>
+        </div>
+        <pre>{code}</pre>
+        <p className="code-note">
+          Compare the <code>state</code> you sent with the one that comes back, and stop if they
+          differ. Without that check, someone can hand one of your users a crafted link and sign
+          them in as a different account.
+        </p>
       </div>
     </div>
   );

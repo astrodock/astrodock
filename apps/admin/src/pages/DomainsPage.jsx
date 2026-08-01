@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import * as api from '../lib/api';
+import DnsRecords from '../components/DnsRecords';
 import EmptyState from '../components/EmptyState';
 import PageHeader from '../components/PageHeader';
 import ChangeBaseDomainModal from '../components/ChangeBaseDomainModal';
 import ReauthModal from '../components/ReauthModal';
+import useConfirm from '../lib/useConfirm';
+import Select from '../components/Select';
 
 const STC = { active: 'ok', pending: 'warn', failed: 'crit' };
 const STLABEL = { active: 'live', pending: 'waiting for DNS', failed: 'not connected' };
@@ -12,6 +15,7 @@ const STLABEL = { active: 'live', pending: 'waiting for DNS', failed: 'not conne
 export default function DomainsPage() {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
+  const [confirmNode, ask] = useConfirm();
   const [msg, setMsg] = useState('');
   const [addOpen, setAddOpen] = useState(false);
   const [changeBase, setChangeBase] = useState(false);
@@ -45,10 +49,24 @@ export default function DomainsPage() {
     try { const r = await api.verifyDomain(d.appSlug, d.id); await load(); flash(r.verified ? `${d.hostname} is connected.` : (r.error || 'Not verified yet.')); if (r.verified) setSetup(null); }
     catch (err) { setError(err.message); } finally { setBusy(false); }
   }
-  async function removeDomain(d) {
-    if (!confirm(`Remove ${d.hostname}? It will stop routing to ${d.appName}.`)) return;
-    try { await api.deleteDomain(d.appSlug, d.id); setManage(null); await load(); flash('Domain removed.'); }
-    catch (err) { setError(err.message); }
+  function removeDomain(d) {
+    ask({
+      title: 'Remove this domain?',
+      danger: true,
+      confirmLabel: 'Remove domain',
+      body: (
+        <>
+          <p><code>{d.hostname}</code> will stop pointing at <b>{d.appName}</b>. Anyone who visits
+            it gets an error until you add it back or point it somewhere else.</p>
+          <p className="hint">The app keeps working at its other addresses, and your DNS records
+            stay where they are — remove them at your registrar if you're done with them.</p>
+        </>
+      ),
+      onConfirm: async () => {
+        try { await api.deleteDomain(d.appSlug, d.id); setManage(null); await load(); flash('Domain removed.'); }
+        catch (err) { setError(err.message); }
+      }
+    });
   }
   async function setPrimary(d) {
     try { await api.updateDomain(d.appSlug, d.id, { isPrimary: true }); await load(); flash('Primary address updated.'); setManage(null); }
@@ -65,6 +83,8 @@ export default function DomainsPage() {
   const appOptions = (data.subdomains || []).map((s) => ({ slug: s.slug, name: s.app }));
 
   return (
+    <>
+      {confirmNode}
     <div>
       <PageHeader
         title="Domains"
@@ -149,10 +169,8 @@ export default function DomainsPage() {
           <form className="modal" onClick={(e) => e.stopPropagation()} noValidate onSubmit={addDomain}>
             <h2>Add a Domain</h2>
             <label>Which app should it open?
-              <select value={addApp} onChange={(e) => setAddApp(e.target.value)} required>
-                <option value="">Choose an app…</option>
-                {appOptions.map((a) => <option key={a.slug} value={a.slug}>{a.name}</option>)}
-              </select>
+              <Select value={addApp} onChange={setAddApp} placeholder="Choose an app…"
+                options={appOptions.map((a) => ({ value: a.slug, label: a.name, description: a.slug }))} />
             </label>
             <label>Your domain name
               <input className="mono" value={addHost} onChange={(e) => setAddHost(e.target.value)} placeholder="shop.example.com" required />
@@ -168,17 +186,12 @@ export default function DomainsPage() {
         <div className="modal-overlay" onClick={() => setSetup(null)}>
           <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
             <h2>Connect {setup.hostname}</h2>
-            <div className="callout">Almost there! To send <b>{setup.hostname}</b> to the <b>{setup.appName || 'app'}</b>, add two records at the company where you bought your domain (like GoDaddy, Namecheap, or Cloudflare).</div>
-            {(setup.records || []).map((r, i) => (
-              <div className="dns-rec" key={i}>
-                <div><span className="rk">Type</span><b>{r.type}</b></div>
-                <div><span className="rk">Name</span><span className="rv">{r.name}</span></div>
-                <div><span className="rk">Value</span><span className="rv" style={{ color: 'var(--info)' }}>{r.value}</span></div>
-                <div className="rp">{r.purpose}</div>
-              </div>
-            ))}
+            <DnsRecords
+              records={setup.records || []}
+              lead={`To send ${setup.hostname} to ${setup.appName || 'this app'}, add these records where you bought the domain — GoDaddy, Namecheap, Cloudflare, wherever it lives.`}
+              footnote="DNS changes can take a few minutes — sometimes a few hours."
+            />
             {setup.status === 'failed' && <div className="callout danger">We looked but couldn’t find the TXT record yet. Double-check it was added exactly as shown, then check again.</div>}
-            <p className="hint">DNS changes can take a few minutes — sometimes a few hours.</p>
             <div className="modal-actions"><button onClick={() => setSetup(null)}>Close</button><button className="primary" disabled={busy} onClick={() => verify(setup)}>{busy ? 'Checking…' : 'Check it now'}</button></div>
           </div>
         </div>
@@ -201,5 +214,6 @@ export default function DomainsPage() {
         </div>
       )}
     </div>
+    </>
   );
 }

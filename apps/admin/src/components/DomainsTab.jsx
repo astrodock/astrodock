@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import * as api from '../lib/api';
 import EmptyState from './EmptyState';
+import DnsRecords from './DnsRecords';
+import useConfirm from '../lib/useConfirm';
 
 const STC = { active: 'ok', pending: 'warn', failed: 'crit' };
 const STLABEL = { active: 'live', pending: 'waiting for DNS', failed: 'not connected' };
@@ -12,6 +14,7 @@ export default function DomainsTab({ app }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [msg, setMsg] = useState('');
+  const [confirmNode, ask] = useConfirm();
 
   async function load() {
     try {
@@ -36,9 +39,23 @@ export default function DomainsTab({ app }) {
     try { const r = await api.verifyDomain(app.slug, id); await load(); flash(r.verified ? 'Connected — now serving over HTTPS.' : (r.error || 'Not found yet — give DNS a little longer.')); }
     catch (err) { setError(err.message); }
   }
-  async function remove(id, host) {
-    if (!confirm(`Remove ${host}? It will stop routing to this app.`)) return;
-    try { await api.deleteDomain(app.slug, id); await load(); } catch (err) { setError(err.message); }
+  function remove(id, host) {
+    ask({
+      title: 'Remove this domain?',
+      danger: true,
+      confirmLabel: 'Remove domain',
+      body: (
+        <>
+          <p><code>{host}</code> will stop pointing at this app. Anyone who visits it gets an error
+            until you add it back or point it somewhere else.</p>
+          <p className="hint">The app keeps working at its other addresses. Your DNS records stay
+            where they are — remove them at your registrar if you're done with them.</p>
+        </>
+      ),
+      onConfirm: async () => {
+        try { await api.deleteDomain(app.slug, id); await load(); } catch (err) { setError(err.message); }
+      }
+    });
   }
   async function makePrimary(id) {
     try { await api.updateDomain(app.slug, id, { isPrimary: true }); await load(); } catch (err) { setError(err.message); }
@@ -51,6 +68,7 @@ export default function DomainsTab({ app }) {
 
   return (
     <div>
+      {confirmNode}
       <div className="tab-header"><h2>Custom Domains</h2></div>
       <p className="hint">Serve this app at your own domain (like <code>app.example.com</code>) on top of its built-in <code>{app.subdomain}.&lt;base&gt;</code> address. Add the domain, then add the two DNS records we show you.</p>
 
@@ -65,7 +83,9 @@ export default function DomainsTab({ app }) {
       {domains.length === 0 ? (
         <EmptyState icon="domains" title="No Custom Domains"
           body="This app already answers at its automatic address. Add a domain to serve it at one you own." />
-      ) : domains.map((d) => (
+      ) : (
+        <div className="dom-list">
+        {domains.map((d) => (
         <div className={`dom-card ${d.status}`} key={d.id}>
           <div className="dom-top">
             <span className="host">
@@ -84,23 +104,22 @@ export default function DomainsTab({ app }) {
           </div>
           {d.status !== 'active' && (
             <div className="dom-dns">
-              <div className="callout">Add these two records at the company where you bought your domain (GoDaddy, Namecheap, Cloudflare…), then click <b>Check DNS</b>.</div>
-              {(d.records || []).map((r, i) => (
-                <div className="dns-rec" key={i}>
-                  <div><span className="rk">Type</span><b>{r.type}</b></div>
-                  <div><span className="rk">Name</span><span className="rv">{r.name}</span></div>
-                  <div><span className="rk">Value</span><span className="rv" style={{ color: 'var(--info)' }}>{r.value}</span></div>
-                  {r.purpose && <div className="rp">{r.purpose}</div>}
-                </div>
-              ))}
-              {!publicIp && <p className="hint">Tip: set <code>ASTRODOCK_PUBLIC_IP</code> so the A-record value is filled in for you.</p>}
+              <DnsRecords
+                records={d.records || []}
+                lead={`Add these records where you bought ${d.hostname} — GoDaddy, Namecheap, Cloudflare, wherever the domain lives — then click Check DNS.`}
+                footnote={publicIp
+                  ? 'DNS changes usually show up within a few minutes, but can take a few hours.'
+                  : 'DNS changes usually take a few minutes. Set ASTRODOCK_PUBLIC_IP in Settings and the A-record value will be filled in for you here.'}
+              />
             </div>
           )}
           {d.status === 'active' && d.redirectToCanonical && hasPrimary && (
             <p className="hint" style={{ marginTop: 10 }}>Visitors here are redirected to the primary domain, keeping the path.</p>
           )}
         </div>
-      ))}
+        ))}
+        </div>
+      )}
     </div>
   );
 }
