@@ -388,6 +388,17 @@ test('the build version does not come from the compose image-tag variable', () =
     'version.js must not read ASTRODOCK_VERSION: .env injects it into the container');
 });
 
+test('every package in the workspace reports the same version', () => {
+  // They drifted nine releases behind the tags unnoticed, so a source build and
+  // `astrodock --version` both claimed 0.0.6 while the platform was on 0.0.15.
+  const files = ['../../../package.json', '../package.json', '../../admin/package.json',
+    '../../../packages/cli/package.json', '../../../packages/schema/package.json',
+    '../../../packages/auth-client/package.json'];
+  const versions = files.map((f) => JSON.parse(fs.readFileSync(new URL(f, import.meta.url), 'utf8')).version);
+  const unique = [...new Set(versions)];
+  assert.strictEqual(unique.length, 1, `workspace versions disagree: ${versions.join(', ')}`);
+});
+
 test('the package version matches what the image build would stamp', () => {
   // The fallback for a source build. It said 0.1.0 while the released tags were
   // v0.0.x, which would have made the update check call a fresh checkout "ahead".

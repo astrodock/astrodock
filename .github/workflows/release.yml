@@ -34,6 +34,22 @@ jobs:
             echo "version=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
           fi
 
+      # The package versions drifted nine releases behind the tags before anyone
+      # noticed, which meant `astrodock --version` and a source build both
+      # reported 0.0.6 while the platform was on 0.0.15. Refuse to publish a
+      # release whose version nobody remembered to write down.
+      - name: Tag and package.json must agree
+        run: |
+          set -eu
+          TAG="${{ steps.v.outputs.version }}"
+          PKG=$(node -p "require('./package.json').version")
+          if [ "${TAG#v}" != "$PKG" ]; then
+            echo "::error::tag $TAG does not match package.json version $PKG."
+            echo "Bump every package.json to ${TAG#v} and commit before tagging."
+            exit 1
+          fi
+          echo "tag $TAG matches package.json $PKG"
+
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
 

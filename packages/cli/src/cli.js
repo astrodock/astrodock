@@ -25,6 +25,7 @@ Commands:
   pages list                           List pages
   pages rm <pageId>                    Delete a page
   help                                 Show this help
+  version                              Print the CLI version
 
 pages push options:
   --title T                            Page title (defaults to the dir/file name)
@@ -206,7 +207,24 @@ async function main(argv) {
   const [command, ...rest] = argv;
   const { flags, positional } = parseFlags(rest);
 
-  if (!command || command === 'help' || flags.help) { console.log(USAGE); return; }
+  // There was no version flag at all: `astrodock --version` fell through to the
+  // client and failed with "ASTRODOCK_URL is not set", which tells you nothing
+  // about anything you asked.
+  // `--version` arrives as the COMMAND, not as a flag — parseFlags only sees what
+  // follows the command — so both shapes have to be checked.
+  if (command === 'version' || command === '--version' || command === '-v'
+      || flags.version || flags.v) {
+    console.log(require('../package.json').version);
+    return;
+  }
+
+  // Same shape as --version: `--help` is the command, not a flag. Before this it
+  // fell through to the client and answered "ASTRODOCK_URL is not set" — which is
+  // the first thing most people type, answered with the least useful thing.
+  if (!command || command === 'help' || command === '--help' || command === '-h' || flags.help || flags.h) {
+    console.log(USAGE);
+    return;
+  }
 
   let client;
   try { client = makeClient(); }
