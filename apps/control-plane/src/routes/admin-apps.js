@@ -7,6 +7,7 @@ const { eq, and, desc } = require('drizzle-orm');
 const config = require('../config');
 const { db, schema } = require('../db');
 const { requireScope, requirePermission, tokenAllowsApp } = require('../middleware/auth');
+const { requireRecentAuth } = require('../lib/sessions');
 const { deployLimiter } = require('../middleware/rateLimiter');
 const { getAppBySlug, getAppEnvVars, serializeApp, serializeEnvVar } = require('../lib/apps');
 const { applyManifest } = require('../lib/apply');
@@ -14,7 +15,7 @@ const { computeEnv, computeMissingRequired } = require('../lib/env-compute');
 const { provisionApp, reloadCaddyFromDb } = require('../provision');
 const { runner } = require('../runner/client');
 const { generateAppSecret, generateWebhookSecret } = require('../lib/ids');
-const { encryptSecret } = require('../lib/crypto');
+const { encryptSecret, decryptSecret } = require('../lib/crypto');
 const { dropDatabase } = require('../provision/database');
 const { listRepos, createWebhook, deleteWebhook } = require('../lib/github');
 const domainsLib = require('../lib/domains');
@@ -436,7 +437,7 @@ router.get('/:slug/env', requirePermission('env:read'), async (req, res) => {
 
 // Set a value (works for declared + reserved rows; creates an ad-hoc declared row if new).
 router.put('/:slug/env/:key', requirePermission('env:write'), async (req, res) => {
-  const { value } = req.body || {};
+  const { value, secret } = req.body || {};
   if (value === undefined) return res.status(400).json({ error: 'value is required' });
   if (/^ASTRODOCK_/.test(req.params.key)) {
     // only reserved rows the platform created (external mode) are settable
@@ -457,11 +458,44 @@ router.put('/:slug/env/:key', requirePermission('env:write'), async (req, res) =
     const stored = rows[0].isSecret ? encryptSecret(value) : value;
     await db.update(schema.appEnvVars).set({ value: stored, updatedAt: new Date() }).where(eq(schema.appEnvVars.id, rows[0].id));
   } else {
-    // An ad-hoc value set on an UNDECLARED key (e.g. `astrodock set-secret`) is treated as
-    // secret: encrypted at rest + masked on read, so it can never be echoed back in cleartext.
-    await db.insert(schema.appEnvVars).values({ appId: app.id, key: req.params.key, value: encryptSecret(value), isSecret: true, kind: 'declared' });
+    // Whether this is a secret is the caller's to say, and it used to be decided
+    // here: every undeclared key was stored encrypted and masked forever. That is
+    // right for `astrodock set-secret`, which says so in its name, and wrong for
+    // the majority of variables — a log level, a feature flag, an upstream URL —
+    // which an operator then could not read back. Anything added without saying
+    // is treated as ordinary and stays readable.
+    const isSecret = secret === true;
+    await db.insert(schema.appEnvVars).values({
+      appId: app.id, key: req.params.key,
+      value: isSecret ? encryptSecret(value) : value,
+      isSecret, kind: 'declared'
+    });
   }
   res.json({ ok: true });
+});
+
+// Read one secret back, on purpose.
+//
+// Secrets are masked so they cannot be shoulder-surfed off a settings page or
+// scraped by anything that can merely read. But an operator does sometimes need
+// the actual value — to check it against the provider that issued it, most often
+// — and "you can never see what you set" makes people store a second copy
+// somewhere worse. So: deliberate, one at a time, step-up re-auth, and recorded.
+router.post('/:slug/env/:key/reveal', requirePermission('env:read'), requireRecentAuth, async (req, res) => {
+  const app = await getAppBySlug(req.params.slug);
+  if (!app) return res.status(404).json({ error: 'App not found' });
+  const rows = await db.select().from(schema.appEnvVars)
+    .where(and(eq(schema.appEnvVars.appId, app.id), eq(schema.appEnvVars.key, req.params.key))).limit(1);
+  if (!rows[0]) return res.status(404).json({ error: 'No such variable' });
+
+  emitEvent({
+    category: 'audit', type: 'env.revealed', severity: 'warning',
+    ...actorFromAuth(req.auth), ip: req.ip, appSlug: app.slug,
+    targetType: 'env', targetId: req.params.key,
+    message: `revealed the value of ${req.params.key} on ${app.slug}`
+  }).catch(() => {});
+
+  res.json({ key: req.params.key, value: decryptSecret(rows[0].value) });
 });
 
 router.post('/:slug/env/bulk', requirePermission('env:write'), async (req, res) => {

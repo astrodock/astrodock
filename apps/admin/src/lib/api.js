@@ -155,8 +155,11 @@ export const getDeployment = (slug, id) =>
 
 // Env Vars
 export const getEnvVars = (slug) => request(`/apps/${slug}/env`);
-export const setEnvVar = (slug, key, value) =>
-  request(`/apps/${slug}/env/${key}`, { method: 'PUT', body: JSON.stringify({ value }) });
+export const setEnvVar = (slug, key, value, secret) =>
+  request(`/apps/${slug}/env/${key}`, { method: 'PUT', body: JSON.stringify({ value, secret }) });
+// Deliberate, audited, and needs a fresh factor — see the route.
+export const revealEnvVar = (slug, key) =>
+  request(`/apps/${slug}/env/${key}/reveal`, { method: 'POST' });
 export const deleteEnvVar = (slug, key) =>
   request(`/apps/${slug}/env/${key}`, { method: 'DELETE' });
 export const bulkImportEnv = (slug, raw) =>
