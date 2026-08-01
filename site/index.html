@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Astrodock — your own little app platform</title>
+  <meta name="description" content="Astrodock is an open-source, self-hostable app platform. Install it once on a machine you control, then deploy small apps with user login, a database, file storage and HTTPS included.">
+  <link rel="canonical" href="https://astrodock.ai/">
+
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Astrodock — your own little app platform">
+  <meta property="og:description" content="Install once on a machine you control, then deploy small apps with login, a database, storage and HTTPS included. No cloud bill, no accounts to sign up for.">
+  <meta property="og:url" content="https://astrodock.ai/">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <link rel="stylesheet" href="assets/site.css">
+  <script>
+    // Set the theme before first paint so a dark-mode visitor never sees a white flash.
+    (function () {
+      try {
+        var s = localStorage.getItem('astro-theme');
+        if (s) return document.documentElement.setAttribute('data-theme', s);
+      } catch (e) {}
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
+</head>
+<body>
+<a class="skip" href="#start">Skip to content</a>
+
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="/"><span class="mark">A</span> Astrodock</a>
+    <span class="spacer"></span>
+    <a class="navlink hide-sm" href="https://docs.astrodock.ai/">Docs</a>
+    <a class="navlink hide-sm" href="https://github.com/astrodock/astrodock">GitHub</a>
+    <button class="tbtn" id="theme" type="button" aria-label="Switch between light and dark">Theme</button>
+  </div>
+</header>
+
+<main id="start">
+
+  <section class="hero wrap">
+    <span class="pill">Open source · self-hosted · no external services</span>
+    <h1>Your own little app platform.</h1>
+    <p class="lede">
+      Astrodock installs once on a machine you control — a cheap server, or your laptop — and then
+      hosts the small apps you build on it, with <strong>user login, a database, file storage and
+      HTTPS included</strong>. No accounts to sign up for. No cloud bill.
+    </p>
+    <div class="cta">
+      <a class="btn primary" href="https://docs.astrodock.ai/install.html">Get started</a>
+      <a class="btn" href="https://docs.astrodock.ai/introduction.html">What is Astrodock?</a>
+    </div>
+
+    <div class="install">
+      <div class="install-box">
+        <span class="prompt" aria-hidden="true">$</span>
+        <code id="cmd">curl -fsSL https://raw.githubusercontent.com/astrodock/astrodock/main/scripts/install.sh | sh</code>
+        <button class="copy" id="copy" type="button">Copy</button>
+      </div>
+      <p class="note">
+        On a fresh Linux server. It fetches the compose file, generates every secret, pulls the
+        images and starts the stack — then you finish in the browser.
+      </p>
+    </div>
+  </section>
+
+  <section class="band soft">
+    <div class="wrap">
+      <h2>Everything a small app needs, already wired up</h2>
+      <p class="sub">
+        The parts you would otherwise assemble from four different vendors, running on one box
+        and talking to each other out of the tin.
+      </p>
+
+      <div class="grid">
+        <div class="feat">
+          <div class="ic" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M12 3.5 5 6.4v4.9c0 4.2 2.9 8.1 7 9.2 4.1-1.1 7-5 7-9.2V6.4L12 3.5Z"
+                stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+              <path d="m9.2 12 2 2 3.6-3.8" stroke="currentColor" stroke-width="1.7"
+                stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <h3>Sign-in you don't write</h3>
+          <p>
+            Your users get accounts, passkeys and two-factor without you building any of it. Your
+            app never sees a password — it receives a one-time code and trades it server-side.
+          </p>
+        </div>
+
+        <div class="feat">
+          <div class="ic" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <ellipse cx="12" cy="6.4" rx="6.6" ry="2.9" stroke="currentColor" stroke-width="1.7"/>
+              <path d="M5.4 6.4v11.2c0 1.6 3 2.9 6.6 2.9s6.6-1.3 6.6-2.9V6.4"
+                stroke="currentColor" stroke-width="1.7"/>
+              <path d="M5.4 12c0 1.6 3 2.9 6.6 2.9s6.6-1.3 6.6-2.9"
+                stroke="currentColor" stroke-width="1.7"/>
+            </svg>
+          </div>
+          <h3>A database and storage per app</h3>
+          <p>
+            Each app can get its own Postgres database and its own file storage, created for it and
+            handed to it as a connection string. Or point it at your own — that choice is config.
+          </p>
+        </div>
+
+        <div class="feat">
+          <div class="ic" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <rect x="3.6" y="10.4" width="16.8" height="9.6" rx="2.2"
+                stroke="currentColor" stroke-width="1.7"/>
+              <path d="M7.6 10.4V7.6a4.4 4.4 0 0 1 8.8 0v2.8"
+                stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <h3>HTTPS that just happens</h3>
+          <p>
+            Real certificates, renewed on their own. Bring your own domain and Astrodock shows you
+            the exact DNS records, checks them for you, and turns on encryption when they land.
+          </p>
+        </div>
+
+        <div class="feat">
+          <div class="ic" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M12 3.6v9.8m0 0 3.6-3.6M12 13.4 8.4 9.8"
+                stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M4.4 15.2v3.2a2 2 0 0 0 2 2h11.2a2 2 0 0 0 2-2v-3.2"
+                stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <h3>Push to deploy</h3>
+          <p>
+            Connect a repository and every push to your branch rebuilds and goes live. Or push
+            straight from your machine with the CLI. Every build is kept, with its full log.
+          </p>
+        </div>
+
+        <div class="feat">
+          <div class="ic" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <rect x="4" y="6.6" width="16" height="12" rx="2.2" stroke="currentColor" stroke-width="1.7"/>
+              <path d="M8.4 11.2 10.8 13l-2.4 1.8M13.2 15h3"
+                stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 6.6V3.8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <h3>Built to be handed to an agent</h3>
+          <p>
+            A scoped API token and a small CLI, so you can point Claude Code — or any agent — at
+            your platform and let it create, configure and deploy apps for you.
+          </p>
+        </div>
+
+        <div class="feat">
+          <div class="ic" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M3.4 13h3.4l2.2-5.4 3.8 11 2.4-6.2 1.4 2.6h3.9"
+                stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <h3>You can see what it's doing</h3>
+          <p>
+            Logs, deploy history, sign-in records, health checks and backups — in one dashboard,
+            on your machine. Nothing is phoned home, because there is nowhere to phone.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band">
+    <div class="wrap">
+      <h2>From nothing to a live app</h2>
+      <p class="sub">Three steps, and the middle one is a browser form.</p>
+
+      <div class="steps">
+        <div class="step">
+          <span class="n">1</span>
+          <h3>Install it</h3>
+          <p>One command on a fresh Linux box. It pulls the images and starts everything —
+            there is no source tree to build and no config file to hand-edit.</p>
+        </div>
+        <div class="step">
+          <span class="n">2</span>
+          <h3>Finish in the browser</h3>
+          <p>Open the server's address. The wizard makes your admin account, takes your
+            domain, shows you the DNS record to add, checks it, and switches on HTTPS.</p>
+        </div>
+        <div class="step">
+          <span class="n">3</span>
+          <h3>Deploy something</h3>
+          <p>Point it at a repository, or run <code>astrodock deploy</code>. Your app comes
+            up on its own address with its database, storage and login already attached.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band soft">
+    <div class="wrap">
+      <h2>What "self-hosted" actually means here</h2>
+      <p class="sub">
+        Some projects call themselves self-hostable and still expect you to bring a managed
+        database, an S3 bucket and an auth provider. This one doesn't.
+      </p>
+      <ul class="plain">
+        <li>
+          <span class="tick" aria-hidden="true">✓</span>
+          <span><b>The database ships with it.</b> Postgres runs in the stack. You do not sign up
+            for anything to store data.</span>
+        </li>
+        <li>
+          <span class="tick" aria-hidden="true">✓</span>
+          <span><b>Object storage ships with it.</b> An S3-compatible store runs alongside, so file
+            uploads work on day one.</span>
+        </li>
+        <li>
+          <span class="tick" aria-hidden="true">✓</span>
+          <span><b>Auth is part of the platform.</b> Not a SaaS integration, not a library you wire
+            up — a sign-in page the platform serves for your apps.</span>
+        </li>
+        <li>
+          <span class="tick" aria-hidden="true">✓</span>
+          <span><b>Your data stays on your box.</b> Sign-ins, logs, uploads, backups. The only
+            request Astrodock makes on its own is an optional check for new releases.</span>
+        </li>
+        <li>
+          <span class="tick" aria-hidden="true">✓</span>
+          <span><b>It's MIT licensed.</b> Read it, fork it, run it forever. No seat count, no tier
+            that unlocks the useful part.</span>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="band center">
+    <div class="wrap">
+      <h2>Give it a machine and ten minutes</h2>
+      <p class="sub">
+        A small server — around $12 a month — runs the whole platform and the apps on it. The docs
+        take you from a blank box to a deployed app with a real address.
+      </p>
+      <div class="cta">
+        <a class="btn primary" href="https://docs.astrodock.ai/install.html">Read the install guide</a>
+        <a class="btn" href="https://github.com/astrodock/astrodock">Browse the source</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>Astrodock — MIT licensed</span>
+    <span class="spacer"></span>
+    <a href="https://docs.astrodock.ai/">Docs</a>
+    <a href="https://github.com/astrodock/astrodock">GitHub</a>
+    <a href="https://docs.astrodock.ai/security.html">Security</a>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('theme').addEventListener('click', function () {
+    var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    try { localStorage.setItem('astro-theme', next); } catch (e) {}
+  });
+
+  document.getElementById('copy').addEventListener('click', function () {
+    var btn = this;
+    navigator.clipboard.writeText(document.getElementById('cmd').textContent.trim()).then(function () {
+      btn.textContent = 'Copied';
+      setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+    }).catch(function () { /* clipboard blocked — the command is on screen to select */ });
+  });
+</script>
+</body>
+</html>
