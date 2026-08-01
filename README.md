@@ -38,9 +38,9 @@ to boot.
 - **Hybrid compute.** Node buildpack by default (PM2), or ship a `Dockerfile` for any runtime.
 
 ## Documentation
-Full, beginner-friendly docs are published at **https://astrodock.github.io/astrodock/** and live in
-[`docs/`](docs/index.html) — a static site you can also open locally (`open docs/index.html`) or host
-anywhere. Start with **Introduction → Install & run →
+Full, beginner-friendly docs are published at **https://docs.astrodock.ai** and live in their own
+repository, [astrodock/astrodock-docs](https://github.com/astrodock/astrodock-docs) — a static site
+you can also clone and open locally. Start with **Introduction → Install & run →
 Deploy your first app**, then the topic guides (custom domains & DNS, email notifications, external
 database/storage, users, secrets, backups…). The quickstart below is the short version.
 
@@ -89,7 +89,7 @@ astrodock deploy:watch       # deploy and stream the log until it's live
 ```
 Then grant a user access in the admin UI and visit `https://<subdomain>.your-domain`.
 
-**Building an app:** see the docs site — [App structure & app.json](docs/building-apps.html) — or,
+**Building an app:** see the docs site — [App structure & app.json](https://docs.astrodock.ai/building-apps.html) — or,
 for AI agents specifically, [`AGENTS.md`](AGENTS.md). The `app.json` schema lives in
 [`packages/schema`](packages/schema).
 
@@ -101,7 +101,7 @@ packages/auth-client/ @astrodock/auth-client — server-side /verify client
 packages/cli/         @astrodock/cli — astrodock / adock (apply, deploy, status, logs, set-secret)
 packages/schema/      @astrodock/schema — app.json JSON Schema + validator + env catalog
 examples/starter-app/ a real app to copy from
-docs/                 the documentation site (index.html) + platform-spec.html
+docs/                 a pointer to astrodock/astrodock-docs, where the docs now live
 docker-compose.yml    the whole stack
 ```
 
@@ -117,12 +117,12 @@ docker-compose.yml    the whole stack
 - **Deploy.** Webhook on `git push` (or `astrodock deploy`) → clone → build → run (PM2 or a
   sibling Docker container) → health probe → observable deploy record + streamed log.
 
-Full technical contract: [`docs/platform-spec.html`](docs/platform-spec.html).
+Full technical contract: [platform-spec.html](https://docs.astrodock.ai/platform-spec.html).
 
 ## Deployment modes
 One artifact, three ways to run it: (1) local on your own box, (2) self-managed cloud VPS,
 (3) a future managed SaaS as orchestrated single-tenant instances. The
-[Install &amp; run](docs/install.html) and [Custom domains &amp; DNS](docs/custom-domains.html)
+[Install &amp; run](https://docs.astrodock.ai/install.html) and [Custom domains &amp; DNS](https://docs.astrodock.ai/custom-domains.html)
 guides cover both local and server installs — any VPS or box.
 
 ## Security model — read this

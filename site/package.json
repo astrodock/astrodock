@@ -1,9 +1,0 @@
-{
-  "name": "@astrodock/site",
-  "version": "1.0.0",
-  "private": true,
-  "description": "The astrodock.ai marketing site. Static HTML \u2014 the build is a copy into dist/.",
-  "scripts": {
-    "build": "node build.mjs"
-  }
-}
