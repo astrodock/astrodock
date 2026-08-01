@@ -1,6 +1,6 @@
 {
   "name": "astrodock",
-  "version": "0.0.17",
+  "version": "0.0.18",
   "private": true,
   "description": "Self-hostable, AI-native app platform: deploy, auth, host, route and monitor small apps on your own box.",
   "license": "MIT",
