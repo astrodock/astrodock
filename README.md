@@ -90,7 +90,7 @@ astrodock deploy:watch       # deploy and stream the log until it's live
 Then grant a user access in the admin UI and visit `https://<subdomain>.your-domain`.
 
 **Building an app:** see the docs site — [App structure & app.json](https://docs.astrodock.ai/building-apps.html) — or,
-for AI agents specifically, [`AGENTS.md`](AGENTS.md). The `app.json` schema lives in
+for AI agents specifically, [docs.astrodock.ai/AGENTS.md](https://docs.astrodock.ai/AGENTS.md). The `app.json` schema lives in
 [`packages/schema`](packages/schema).
 
 ## Repository layout

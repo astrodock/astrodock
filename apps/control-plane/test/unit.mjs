@@ -697,6 +697,21 @@ test('every reserved name carries a reason', () => {
 
 // ── the suite must not depend on the shell it is run from ────────────────────
 
+console.log('\nagent-facing docs');
+
+test('the root AGENTS.md is a pointer, not a second copy of the contract', () => {
+  // It was byte-identical to the docs repo's copy, with nothing keeping it that
+  // way. Two copies of a contract nobody diffs is a contract that is wrong in one
+  // of them. Keep this file short and pointing outward.
+  const src = fs.readFileSync(new URL('../../../AGENTS.md', import.meta.url), 'utf8');
+  assert.ok(src.includes('docs.astrodock.ai/AGENTS.md'),
+    'must point at the canonical contract');
+  assert.ok(src.split('\n').length < 60,
+    'this is a pointer; the contract itself belongs in astrodock-docs');
+  assert.ok(!/```json/.test(src),
+    'a manifest example here means the contract is being duplicated again');
+});
+
 console.log('\ntest hygiene');
 
 test('no integration test defaults its admin credentials from the environment', () => {
