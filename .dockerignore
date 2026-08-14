@@ -9,7 +9,6 @@
 !**/.env.example
 **/*.log
 .pm2
-docs/legacy
 *.md
 !README.md
 

@@ -10,8 +10,11 @@ these before doing substantial work — they are the source of truth:
 
 - **`BUILD_PLAN.md`** — the current, ordered work plan. **Start here.**
 - `OPEN_SOURCE.md` — phased roadmap, all locked decisions, and the de-brand inventory (file:line).
-- `docs/platform-spec.html` — the technical spec: `app.json` schema, the env-var model, the
-  runner topology, and deploy flows. Authoritative for those details.
+- The platform spec — `app.json` schema, the env-var model, the runner topology, and deploy
+  flows — moved with the docs to the `astrodock/astrodock-docs` repo
+  (`../astrodock-docs/platform-spec.html`, published at docs.astrodock.ai). Authoritative for
+  those details, though the file still carries the pre-naming `PLATFORM_` prefix pending a
+  rewrite.
 
 ## Locked decisions (do not re-litigate)
 - **Name:** Astrodock (working name). Env prefix `ASTRODOCK_`, CLI `astrodock` (alias `adock`), npm scope `@astrodock`.

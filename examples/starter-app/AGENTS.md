@@ -1,7 +1,8 @@
 # AGENTS.md — building & deploying this app on Astrodock
 
 This file travels with the app so any coding agent opened in this repo knows the
-conventions. (Full platform contract: the root `AGENTS.md` and `docs/building-apps.md`.)
+conventions. (Full platform contract: https://docs.astrodock.ai/AGENTS.md and
+https://docs.astrodock.ai/building-apps.md — both plain markdown, fetch them directly.)
 
 ## Layout (auto-detected by the runner)
 - `app/` — frontend (Vite/React). Builds to `app/dist/`, served by Caddy at the app's URL.

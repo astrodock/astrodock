@@ -3,9 +3,10 @@
 Instructions for a fresh Claude Code session picking up Astrodock cold. This combines the
 **de-brand** (Phase 1) and the **scaffold/rebuild** (Phases 3 & 5) into one ordered build.
 
-> **Before you start:** read `CLAUDE.md`, then `OPEN_SOURCE.md` (roadmap + decisions +
-> de-brand inventory), then `docs/platform-spec.html` (the technical contract for `app.json`,
-> the env model, the runner, and deploy flows). Don't duplicate the spec — implement to it.
+> **Before you start:** read `CLAUDE.md`, then `OPEN_SOURCE.md` (the original fork-era plan,
+> now historical), then the platform spec (the technical contract for `app.json`, the env
+> model, the runner, and deploy flows — moved to `../astrodock-docs/platform-spec.html`,
+> published at docs.astrodock.ai). Don't duplicate the spec — implement to it.
 
 ## Working agreements
 - **Don't touch `../SV - Sandbox`** (the original, still in production).
@@ -328,7 +329,11 @@ _Last reconciled 2026-07-26 against the code, not from memory._
 - **Name:** Astrodock. Env prefix `ASTRODOCK_`, CLI `astrodock`/`adock`, npm `@astrodock`.
   Folder renamed from `Toolstead` on 2026-07-26.
 
-## Stage 18 — Auth, identity & agent permissions (designed, not built)
+## Stage 18 — Auth, identity & agent permissions (built in code; not verified end-to-end)
+_Label updated 2026-08-14: hosted login, passkeys, TOTP and recovery codes are implemented
+(`routes/oauth.js`, `lib/auth-factors.js`, migrations 0010/0011, the admin modals), and `exec`
+was deleted rather than gated per the AUTH_DESIGN v0.1.0 decision. The flows have not been
+exercised end-to-end._
 The current model has three coupled problems: apps receive users' plaintext passwords via
 `/verify`; operators and end users share one password hash, so an app can capture dashboard
 credentials; and end-user MFA is therefore unbuildable. Agent keys are two coarse scopes, one of
@@ -344,12 +349,10 @@ app-facing contract is stable; everything else there is additive.
 ## Open decisions — surface to the user when you reach them
 - **Internal backups:** local-only (current behaviour) vs optional off-box copy to an external
   object store. Explicitly flagged as a follow-up in `src/lib/backups.js:7`.
-- **Publishing:** the repo has no git remote and has never been pushed. Choosing a host, an
-  org/account, and whether the first push is public or private is still outstanding — and is
-  the last thing standing between this and being an actual open-source project.
-  **Stage 17 raised the stakes:** the one-line install pulls images from
-  `ghcr.io/astrodock/astrodock` and fetches files from `raw.githubusercontent.com/astrodock/astrodock`,
-  and `get.astrodock.ai` needs to exist and serve `scripts/install.sh`. Both are parameterised
-  (`ASTRODOCK_IMAGE`, `ASTRODOCK_RAW_BASE`) so nothing is hard-baked, but **the default install
-  path does not work until the repo is published and one release tag is pushed.** Building from
-  source still works today.
+- **Publishing** _(updated 2026-08-14)_: the repo is public at `github.com/astrodock/astrodock`
+  with release tags pushed through `v0.0.18`. Still outstanding from the original item:
+  `release.yml` has never run, so **no image exists at `ghcr.io/astrodock/astrodock`**, and
+  `get.astrodock.ai` does not serve `scripts/install.sh` (TLS handshake fails). The one-line
+  install therefore fetches via `raw.githubusercontent.com` but cannot pull images — **the
+  default install path does not work until a release publishes images and the GHCR package is
+  made public.** Building from source works. npm packages (`@astrodock/*`) remain unpublished.

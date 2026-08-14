@@ -320,3 +320,27 @@ domains. Setting the domain at runtime was re-use, not new capability.
 `App.jsx`'s sidebar footer rendered a hardcoded `localhost` as the system-chip subtitle
 (pre-existing, but newly wrong now that the domain is chosen at runtime). It reads the effective
 base domain from `/setup/status`, which `App.jsx` already fetches.
+
+---
+
+## Addendum — 2026-08-14 (post-Stage-17 catch-up)
+
+These notes stopped at Stage 17. Landed since the last entry:
+- The docs and the marketing site moved to their own repositories (`954d4bb`); this repo keeps
+  `docs/README.md` as a pointer. `astrodock.ai` and `docs.astrodock.ai` are both live, served
+  from an Astrodock instance.
+- Static sites can return a real 404 (`f533512`); address redirects and an install URL that
+  exists (`602f8a2`); releases v0.0.17 and v0.0.18; the root `AGENTS.md` became a pointer to
+  `docs.astrodock.ai/AGENTS.md` (`11b8cd0`).
+- Stage 18 auth is in the tree — hosted login (`routes/oauth.js`), passkeys/TOTP/recovery
+  codes (`lib/auth-factors.js`, migrations 0010/0011, the admin modals), and `exec` deleted
+  rather than gated, per the AUTH_DESIGN v0.1.0 decision. Not verified end-to-end, and these
+  notes never recorded the work landing.
+
+External state, checked 2026-08-14 from outside the sandbox:
+- `github.com/astrodock/astrodock` is **public**, with release tags pushed through `v0.0.18`.
+- `ghcr.io/astrodock/astrodock` still does not exist (the GitHub package URL 404s) — the
+  release workflow has still never run.
+- `get.astrodock.ai` fails the TLS handshake; fetching `scripts/install.sh` from
+  `raw.githubusercontent.com` works. Item 6 above therefore now fails at the image-pull step
+  rather than at the fetch.

@@ -133,10 +133,11 @@ the intended model and dangerous if deployed naively. **Read [`SECURITY.md`](SEC
 exposing this to untrusted users or networks.**
 
 ## Status
-Working name **Astrodock** (may be revisited). This is an active rebuild forked from an internal
-tool — see [`OPEN_SOURCE.md`](OPEN_SOURCE.md) for the roadmap, [`DECISIONS.md`](DECISIONS.md) for
-the choices made, and [`BUILD_NOTES.md`](BUILD_NOTES.md) for what's verified vs. needs a real
-Docker host to exercise.
+Working name **Astrodock** (may be revisited). The rebuild from the internal fork is complete
+through `v0.0.18` — see [`BUILD_PLAN.md`](BUILD_PLAN.md) for the staged work,
+[`DECISIONS.md`](DECISIONS.md) for the choices made, [`BUILD_NOTES.md`](BUILD_NOTES.md) for
+what's verified vs. needs a real Docker host to exercise, and [`OPEN_SOURCE.md`](OPEN_SOURCE.md)
+for the original fork-era plan (kept as a historical record).
 
 ## License
 [MIT](LICENSE).

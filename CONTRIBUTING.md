@@ -47,8 +47,9 @@ The control-plane and CLI tests read `apps/control-plane/.env` for the Postgres 
 ## Pull requests
 - Keep PRs focused. Include tests for new control-plane behavior where practical.
 - Don't commit secrets (`.env*`, `setup.conf` are gitignored — only `*.example` is committed).
-- Note any change to the `app.json` schema or the `ASTRODOCK_*` env contract in `docs/building-apps.md`
-  and `AGENTS.md`.
+- Note any change to the `app.json` schema or the `ASTRODOCK_*` env contract in the docs repo
+  ([astrodock/astrodock-docs](https://github.com/astrodock/astrodock-docs): `AGENTS.md` and
+  `building-apps.md`, served at docs.astrodock.ai).
 
 ## Security
 See `SECURITY.md`. Please report vulnerabilities privately, not in public issues.

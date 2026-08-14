@@ -8,7 +8,8 @@
 #
 # Off-box durability (optional, off by default): set BACKUP_S3_BUCKET (+ AWS creds via
 # the environment / awscli config) to also upload the tarball to an external S3 bucket.
-# This is the one place an external dependency earns its keep — see docs/deploying.md.
+# This is the one place an external dependency earns its keep — see
+# https://docs.astrodock.ai/backups.html.
 set -euo pipefail
 
 OUT_DIR="${1:-./backups}"

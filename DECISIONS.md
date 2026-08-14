@@ -38,16 +38,16 @@ implementation-level decisions I had to make to get a working build follow.
   keep (durability) is offered but never required. Off-box upload is a few lines the operator
   enables, not core machinery.
 
-### A4. Custom domains per app → **deferred (post-v1)**
-- The `subdomain` model is implemented. Custom domains (Caddy on-demand TLS) are additive and
-  not needed for the core loop. Noted as a future item; the Caddy config generator is
-  structured so a `customDomain` field can be added later without reshaping it.
+### A4. Custom domains per app → ~~deferred (post-v1)~~ **built** _(amended 2026-08-14)_
+- Originally deferred. Built in Stage 16: Caddy on-demand TLS with a control-plane `ask`
+  endpoint, the add → verify → activate flow, and DNS-drift checks in the health loop.
+- Original rationale, kept for the record: the `subdomain` model is implemented; custom
+  domains are additive and not needed for the core loop.
 
-### A5. Non-GitHub deploy (CLI push of a local build) → **deferred (post-v1)**
-- v1 deploys clone from a connected GitHub repo (webhook or `astrodock deploy`). A future
-  `astrodock deploy --local` that tars the working dir and pushes it to the runner is sketched
-  in the CLI's help but not implemented. The deploy worker is written so a "local tarball"
-  source could be added beside the "git clone" source.
+### A5. Non-GitHub deploy (CLI push of a local build) → ~~deferred (post-v1)~~ **built** _(amended 2026-08-14)_
+- Originally deferred. Built in hardening pass #12: `astrodock deploy --local` tars the
+  working dir (excluding `node_modules`/`dist`/`.env`) and hands it to the runner beside the
+  "git clone" source, exactly the seam the deploy worker was structured to leave open.
 
 ### A6. Terminal endpoint → **gated behind `ASTRODOCK_ENABLE_TERMINAL` (default OFF)**
 - **Options:** keep always-on vs gate behind an env flag.
@@ -62,8 +62,9 @@ implementation-level decisions I had to make to get a working build follow.
   (alias `adock`), npm scope `@astrodock`, as locked.
 
 ### A8. Agent doc conventions → **`AGENTS.md` as source of truth + thin `CLAUDE.md` pointer**
-- Both are emitted into every new app by the starter template. The root repo also carries an
-  `AGENTS.md` (the build/deploy contract) and `docs/building-apps.md` (the long-form version).
+- Both are emitted into every new app by the starter template. The contract itself now lives
+  in the docs repo, served at `docs.astrodock.ai/AGENTS.md` and `/building-apps.md`; the root
+  `AGENTS.md` here is a pointer to it.
 - **Why:** `AGENTS.md` is the emerging cross-agent convention; a 3-line `CLAUDE.md` that points
   at it avoids drift while still being picked up by Claude Code specifically.
 
@@ -188,10 +189,11 @@ implementation-level decisions I had to make to get a working build follow.
 ---
 
 ## C. Things I deliberately did NOT do
-- Did not add a git remote or push (not authorized).
+- Did not add a git remote or push (not authorized). _(Since superseded: the repo is public at
+  `github.com/astrodock/astrodock` with tags through `v0.0.18` — amended 2026-08-14.)_
 - Did not touch `../SV - Sandbox`.
 - Did not rotate any SV credentials.
-- Did not publish anything to npm.
+- Did not publish anything to npm. _(Still true.)_
 - Did not implement the optional MCP server (L3) — the CLI is the v1 agent surface, as decided.
 
 See `BUILD_NOTES.md` for the running build log and the verified/unverified status of each piece.

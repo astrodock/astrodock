@@ -1,5 +1,12 @@
 # Open-Sourcing Roadmap
 
+> **Historical document (frozen as of the fork).** This was the plan for turning the internal
+> platform into an open-source project, written before the rebuild. The rebuild is done: the
+> checkboxes below were never ticked, but Phases 1–5 shipped — see `BUILD_PLAN.md` for the
+> work as actually staged, `BUILD_NOTES.md` for what is verified, and `DECISIONS.md` for the
+> choices. File:line references below point at the pre-rebuild layout (`auth-api/`,
+> `auth-admin/`, Mongo) and no longer resolve. Kept for the record, not for planning.
+
 A prioritized, trackable plan for turning this internal Seniorverse platform into a
 public open-source project that lets others deploy, host, auth, and monitor small apps
 on a single VPS.
@@ -192,7 +199,7 @@ Replace hardcoded org coupling with config-driven values. Inventory of known sit
         `auth.${BASE_DOMAIN}` and `/var/www/auth-admin`).
   - [ ] `auth-api/src/routes/admin-apps.js:12` (and webhook `callbackUrl` at ~:216).
   - [ ] `scripts/deploy-platform.sh:43`.
-- [ ] **Health alert email** — `health-checker.js:10` defaults to `paul@seniorverse.com`;
+- [ ] **Health alert email** — `health-checker.js:10` defaults to a personal internal address;
       lines ~93/114 build `https://${app.subdomain}.seniorverse.dev` URLs. Make domain + alert
       address config-driven.
 - [ ] **Email "from"** — `auth-api/src/lib/email.js:3` hardcodes `SV Platform <noreply@seniorverse.dev>`.
