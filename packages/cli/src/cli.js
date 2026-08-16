@@ -106,10 +106,16 @@ async function cmdApply(client, flags) {
 async function localDeploy(client, slug) {
   const cwd = process.cwd();
   const tmp = path.join(os.tmpdir(), `astrodock-${slug}-${process.pid}.tgz`);
-  const excludes = ['node_modules', '.git', 'dist', '.env', '.env.local', '.env.astrodock', '.DS_Store']
+  const excludes = ['node_modules', '.git', 'dist', '.env', '.env.local', '.env.astrodock', '.DS_Store', '._*']
     .flatMap((e) => [`--exclude=${e}`, `--exclude=*/${e}`]);
   try {
-    execFileSync('tar', ['czf', tmp, ...excludes, '-C', cwd, '.'], { stdio: ['ignore', 'ignore', 'inherit'] });
+    // COPYFILE_DISABLE stops macOS bsdtar from inventing AppleDouble ._* entries
+    // for extended attributes. Without it a Mac upload sprouts a ._ twin of every
+    // file, and a static build happily publishes them as pages — this was the
+    // "server reports 60 pages, the same tree reports 30 locally" mystery. The
+    // ._* exclude also drops any real ._ files Finder has left on disk.
+    execFileSync('tar', ['czf', tmp, ...excludes, '-C', cwd, '.'],
+      { stdio: ['ignore', 'ignore', 'inherit'], env: { ...process.env, COPYFILE_DISABLE: '1' } });
   } catch (e) {
     die(`could not create upload archive (is tar installed?): ${e.message}`);
   }
