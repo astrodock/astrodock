@@ -39,6 +39,9 @@ pages push options:
 Environment:
   ASTRODOCK_URL     Base URL of the admin host, e.g. https://admin.example.com
   ASTRODOCK_TOKEN   A scoped API token (tk_...) or an admin JWT
+  Both may instead live in .env.astrodock in the app repo root (KEY=VALUE lines,
+  gitignored — the CLI refuses to run if git tracks it). Environment variables
+  win when both are set. Scope one token per app, as tightly as possible.
 
 app.json is read from the current directory (or --file). Secret VALUES never go in app.json.`;
 
@@ -103,7 +106,7 @@ async function cmdApply(client, flags) {
 async function localDeploy(client, slug) {
   const cwd = process.cwd();
   const tmp = path.join(os.tmpdir(), `astrodock-${slug}-${process.pid}.tgz`);
-  const excludes = ['node_modules', '.git', 'dist', '.env', '.env.local', '.DS_Store']
+  const excludes = ['node_modules', '.git', 'dist', '.env', '.env.local', '.env.astrodock', '.DS_Store']
     .flatMap((e) => [`--exclude=${e}`, `--exclude=*/${e}`]);
   try {
     execFileSync('tar', ['czf', tmp, ...excludes, '-C', cwd, '.'], { stdio: ['ignore', 'ignore', 'inherit'] });

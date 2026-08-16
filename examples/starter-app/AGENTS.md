@@ -37,6 +37,11 @@ Internal vs external is pure config — same variable names either way. Write th
 Users are managed in the admin UI; a user must be granted access to this app's slug to log in.
 
 ## Deploy lifecycle
+The CLI's credentials live in `.env.astrodock` in this repo's root (copy
+`.env.astrodock.example`): `ASTRODOCK_URL` plus an `ASTRODOCK_TOKEN` scoped to this
+app. The file is gitignored and must stay that way — the CLI refuses to run if git
+tracks it. Environment variables with the same names override the file. You never
+need to read the token's value; the CLI picks it up on its own.
 ```
 astrodock apply         # create/update from app.json, connect repo, provision
 astrodock set-secret K  # set any required secret value (reads stdin)

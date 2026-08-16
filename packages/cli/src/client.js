@@ -1,10 +1,23 @@
 'use strict';
 
-// Tiny HTTP client for the Astrodock admin API. Reads base URL + token from the
-// environment (ASTRODOCK_URL, ASTRODOCK_TOKEN) unless overridden.
+// Tiny HTTP client for the Astrodock admin API. Base URL + token come from the
+// environment (ASTRODOCK_URL, ASTRODOCK_TOKEN) or from .env.astrodock in the
+// app repo — see src/credentials.js — unless overridden by the caller.
 
-function makeClient({ url = process.env.ASTRODOCK_URL, token = process.env.ASTRODOCK_TOKEN } = {}) {
-  if (!url) throw new Error('ASTRODOCK_URL is not set (e.g. https://admin.example.com)');
+const { loadCredentials, CRED_FILE } = require('./credentials');
+
+function makeClient({ url, token } = {}) {
+  if (url === undefined || token === undefined) {
+    const creds = loadCredentials();
+    if (url === undefined) url = creds.ASTRODOCK_URL;
+    if (token === undefined) token = creds.ASTRODOCK_TOKEN;
+  }
+  if (!url) {
+    throw new Error(
+      `ASTRODOCK_URL is not set (e.g. https://admin.example.com) — export it, ` +
+      `or put it in ${CRED_FILE} in the app repo root`
+    );
+  }
   const base = url.replace(/\/$/, '');
 
   async function request(method, path, body) {
