@@ -569,18 +569,41 @@ router.get('/:slug/status', async (req, res) => {
   res.json(r.body || { status: 'unavailable' });
 });
 
+// Restart and stop are recorded, including when they fail. Pressing restart and
+// finding no trace of it anywhere is how an outage stays a mystery: there was
+// no way to tell "the button did nothing" from "the button worked and the
+// process died again immediately".
 router.post('/:slug/restart', requirePermission('runtime:write'), async (req, res) => {
   const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
   const r = await runner.restart(app.slug).catch((e) => ({ status: e.status || 503, body: { error: e.message } }));
-  res.status(r.status).json(r.status === 200 ? { message: 'Process restarted' } : r.body);
+  const ok = r.status === 200;
+  // The state a moment later is the part worth keeping: an errored process
+  // reports a successful restart and then dies again.
+  const after = ok ? await runner.status(app.slug).catch(() => null) : null;
+  emitEvent({
+    category: 'audit', type: ok ? 'app.restarted' : 'app.restart_failed',
+    severity: ok ? 'info' : 'warning',
+    ...actorFromAuth(req.auth), ip: req.ip, appSlug: app.slug, targetType: 'app', targetId: app.slug,
+    message: ok
+      ? `Restart requested — process ${(after && after.body && after.body.status) || 'state unknown'}`
+      : `Restart failed: ${(r.body && r.body.error) || r.status}`
+  }).catch(() => {});
+  res.status(r.status).json(ok ? { message: 'Process restarted' } : r.body);
 });
 
 router.post('/:slug/stop', requirePermission('runtime:write'), async (req, res) => {
   const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
   const r = await runner.stop(app.slug).catch((e) => ({ status: e.status || 503, body: { error: e.message } }));
-  res.status(r.status).json(r.status === 200 ? { message: 'Process stopped' } : r.body);
+  const ok = r.status === 200;
+  emitEvent({
+    category: 'audit', type: ok ? 'app.stopped' : 'app.stop_failed',
+    severity: ok ? 'info' : 'warning',
+    ...actorFromAuth(req.auth), ip: req.ip, appSlug: app.slug, targetType: 'app', targetId: app.slug,
+    message: ok ? 'Process stopped' : `Stop failed: ${(r.body && r.body.error) || r.status}`
+  }).catch(() => {});
+  res.status(r.status).json(ok ? { message: 'Process stopped' } : r.body);
 });
 
 router.get('/:slug/logs', requirePermission('logs:read'), async (req, res) => {
