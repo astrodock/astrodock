@@ -156,6 +156,17 @@
           }
         }
       }
+    },
+    "scripts": {
+      "type": "object",
+      "description": "Named shell commands the platform may run inside this app's directory, from Operations. The text lives in the repository so it is reviewed and committed; a caller chooses which name to run, never the command itself.",
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1
+      },
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9:-]{0,39}$"
+      }
     }
   }
 }
