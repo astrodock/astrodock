@@ -166,4 +166,76 @@ function runDeclared(app, envVars, name) {
   });
 }
 
-module.exports = { listDirectory, readFile, runtimeEnv, declaredCommands, runDeclared, resolveInApp, maskSecrets, MAX_FILE_BYTES };
+// ── The terminal ─────────────────────────────────────────────────────────────
+//
+// Off unless ASTRODOCK_ENABLE_TERMINAL is true. This is arbitrary code
+// execution by design; see SECURITY.md.
+//
+// Ported from the precursor's /exec SSE route, whose shape was right and whose
+// address was not. That one ran in the API container, which loads the key that
+// decrypts every app's secrets, and it could not read the app files it was
+// aimed at because those live here on the runner. Running it here fixes both:
+// the files are local, and the environment handed to the command is the app's
+// own, computed exactly as PM2's is.
+//
+// The command text comes from the caller, which is the whole point and the
+// whole risk. It is gated on the `exec` scope, which no preset grants and the
+// operator role does not carry, and every invocation is audited upstream.
+
+function terminalEnabled() {
+  return String(process.env.ASTRODOCK_ENABLE_TERMINAL || '').toLowerCase() === 'true';
+}
+
+const EXEC_TIMEOUT_MS = 5 * 60 * 1000;
+
+// Streams to an SSE response. Resolves when the child is done.
+function runInteractive(app, envVars, command, res) {
+  const { spawn } = require('child_process');
+  const { computeEnv } = require('../lib/env-compute');
+  const cwd = path.resolve(config.paths.apps, app.slug);
+  if (!fs.existsSync(cwd)) throw new Error('This app has not been deployed yet.');
+
+  // The app's own user, so a shell here is no more powerful than the app.
+  const appUser = `tsapp_${app.slug.replace(/[^a-z0-9]/g, '_')}`;
+  let ids = null;
+  try {
+    const { execSync } = require('child_process');
+    ids = {
+      uid: parseInt(execSync(`id -u ${appUser}`, { encoding: 'utf8' }), 10),
+      gid: parseInt(execSync(`id -g ${appUser}`, { encoding: 'utf8' }), 10)
+    };
+  } catch { /* no per-app user on this host; run as the runner */ }
+
+  const secrets = secretValues(envVars);
+  const mask = (chunk) => {
+    let out = String(chunk);
+    for (const v of secrets) if (out.includes(v)) out = out.split(v).join('••••••');
+    return out;
+  };
+
+  const child = spawn('sh', ['-c', command], {
+    cwd,
+    env: { PATH: process.env.PATH, HOME: cwd, ...computeEnv(app, envVars) },
+    timeout: EXEC_TIMEOUT_MS,
+    ...(ids || {})
+  });
+
+  const send = (event, data) => res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+
+  child.stdout.on('data', (c) => send('stdout', mask(c)));
+  child.stderr.on('data', (c) => send('stderr', mask(c)));
+  child.on('close', (code, signal) => {
+    send('exit', { code, signal: signal || null, timedOut: signal === 'SIGTERM' && code === null });
+    res.end();
+  });
+  child.on('error', (err) => { send('error', mask(err.message)); res.end(); });
+
+  // Closing the tab stops the command rather than leaving it running.
+  res.on('close', () => { if (!child.killed) child.kill('SIGTERM'); });
+  return child;
+}
+
+module.exports = {
+  listDirectory, readFile, runtimeEnv, declaredCommands, runDeclared, resolveInApp,
+  maskSecrets, terminalEnabled, runInteractive, MAX_FILE_BYTES
+};

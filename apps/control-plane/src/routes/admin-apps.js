@@ -606,6 +606,58 @@ router.post('/:slug/stop', requirePermission('runtime:write'), async (req, res) 
   res.status(r.status).json(ok ? { message: 'Process stopped' } : r.body);
 });
 
+// The terminal. `exec` is in the sensitive group, is in no preset, and the
+// operator role does not carry it — so this is admin and owner, or a key
+// somebody deliberately gave it to.
+//
+// Off unless the runner has ASTRODOCK_ENABLE_TERMINAL=true. The UI asks here
+// rather than assuming, so a platform with it off shows no terminal at all.
+router.get('/:slug/exec/enabled', requirePermission('apps:read'), async (req, res) => {
+  const app = await getAppBySlug(req.params.slug);
+  if (!app) return res.status(404).json({ error: 'App not found' });
+  const r = await runner.execEnabled(app.slug).catch(() => ({ status: 503, body: { enabled: false } }));
+  res.json({ enabled: !!(r.body && r.body.enabled) });
+});
+
+router.post('/:slug/exec', requirePermission('exec'), async (req, res) => {
+  const app = await getAppBySlug(req.params.slug);
+  if (!app) return res.status(404).json({ error: 'App not found' });
+  const command = req.body && req.body.command;
+  if (!command || !String(command).trim()) return res.status(400).json({ error: 'command is required' });
+
+  // Recorded before it runs, with the text. A shell nobody can review after the
+  // fact is worse than no shell.
+  emitEvent({
+    category: 'audit', type: 'app.exec', severity: 'warning',
+    ...actorFromAuth(req.auth), ip: req.ip, appSlug: app.slug, targetType: 'app', targetId: app.slug,
+    message: `Ran in ${app.slug}: ${String(command).slice(0, 500)}`
+  }).catch(() => {});
+
+  let upstream;
+  try { upstream = await runner.execStream(app.slug, String(command)); }
+  catch (e) { return res.status(e.status || 503).json({ error: e.message }); }
+
+  if (!upstream.ok && upstream.headers.get('content-type')?.includes('json')) {
+    const body = await upstream.json().catch(() => ({}));
+    return res.status(upstream.status).json(body);
+  }
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders();
+
+  const reader = upstream.body.getReader();
+  req.on('close', () => { reader.cancel().catch(() => {}); });
+  for (;;) {
+    const { done, value } = await reader.read().catch(() => ({ done: true }));
+    if (done) break;
+    res.write(Buffer.from(value));
+  }
+  res.end();
+});
+
 router.get('/:slug/logs', requirePermission('logs:read'), async (req, res) => {
   const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });

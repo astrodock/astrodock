@@ -1203,3 +1203,20 @@ label > .sel { margin-top:.4rem; }
 .adh-action-result.ok { color: var(--success, var(--text-2)); }
 .adh-action-result.bad { color: var(--warning); }
 .adh-stat-hint { color: var(--text-3); font-weight: 400; }
+
+/* ─── Per-app terminal ───
+   Command-and-stream, not a pty. Streams are told apart by colour rather than
+   by prefix, so output reads as output. */
+.terminal-tab .hint { margin-bottom: 12px; }
+.terminal-out { display: flex; flex-direction: column; min-height: 280px; max-height: 52vh; }
+.term-idle { color: var(--text-3); }
+.term-cmd { color: var(--text-1); font-weight: 600; margin-top: 8px; }
+.term-cmd:first-child { margin-top: 0; }
+.term-stdout { color: var(--text-2); white-space: pre-wrap; }
+.term-stderr { color: var(--warning); white-space: pre-wrap; }
+.term-exit { color: var(--text-3); font-style: italic; margin-bottom: 4px; }
+.terminal-input { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.terminal-input input {
+  flex: 1; font-family: var(--font-mono, ui-monospace, monospace); font-size: 13px;
+}
+.term-prompt { color: var(--text-3); font-family: var(--font-mono, ui-monospace, monospace); }

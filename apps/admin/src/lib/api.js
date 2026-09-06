@@ -233,6 +233,45 @@ export const getAuthLogs = ({ limit = 50, result, appId, email } = {}) => {
 };
 
 // Audit / system events
+export const getAppExecEnabled = (slug) => request(`/apps/${slug}/exec/enabled`);
+
+// SSE over POST, so it cannot use EventSource. Reads the stream by hand and
+// hands each event to the caller as it arrives, which is the point of a
+// terminal: watching output rather than waiting for it.
+export async function execStream(slug, command, signal, onEvent) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (getToken()) headers['Authorization'] = `Bearer ${getToken()}`;
+  const res = await fetch(`${API_BASE}/apps/${slug}/exec`, {
+    method: 'POST', headers, body: JSON.stringify({ command }), signal
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new ApiError(data.error || `Request failed (${res.status})`, { status: res.status });
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    // Events are separated by a blank line; a partial one stays in the buffer.
+    const chunks = buffer.split('\n\n');
+    buffer = chunks.pop();
+    for (const chunk of chunks) {
+      let event = 'message';
+      let data = '';
+      for (const line of chunk.split('\n')) {
+        if (line.startsWith('event: ')) event = line.slice(7).trim();
+        else if (line.startsWith('data: ')) data += line.slice(6);
+      }
+      if (!data) continue;
+      try { onEvent(event, JSON.parse(data)); } catch { onEvent(event, data); }
+    }
+  }
+}
+
 export const getEvents = ({ limit = 100, category, appSlug } = {}) => {
   const p = new URLSearchParams();
   p.set('limit', limit);

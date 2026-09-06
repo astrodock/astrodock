@@ -43,6 +43,11 @@ const runner = {
   statusAll: () => call('GET', '/apps/status-all'),
   restart: (slug) => call('POST', `/apps/${slug}/restart`),
   stop: (slug) => call('POST', `/apps/${slug}/stop`),
+  execEnabled: (slug) => call('GET', `/apps/${slug}/exec/enabled`),
+  // Streamed, not buffered: the point of a terminal is watching output arrive.
+  execStream: (slug, command) => callStream('POST', `/apps/${slug}/exec`, {
+    body: JSON.stringify({ command }), headers: { 'Content-Type': 'application/json' }
+  }),
   remove: (slug) => call('POST', `/apps/${slug}/remove`),
   logs: (slug, lines) => call('GET', `/apps/${slug}/logs`, { query: { lines: lines || 100 } }),
   backup: (trigger = 'manual') => call('POST', '/backup', { json: { trigger } }),

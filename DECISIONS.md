@@ -56,6 +56,20 @@ implementation-level decisions I had to make to get a working build follow.
   `SECURITY.md`.
 - **Why:** It's the single sharpest edge. Off-by-default is the responsible publishing posture;
   the trusted single operator can opt in.
+- **Built (2026-09-06), and not where the precursor put it.** This decision sat unimplemented
+  for months while the docs described it as done; `app-ops.js` had replaced it with named
+  actions instead. What settled it was an app that crash-looped 809 times with no way to find
+  out why. Four further choices, all deliberate:
+  - **On the runner, not the control plane.** The precursor ran `sh -c` in the API container,
+    which loads the key that decrypts every app's secrets — and could not read the app files it
+    was aimed at, because those live on the runner. Running it on the runner fixes both.
+  - **As the app's own user, with the app's own environment.** A shell is then no more powerful
+    than the app it belongs to.
+  - **Command-and-stream over SSE, not a pty.** No native dependency, no session lifecycle. It
+    does not run `vim`; it was never `vim` that was needed.
+  - **`exec` scope, plus masked output and an audit event per command.** `exec` is sensitive, in
+    no preset, and absent from the operator role, so this is admin and owner. `runDeclared`
+    stays the everyday path; the terminal is the escape hatch.
 
 ### A7. Name → **keep Astrodock** (working name, unchanged)
 - No reason surfaced to revisit during the build. Env prefix `ASTRODOCK_`, CLI `astrodock`

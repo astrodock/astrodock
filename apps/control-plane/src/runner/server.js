@@ -140,6 +140,34 @@ app.get('/apps/:slug/ops/commands', async (req, res) => {
   const a = await loadApp(req.params.slug); if (!a) return res.status(404).json({ error: 'App not found' });
   res.json({ commands: require('./app-ops').declaredCommands(a) });
 });
+// Arbitrary command execution, off unless ASTRODOCK_ENABLE_TERMINAL=true.
+// The control plane gates this on the `exec` scope and audits every call; the
+// runner's job is to run it as the app's own user with the app's own env.
+app.get('/apps/:slug/exec/enabled', (req, res) => {
+  res.json({ enabled: require('./app-ops').terminalEnabled() });
+});
+
+app.post('/apps/:slug/exec', express.json(), async (req, res) => {
+  const ops = require('./app-ops');
+  if (!ops.terminalEnabled()) return res.status(404).json({ error: 'The terminal is not enabled on this platform.' });
+  const a = await loadApp(req.params.slug);
+  if (!a) return res.status(404).json({ error: 'App not found' });
+  const command = req.body && req.body.command;
+  if (!command || !String(command).trim()) return res.status(400).json({ error: 'command is required' });
+
+  const vars = await db.select().from(schema.appEnvVars).where(eq(schema.appEnvVars.appId, a.id));
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders();
+  try { ops.runInteractive(a, vars, String(command), res); }
+  catch (e) {
+    res.write(`event: error\ndata: ${JSON.stringify(e.message)}\n\n`);
+    res.end();
+  }
+});
+
 app.post('/apps/:slug/ops/run', express.json(), async (req, res) => {
   const a = await loadApp(req.params.slug); if (!a) return res.status(404).json({ error: 'App not found' });
   const vars = await db.select().from(schema.appEnvVars).where(eq(schema.appEnvVars.appId, a.id));

@@ -19,8 +19,14 @@ plainly rather than pretending they aren't there.
 - **Dockerfile apps use a mounted Docker socket.** `runtime.type: "docker"` builds and runs
   sibling containers via `/var/run/docker.sock`, which is **root-equivalent on the host**. This is
   accepted under the trusted-operator model.
-- **The per-app terminal is arbitrary RCE.** The `/exec` SSE endpoint runs shell commands in an
-  Leave it off unless you understand and accept this.
+- **The per-app terminal is arbitrary RCE.** `POST /admin/apps/<slug>/exec` streams shell commands
+  over SSE. It is registered only when the runner has `ASTRODOCK_ENABLE_TERMINAL=true`, and it is
+  gated on the `exec` scope, which is in the sensitive group, appears in no key preset, and is not
+  carried by the operator role. Commands run **on the runner**, in the app's own directory, as the
+  app's own user, with the app's own environment and nothing of the platform's; output has the
+  app's secret values masked; every invocation is written to the audit trail with its text before
+  it runs. That bounds it to the blast radius of the app itself rather than the platform, but a
+  shell is still a shell. Leave it off unless you understand and accept this.
 - **GitHub PAT in clone URLs.** The runner clones with `https://x-access-token:<PAT>@…`. The token
   is not written to stored deploy logs, but treat the runner host as holding that credential.
 

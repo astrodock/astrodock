@@ -5,6 +5,7 @@ import { appHost, appUrl } from '../lib/appUrl';
 import DeploysTab from '../components/DeploysTab';
 import EnvVarsTab from '../components/EnvVarsTab';
 import HistoryTab from '../components/HistoryTab';
+import TerminalTab from '../components/TerminalTab';
 import LogsTab from '../components/LogsTab';
 import SettingsTab from '../components/SettingsTab';
 import OperationsTab from '../components/OperationsTab';
@@ -12,7 +13,7 @@ import SignInTab from '../components/SignInTab';
 import DomainsTab from '../components/DomainsTab';
 import useConfirm from '../lib/useConfirm';
 
-const TABS = ['deploys', 'env', 'domains', 'signin', 'logs', 'history', 'operations', 'settings'];
+const BASE_TABS = ['deploys', 'env', 'domains', 'signin', 'logs', 'history', 'operations', 'settings'];
 const TAB_LABELS = { deploys: 'Deploys', env: 'Variables', domains: 'Domains', signin: 'Sign-in', logs: 'Logs', operations: 'Operations', settings: 'Settings' };
 
 const STATUS_LABELS = {
@@ -44,6 +45,9 @@ export default function AppDetailPage() {
   const [activeTab, setActiveTab] = useState('deploys');
   const [error, setError] = useState('');
   const [action, setAction] = useState(null);   // result of the last restart/stop
+  // Off on most platforms. Asked rather than assumed, so a platform without the
+  // terminal shows no tab at all rather than one that errors when clicked.
+  const [execEnabled, setExecEnabled] = useState(false);
   const [confirmNode, ask] = useConfirm();
 
   async function load() {
@@ -64,6 +68,16 @@ export default function AppDetailPage() {
   }
 
   useEffect(() => { load(); loadStatus(); }, [slug]);
+
+  const tabs = execEnabled
+    ? BASE_TABS.flatMap((t) => (t === 'operations' ? ['operations', 'terminal'] : [t]))
+    : BASE_TABS;
+
+  useEffect(() => {
+    api.getAppExecEnabled(slug)
+      .then((d) => setExecEnabled(!!d.enabled))
+      .catch(() => setExecEnabled(false));
+  }, [slug]);
 
   // Refresh status periodically
   useEffect(() => {
@@ -202,7 +216,7 @@ export default function AppDetailPage() {
       {error && <div className="error">{error}</div>}
 
       <div className="tabs">
-        {TABS.map(tab => (
+        {tabs.map(tab => (
           <button
             key={tab}
             className={`tab ${activeTab === tab ? 'active' : ''}`}
@@ -219,6 +233,7 @@ export default function AppDetailPage() {
         {activeTab === 'domains' && <DomainsTab app={app} />}
         {activeTab === 'logs' && <LogsTab app={app} />}
         {activeTab === 'history' && <HistoryTab app={app} />}
+        {activeTab === 'terminal' && <TerminalTab app={app} />}
         {activeTab === 'signin' && <SignInTab app={app} />}
         {activeTab === 'operations' && <OperationsTab app={app} />}
         {activeTab === 'settings' && <SettingsTab app={app} onRefresh={load} />}
