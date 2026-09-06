@@ -23,6 +23,7 @@ const fs = require('fs');
 const path = require('path');
 const { execFile } = require('child_process');
 const config = require('../config');
+const { decryptSecret } = require('../lib/crypto');
 
 const MAX_FILE_BYTES = 256 * 1024;
 const COMMAND_TIMEOUT_MS = 5 * 60 * 1000;
@@ -55,7 +56,36 @@ function listDirectory(slug, relative = '.') {
     .sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name) : a.type === 'dir' ? -1 : 1));
 }
 
-function readFile(slug, relative) {
+// Every secret this app holds, longest first so a value that contains another
+// is masked before its substring is.
+function secretValues(envVars) {
+  return (envVars || [])
+    .filter((v) => v.isSecret && v.value)
+    .map((v) => {
+      // Stored secrets are encrypted at rest; compare against the plaintext.
+      try { return decryptSecret(v.value); } catch { return v.value; }
+    })
+    .filter((v) => typeof v === 'string' && v.length >= 8)
+    .sort((a, b) => b.length - a.length);
+}
+
+// The env tab masks secrets to ••••••. This reader served the same values in
+// the clear, because ecosystem.config.js *is* the environment written to disk
+// — so a token with only `logs:read` could read every key the app holds. Mask
+// on the way out, whatever file they came from: a .env, a config, a log line
+// that printed one.
+function maskSecrets(text, envVars) {
+  let out = String(text);
+  let hits = 0;
+  for (const secret of secretValues(envVars)) {
+    if (!out.includes(secret)) continue;
+    out = out.split(secret).join('••••••');
+    hits += 1;
+  }
+  return { text: out, masked: hits };
+}
+
+function readFile(slug, relative, envVars) {
   if (!relative) throw new Error('Which file?');
   const { target } = resolveInApp(slug, relative);
   if (!fs.existsSync(target) || !fs.statSync(target).isFile()) throw new Error('No such file in this app.');
@@ -66,7 +96,8 @@ function readFile(slug, relative) {
   const buf = fs.readFileSync(target);
   // Binary would be noise at best and a terminal-escape vector at worst.
   if (buf.includes(0)) throw new Error('That looks like a binary file.');
-  return { path: relative, size, content: buf.toString('utf8') };
+  const { text, masked } = maskSecrets(buf.toString('utf8'), envVars);
+  return { path: relative, size, content: text, secretsMasked: masked };
 }
 
 /**
@@ -135,4 +166,4 @@ function runDeclared(app, envVars, name) {
   });
 }
 
-module.exports = { listDirectory, readFile, runtimeEnv, declaredCommands, runDeclared, resolveInApp, MAX_FILE_BYTES };
+module.exports = { listDirectory, readFile, runtimeEnv, declaredCommands, runDeclared, resolveInApp, maskSecrets, MAX_FILE_BYTES };

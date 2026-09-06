@@ -125,8 +125,11 @@ app.get('/apps/:slug/ops/list', async (req, res) => {
 });
 app.get('/apps/:slug/ops/file', async (req, res) => {
   const a = await loadApp(req.params.slug); if (!a) return res.status(404).json({ error: 'App not found' });
-  try { res.json(require('./app-ops').readFile(a.slug, req.query.path)); }
-  catch (e) { res.status(400).json({ error: e.message }); }
+  try {
+    // The app's own secrets, so they can be masked out of whatever is served.
+    const vars = await db.select().from(schema.appEnvVars).where(eq(schema.appEnvVars.appId, a.id));
+    res.json(require('./app-ops').readFile(a.slug, req.query.path, vars));
+  } catch (e) { res.status(400).json({ error: e.message }); }
 });
 app.get('/apps/:slug/ops/env', async (req, res) => {
   const a = await loadApp(req.params.slug); if (!a) return res.status(404).json({ error: 'App not found' });
