@@ -4,6 +4,7 @@ import * as api from '../lib/api';
 import { appHost, appUrl } from '../lib/appUrl';
 import DeploysTab from '../components/DeploysTab';
 import EnvVarsTab from '../components/EnvVarsTab';
+import HistoryTab from '../components/HistoryTab';
 import LogsTab from '../components/LogsTab';
 import SettingsTab from '../components/SettingsTab';
 import OperationsTab from '../components/OperationsTab';
@@ -11,7 +12,7 @@ import SignInTab from '../components/SignInTab';
 import DomainsTab from '../components/DomainsTab';
 import useConfirm from '../lib/useConfirm';
 
-const TABS = ['deploys', 'env', 'domains', 'signin', 'logs', 'operations', 'settings'];
+const TABS = ['deploys', 'env', 'domains', 'signin', 'logs', 'history', 'operations', 'settings'];
 const TAB_LABELS = { deploys: 'Deploys', env: 'Variables', domains: 'Domains', signin: 'Sign-in', logs: 'Logs', operations: 'Operations', settings: 'Settings' };
 
 const STATUS_LABELS = {
@@ -42,6 +43,7 @@ export default function AppDetailPage() {
   const [procStatus, setProcStatus] = useState(null);
   const [activeTab, setActiveTab] = useState('deploys');
   const [error, setError] = useState('');
+  const [action, setAction] = useState(null);   // result of the last restart/stop
   const [confirmNode, ask] = useConfirm();
 
   async function load() {
@@ -69,11 +71,26 @@ export default function AppDetailPage() {
     return () => clearInterval(interval);
   }, [slug]);
 
+  // Restart used to fire and say nothing: the request returned 200, the status
+  // refreshed a second later, and an app that died again immediately looked
+  // exactly like a button that did nothing. Report what the process is actually
+  // doing a moment afterwards, which is the part that answers the question.
   async function handleRestart() {
+    setError('');
+    setAction({ busy: true, text: 'Restarting…' });
     try {
       await api.restartApp(slug);
-      setTimeout(loadStatus, 1000);
+      await new Promise((r) => setTimeout(r, 1500));
+      const after = await api.getAppStatus(slug).catch(() => null);
+      setProcStatus(after);
+      const state = after && after.status;
+      setAction(state === 'online'
+        ? { busy: false, ok: true, text: `Running (pid ${after.pid})` }
+        : { busy: false, ok: false, text: state === 'errored'
+          ? `Restarted, but the process is errored after ${after.restarts || 0} restart(s) — see Logs`
+          : `Restarted, but the process is ${state || 'not reporting'} — see Logs` });
     } catch (err) {
+      setAction({ busy: false, ok: false, text: err.message });
       setError(err.message);
     }
   }
@@ -91,10 +108,20 @@ export default function AppDetailPage() {
         </>
       ),
       onConfirm: async () => {
+        setError('');
+        setAction({ busy: true, text: 'Stopping…' });
         try {
           await api.stopApp(slug);
-          setTimeout(loadStatus, 1000);
+          await new Promise((r) => setTimeout(r, 1200));
+          const after = await api.getAppStatus(slug).catch(() => null);
+          setProcStatus(after);
+          // A stop that leaves something answering means the process the
+          // supervisor knows about is not the one holding the port.
+          setAction((after && after.status === 'online')
+            ? { busy: false, ok: false, text: 'Asked to stop, but a process is still running — check Logs and History' }
+            : { busy: false, ok: true, text: 'Stopped' });
         } catch (err) {
+          setAction({ busy: false, ok: false, text: err.message });
           setError(err.message);
         }
       }
@@ -130,16 +157,44 @@ export default function AppDetailPage() {
           </div>
           <div className="adh-actions">
             <a href={appUrl(app.subdomain)} target="_blank" rel="noopener">Open ↗</a>
-            {procStatus && procStatus.status !== 'unavailable' && <button onClick={handleRestart}>Restart</button>}
-            {procStatus?.status === 'online' && <button className="danger" onClick={handleStop}>Stop</button>}
+            {procStatus && procStatus.status !== 'unavailable' && (
+              <button onClick={handleRestart} disabled={action?.busy}>
+                {action?.busy ? 'Restarting…' : 'Restart'}
+              </button>
+            )}
+            {procStatus?.status === 'online' && (
+              <button className="danger" onClick={handleStop} disabled={action?.busy}>Stop</button>
+            )}
           </div>
         </div>
+
+        {/* The result of the last restart or stop. Without it the button was
+            indistinguishable from a no-op whenever the process died again. */}
+        {action && !action.busy && (
+          <p className={`adh-action-result ${action.ok ? 'ok' : 'bad'}`}>{action.text}</p>
+        )}
+
         {procStatus?.status === 'online' && (
           <div className="adh-stats">
             <span className="adh-stat">Uptime <b>{formatUptime(procStatus.uptime)}</b></span>
             <span className="adh-stat">Memory <b>{formatMemory(procStatus.memory)}</b></span>
             <span className="adh-stat">CPU <b>{procStatus.cpu}%</b></span>
             {procStatus.restarts > 0 && <span className="adh-stat">Restarts <b>{procStatus.restarts}</b></span>}
+          </div>
+        )}
+
+        {/* A stopped or errored app used to show no stats at all, so the one
+            number that explains it — how many times it has died — was hidden
+            exactly when it mattered. */}
+        {procStatus && (procStatus.status === 'errored' || procStatus.status === 'stopped') && (
+          <div className="adh-stats">
+            <span className="adh-stat">State <b>{procStatus.status}</b></span>
+            <span className="adh-stat">Restarts <b>{procStatus.restarts || 0}</b></span>
+            <span className="adh-stat adh-stat-hint">
+              {procStatus.status === 'errored'
+                ? 'It keeps exiting on start. Logs has the reason.'
+                : 'Not running. Restart to bring it back.'}
+            </span>
           </div>
         )}
       </div>
@@ -163,6 +218,7 @@ export default function AppDetailPage() {
         {activeTab === 'env' && <EnvVarsTab app={app} onRefresh={load} />}
         {activeTab === 'domains' && <DomainsTab app={app} />}
         {activeTab === 'logs' && <LogsTab app={app} />}
+        {activeTab === 'history' && <HistoryTab app={app} />}
         {activeTab === 'signin' && <SignInTab app={app} />}
         {activeTab === 'operations' && <OperationsTab app={app} />}
         {activeTab === 'settings' && <SettingsTab app={app} onRefresh={load} />}

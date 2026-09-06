@@ -1196,3 +1196,10 @@ label > .sel { margin-top:.4rem; }
 .app-footer a:hover { color:var(--accent); }
 .app-footer .sep { opacity:.4; }
 .app-footer .right { margin-left:auto; display:flex; align-items:center; gap:16px; }
+
+/* The outcome of a restart or stop, said out loud. The button used to fire and
+   report nothing, so a process that died again looked like a dead button. */
+.adh-action-result { margin-top: 10px; font-size: 13px; }
+.adh-action-result.ok { color: var(--success, var(--text-2)); }
+.adh-action-result.bad { color: var(--warning); }
+.adh-stat-hint { color: var(--text-3); font-weight: 400; }
