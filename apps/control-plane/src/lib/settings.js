@@ -37,6 +37,21 @@ const REGISTRY = {
     description: 'The address alerts appear to come from. It must be one your email provider is allowed to send as.',
     default: () => config.email.from
   },
+  'google.client_id': {
+    label: 'Google client ID', type: 'string',
+    description: 'OAuth 2.0 client ID from Google Cloud Console. Blank turns Google sign-in off everywhere.',
+    default: () => ''
+  },
+  'google.client_secret': {
+    label: 'Google client secret', type: 'string', secret: true,
+    description: 'The client secret for that OAuth client.',
+    default: () => ''
+  },
+  'google.allowed_domains': {
+    label: 'Google domains allowed', type: 'string',
+    description: 'Comma-separated. Blank allows any Google account; otherwise only these domains may sign in, checked against the verified token rather than anything the browser sends.',
+    default: () => ''
+  },
   'logging.page_view_ip': {
     label: 'Store visitor IPs in page access logs', type: 'enum',
     description: 'How much of a visitor IP address is kept in page access logs. Truncated drops the last octet; off stores none.',
@@ -159,8 +174,14 @@ async function getSetting(key, fallback) {
   return d === undefined ? fallback : d;
 }
 
+// What a masked secret looks like on the way out, and what is refused on the
+// way in: saving the settings form unchanged must not overwrite a real secret
+// with six bullet characters.
+const SECRET_MASK = '••••••';
+
 async function setSetting(key, value, actor) {
   if (!REGISTRY[key]) throw new Error(`unknown setting: ${key}`);
+  if (REGISTRY[key].secret && value === SECRET_MASK) return undefined;
   const v = coerce(key, value);
   const row = { key, value: v, updatedBy: actor || '', updatedAt: new Date() };
   await db.insert(schema.platformSettings).values(row)
@@ -251,6 +272,24 @@ async function effective() {
 
   return Object.entries(REGISTRY).map(([key, def]) => {
     const has = overrides.has(key);
+    const raw = has ? overrides.get(key) : def.default();
+    // A setting marked secret reports whether it is set, never what it is. The
+    // flag existed before this and did nothing, which is the worst state for a
+    // flag with that name to be in.
+    if (def.secret) {
+      return {
+        key,
+        label: def.label,
+        type: def.type,
+        values: null,
+        description: def.description || null,
+        placeholder: def.placeholder || null,
+        secret: true,
+        isSet: !!(raw && String(raw).length),
+        value: raw && String(raw).length ? SECRET_MASK : '',
+        source: has ? 'override' : 'default'
+      };
+    }
     return {
       key,
       label: def.label,
@@ -258,7 +297,7 @@ async function effective() {
       values: def.type === 'app' ? appChoices : (def.values || null),
       description: def.description || null,
       placeholder: def.placeholder || null,
-      value: has ? overrides.get(key) : def.default(),
+      value: raw,
       source: has ? 'override' : 'default'
     };
   });
@@ -368,7 +407,7 @@ async function readiness() {
 }
 
 module.exports = {
-  getSetting, setSetting, effective, diagnostics, readiness, exposureCheck, REGISTRY,
+  getSetting, setSetting, effective, diagnostics, readiness, exposureCheck, REGISTRY, SECRET_MASK,
   setBootstrap, applyBootstrapSettings, BOOTSTRAP_REGISTRY,
   isSetupDeferred, setSetupDeferred
 };

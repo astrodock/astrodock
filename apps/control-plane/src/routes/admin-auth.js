@@ -16,6 +16,8 @@ const sessions = require('../lib/sessions');
 const roles = require('../lib/roles');
 const { getSetting } = require('../lib/settings');
 const { emitEvent } = require('../lib/events');
+const google = require('../lib/google');
+const googleAccounts = require('../lib/google-accounts');
 // Unauthenticated password guessing: the limiter existed but was never applied here.
 const { adminLoginLimiter } = require('../middleware/rateLimiter');
 
@@ -75,6 +77,116 @@ router.post('/login', adminLoginLimiter, async (req, res) => {
         ? await factors.consumeRecoveryCode(user.id, recoveryCode)
         : await factors.checkTotp(user, totp);
       if (!ok) return res.status(401).json({ error: 'That code is not right.', code: 'totp_required' });
+    }
+
+    return issue(res, user, req);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Google sign-in ────────────────────────────────────────────────────────────
+//
+// The browser leaves for Google and comes back to a redirect, but the dashboard
+// is a single-page app and an account may still owe a TOTP code. So the
+// callback does not mint a session directly: it resolves the account, parks a
+// single-use ticket, and bounces to the login page with it. The SPA exchanges
+// the ticket, and if a second factor is owed it asks for one using the field it
+// already has.
+//
+// Tickets are in memory, sixty seconds, one use. A restart mid-sign-in fails
+// closed, which for a login is the right direction to fail.
+const googleTickets = new Map();
+const TICKET_TTL_MS = 60 * 1000;
+
+function parkTicket(userId) {
+  const id = require('crypto').randomBytes(24).toString('base64url');
+  googleTickets.set(id, { userId, at: Date.now() });
+  return id;
+}
+
+function takeTicket(id) {
+  const now = Date.now();
+  for (const [k, v] of googleTickets) if (now - v.at > TICKET_TTL_MS) googleTickets.delete(k);
+  const entry = id && googleTickets.get(id);
+  if (!entry) return null;
+  googleTickets.delete(id);
+  return entry;
+}
+
+// Must match a redirect URI registered on the Google client exactly. Built from
+// the request's own host so it is right on the admin host, on a custom domain,
+// and in local development without a setting to keep in step.
+function callbackUrl(req) {
+  const scheme = (req.headers['x-forwarded-proto'] || req.protocol || 'https').split(',')[0].trim();
+  return `${scheme}://${req.get('host')}/admin/google/callback`;
+}
+
+router.get('/google/enabled', async (req, res) => {
+  res.json({ enabled: await google.configured().catch(() => false) });
+});
+
+router.get('/google/start', adminLoginLimiter, async (req, res) => {
+  try {
+    const { url } = await google.begin({ redirectUri: callbackUrl(req), context: { surface: 'operator' } });
+    res.redirect(url);
+  } catch (err) {
+    res.redirect(`/login?google_error=${encodeURIComponent(err.message)}`);
+  }
+});
+
+router.get('/google/callback', adminLoginLimiter, async (req, res) => {
+  try {
+    const identity = await google.complete({ code: req.query.code, state: req.query.state });
+    const { user, error } = await googleAccounts.resolveOperator(identity);
+    if (error) {
+      // Recorded: a refused dashboard sign-in is worth seeing, and it is the
+      // only trace a stranger's attempt would otherwise leave.
+      await emitEvent({
+        category: 'audit', type: 'operator.google_denied', severity: 'warning',
+        message: `Google sign-in refused for ${identity.email}: ${error}`,
+        actorType: 'system', actor: identity.email, ip: req.ip || ''
+      }).catch(() => {});
+      return res.redirect(`/login?google_error=${encodeURIComponent(error)}`);
+    }
+    return res.redirect(`/login?google_ticket=${parkTicket(user.id)}`);
+  } catch (err) {
+    res.redirect(`/login?google_error=${encodeURIComponent(err.message)}`);
+  }
+});
+
+// The SPA hands the ticket back, with a TOTP code if it was asked for one.
+router.post('/login/google', adminLoginLimiter, async (req, res) => {
+  try {
+    const { ticket, totp, recoveryCode } = req.body || {};
+    const entry = takeTicket(ticket);
+    if (!entry) return res.status(401).json({ error: 'That sign-in expired. Start again.' });
+
+    const [user] = await db.select().from(schema.users).where(eq(schema.users.id, entry.userId)).limit(1);
+    if (!user || !user.isActive || !roles.isOperator(user)) return deny(res);
+
+    const f = await factors.factorsFor(user.id);
+
+    // Google is one factor, not two: its ID token carries no amr or acr claim,
+    // so there is no way to know whether a second factor was used over there.
+    // An account with TOTP is still asked for it.
+    if (f.totp) {
+      if (!totp && !recoveryCode) {
+        // Re-park so the second post has something to present.
+        return res.status(401).json({
+          error: 'Enter the code from your authenticator app.',
+          code: 'totp_required',
+          ticket: parkTicket(user.id)
+        });
+      }
+      const ok = recoveryCode
+        ? await factors.consumeRecoveryCode(user.id, recoveryCode)
+        : await factors.checkTotp(user, totp);
+      if (!ok) {
+        return res.status(401).json({
+          error: 'That code is not right.', code: 'totp_required', ticket: parkTicket(user.id)
+        });
+      }
     }
 
     return issue(res, user, req);

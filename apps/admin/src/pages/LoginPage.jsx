@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import * as api from '../lib/api';
 import { login, setToken } from '../lib/api';
 import * as webauthn from '../lib/webauthn';
@@ -15,6 +15,47 @@ export default function LoginPage({ onLogin }) {
   const [useRecovery, setUseRecovery] = useState(false);
   const [passkeyBusy, setPasskeyBusy] = useState(false);
   const passkeySupported = webauthn.supported();
+  // Absent unless the platform has a Google client configured, rather than
+  // present and failing when pressed.
+  const [googleEnabled, setGoogleEnabled] = useState(false);
+  const [googleTicket, setGoogleTicket] = useState(null);
+
+  useEffect(() => {
+    api.googleEnabled().then((d) => setGoogleEnabled(!!d.enabled)).catch(() => setGoogleEnabled(false));
+  }, []);
+
+  // Coming back from Google. The callback cannot mint a session directly, because
+  // the account may still owe a code, so it parks a single-use ticket and the
+  // exchange happens here where the TOTP field already lives.
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    const err = p.get('google_error');
+    const ticket = p.get('google_ticket');
+    if (!err && !ticket) return;
+    window.history.replaceState(null, '', '/login');
+    if (err) { setError(err); return; }
+    exchangeGoogle(ticket);
+  }, []);
+
+  async function exchangeGoogle(ticket, extra = {}) {
+    setError(''); setLoading(true);
+    try {
+      const data = await api.loginGoogle(ticket, extra);
+      setToken(data.token);
+      onLogin();
+    } catch (err) {
+      if (err.body?.code === 'totp_required') {
+        // Google got us this far; the second factor is still owed.
+        setGoogleTicket(err.body.ticket);
+        setNeedsCode(true);
+        setError(extra.totp || extra.recoveryCode ? err.message : '');
+      } else {
+        setError(err.message);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
 
   // Discoverable credentials: the authenticator knows which account it is for, so
   // there is nothing to type first. This is the whole point of a passkey and the
@@ -35,6 +76,11 @@ export default function LoginPage({ onLogin }) {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    // Mid-Google sign-in the form is only collecting the second factor, and the
+    // password fields are not part of it.
+    if (googleTicket) {
+      return exchangeGoogle(googleTicket, useRecovery ? { recoveryCode: code } : { totp: code });
+    }
     setError('');
     setLoading(true);
     try {
@@ -74,7 +120,10 @@ export default function LoginPage({ onLogin }) {
         </div>
         <p className="login-subtitle">Admin Control Plane</p>
         {error && <div className="error">{error}</div>}
-        <label>
+        {googleTicket && (
+          <p className="login-subtitle">Signed in with Google. One more step.</p>
+        )}
+        {!googleTicket && <label>
           Email
           <input
             type="email"
@@ -84,8 +133,8 @@ export default function LoginPage({ onLogin }) {
             autoFocus
             placeholder="you@example.com"
           />
-        </label>
-        <label>
+        </label>}
+        {!googleTicket && <label>
           Password
           <input
             type="password"
@@ -94,7 +143,7 @@ export default function LoginPage({ onLogin }) {
             required
             placeholder="Enter password"
           />
-        </label>
+        </label>}
         {needsCode && (
           <label>
             {useRecovery ? 'Recovery code' : 'Authenticator code'}
@@ -112,10 +161,26 @@ export default function LoginPage({ onLogin }) {
           </label>
         )}
         <button type="submit" className="login-btn" disabled={loading || passkeyBusy}>
-          {loading ? 'Signing in…' : 'Sign In'}
+          {loading ? 'Signing in…' : googleTicket ? 'Continue' : 'Sign In'}
         </button>
 
-        {passkeySupported && (
+        {googleEnabled && !googleTicket && (
+          <>
+            <div className="or-rule"><span>or</span></div>
+            {/* A link, not a fetch: the whole point is leaving for Google. */}
+            <a className="login-btn secondary" href="/admin/google/start">
+              <svg width="15" height="15" viewBox="0 0 18 18" aria-hidden="true">
+                <path fill="#4285F4" d="M17.6 9.2c0-.6-.1-1.2-.2-1.8H9v3.5h4.8a4.1 4.1 0 0 1-1.8 2.7v2.2h2.9c1.7-1.6 2.7-3.9 2.7-6.6z"/>
+                <path fill="#34A853" d="M9 18c2.4 0 4.5-.8 6-2.2l-2.9-2.2c-.8.5-1.8.9-3.1.9-2.4 0-4.4-1.6-5.1-3.8H.9v2.3A9 9 0 0 0 9 18z"/>
+                <path fill="#FBBC05" d="M3.9 10.7a5.4 5.4 0 0 1 0-3.4V5H.9a9 9 0 0 0 0 8l3-2.3z"/>
+                <path fill="#EA4335" d="M9 3.6c1.3 0 2.5.5 3.4 1.3l2.6-2.6A9 9 0 0 0 .9 5l3 2.3C4.6 5.2 6.6 3.6 9 3.6z"/>
+              </svg>
+              Continue with Google
+            </a>
+          </>
+        )}
+
+        {passkeySupported && !googleTicket && (
           <>
             <div className="or-rule"><span>or</span></div>
             <button type="button" className="login-btn secondary"

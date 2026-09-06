@@ -233,6 +233,10 @@ export const getAuthLogs = ({ limit = 50, result, appId, email } = {}) => {
 };
 
 // Audit / system events
+export const googleEnabled = () => request('/google/enabled');
+export const loginGoogle = (ticket, extra = {}) =>
+  request('/login/google', { method: 'POST', body: JSON.stringify({ ticket, ...extra }) });
+
 export const getAppExecEnabled = (slug) => request(`/apps/${slug}/exec/enabled`);
 
 // SSE over POST, so it cannot use EventSource. Reads the stream by hand and

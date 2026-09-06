@@ -374,3 +374,43 @@ re-enrol via recovery codes — which is precisely what they exist for.
   same job in practice.
 - Whether app `redirect_uri` allowlists should permit a single wildcard for local development
   (`http://localhost:*`). Convenient, and a place mistakes hide.
+
+## Sign in with Google
+
+Added 2026-09-06, on both surfaces, from one implementation: the operator
+dashboard and the hosted page every app shares. The difference between them is
+only what happens at the end — a dashboard session, or an authorization code for
+the app that asked. Apps get Google sign-in without implementing any of it.
+
+Four decisions worth keeping written down.
+
+**Accounts link by Google's `sub`, not by email.** A subject id is stable and
+unique; an address is neither. Matching on email alone means whoever comes to
+control an address at Google controls the account here. Email is used exactly
+once, to find the account a `sub` should attach to on first sign-in, and only
+when Google says the address is verified.
+
+**An operator account is never created by signing in.** A dashboard login is an
+invitation. Google handing us an address with no operator behind it is a
+stranger, and the answer is no. End users are different: their accounts are
+per-app and carry no platform privileges, so an app may opt into self-service
+signup with `allowGoogleSignup`, which is the app owner's call. That flag can
+never produce an operator: `operatorRole` is left null explicitly rather than
+defaulted.
+
+**Google is one factor, not two.** Its ID token carries no `amr` or `acr` claim,
+so there is no way to know whether a second factor was used over there. An
+account with TOTP configured is still asked for it. Anything else would silently
+downgrade every account whose Google side is password-only. On the dashboard the
+callback parks a single-use ticket and the SPA collects the code with the field
+it already has; on the hosted page an account with TOTP is sent back to the
+password form rather than given a second challenge screen.
+
+**The token is verified, not decoded.** RS256 against Google's published keys,
+`iss`, `aud` equal to our client id, `exp`, and a `nonce` matching the request
+that asked for it. `state` is single-use and consumed by its first use whether
+or not that use succeeds, so a failed attempt leaves nothing replayable.
+
+An optional domain allowlist (`google.allowed_domains`) is checked against the
+verified token's own `hd`/email domain, never a client hint. Blank allows any
+Google account.

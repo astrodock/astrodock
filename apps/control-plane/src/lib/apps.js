@@ -35,6 +35,7 @@ function serializeApp(app) {
       logoutUrl: config.authBaseUrl() ? `${config.authBaseUrl()}/logout` : ''
     },
     brand: { color: app.brandColor || '', logoUrl: app.logoUrl || '' },
+    allowGoogleSignup: !!app.allowGoogleSignup,
     database: { mode: app.databaseMode },
     storage: { mode: app.storageMode },
     repoConnected: !!app.githubRepo,

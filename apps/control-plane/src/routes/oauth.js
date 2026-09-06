@@ -16,6 +16,15 @@ const oauth = require('../lib/oauth');
 const userSession = require('../lib/user-session');
 const factors = require('../lib/auth-factors');
 const passkeys = require('../lib/passkeys');
+const google = require('../lib/google');
+const googleAccounts = require('../lib/google-accounts');
+
+// Registered once on the Google client and shared by every app: the app being
+// signed into travels in the sign-in's own context, not in the redirect URI.
+function googleCallbackUrl(req) {
+  const scheme = (req.headers['x-forwarded-proto'] || req.protocol || 'https').split(',')[0].trim();
+  return `${scheme}://${req.get('host')}/login/google/callback`;
+}
 const { decryptSecret } = require('../lib/crypto');
 const { emitEvent } = require('../lib/events');
 // The hosted sign-in is the replacement for /verify, which was rate limited.
@@ -83,7 +92,9 @@ router.get('/authorize', async (req, res) => {
     nonce: String(nonce),
     brandColor: app.brandColor || '',
     logoUrl: app.logoUrl || '',
-    signedInAs: session?.email || ''
+    signedInAs: session?.email || '',
+    // Absent rather than broken when the platform has no Google client.
+    googleEnabled: await google.configured().catch(() => false)
   }));
 });
 
@@ -167,6 +178,78 @@ router.post('/login', pageLoginLimiter, express.json(), async (req, res) => {
     res.json({ code });
   } catch (err) {
     res.status(401).json({ error: err.message });
+  }
+});
+
+// ── Sign in with Google, for end users ────────────────────────────────────────
+//
+// Same library and the same verification as the dashboard; only the ending
+// differs. Here the result is an authorization code for the app that asked,
+// which means the app gets Google sign-in without implementing any of it.
+//
+// The app's redirect_uri is checked against its allowlist BEFORE leaving for
+// Google, not after coming back, so a bad one cannot survive the round trip.
+
+router.get('/login/google/start', pageLoginLimiter, async (req, res) => {
+  try {
+    const app = await appBySlug(req.query.app_id);
+    if (!app) return res.type('html').send(errorPage('Unknown app', 'That application is not registered here.'));
+    const redirectUri = String(req.query.redirect_uri || '');
+    if (!await oauth.isAllowedRedirect(app.id, redirectUri)) {
+      return res.type('html').send(errorPage('Redirect URL not allowed',
+        'That return address is not registered for this app.'));
+    }
+    const { url } = await google.begin({
+      redirectUri: googleCallbackUrl(req),
+      context: { surface: 'app', appId: app.id, appSlug: app.slug, redirectUri, state: String(req.query.state || '') }
+    });
+    res.redirect(url);
+  } catch (err) {
+    res.type('html').send(errorPage('Google sign-in unavailable', err.message));
+  }
+});
+
+router.get('/login/google/callback', pageLoginLimiter, async (req, res) => {
+  try {
+    const identity = await google.complete({ code: req.query.code, state: req.query.state });
+    const ctx = identity.context || {};
+    const app = await appBySlug(ctx.appSlug);
+    if (!app) return res.type('html').send(errorPage('Unknown app', 'That application is not registered here.'));
+
+    const { user, error } = await googleAccounts.resolveEndUser(identity, app);
+    if (error) {
+      logAttempt(identity.email, app.slug, 'NO_ACCESS', req.ip || '');
+      return res.type('html').send(errorPage('Cannot sign you in', error));
+    }
+
+    // Identity is settled; access is still its own question.
+    const access = Array.isArray(user.appAccess) ? user.appAccess : [];
+    if (!access.includes(app.slug)) {
+      logAttempt(user.email, app.slug, 'NO_ACCESS', req.ip || '');
+      return res.type('html').send(errorPage('No access',
+        'Your Google account signed in, but it has not been given access to this app.'));
+    }
+
+    // An end user with TOTP set up is still asked for it, because Google's
+    // token says nothing about whether a second factor was used over there.
+    // Rather than build a second challenge page here, those accounts are sent
+    // back to the form they already know.
+    const f = await factors.factorsFor(user.id);
+    if (f.totp) {
+      return res.type('html').send(errorPage('Use your password',
+        'This account has two-factor authentication, so it signs in with its password and code rather than Google.'));
+    }
+
+    userSession.set(res, user);
+    const code = await oauth.issueCode({ appId: app.id, userId: user.id, redirectUri: ctx.redirectUri });
+    logAttempt(user.email, app.slug, 'SUCCESS', req.ip || '');
+
+    const back = new URL(ctx.redirectUri);
+    back.searchParams.set('code', code);
+    if (ctx.state) back.searchParams.set('state', ctx.state);
+    res.redirect(back.toString());
+  } catch (err) {
+    res.type('html').send(errorPage('Google sign-in failed', err.message));
   }
 });
 
@@ -275,8 +358,12 @@ button{width:100%;padding:.72rem;border:0;border-radius:var(--r-sm);background:v
   transition:filter .15s}
 button:hover{filter:brightness(1.08)}
 button:disabled{opacity:.6;cursor:default}
-button.secondary{background:transparent;border:1px solid var(--line);color:var(--text-2);margin-top:.6rem}
-button.secondary:hover{border-color:var(--accent);color:var(--accent);filter:none}
+button.secondary,a.secondary{background:transparent;border:1px solid var(--line);color:var(--text-2);margin-top:.6rem}
+button.secondary:hover,a.secondary:hover{border-color:var(--accent);color:var(--accent);filter:none}
+/* The Google button is an anchor, not a form control: it leaves the page. */
+a.secondary{display:flex;align-items:center;justify-content:center;gap:.5rem;
+  width:100%;padding:.7rem 1rem;border-radius:8px;text-decoration:none;font:inherit;box-sizing:border-box}
+a.secondary svg{flex:none}
 .err{background:var(--danger-bg);color:var(--danger);padding:.62rem .72rem;border-radius:var(--r-sm);
   font-size:.86rem;margin-bottom:.9rem;display:none}
 .muted{text-align:center;color:var(--text-3);font-size:.76rem;margin-top:1.2rem}
@@ -287,7 +374,7 @@ function errorPage(title, message) {
   return shell(title, `<h1>${esc(title)}</h1><p class="sub">${esc(message)}</p>`);
 }
 
-function loginPage({ appName, appId, redirectUri, state, nonce, brandColor, logoUrl, signedInAs }) {
+function loginPage({ appName, appId, redirectUri, state, nonce, brandColor, logoUrl, signedInAs, googleEnabled }) {
   const accent = safeColor(brandColor);
   // Only https, and no referrer — the platform should not tell a third party who
   // is signing in to what, merely because someone pasted a logo URL.
@@ -317,6 +404,9 @@ ${logo
   <button type="submit" id="go">Sign in</button>
 </form>
 <button class="secondary" id="pk" type="button">Sign in with a passkey</button>
+${googleEnabled ? `<a class="secondary google" href="/login/google/start?app_id=${encodeURIComponent(appId)}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state || '')}">
+  <svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.6 9.2c0-.6-.1-1.2-.2-1.8H9v3.5h4.8a4.1 4.1 0 0 1-1.8 2.7v2.2h2.9c1.7-1.6 2.7-3.9 2.7-6.6z"/><path fill="#34A853" d="M9 18c2.4 0 4.5-.8 6-2.2l-2.9-2.2c-.8.5-1.8.9-3.1.9-2.4 0-4.4-1.6-5.1-3.8H.9v2.3A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.9 10.7a5.4 5.4 0 0 1 0-3.4V5H.9a9 9 0 0 0 0 8l3-2.3z"/><path fill="#EA4335" d="M9 3.6c1.3 0 2.5.5 3.4 1.3l2.6-2.6A9 9 0 0 0 .9 5l3 2.3C4.6 5.2 6.6 3.6 9 3.6z"/></svg>
+  Continue with Google</a>` : ''}
 ${signedInAs ? `<p class="muted">Signed in as ${esc(signedInAs)} — sign in again to continue.</p>` : ''}
 <p class="muted">Protected by Astrodock</p>
 <script>

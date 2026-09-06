@@ -184,7 +184,8 @@ const PATCH_VALIDATORS = {
   // Interpolated into the sign-in page's stylesheet and an <img src>. Rejected
   // here as well as at render time — a bad value should never reach the column.
   brandColor: (v) => v === '' || /^#[0-9a-fA-F]{6}$/.test(v),
-  logoUrl: (v) => v === '' || (/^https:\/\/[^\s"'<>]+$/.test(v) && v.length <= 500)
+  logoUrl: (v) => v === '' || (/^https:\/\/[^\s"'<>]+$/.test(v) && v.length <= 500),
+  allowGoogleSignup: (v) => v === 'true' || v === 'false'
 };
 
 router.patch('/:slug', requirePermission('apps:write'), async (req, res) => {
@@ -197,13 +198,13 @@ router.patch('/:slug', requirePermission('apps:write'), async (req, res) => {
     authMode: 'authMode', databaseMode: 'databaseMode', storageMode: 'storageMode',
     runtimeType: 'runtimeType', buildCommand: 'buildCommand', dockerfile: 'dockerfile', spa: 'spa',
     branch: 'branch', repoPath: 'repoPath', subdomain: 'subdomain',
-    brandColor: 'brandColor', logoUrl: 'logoUrl'
+    brandColor: 'brandColor', logoUrl: 'logoUrl', allowGoogleSignup: 'allowGoogleSignup'
   };
   for (const [k, col] of Object.entries(map)) {
     if (b[k] === undefined) continue;
     const check = PATCH_VALIDATORS[k];
     if (check && !check(String(b[k]))) return res.status(400).json({ error: `invalid value for "${k}"` });
-    update[col] = b[k];
+    update[col] = k === 'allowGoogleSignup' ? String(b[k]) === 'true' : b[k];
   }
   // changing the subdomain must not collide with another app
   if (update.subdomain && update.subdomain !== app.subdomain) {

@@ -21,12 +21,19 @@ const users = pgTable('users', {
   totpConfirmedAt: timestamp('totp_confirmed_at', { withTimezone: true }),
   totpLastStep: bigint('totp_last_step', { mode: 'number' }),
   passwordless: boolean('passwordless').notNull().default(false),
+  // Google's stable subject id. Linked on first Google sign-in and matched on
+  // afterwards, because an email address can change hands and `sub` cannot.
+  googleSub: text('google_sub'),
+  googleEmail: text('google_email'),
+  googleLinkedAt: timestamp('google_linked_at', { withTimezone: true }),
   lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
   appAccess: jsonb('app_access').notNull().default(sql`'[]'::jsonb`), // string[] of app slugs
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 }, (t) => ({
-  emailUniq: uniqueIndex('users_email_uniq').on(t.email)
+  emailUniq: uniqueIndex('users_email_uniq').on(t.email),
+  // One Google identity maps to at most one account.
+  googleSubUniq: uniqueIndex('users_google_sub_uniq').on(t.googleSub)
 }));
 
 // ── apps ───────────────────────────────────────────────────────────────────
@@ -35,6 +42,11 @@ const apps = pgTable('apps', {
   slug: text('slug').notNull(),
   name: text('name').notNull(),
   description: text('description').notNull().default(''),
+  // Whether a Google sign-in by someone with no account here creates one, for
+  // THIS app only. Off by default: self-service signup is the app owner's
+  // decision, not a platform-wide one, and an operator account is never created
+  // this way whatever an app says.
+  allowGoogleSignup: boolean('allow_google_signup').notNull().default(false),
   // Appearance of the hosted sign-in page. Not a security boundary — the page is
   // still served by the platform, on the platform's origin.
   brandColor: text('brand_color').notNull().default(''),

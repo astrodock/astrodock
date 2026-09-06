@@ -1220,3 +1220,7 @@ label > .sel { margin-top:.4rem; }
   flex: 1; font-family: var(--font-mono, ui-monospace, monospace); font-size: 13px;
 }
 .term-prompt { color: var(--text-3); font-family: var(--font-mono, ui-monospace, monospace); }
+
+/* A checkbox with its label on one line, for a setting that is a sentence. */
+.inline-check { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; }
+.inline-check input { width: 15px; height: 15px; flex: none; margin: 0; }

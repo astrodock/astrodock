@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getRedirectUris, addRedirectUri, removeRedirectUri } from '../lib/api';
+import { getRedirectUris, addRedirectUri, removeRedirectUri, googleEnabled as fetchGoogleEnabled, updateApp } from '../lib/api';
 import useConfirm from '../lib/useConfirm';
 import EmptyState from './EmptyState';
 
@@ -15,6 +15,26 @@ export default function SignInTab({ app }) {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
+  // Only meaningful when the platform has a Google client at all.
+  const [googleEnabled, setGoogleEnabled] = useState(false);
+  const [allowSignup, setAllowSignup] = useState(!!app.allowGoogleSignup);
+  const [savingSignup, setSavingSignup] = useState(false);
+
+  useEffect(() => {
+    fetchGoogleEnabled().then((d) => setGoogleEnabled(!!d.enabled)).catch(() => setGoogleEnabled(false));
+  }, []);
+
+  async function saveSignup(next) {
+    setSavingSignup(true);
+    setAllowSignup(next);                       // optimistic; reverted on failure
+    try {
+      await updateApp(app.slug, { allowGoogleSignup: next });
+    } catch (err) {
+      setAllowSignup(!next);
+      setError(err.message);
+    }
+    setSavingSignup(false);
+  }
   const [confirmNode, ask] = useConfirm();
 
   const load = () => getRedirectUris(app.slug).then((d) => setUris(d.uris || [])).catch((e) => setError(e.message));
@@ -90,6 +110,29 @@ const user = await r.json();   // { userId, email, name }`;
       </div>
 
       {error && <div className="error">{error}</div>}
+
+      {googleEnabled && (
+        <div className="sec-head" style={{ marginTop: 22 }}>
+          <div>
+            <h3>Google Sign-In</h3>
+            <p>
+              People with an account here can already use Google. This decides what happens when
+              somebody signs in with a Google address that has no account at all: leave it off and
+              they are turned away, turn it on and an account is created for them with access to
+              this app only. It never creates a dashboard account.
+            </p>
+            <label className="inline-check" style={{ marginTop: 10 }}>
+              <input
+                type="checkbox"
+                checked={allowSignup}
+                disabled={savingSignup}
+                onChange={(e) => saveSignup(e.target.checked)}
+              />
+              <span>Anyone with a Google account can sign up for this app</span>
+            </label>
+          </div>
+        </div>
+      )}
 
       <div className="sec-head" style={{ marginTop: 22 }}>
         <div>
