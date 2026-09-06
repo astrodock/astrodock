@@ -13,6 +13,7 @@ const config = require('../config');
 const { db, schema, close } = require('../db');
 const { computeEnv, computeMissingRequired } = require('../lib/env-compute');
 const { emitEvent } = require('../lib/events');
+const processControl = require('./process-control');
 
 function exec(cmd, opts = {}) {
   return execSync(cmd, { encoding: 'utf8', timeout: config.deploy.buildTimeoutMs, ...opts }).trim();
@@ -127,12 +128,34 @@ async function run() {
       await deployNode(app, deployRoot, env, { appendLog, setStatus });
     }
 
-    // health probe (best-effort; failure marks the deploy failed)
+    // Health probe, then the question the probe cannot answer.
+    //
+    // The probe only asks whether *something* replies on the app's URL. A
+    // previous instance that PM2 has lost track of replies perfectly well, so
+    // a deploy could copy new code, watch the new process die on EADDRINUSE,
+    // get a cheerful 200 from the old one, and report success. That happened
+    // six times in a row before anyone noticed the running code was weeks old.
+    //
+    // So the supervisor gets asked too. If it says the process is errored, the
+    // deploy failed, whatever the HTTP answer was.
     await setStatus('deploying');
     const healthy = await probe(app);
     await appendLog(healthy
       ? 'Health probe: app is responding'
       : `Health probe: no response after ${PROBE_ATTEMPTS}s — the app may still be starting, or it is not listening on ASTRODOCK_PORT`);
+
+    if (app.runtimeType !== 'docker') {
+      const proc = processControl.appStatus(app.slug);
+      const state = proc && proc.status;
+      if (state === 'errored' || state === 'stopped') {
+        await appendLog(`Process is ${state} after ${proc.restarts || 0} restart(s) — the new code is not running.`);
+        await appendLog(healthy
+          ? 'Something is still answering on this address: an older instance is holding the port.'
+          : '');
+        throw new Error(`app process is ${state} after deploy`);
+      }
+      await appendLog(`Process online (pid ${proc.pid}, ${proc.restarts || 0} restart(s))`);
+    }
 
     await appendLog('Deploy complete');
     await db.update(schema.deployments).set({
