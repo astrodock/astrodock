@@ -75,9 +75,14 @@ function readLogs(app, lines = 100) {
     try { return stripAnsi(sh(`docker logs --tail ${lines} app-${app.slug} 2>&1`, 8000)) || 'No logs available'; }
     catch { return 'No logs available'; }
   }
-  const home = process.env.HOME || '/root';
+  // PM2 writes to $PM2_HOME/logs, and the Dockerfile sets PM2_HOME=/data/pm2 so
+  // the logs survive on the pm2home volume. Reading $HOME/.pm2/logs instead
+  // meant every app's log page said "No logs available" — for every app, since
+  // the platform shipped. A boot failure was invisible from the outside, which
+  // is the moment logs matter most.
+  const pm2Home = process.env.PM2_HOME || `${process.env.HOME || '/root'}/.pm2`;
   const all = [];
-  for (const f of [`${home}/.pm2/logs/${app.slug}-out.log`, `${home}/.pm2/logs/${app.slug}-error.log`]) {
+  for (const f of [`${pm2Home}/logs/${app.slug}-out.log`, `${pm2Home}/logs/${app.slug}-error.log`]) {
     try {
       const content = stripAnsi(sh(`tail -n ${lines} "${f}" 2>/dev/null`, 5000));
       for (const ln of content.split('\n')) if (ln.trim()) all.push(ln);
