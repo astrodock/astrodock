@@ -16,8 +16,19 @@ FROM node:22-bookworm-slim AS runtime
 ARG TARGETARCH
 # git + rsync for the buildpack; a CURRENT static Docker CLI (Debian's docker.io is
 # too old for modern daemons) to drive sibling containers + the object store via the socket.
+#
+# tini is the process reaper. Node runs as PID 1 in these containers, and PID 1
+# inherits every orphaned process on the box: the runner shells out constantly
+# (git, rsync, docker, pm2), and when one of those outlives its immediate parent
+# it reparents to PID 1. Node does not reap processes it did not spawn, so they
+# sat as zombies until the container was restarted — 47 of them after five weeks
+# on the first install to run long enough to notice. tini reaps them.
+#
+# Deliberately here and not `init: true` in docker-compose.yml: the compose file
+# lives on the operator's disk and is never refreshed by a pull, so a fix that
+# needs a compose edit reaches new installs only. This one ships in the image.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends git rsync ca-certificates curl \
+ && apt-get install -y --no-install-recommends git rsync ca-certificates curl tini \
  && rm -rf /var/lib/apt/lists/* \
  && case "${TARGETARCH:-amd64}" in arm64) DARCH=aarch64;; *) DARCH=x86_64;; esac \
  && curl -fsSL "https://download.docker.com/linux/static/stable/${DARCH}/docker-27.3.1.tgz" \
@@ -35,6 +46,9 @@ RUN apt-get update \
     -o /usr/local/lib/docker/cli-plugins/docker-compose \
  && chmod +x /usr/local/lib/docker/cli-plugins/docker-compose \
  && docker compose version \
+ # ENTRYPOINT hard-codes this path, and a wrong one would fail every container at
+ # boot rather than here.
+ && /usr/bin/tini --version \
  && npm install -g pm2
 
 WORKDIR /app
@@ -76,4 +90,7 @@ ENV ASTRODOCK_BUILD_VERSION=${ASTRODOCK_BUILD_VERSION} \
 
 WORKDIR /app/apps/control-plane
 EXPOSE 3100
-ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+# tini as PID 1, so orphaned children get reaped instead of accumulating. It
+# forwards signals to the entrypoint, so `docker compose down` still stops the
+# process the same way it did before.
+ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/entrypoint.sh"]
