@@ -129,6 +129,7 @@ const LOG_KEYS = ['logging.page_view_ip', 'logging.auth_log_retention_days',
   'logging.page_view_retention_days', 'logging.app_access_logs', 'updates.check'];
 const GOOGLE_KEYS = ['google.client_id', 'google.client_secret', 'google.allowed_domains'];
 const REGISTRY_KEYS = ['registry.user', 'registry.token'];
+const AI_KEYS = ['ai.anthropic_key', 'ai.model'];
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState([]);
@@ -317,6 +318,15 @@ export default function SettingsPage() {
           </div>
         </div>
       </SettingsGroup>
+
+      <SettingsGroup
+        title="Feedback Triage"
+        description="When a key is set, incoming feedback is read by a model that writes an internal note about what is likely wrong and drafts a reply for the person who reported it. Drafts are held until someone presses Send, per app. Blank turns this off everywhere."
+        keys={AI_KEYS}
+        settings={settings}
+        onSave={api.updateSettings}
+        onSaved={load}
+      />
 
       <SettingsGroup
         title="Platform Updates"

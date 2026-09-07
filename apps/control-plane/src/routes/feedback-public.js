@@ -29,6 +29,7 @@ const fb = require('../lib/feedback');
 const { decryptSecret } = require('../lib/crypto');
 const { feedbackLimiter } = require('../middleware/rateLimiter');
 const { widgetSource } = require('../lib/feedback-widget');
+const hooks = require('../lib/feedback-hooks');
 
 const router = express.Router();
 
@@ -135,6 +136,9 @@ router.post('/:slug', feedbackLimiter, async (req, res) => {
       email: body.email,
       context: { ...(body.context || {}), userAgent: req.headers['user-agent'] || '' }
     });
+    // Detached: the webhook and the model must never be why a submission
+    // appears to fail to the person who just pressed send.
+    hooks.schedule(row, app);
     // The key, and nothing else. It is what a person quotes back at you.
     res.status(201).json({ key: row.key, status: row.status });
   } catch (err) {

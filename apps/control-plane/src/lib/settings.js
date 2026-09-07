@@ -52,6 +52,18 @@ const REGISTRY = {
     description: 'Comma-separated. Blank allows any Google account; otherwise only these domains may sign in, checked against the verified token rather than anything the browser sends.',
     default: () => ''
   },
+  // Feedback triage by model. Blank turns it off everywhere regardless of what
+  // an app's ai_mode says, so one field is the whole off switch.
+  'ai.anthropic_key': {
+    label: 'Anthropic API key', type: 'string', secret: true,
+    description: 'Used to triage incoming feedback: an internal note about what is likely wrong, and a draft reply for the person who reported it. Blank turns triage off for every app.',
+    default: () => ''
+  },
+  'ai.model': {
+    label: 'Model', type: 'string',
+    description: 'Which model triages feedback.',
+    default: () => 'claude-sonnet-5'
+  },
   // Credentials for the registry holding the Astrodock image itself, needed only
   // when that image is private. These existed as .env vars first, and still work
   // that way; what they lacked was any route to CHANGE them. A registry token

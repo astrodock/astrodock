@@ -25,6 +25,11 @@ function structuralFromManifest(m) {
     runtimeType: m.runtime?.type || 'node',
     buildCommand: m.runtime?.buildCommand || 'npm run build',
     spa: m.runtime?.spa !== false,   // default true: unknown paths reach the client router
+    // Stored raw, defaults applied at read time by feedback.configFor(). Keeping
+    // the manifest's own shape means an app that says nothing keeps whatever the
+    // platform's current opinion is, rather than being frozen to the defaults
+    // that happened to apply the day it was first applied.
+    feedbackConfig: m.feedback || {},
     dockerfile: m.runtime?.dockerfile || 'Dockerfile',
     branch: m.source?.branch || 'main',
     repoPath: m.source?.repoPath || '',

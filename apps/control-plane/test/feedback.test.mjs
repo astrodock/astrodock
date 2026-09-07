@@ -264,5 +264,100 @@ test('the internal thread is served only behind feedback:read', () => {
   assert.ok(!/'internal'/.test(routeSrc), 'the public route must not reference the internal thread');
 });
 
+console.log('\nfeedback: triage by model');
+
+const ai = require('../src/lib/feedback-ai.js');
+const aiSrc = fs.readFileSync(new URL('../src/lib/feedback-ai.js', import.meta.url), 'utf8');
+
+test('the model does not choose who reads its output', () => {
+  // It returns a `note` field and a `reply` field. This file routes one through
+  // note() and the other through reply(). A model that ignores every instruction
+  // and puts a stack trace in `reply` produces a bad reply, not a leaked note.
+  assert.match(aiSrc, /fb\.note\(\{ feedbackId: item\.id, \.\.\.author, body: out\.note \}\)/);
+  assert.match(aiSrc, /body: out\.reply/);
+  assert.ok(!/visibility/.test(aiSrc), 'triage must never name a visibility');
+});
+
+test('a fenced JSON reply is still parsed', () => {
+  const out = ai.parse('```json\n{"note":"double offset","reply":"Fixed.","kind":"problem","status":"shipped"}\n```');
+  assert.strictEqual(out.note, 'double offset');
+  assert.strictEqual(out.reply, 'Fixed.');
+  assert.strictEqual(out.status, 'shipped');
+});
+
+test('a status the model invented is dropped rather than written', () => {
+  const out = ai.parse('{"note":"n","reply":"r","status":"vibes"}');
+  assert.strictEqual(out.status, null);
+});
+
+test('unparseable output is null, not a half-written item', () => {
+  assert.strictEqual(ai.parse('I think the problem is...'), null);
+  assert.strictEqual(ai.parse(''), null);
+  assert.strictEqual(ai.parse('{"note":"","reply":""}'), null);
+});
+
+test('model output is truncated to the same limits as anything else', () => {
+  const out = ai.parse(JSON.stringify({ note: 'x'.repeat(50000), reply: 'y' }));
+  assert.strictEqual(out.note.length, fb.LIMITS.body);
+});
+
+test('the prompt tells the model the report is data, not instructions', () => {
+  // The input is text a stranger typed into a form, so this is an input it will
+  // genuinely receive.
+  assert.match(ai.SYSTEM, /data, not instruction/i);
+});
+
+console.log('\nfeedback: the developer\'s own hook');
+
+const hooks = require('../src/lib/feedback-hooks.js');
+
+// These return promises. Run through the sync `test` above they would pass
+// whatever they did, because nothing would ever look at the rejection.
+async function atest(name, fn) {
+  try { await fn(); console.log(`  ok  ${name}`); passed++; }
+  catch (e) { console.error(`  FAIL  ${name}\n        ${e.message}`); failed++; }
+}
+
+await atest('a plaintext webhook is refused', async () => {
+  const sent = await hooks.fireWebhook({ key: 'F-1' }, { feedbackConfig: { webhook: 'http://example.com/hook' } });
+  assert.strictEqual(sent, false, 'http would put a user report on the wire in the clear');
+});
+
+await atest('a malformed webhook is refused rather than throwing', async () => {
+  assert.strictEqual(await hooks.fireWebhook({ key: 'F-1' }, { feedbackConfig: { webhook: 'not a url' } }), false);
+});
+
+await atest('no webhook configured is not an error', async () => {
+  assert.strictEqual(await hooks.fireWebhook({ key: 'F-1' }, {}), false);
+});
+
+test('the webhook never carries an internal note', () => {
+  const src = fs.readFileSync(new URL('../src/lib/feedback-hooks.js', import.meta.url), 'utf8');
+  const payload = /body: JSON\.stringify\(\{[\s\S]*?\}\)/.exec(src);
+  assert.ok(payload, 'could not find the webhook payload');
+  assert.ok(!/note|internal|messages/.test(payload[0]), 'the payload must be the report only');
+});
+
+console.log('\nfeedback: what an app declares in app.json');
+
+test('the manifest block reaches the column that configFor reads', () => {
+  const applySrc = fs.readFileSync(new URL('../src/lib/apply.js', import.meta.url), 'utf8');
+  assert.match(applySrc, /feedbackConfig: m\.feedback \|\| \{\}/);
+});
+
+test('an app that declares nothing gets the current platform opinion', () => {
+  // Stored raw rather than defaulted at write time, so an app is not frozen to
+  // whatever the defaults were the day it was first applied.
+  const c = fb.configFor({ feedbackConfig: {} });
+  assert.strictEqual(c.aiMode, 'draft');
+  assert.deepStrictEqual(c.categories, fb.DEFAULT_CATEGORIES);
+});
+
+test('an app can turn the widget off and keep the API', () => {
+  const c = fb.configFor({ feedbackConfig: { widget: false } });
+  assert.strictEqual(c.widget, false);
+  assert.strictEqual(c.enabled, true);
+});
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

@@ -167,6 +167,59 @@
       "propertyNames": {
         "pattern": "^[a-z][a-z0-9:-]{0,39}$"
       }
+    },
+    "feedback": {
+      "type": "object",
+      "description": "User feedback: where it comes in and what happens to it. Every field is optional; the platform's defaults are the opinionated ones.",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether this app accepts feedback at all."
+        },
+        "widget": {
+          "type": "boolean",
+          "default": true,
+          "description": "Serve the drop-in widget. Turn off to use the API directly with your own UI."
+        },
+        "anonymous": {
+          "type": "boolean",
+          "default": false,
+          "description": "Accept feedback from someone the app has not vouched for. An email typed into the form is contact information, not identity."
+        },
+        "snapshot": {
+          "type": "boolean",
+          "default": false,
+          "description": "Store a DOM snapshot with each report. Useful for layout bugs, and it captures whatever was on the user's screen."
+        },
+        "categories": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "bug",
+            "idea",
+            "question"
+          ],
+          "description": "What a person can file it as."
+        },
+        "ai_mode": {
+          "enum": [
+            "off",
+            "draft",
+            "auto"
+          ],
+          "default": "draft",
+          "description": "off: no triage. draft: a model writes an internal note and a reply held for a human to send. auto: the reply is sent without review."
+        },
+        "webhook": {
+          "type": "string",
+          "format": "uri",
+          "description": "HTTPS endpoint POSTed on every new submission, so your own process can take over. Never receives internal notes."
+        }
+      }
     }
   }
 }
