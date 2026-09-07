@@ -78,6 +78,28 @@ its own.
 - **Restart** on an app should say what the process is doing afterwards.
 - Each app has a **History** tab.
 
+## If the download is refused
+
+`Update stopped: the registry refused the download` means the pull was denied,
+and nothing was touched. The Astrodock image is in a private registry, so the
+updater needs a credential of its own: it downloads inside a one-shot container,
+which cannot see a `docker login` done on the server.
+
+Settings → **Platform Updates** holds the username and token. A GitHub token has
+to be a **classic** personal access token with `read:packages`; fine-grained
+tokens still do not cover GHCR reads. Whatever expiry you give it is the date
+this stops working again.
+
+Before 0.0.20 those values existed only as `ASTRODOCK_REGISTRY_USER` and
+`ASTRODOCK_REGISTRY_TOKEN` in `.env`, with no way to change them short of a shell
+on the box. Those still work and are still the fallback; the setting wins when it
+is filled in.
+
+Making the package public removes the credential entirely, and with it this
+failure. For `ghcr.io/astrodock/astrodock` that is
+github.com/orgs/astrodock/packages → the package → Package settings → Change
+visibility.
+
 ## If it does not come back
 
 The updater restores the previous version by itself and records the outcome in
@@ -176,13 +198,16 @@ shown once.
 
 ## 4. Put them into Astrodock
 
-admin.astrodock.ai → **Settings**:
+admin.astrodock.ai → **Settings** → **Sign in with Google**:
 
 | Setting | Value |
 |---|---|
 | Google client ID | the `…apps.googleusercontent.com` string |
 | Google client secret | from the same dialog |
 | Google domains allowed | `seniorverse.com`, or blank for any Google account |
+
+That section also prints the two redirect URIs for your own domain, so they can
+be copied into Google rather than retyped.
 
 The secret is stored as a secret: the settings page shows `••••••` afterwards
 and saving the form again does not overwrite it with the mask.

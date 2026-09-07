@@ -192,5 +192,65 @@ test('both failure paths restore the stack, not just the version pin', () => {
     'a failed recreate must put the stack back, not just the version pin');
 });
 
+// ── registry credentials ─────────────────────────────────────────────────────
+//
+// The token that lets the updater pull a private image expires. Until now the
+// only place to change it was .env on the server, which meant the credential the
+// update path depends on could only be rotated over SSH. These cover the
+// precedence, because getting it wrong breaks updating rather than anything a
+// test run would notice.
+
+async function atest(name, fn) {
+  try { await fn(); console.log(`  ok  ${name}`); passed++; }
+  catch (e) { console.error(`  FAIL ${name}\n       ${e.message}`); failed++; }
+}
+
+const selfUpdate = require('../src/lib/self-update.js');
+const settings = require('../src/lib/settings.js');
+const realGetSetting = settings.getSetting;
+const stub = (map) => { settings.getSetting = async (k, d) => (k in map ? map[k] : d); };
+
+console.log('\nself-update: where the registry credentials come from');
+
+await atest('a stored token is used', async () => {
+  stub({ 'registry.user': 'bot', 'registry.token': 'tok' });
+  const out = await selfUpdate.storedRegistryCreds();
+  assert.strictEqual(out.ASTRODOCK_REGISTRY_USER, 'bot');
+  assert.strictEqual(out.ASTRODOCK_REGISTRY_TOKEN, 'tok');
+});
+
+await atest('a blank field falls back to the environment rather than sending an empty credential', async () => {
+  // The failure this prevents: opening the settings page and saving it writes
+  // blanks, and an empty -e would override a working .env value on the next
+  // update. Absent from the object means "the env var wins".
+  stub({ 'registry.user': '', 'registry.token': '   ' });
+  const out = await selfUpdate.storedRegistryCreds();
+  assert.ok(!('ASTRODOCK_REGISTRY_USER' in out), 'blank user must not be returned');
+  assert.ok(!('ASTRODOCK_REGISTRY_TOKEN' in out), 'whitespace-only token must not be returned');
+});
+
+await atest('surrounding whitespace is stripped, since it is pasted in', async () => {
+  stub({ 'registry.user': ' bot\n', 'registry.token': '  tok  ' });
+  const out = await selfUpdate.storedRegistryCreds();
+  assert.strictEqual(out.ASTRODOCK_REGISTRY_USER, 'bot');
+  assert.strictEqual(out.ASTRODOCK_REGISTRY_TOKEN, 'tok');
+});
+
+await atest('an unreachable database does not block an update', async () => {
+  // Settings live in Postgres. If reading them throws, the env vars are still
+  // there, and refusing to update would be the worse failure.
+  settings.getSetting = async () => { throw new Error('no database'); };
+  const out = await selfUpdate.storedRegistryCreds();
+  assert.deepStrictEqual(out, {});
+});
+
+settings.getSetting = realGetSetting;
+
+await atest('the token is a secret setting and the username is not', async () => {
+  assert.ok(settings.REGISTRY['registry.token'].secret,
+    'an unmasked token would be readable by anyone who can open the settings page');
+  assert.ok(!settings.REGISTRY['registry.user'].secret);
+});
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

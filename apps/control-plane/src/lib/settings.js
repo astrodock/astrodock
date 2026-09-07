@@ -52,6 +52,25 @@ const REGISTRY = {
     description: 'Comma-separated. Blank allows any Google account; otherwise only these domains may sign in, checked against the verified token rather than anything the browser sends.',
     default: () => ''
   },
+  // Credentials for the registry holding the Astrodock image itself, needed only
+  // when that image is private. These existed as .env vars first, and still work
+  // that way; what they lacked was any route to CHANGE them. A registry token
+  // expires, and when it did the only fix was a shell on the server and a text
+  // editor, which is a poor place to put the one credential the update path
+  // depends on. A stored override wins, and the env var remains the fallback so
+  // no existing install has to do anything.
+  'registry.user': {
+    label: 'Image registry username', type: 'string',
+    description: 'Username for the registry holding the Astrodock image. Only needed if that image is private. Blank uses ASTRODOCK_REGISTRY_USER from the environment.',
+    default: () => process.env.ASTRODOCK_REGISTRY_USER || ''
+  },
+  'registry.token': {
+    label: 'Image registry token', type: 'string', secret: true,
+    description: 'Access token for that registry, used only to download platform updates. A GitHub token must be a classic personal access token with read:packages; fine-grained tokens do not cover GHCR reads. Blank uses ASTRODOCK_REGISTRY_TOKEN from the environment.',
+    // Reads the env var so the page can say whether a credential exists at all.
+    // effective() masks any secret on the way out, so the value never leaves.
+    default: () => process.env.ASTRODOCK_REGISTRY_TOKEN || ''
+  },
   'logging.page_view_ip': {
     label: 'Store visitor IPs in page access logs', type: 'enum',
     description: 'How much of a visitor IP address is kept in page access logs. Truncated drops the last octet; off stores none.',

@@ -100,6 +100,20 @@ export default function SettingsGroup({
                         onClick={() => setField(s, v)}>{v}</button>
                     ))}
                   </div>
+                ) : s.secret ? (
+                  // A secret arrives as the mask, never the value. Binding the
+                  // input to it would put the mask in the box, and typing would
+                  // append to it — you would save "••••••" with your token
+                  // stuck on the end. So the box starts EMPTY and means "leave
+                  // it alone"; what you type is the whole new value.
+                  <input
+                    type="password"
+                    autoComplete="new-password"
+                    value={s.key in draft ? draft[s.key] : ''}
+                    placeholder={s.isSet ? 'stored — type to replace' : 'not set'}
+                    onChange={(e) => setField(s, e.target.value)}
+                    style={{ marginTop: 0, width: 260 }}
+                  />
                 ) : (
                   <input
                     className={s.type === 'int' ? 'num' : ''}

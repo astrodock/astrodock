@@ -35,6 +35,31 @@ function docker(args, { timeout = 15000 } = {}) {
   });
 }
 
+// Registry credentials an operator has stored in Settings, in the env-var shape
+// the updater already reads.
+//
+// Only non-empty values are returned, so a blank field means "fall back to the
+// environment" rather than "send an empty credential" — the difference between
+// an install that keeps working and one that starts failing the moment someone
+// opens the settings page. A settings read that throws is not a reason to block
+// an update: the env vars are still there, and that is how every install before
+// this one was configured.
+async function storedRegistryCreds() {
+  try {
+    const { getSetting } = require('./settings');
+    const [user, token] = await Promise.all([
+      getSetting('registry.user', ''),
+      getSetting('registry.token', '')
+    ]);
+    const out = {};
+    if (String(user || '').trim()) out.ASTRODOCK_REGISTRY_USER = String(user).trim();
+    if (String(token || '').trim()) out.ASTRODOCK_REGISTRY_TOKEN = String(token).trim();
+    return out;
+  } catch {
+    return {};
+  }
+}
+
 // Everything needed to drive compose, read off this container. Compose stamps the
 // project name, the working directory and the config files onto every container
 // it creates, so an install can describe itself without being told anything.
@@ -123,6 +148,11 @@ async function launch({ toVersion, actor, currentVersion }) {
   // The updater has to reach Postgres to record what happened and the api to
   // health-check it, both by service name.
   if (network) args.push('--network', network);
+  // Registry credentials, from Settings if an operator has stored them there and
+  // from the environment otherwise. The env vars came first and still work; the
+  // stored ones exist because a token expires, and rotating it used to mean SSH
+  // and a text editor on the box.
+  const stored = await storedRegistryCreds();
   // Same database and secrets as this process — it is the same platform.
   for (const k of ['ASTRODOCK_PG_HOST', 'ASTRODOCK_PG_PORT', 'ASTRODOCK_PG_USER',
     'ASTRODOCK_PG_PASSWORD', 'ASTRODOCK_PG_DATABASE', 'ASTRODOCK_SECRET_KEY',
@@ -130,7 +160,8 @@ async function launch({ toVersion, actor, currentVersion }) {
     // registry credentials, and `docker login` on the host wrote them to a
     // client config this container cannot see.
     'ASTRODOCK_REGISTRY_USER', 'ASTRODOCK_REGISTRY_TOKEN', 'ASTRODOCK_IMAGE']) {
-    if (process.env[k] != null) args.push('-e', `${k}=${process.env[k]}`);
+    const v = stored[k] != null ? stored[k] : process.env[k];
+    if (v != null) args.push('-e', `${k}=${v}`);
   }
   args.push('--workdir', '/app/apps/control-plane', '--entrypoint', 'node',
     self, 'src/runner/update-worker.js');
@@ -139,4 +170,4 @@ async function launch({ toVersion, actor, currentVersion }) {
   return { started: true, containerId: id.slice(0, 12), from: currentVersion, to: toVersion || 'latest' };
 }
 
-module.exports = { describe, launch, classify };
+module.exports = { describe, launch, classify, storedRegistryCreds };

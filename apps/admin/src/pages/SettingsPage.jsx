@@ -127,6 +127,8 @@ const SECURITY_KEYS = ['security.require_mfa'];
 const SITE_KEYS = ['routing.apex_app', 'routing.apex_www', 'routing.redirects'];
 const LOG_KEYS = ['logging.page_view_ip', 'logging.auth_log_retention_days',
   'logging.page_view_retention_days', 'logging.app_access_logs', 'updates.check'];
+const GOOGLE_KEYS = ['google.client_id', 'google.client_secret', 'google.allowed_domains'];
+const REGISTRY_KEYS = ['registry.user', 'registry.token'];
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState([]);
@@ -287,6 +289,39 @@ export default function SettingsPage() {
         title="Security"
         description="Applies to everyone who signs in to this dashboard."
         keys={SECURITY_KEYS}
+        settings={settings}
+        onSave={api.updateSettings}
+        onSaved={load}
+      />
+
+      <SettingsGroup
+        title="Sign in with Google"
+        description="Adds a Google button to this dashboard and to the sign-in page your apps share. Leaving the client ID blank turns it off everywhere. Google never creates a dashboard account: an operator has to exist already."
+        keys={GOOGLE_KEYS}
+        settings={settings}
+        onSave={api.updateSettings}
+        onSaved={load}
+      >
+        <div className="field">
+          <div className="lab">
+            <b>Redirect URIs</b>
+            <span className="desc">
+              Google matches these exactly, and a mismatch is the usual failure. Both go in the
+              OAuth client under <b>Authorized redirect URIs</b>; leave <b>Authorized JavaScript
+              origins</b> empty.
+            </span>
+          </div>
+          <div className="ctl" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
+            <code>https://admin.{baseDomain || 'example.com'}/admin/google/callback</code>
+            <code>https://auth.{baseDomain || 'example.com'}/login/google/callback</code>
+          </div>
+        </div>
+      </SettingsGroup>
+
+      <SettingsGroup
+        title="Platform Updates"
+        description="Only needed if the Astrodock image is in a private registry. The updater downloads a new version inside its own container, which cannot see a docker login done on the server, so it needs the credential here. Blank uses whatever the install put in .env."
+        keys={REGISTRY_KEYS}
         settings={settings}
         onSave={api.updateSettings}
         onSaved={load}
