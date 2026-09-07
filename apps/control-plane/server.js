@@ -89,6 +89,10 @@ app.use('/setup', require('./src/routes/setup'));
 app.use('/', require('./src/routes/oauth'));
 
 app.use('/verify', require('./src/routes/verify'));
+// Feedback intake. The only route a stranger's browser reaches without an
+// operator credential, so it answers CORS for the app's own origins only and
+// hands nothing back but the key it just created.
+app.use('/feedback', require('./src/routes/feedback-public'));
 app.use('/account', require('./src/routes/account'));
 app.use('/admin', require('./src/routes/admin-auth'));
 // "What am I and what may I do" — so an agent can check before acting rather than

@@ -138,6 +138,23 @@ function userVisibleOf(messages = []) {
   return messages.filter((m) => m && m.visibility === 'user' && !m.pending);
 }
 
+/**
+ * Origins allowed to post feedback for an app.
+ *
+ * Not `*`. The intake is reachable without an operator credential, so the
+ * browsers allowed to talk to it are the ones on the app's own pages: its
+ * platform subdomain, plus any custom domain that has finished verification. A
+ * pending domain is one somebody has merely claimed.
+ */
+function originsFor(app, domains = [], baseDomain = '') {
+  const out = [];
+  if (app && app.subdomain && baseDomain) out.push(`https://${app.subdomain}.${baseDomain}`);
+  for (const d of domains) {
+    if (d && d.status === 'active' && d.hostname) out.push(`https://${d.hostname}`);
+  }
+  return out;
+}
+
 // ── keys ─────────────────────────────────────────────────────────────────────
 
 /**
@@ -162,17 +179,30 @@ async function nextKey(appId, kind, tx = db) {
 
 // ── feedback ─────────────────────────────────────────────────────────────────
 
-async function submit({ app, submittedBy = null, ...input }) {
+/**
+ * Record a submission.
+ *
+ * `identity` is a person the APP has vouched for, verified against the app's own
+ * signing secret before it gets here. An email the submitter typed into the form
+ * is not identity: anyone can type an address, so it is contact information and
+ * nothing more. That distinction is what the anonymous gate turns on.
+ */
+async function submit({ app, identity = null, ...input }) {
   const config = configFor(app);
   if (!config.enabled) throw new Error('This app is not accepting feedback.');
-  if (!submittedBy && !config.anonymous) throw new Error('Sign in to send feedback.');
+  if (!identity && !config.anonymous) throw new Error('Sign in to send feedback.');
 
   const checked = validateSubmission(input, config);
   if (!checked.ok) throw new Error(checked.error);
 
   const key = await nextKey(app.id, 'feedback');
   const [row] = await db.insert(schema.feedback).values({
-    appId: app.id, key, submittedBy, ...checked.value
+    appId: app.id,
+    key,
+    submittedBy: (identity && identity.userId) || null,
+    ...checked.value,
+    // A verified address beats a typed one.
+    submitterEmail: (identity && identity.email) || checked.value.submitterEmail
   }).returning();
   return row;
 }
@@ -289,6 +319,7 @@ async function relate(fromId, toId, kind) {
 module.exports = {
   STATUSES, TERMINAL, WORK_STATUSES, WORK_TYPES, RELATION_KINDS, DEFAULT_CATEGORIES, LIMITS,
   configFor, sanitizeContext, validateSubmission, redactForUser, userVisibleOf,
+  originsFor,
   nextKey, submit, note, reply, approveDraft, messages, userVisible, setStatus,
   createWorkItem, setWorkStatus, link, unlink, relate
 };

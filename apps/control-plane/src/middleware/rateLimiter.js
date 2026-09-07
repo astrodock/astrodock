@@ -49,4 +49,16 @@ const pageLoginLimiter = rateLimit({
   legacyHeaders: false
 });
 
-module.exports = { verifyLimiter, adminLoginLimiter, accountLimiter, deployLimiter, pageDataLimiter, pageLoginLimiter };
+// Feedback intake is reachable from a browser without an operator credential,
+// so it is the one endpoint a stranger can hammer. Generous enough that a person
+// filing three bugs in a row never notices, tight enough that the table cannot
+// be filled from a laptop.
+const feedbackLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 20,
+  message: { error: 'That is a lot of feedback at once. Try again shortly.' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+module.exports = { verifyLimiter, adminLoginLimiter, accountLimiter, deployLimiter, pageDataLimiter, pageLoginLimiter, feedbackLimiter };

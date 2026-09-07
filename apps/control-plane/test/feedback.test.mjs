@@ -162,5 +162,58 @@ test('the user-facing read path filters on pending as well as visibility', () =>
   assert.match(fn[1], /!m\.pending/);
 });
 
+console.log('\nfeedback: the intake is the one route a stranger can reach');
+
+test('only the app\'s own origins are allowed, and only verified ones', () => {
+  const out = fb.originsFor({ subdomain: 'valise' }, [
+    { hostname: 'trips.example.com', status: 'active' },
+    { hostname: 'claimed.example.com', status: 'pending' }
+  ], 'astrodock.ai');
+  assert.deepStrictEqual(out, ['https://valise.astrodock.ai', 'https://trips.example.com']);
+});
+
+test('no base domain yields no origins rather than a broken one', () => {
+  assert.deepStrictEqual(fb.originsFor({ subdomain: 'valise' }, [], ''), []);
+});
+
+const routeSrc = fs.readFileSync(new URL('../src/routes/feedback-public.js', import.meta.url), 'utf8');
+
+test('CORS is never answered with a wildcard', () => {
+  assert.ok(!/Access-Control-Allow-Origin['"],\s*['"]\*/.test(routeSrc),
+    'a wildcard would let any page on the internet post feedback as this app');
+  assert.match(routeSrc, /Access-Control-Allow-Origin', origin/);
+});
+
+test('an unverifiable identity token is treated as no identity', () => {
+  const fn = /function verifyIdentity\([\s\S]*?\n\}/.exec(routeSrc);
+  assert.ok(fn, 'could not find verifyIdentity');
+  assert.match(fn[0], /catch \{\s*\n\s*return null;/, 'a bad signature must return null, not throw or pass');
+});
+
+test('reading someone\'s own feedback requires a verified identity', () => {
+  const route = /router\.get\('\/:slug\/mine'[\s\S]*?\n\}\);/.exec(routeSrc);
+  assert.ok(route, 'could not find the /mine route');
+  assert.match(route[0], /if \(!identity\) return res\.status\(401\)/);
+  assert.match(route[0], /visibility: 'user'/, 'it must read the user thread, never the internal one');
+});
+
+test('the submit route returns the key and nothing else', () => {
+  const route = /router\.post\('\/:slug'[\s\S]*?\n\}\);/.exec(routeSrc);
+  assert.ok(route, 'could not find the submit route');
+  assert.match(route[0], /res\.status\(201\)\.json\(\{ key: row\.key, status: row\.status \}\)/);
+});
+
+const widget = require('../src/lib/feedback-widget.js').widgetSource();
+
+test('the widget isolates itself from the page it is dropped into', () => {
+  assert.match(widget, /attachShadow/, 'without a shadow root it inherits the host page CSS');
+  assert.match(widget, /data-app/);
+});
+
+test('the widget still works when the config call fails', () => {
+  // Not knowing the category list is not a reason to stop someone reporting a bug.
+  assert.match(widget, /catch\(function \(\) \{\}\)/);
+});
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
