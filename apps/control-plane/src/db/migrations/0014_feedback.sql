@@ -29,8 +29,9 @@ CREATE TABLE IF NOT EXISTS feedback (
   -- url, viewport, user agent, app version, deploy id. Whatever the widget could
   -- see at the moment of submission, which is the part nobody can reconstruct.
   context jsonb NOT NULL DEFAULT '{}'::jsonb,
-  -- A DOM snapshot in the app's own object storage. Off unless the app opts in:
-  -- it captures whatever was on the user's screen.
+  -- Reserved for a stored DOM snapshot. Nothing writes it yet: capturing one
+  -- means taking whatever was on the user's screen, and that is worth building
+  -- deliberately rather than shipping an option that quietly does nothing.
   snapshot_key text NOT NULL DEFAULT '',
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
@@ -39,6 +40,10 @@ CREATE TABLE IF NOT EXISTS feedback (
 CREATE UNIQUE INDEX IF NOT EXISTS feedback_app_key_uniq ON feedback (app_id, key);
 CREATE INDEX IF NOT EXISTS feedback_app_status_idx ON feedback (app_id, status);
 CREATE INDEX IF NOT EXISTS feedback_created_idx ON feedback (created_at DESC);
+-- The /mine lookup for someone the app identified by email rather than by a
+-- platform user id.
+CREATE INDEX IF NOT EXISTS feedback_submitter_email_idx ON feedback (app_id, submitter_email)
+  WHERE submitter_email <> '';
 
 -- Messages on a feedback item, in two threads that share a table.
 --

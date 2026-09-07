@@ -45,7 +45,6 @@ function configFor(app) {
     enabled: c.enabled !== false,
     widget: c.widget !== false,
     anonymous: c.anonymous === true,
-    snapshot: c.snapshot === true,
     categories: Array.isArray(c.categories) && c.categories.length ? c.categories : DEFAULT_CATEGORIES,
     // off | draft | auto. Draft by default: a bad auto-reply reaches a real
     // person and cannot be recalled.
@@ -261,7 +260,9 @@ async function userVisible(feedbackId) {
 async function setStatus(feedbackId, status) {
   if (!STATUSES.includes(status)) throw new Error(`Unknown status: ${status}`);
   const patch = { status, updatedAt: new Date() };
-  if (TERMINAL.includes(status)) patch.answeredAt = new Date();
+  // Reopening clears it. Leaving a stale answeredAt on an item that is open
+  // again would tell the submitter it was closed on a date it was not.
+  patch.answeredAt = TERMINAL.includes(status) ? new Date() : null;
   const [row] = await db.update(schema.feedback).set(patch)
     .where(eq(schema.feedback.id, feedbackId)).returning();
   return row || null;

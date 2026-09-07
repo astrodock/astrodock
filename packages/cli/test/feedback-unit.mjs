@@ -8,6 +8,7 @@ import assert from 'node:assert';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const { cmdFeedback, cmdWork, trunc } = require('../src/feedback.js');
+const { parseFlags } = require('../src/cli.js');
 
 let passed = 0, failed = 0;
 async function test(name, fn) {
@@ -127,6 +128,40 @@ console.log('\nhelpers');
 await test('trunc collapses whitespace and marks what it cut', () => {
   assert.strictEqual(trunc('a  b\n c', 40), 'a b c');
   assert.strictEqual(trunc('abcdefghij', 5), 'abcd…');
+});
+
+console.log('\nflag parsing');
+
+await test('a valueless flag does not eat the next word', () => {
+  // --draft is the safety flag. Letting it swallow the message meant the natural
+  // `reply F-12 --draft "Fixed"` failed with a usage error instead of drafting.
+  const { flags, positional } = parseFlags(['reply', 'valise', 'F-12', '--draft', 'Fixed']);
+  assert.strictEqual(flags.draft, true);
+  assert.deepStrictEqual(positional, ['reply', 'valise', 'F-12', 'Fixed']);
+});
+
+await test('the same bug was reachable on existing flags', () => {
+  // `astrodock deploy --local myapp` used to set local="myapp" and deploy the
+  // wrong thing.
+  const { flags, positional } = parseFlags(['deploy', '--local', 'myapp']);
+  assert.strictEqual(flags.local, true);
+  assert.deepStrictEqual(positional, ['deploy', 'myapp']);
+});
+
+await test('a flag that does take a value still takes it', () => {
+  const { flags, positional } = parseFlags(['list', 'valise', '--status', 'in_progress']);
+  assert.strictEqual(flags.status, 'in_progress');
+  assert.deepStrictEqual(positional, ['list', 'valise']);
+});
+
+await test('--draft in its natural position reaches the request', async () => {
+  const c = stub(() => ({ status: 201, json: { message: { id: 'm9' }, sent: false } }));
+  const { flags, positional } = parseFlags(['reply', 'valise', 'F-12', '--draft', 'Fixed it']);
+  const out = capture();
+  await cmdFeedback(c, positional, flags);
+  out.done();
+  assert.strictEqual(c.calls[0].body.draft, true);
+  assert.strictEqual(c.calls[0].body.body, 'Fixed it');
 });
 
 console.log(`\n${passed} passed, ${failed} failed`);

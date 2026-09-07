@@ -16,7 +16,6 @@ import EmptyState from './EmptyState';
 import Select from './Select';
 
 const STATUSES = ['new', 'under_review', 'planned', 'in_progress', 'shipped', 'answered', 'declined'];
-const OPEN = ['new', 'under_review', 'planned', 'in_progress'];
 
 function when(value) {
   if (!value) return '';
@@ -37,9 +36,10 @@ export default function FeedbackTab({ app }) {
 
   const load = useCallback(async () => {
     try {
-      const data = await api.getFeedback(app.slug, filter === 'all' || filter === 'open' ? '' : filter);
-      const rows = filter === 'open' ? data.feedback.filter((f) => OPEN.includes(f.status)) : data.feedback;
-      setItems(rows);
+      // `open` is resolved server-side. Filtering a page here dropped open
+      // items off the end as soon as an app had more than one page of feedback.
+      const data = await api.getFeedback(app.slug, filter === 'all' ? '' : filter);
+      setItems(data.feedback);
       setError('');
     } catch (err) { setError(err.message); }
   }, [app.slug, filter]);
@@ -50,18 +50,25 @@ export default function FeedbackTab({ app }) {
     setSelected(key);
     setDetail(null);
     try { setDetail(await api.getFeedbackItem(app.slug, key)); }
-    catch (err) { setError(err.message); }
+    catch (err) { setError(err.message); setSelected(null); }
   }, [app.slug]);
 
-  if (error) return <div className="error">{error}</div>;
+  // Refresh in place. Clearing `detail` first would unmount the open item and
+  // flash the list back for a frame on every note, reply and status change.
+  const refresh = useCallback(async () => {
+    if (!selected) return;
+    try { setDetail(await api.getFeedbackItem(app.slug, selected)); }
+    catch (err) { setError(err.message); }
+  }, [app.slug, selected]);
 
   if (selected && detail) {
     return (
       <Detail
         app={app}
         data={detail}
-        onBack={() => { setSelected(null); setDetail(null); load(); }}
-        onChanged={() => openItem(selected)}
+        error={error}
+        onBack={() => { setSelected(null); setDetail(null); setError(''); load(); }}
+        onChanged={refresh}
       />
     );
   }
@@ -86,6 +93,10 @@ export default function FeedbackTab({ app }) {
         </div>
       </div>
 
+      {/* Inline, so a failed refresh does not replace the whole tab with an
+          error and leave no way back to what was already loaded. */}
+      {error && <div className="error">{error}</div>}
+
       {items.length === 0 ? (
         <EmptyState
           title="Nothing reported yet"
@@ -94,16 +105,18 @@ export default function FeedbackTab({ app }) {
       ) : (
         <div className="field-panel">
           {items.map((f) => (
+            // Spans, not divs: a <button> may only contain phrasing content, and
+            // a div inside one is invalid HTML that browsers merely tolerate.
             <button key={f.key} type="button" className="row-btn" onClick={() => openItem(f.key)}>
-              <div className="row-main">
+              <span className="row-main">
                 <span className="k">{f.key}</span>
                 <span className="t">{f.title}</span>
-              </div>
-              <div className="row-meta">
-                <span className={`chip s-${f.status}`}>{f.status.replace(/_/g, ' ')}</span>
+              </span>
+              <span className="row-meta">
+                <span className="chip">{f.status.replace(/_/g, ' ')}</span>
                 {f.work && f.work.length > 0 && <span className="chip">{f.work.join(' ')}</span>}
                 <span className="dim">{when(f.createdAt)}</span>
-              </div>
+              </span>
             </button>
           ))}
         </div>
@@ -112,7 +125,7 @@ export default function FeedbackTab({ app }) {
   );
 }
 
-function Detail({ app, data, onBack, onChanged }) {
+function Detail({ app, data, error, onBack, onChanged }) {
   const f = data.feedback;
   const [note, setNote] = useState('');
   const [reply, setReply] = useState('');
@@ -148,7 +161,7 @@ function Detail({ app, data, onBack, onChanged }) {
         </div>
       </div>
 
-      {err && <div className="error">{err}</div>}
+      {(err || error) && <div className="error">{err || error}</div>}
 
       <div className="field-panel" style={{ marginBottom: 20 }}>
         <div className="field">

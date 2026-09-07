@@ -50,8 +50,8 @@ them in. Astrodock is that platform: it already owns a dashboard, an audit trail
 and a scoped agent token. Rows are queryable across every app on the box, which
 files in one app's repo can never be.
 
-`astrodock work export` writes them out as markdown for anyone who wants the git
-history, with the rows staying the source of truth.
+What is lost is the git history CCM gets for free. An export command that writes
+the rows out as markdown would give it back, and is not built.
 
 ### Why two threads and not one with a flag
 
@@ -64,8 +64,8 @@ the flag. Two threads make it a matter of calling the wrong endpoint. The API ha
 no parameter for visibility anywhere:
 
 ```
-POST /api/feedback/:id/notes    always internal
-POST /api/feedback/:id/reply    always visible to the submitter
+POST /admin/feedback/:app/:key/notes    always internal
+POST /admin/feedback/:app/:key/reply    always visible to the submitter
 ```
 
 Nothing accepts a visibility argument, so nothing can pass the wrong one. The
@@ -107,7 +107,7 @@ feedback
   title, body
   status                           see below
   context jsonb                    url, viewport, user agent, app version, deploy id
-  snapshot_key                     object storage key, null unless the app opts in
+  snapshot_key                     reserved; nothing writes it yet
   created_at, updated_at, answered_at
 
 feedback_messages
@@ -162,10 +162,14 @@ anyone can type an address. That is what the `anonymous` setting turns on: not
 whether an email is collected, but whether a submission is accepted from someone
 the app has not vouched for.
 
-Context is collected from the page. A DOM snapshot is off by default: CCM stores
-one and it is genuinely useful for reproducing a layout bug, but it captures
-whatever was on the user's screen, so it is per-app opt-in and stored in the app's
-own object storage.
+Context is collected from the page. `data-side` and `data-offset` move the button
+out of the way of an app's own bottom nav or floating action button, which the
+widget cannot see.
+
+A stored DOM snapshot is deliberately NOT built. CCM keeps one and it is genuinely
+useful for reproducing a layout bug, but it captures whatever was on the user's
+screen, and that is worth building deliberately rather than shipping an option
+that quietly does nothing. The `snapshot_key` column is reserved for it.
 
 The intake answers CORS for the app's own origins only, never a wildcard: its
 platform subdomain plus any custom domain that finished verification.
@@ -177,15 +181,16 @@ feedback, so closing an item shows who is waiting to hear about it.
 **CLI and agent.** Mirrors `feedback-sync.mjs`, which is already the proven shape:
 
 ```
-astrodock feedback list [--status S] [--app A]
-astrodock feedback show F-12
-astrodock feedback note F-12 "cause: the tz offset is applied twice"
-astrodock feedback reply F-12 "Fixed. Reload the page and the time will stick."
-astrodock feedback status F-12 shipped
-astrodock feedback link F-12 I-45
-astrodock work list [--status open]
-astrodock work new "Time entry cannot be edited after selection" --type bug
-astrodock work status I-45 done
+astrodock feedback list valise [--status open]
+astrodock feedback show valise F-12
+astrodock feedback note valise F-12 "cause: the tz offset is applied twice"
+astrodock feedback reply valise F-12 "Fixed. Reload the page and the time will stick."
+astrodock feedback send valise F-12 <message-id>
+astrodock feedback status valise F-12 shipped
+astrodock feedback link valise F-12 I-45
+astrodock work list valise [--status open]
+astrodock work new valise "Time entry cannot be edited after selection" --type bug
+astrodock work status valise I-45 done
 ```
 
 New scopes, following the existing registry in `scopes.js`:
@@ -210,7 +215,6 @@ only one that reaches a person. An agent in draft mode does not hold it.
     "enabled": true,
     "widget": true,
     "anonymous": false,
-    "snapshot": false,
     "categories": ["bug", "idea", "question"],
     "ai_mode": "draft",
     "webhook": "https://example.com/hooks/feedback"

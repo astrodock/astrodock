@@ -61,6 +61,18 @@ Environment:
 
 app.json is read from the current directory (or --file). Secret VALUES never go in app.json.`;
 
+// Flags that never take a value.
+//
+// Without this list, `--draft "Fixed"` sets draft to "Fixed" and eats the
+// message, because the parser cannot tell a flag's value from the next word.
+// The same bug was already reachable as `astrodock deploy --local myapp`, which
+// silently deployed the wrong thing. A flag that means "and also do X" has no
+// value to take, so say so.
+const BOOLEAN_FLAGS = new Set([
+  'local', 'prune', 'quiet', 'generate-passkey', 'help', 'h', 'version', 'v',
+  'draft', 'remove'
+]);
+
 function parseFlags(args) {
   const flags = {};
   const positional = [];
@@ -69,7 +81,7 @@ function parseFlags(args) {
     if (a.startsWith('--')) {
       const key = a.slice(2);
       const next = args[i + 1];
-      if (next !== undefined && !next.startsWith('--')) { flags[key] = next; i++; }
+      if (!BOOLEAN_FLAGS.has(key) && next !== undefined && !next.startsWith('--')) { flags[key] = next; i++; }
       else flags[key] = true;
     } else positional.push(a);
   }

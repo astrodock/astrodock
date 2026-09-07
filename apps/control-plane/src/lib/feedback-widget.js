@@ -33,6 +33,11 @@ function widgetSource() {
   if (!slug) return console.warn('[feedback] data-app is required');
   var base = (script.getAttribute('data-host') || new URL(script.src).origin) + '/feedback/' + slug;
   var label = script.getAttribute('data-label') || 'Feedback';
+  // Apps with a bottom nav or their own floating button need this out of the
+  // way, and the widget cannot see what is already down there.
+  var side = script.getAttribute('data-side') === 'left' ? 'left' : 'right';
+  var lift = parseInt(script.getAttribute('data-offset'), 10);
+  if (!isFinite(lift) || lift < 0) lift = 20;
 
   function identity() {
     var direct = script.getAttribute('data-identity');
@@ -60,6 +65,19 @@ function widgetSource() {
     });
   }
 
+  // Without defer, or with the tag in <head>, there is no body to attach to yet.
+  if (!document.body) {
+    return document.addEventListener('DOMContentLoaded', start, { once: true });
+  }
+  start();
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (ch) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch];
+    });
+  }
+
+  function start() {
   var host = document.createElement('div');
   host.setAttribute('data-astrodock-feedback', '');
   var root = host.attachShadow({ mode: 'open' });
@@ -69,7 +87,7 @@ function widgetSource() {
     '<style>',
     ':host { all: initial; }',
     '* { box-sizing: border-box; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, sans-serif; }',
-    '.launch { position: fixed; right: 20px; bottom: 20px; z-index: 2147483000;',
+    '.launch { position: fixed; ' + side + ': 20px; bottom: ' + lift + 'px; z-index: 2147483000;',
     '  padding: 10px 16px; border-radius: 999px; border: 1px solid #d4d4d8; background: #fff;',
     '  color: #18181b; font-size: 14px; font-weight: 500; cursor: pointer;',
     '  box-shadow: 0 1px 2px rgba(0,0,0,.06), 0 8px 24px rgba(0,0,0,.10); }',
@@ -98,7 +116,7 @@ function widgetSource() {
     '.done code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }',
     '.hidden { display: none !important; }',
     '</style>',
-    '<button class="launch" type="button">' + label + '</button>',
+    '<button class="launch" type="button">' + esc(label) + '</button>',
     '<div class="veil hidden"><div class="panel" role="dialog" aria-modal="true"></div></div>'
   ].join('');
 
@@ -113,10 +131,10 @@ function widgetSource() {
   function form() {
     var needsEmail = config.anonymous && !identity();
     panel.innerHTML = [
-      '<div class="head"><h2>' + label + '</h2><button class="x" type="button" aria-label="Close">&times;</button></div>',
+      '<div class="head"><h2>' + esc(label) + '</h2><button class="x" type="button" aria-label="Close">&times;</button></div>',
       '<label for="fb-cat">What is this about?</label>',
       '<select id="fb-cat">' + config.categories.map(function (c) {
-        return '<option value="' + c + '">' + nameFor(c) + '</option>';
+        return '<option value="' + esc(c) + '">' + esc(nameFor(c)) + '</option>';
       }).join('') + '</select>',
       '<label for="fb-body">Tell us what happened</label>',
       '<textarea id="fb-body" placeholder="What were you doing, and what did you expect?"></textarea>',
@@ -152,7 +170,7 @@ function widgetSource() {
         panel.innerHTML = [
           '<div class="done">',
           '<h2>Thank you</h2>',
-          '<p>We have this as <code>' + res.key + '</code>. If we need anything else, we will be in touch.</p>',
+          '<p>We have this as <code>' + esc(res.key) + '</code>. If we need anything else, we will be in touch.</p>',
           '</div>'
         ].join('');
         setTimeout(close, 2600);
@@ -186,6 +204,7 @@ function widgetSource() {
     config = c;
     if (!c.enabled || !c.widget) host.remove();
   }).catch(function () {});
+  }
 })();
 `;
 }

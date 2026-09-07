@@ -188,11 +188,6 @@
           "default": false,
           "description": "Accept feedback from someone the app has not vouched for. An email typed into the form is contact information, not identity."
         },
-        "snapshot": {
-          "type": "boolean",
-          "default": false,
-          "description": "Store a DOM snapshot with each report. Useful for layout bugs, and it captures whatever was on the user's screen."
-        },
         "categories": {
           "type": "array",
           "items": {

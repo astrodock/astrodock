@@ -113,13 +113,21 @@ test('a configured category list is honored', () => {
 
 console.log('\nfeedback: the platform\'s opinion is the default');
 
-test('an app that says nothing gets drafts, no anonymous, no snapshot', () => {
+test('an app that says nothing gets drafts and no anonymous', () => {
   const c = fb.configFor({});
   assert.strictEqual(c.aiMode, 'draft', 'a bad auto-reply reaches a real person');
   assert.strictEqual(c.anonymous, false);
-  assert.strictEqual(c.snapshot, false, 'a DOM snapshot captures whatever was on screen');
   assert.strictEqual(c.enabled, true);
   assert.strictEqual(c.widget, true);
+});
+
+test('nothing advertises a snapshot option, because nothing captures one', () => {
+  // It was in app.json and in configFor and did absolutely nothing. An option
+  // that silently has no effect is worse than an absent one.
+  assert.strictEqual(fb.configFor({ feedbackConfig: { snapshot: true } }).snapshot, undefined);
+  const manifest = JSON.parse(fs.readFileSync(
+    new URL('../../../packages/schema/app.schema.json', import.meta.url), 'utf8'));
+  assert.ok(!('snapshot' in manifest.properties.feedback.properties));
 });
 
 test('an unknown ai_mode falls back to draft rather than through', () => {
@@ -329,6 +337,32 @@ await atest('a malformed webhook is refused rather than throwing', async () => {
 
 await atest('no webhook configured is not an error', async () => {
   assert.strictEqual(await hooks.fireWebhook({ key: 'F-1' }, {}), false);
+});
+
+test('the webhook cannot be pointed inside the perimeter', () => {
+  // The URL comes from an app's own app.json, and the control plane sits in the
+  // compose network where postgres, objectstore and runner answer to their
+  // service names. Without this the platform makes that request for you.
+  for (const bad of [
+    'https://objectstore:8333/x', 'https://postgres/x', 'https://runner/x',
+    'https://localhost/x', 'https://127.0.0.1/x', 'https://10.1.2.3/x',
+    'https://192.168.0.9/x', 'https://172.16.0.4/x',
+    'https://169.254.169.254/latest/meta-data/', 'https://metadata.google.internal/x',
+    'http://example.com/x'
+  ]) {
+    assert.strictEqual(hooks.isPublicHttps(bad), false, `${bad} should be refused`);
+  }
+  for (const good of ['https://example.com/hook', 'https://hooks.slack.com/services/x']) {
+    assert.strictEqual(hooks.isPublicHttps(good), true, `${good} should be allowed`);
+  }
+});
+
+test('a draft never closes the item', () => {
+  // Letting the model pick `answered` or `shipped` in draft mode would stamp
+  // answeredAt and drop the item out of the open list while its reply is still
+  // unsent, which is how this feature would quietly lose a bug report.
+  const src = fs.readFileSync(new URL('../src/lib/feedback-ai.js', import.meta.url), 'utf8');
+  assert.match(src, /config\.aiMode === 'auto' \|\| !fb\.TERMINAL\.includes\(suggested\)/);
 });
 
 test('the webhook never carries an internal note', () => {

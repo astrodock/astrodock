@@ -162,15 +162,18 @@ async function triage(item, app) {
       pending: config.aiMode !== 'auto'
     });
   }
-  // A question the model answered is `answered` only when it was actually sent.
-  const status = out.status || (out.kind === 'question' ? 'answered' : 'under_review');
-  if (config.aiMode === 'auto' || status !== 'answered') {
-    await fb.setStatus(item.id, status).catch(() => {});
-  } else {
-    await fb.setStatus(item.id, 'under_review').catch(() => {});
-  }
+  // In draft mode nothing has reached the person yet, so the item cannot be
+  // closed. Letting the model pick `answered` or `shipped` here would stamp
+  // answeredAt and drop the item out of the open list while its reply is still
+  // sitting unsent, which is the one way this feature could quietly lose
+  // somebody's bug report.
+  const suggested = out.status || (out.kind === 'question' ? 'answered' : 'under_review');
+  const status = (config.aiMode === 'auto' || !fb.TERMINAL.includes(suggested))
+    ? suggested
+    : 'under_review';
+  await fb.setStatus(item.id, status).catch(() => {});
 
-  return out;
+  return { ...out, status };
 }
 
 module.exports = { triage, analyze, parse, configured, settings, SYSTEM, DEFAULT_MODEL };

@@ -14,7 +14,7 @@
 // runtime, but what the permission it holds actually allows it to do.
 
 const express = require('express');
-const { and, eq, desc, inArray } = require('drizzle-orm');
+const { and, eq, desc, inArray, notInArray } = require('drizzle-orm');
 const { db, schema } = require('../db');
 const fb = require('../lib/feedback');
 const { requireScope, requirePermission, callerHasScope, tokenAllowsApp } = require('../middleware/auth');
@@ -57,9 +57,16 @@ async function itemByKey(appId, key) {
 // ── feedback ─────────────────────────────────────────────────────────────────
 
 router.get('/:slug', async (req, res) => {
-  const where = req.query.status
-    ? and(eq(schema.feedback.appId, req.app_.id), eq(schema.feedback.status, String(req.query.status)))
-    : eq(schema.feedback.appId, req.app_.id);
+  // `open` is everything not yet closed, filtered in the query rather than by
+  // the caller. Fetching a page and filtering it client-side drops open items
+  // off the end as soon as an app has more feedback than one page.
+  const wanted = String(req.query.status || '');
+  let where = eq(schema.feedback.appId, req.app_.id);
+  if (wanted === 'open') {
+    where = and(where, notInArray(schema.feedback.status, fb.TERMINAL));
+  } else if (wanted) {
+    where = and(where, eq(schema.feedback.status, wanted));
+  }
   const rows = await db.select().from(schema.feedback).where(where)
     .orderBy(desc(schema.feedback.createdAt)).limit(Math.min(Number(req.query.limit) || 100, 500));
 
