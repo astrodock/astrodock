@@ -7,6 +7,7 @@ const { execFileSync } = require('child_process');
 const { validate } = require('@astrodock/schema');
 const { makeClient } = require('./client');
 const { cmdPages } = require('./pages');
+const { cmdFeedback, cmdWork } = require('./feedback');
 
 const USAGE = `astrodock — drive an Astrodock platform from an app repo
 
@@ -24,6 +25,8 @@ Commands:
   pages push <dir|file> [options]      Publish a document / static bundle / file share to Pages
   pages list                           List pages
   pages rm <pageId>                    Delete a page
+  feedback <sub> <app> …               User feedback: list, show, note, reply, send, status, link
+  work <sub> <app> …                   Work items: list, show, new, status, relate
   help                                 Show this help
   version                              Print the CLI version
 
@@ -35,6 +38,19 @@ pages push options:
   --entry FILE                         Entry file (default index.html, else the only/-first file)
   --page-id ID                         Update an existing page instead of creating one
   --quiet                              Print only the resulting URL
+
+feedback and work:
+  feedback list <app> [--status S]     What people have reported
+  feedback show <app> F-12             One item, both threads
+  feedback note <app> F-12 "…"         An internal note. The user never sees it
+  feedback reply <app> F-12 "…"        A message the user reads. Held as a draft
+                                       unless the key has feedback:reply
+  feedback send <app> F-12 <msg-id>    Send a held draft
+  feedback status <app> F-12 shipped   new|under_review|planned|in_progress|shipped|answered|declined
+  feedback link <app> F-12 I-45        Say this report produced that work item
+  work new <app> "<title>" [--type bug] [--priority P1] [--area billing]
+  work status <app> I-45 done          open|in_progress|done|wont_do
+  work relate <app> I-45 I-12 [--kind blocks]
 
 Environment:
   ASTRODOCK_URL     Base URL of the admin host, e.g. https://admin.example.com
@@ -264,6 +280,8 @@ async function main(argv) {
       case 'set-secret': return await cmdSetSecret(client, positional);
       case 'apps': return await cmdApps(client);
       case 'pages': return await cmdPages(client, positional, flags);
+      case 'feedback': return await cmdFeedback(client, positional, flags);
+      case 'work': return await cmdWork(client, positional, flags);
       default: die(`unknown command "${command}" (try: astrodock help)`);
     }
   } catch (e) {
