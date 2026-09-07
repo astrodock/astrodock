@@ -1224,3 +1224,50 @@ label > .sel { margin-top:.4rem; }
 /* A checkbox with its label on one line, for a setting that is a sentence. */
 .inline-check { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; }
 .inline-check input { width: 15px; height: 15px; flex: none; margin: 0; }
+
+/* ── feedback and work ───────────────────────────────────────────────────────
+   The two-pane thread is load-bearing, not decoration. Internal notes and what
+   the user was told are physically separate columns so that reading one is
+   never mistaken for reading the other. On a narrow screen they stack, with
+   internal first, because that is the one you are working in. */
+.two-pane { display: grid; grid-template-columns: 1fr; gap: 18px; }
+@media (min-width: 900px) { .two-pane { grid-template-columns: 1fr 1fr; } }
+
+.pane {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px 16px;
+  background: var(--surface);
+}
+.pane h3 { margin: 0 0 2px; font-size: 14px; font-weight: 600; color: var(--text-1); }
+.pane-note { margin: 0 0 12px; font-size: 12px; color: var(--text-3); line-height: 1.45; }
+.pane .bulk-textarea { width: 100%; min-height: 84px; margin-top: 10px; }
+.pane > button { margin-top: 8px; }
+
+.msg { padding: 10px 0; border-top: 1px solid var(--border); }
+.msg:first-of-type { border-top: 0; }
+.msg-who { font-size: 11px; color: var(--text-3); margin-bottom: 4px; }
+.msg-body { font-size: 13px; color: var(--text-1); white-space: pre-wrap; line-height: 1.5; }
+/* A draft is a message nobody has seen. It reads as unfinished on purpose. */
+.msg.pending { opacity: .62; }
+.msg.pending .msg-body { font-style: italic; }
+.msg.pending button { margin-top: 8px; }
+
+.row-btn, .work-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  width: 100%; padding: 11px 14px; text-align: left;
+  border: 0; border-top: 1px solid var(--border); background: none;
+}
+.row-btn:first-child, .work-row:first-child { border-top: 0; }
+.row-btn { cursor: pointer; }
+.row-btn:hover { background: var(--surface-2, rgba(0,0,0,.02)); }
+.row-main { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.row-main .k { font-family: var(--mono, ui-monospace, monospace); font-size: 12px; color: var(--text-3); flex: none; }
+.row-main .t { font-size: 13px; color: var(--text-1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row-meta { display: flex; align-items: center; gap: 8px; flex: none; }
+.row-meta .dim, .dim { font-size: 12px; color: var(--text-3); }
+
+.chip {
+  font-size: 11px; padding: 2px 7px; border-radius: 4px;
+  border: 1px solid var(--border); color: var(--text-2); white-space: nowrap;
+}

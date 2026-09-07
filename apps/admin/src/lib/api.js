@@ -400,3 +400,31 @@ export async function uploadPageFiles(pageId, fileList, paths) {
   if (!res.ok) throw new ApiError(data.error || 'Upload failed', { status: res.status, body: data });
   return data;
 }
+
+// ── feedback and work items ──────────────────────────────────────────────────
+// Two threads, two calls. There is no visibility argument on either side of this
+// wire: addFeedbackNote is always internal and replyToFeedback is always the
+// message a user reads. See FEEDBACK_DESIGN.md.
+export const getFeedback = (slug, status) =>
+  request(`/feedback/${slug}${status ? `?status=${encodeURIComponent(status)}` : ''}`);
+export const getFeedbackItem = (slug, key) => request(`/feedback/${slug}/${key}`);
+export const addFeedbackNote = (slug, key, body) =>
+  request(`/feedback/${slug}/${key}/notes`, { method: 'POST', body: JSON.stringify({ body }) });
+export const replyToFeedback = (slug, key, body, draft = false) =>
+  request(`/feedback/${slug}/${key}/reply`, { method: 'POST', body: JSON.stringify({ body, draft }) });
+export const sendFeedbackDraft = (slug, key, id) =>
+  request(`/feedback/${slug}/${key}/messages/${id}/send`, { method: 'POST' });
+export const setFeedbackStatus = (slug, key, status) =>
+  request(`/feedback/${slug}/${key}/status`, { method: 'POST', body: JSON.stringify({ status }) });
+export const linkFeedbackWork = (slug, key, work, remove = false) =>
+  request(`/feedback/${slug}/${key}/link`, { method: 'POST', body: JSON.stringify({ work, remove }) });
+
+export const getWorkItems = (slug, status) =>
+  request(`/work/${slug}${status ? `?status=${encodeURIComponent(status)}` : ''}`);
+export const getWorkItem = (slug, key) => request(`/work/${slug}/${key}`);
+export const createWorkItem = (slug, data) =>
+  request(`/work/${slug}`, { method: 'POST', body: JSON.stringify(data) });
+export const updateWorkItem = (slug, key, data) =>
+  request(`/work/${slug}/${key}`, { method: 'PATCH', body: JSON.stringify(data) });
+export const setWorkItemStatus = (slug, key, status) =>
+  request(`/work/${slug}/${key}/status`, { method: 'POST', body: JSON.stringify({ status }) });

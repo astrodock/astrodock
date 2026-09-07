@@ -11,10 +11,12 @@ import SettingsTab from '../components/SettingsTab';
 import OperationsTab from '../components/OperationsTab';
 import SignInTab from '../components/SignInTab';
 import DomainsTab from '../components/DomainsTab';
+import FeedbackTab from '../components/FeedbackTab';
+import WorkTab from '../components/WorkTab';
 import useConfirm from '../lib/useConfirm';
 
-const BASE_TABS = ['deploys', 'env', 'domains', 'signin', 'logs', 'history', 'operations', 'settings'];
-const TAB_LABELS = { deploys: 'Deploys', env: 'Variables', domains: 'Domains', signin: 'Sign-in', logs: 'Logs', operations: 'Operations', settings: 'Settings' };
+const BASE_TABS = ['deploys', 'env', 'domains', 'signin', 'feedback', 'work', 'logs', 'history', 'operations', 'settings'];
+const TAB_LABELS = { deploys: 'Deploys', env: 'Variables', domains: 'Domains', signin: 'Sign-in', feedback: 'Feedback', work: 'Work', logs: 'Logs', operations: 'Operations', settings: 'Settings' };
 
 const STATUS_LABELS = {
   online: { label: 'Running', className: 'active' },
@@ -231,6 +233,8 @@ export default function AppDetailPage() {
         {activeTab === 'deploys' && <DeploysTab app={app} missingRequired={missingRequired} onRefresh={load} />}
         {activeTab === 'env' && <EnvVarsTab app={app} onRefresh={load} />}
         {activeTab === 'domains' && <DomainsTab app={app} />}
+        {activeTab === 'feedback' && <FeedbackTab app={app} />}
+        {activeTab === 'work' && <WorkTab app={app} />}
         {activeTab === 'logs' && <LogsTab app={app} />}
         {activeTab === 'history' && <HistoryTab app={app} />}
         {activeTab === 'terminal' && <TerminalTab app={app} />}
