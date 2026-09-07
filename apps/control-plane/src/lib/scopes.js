@@ -42,6 +42,14 @@ const SCOPES = {
   'settings:write': { group: 'platform', label: 'Change platform settings', description: 'Change platform settings and notification rules' },
   'backups:write': { group: 'platform', label: 'Run & restore backups', description: 'Run and restore backups' },
   'platform:write': { group: 'platform', label: 'Change domain & HTTPS', description: 'Change the base domain, HTTPS mode and DNS records' },
+  'feedback:read': { group: 'observe', label: 'Read feedback', description: 'Read user feedback and internal notes' },
+  'feedback:write': { group: 'apps', label: 'Triage feedback', description: 'Write internal notes, set status, link work, draft replies' },
+  // Separate, and sensitive, because it is the only one that reaches a person.
+  // An agent in draft mode holds feedback:write and not this: it can write the
+  // reply, and a human decides whether it is sent.
+  'feedback:reply': { group: 'sensitive', label: 'Reply to a user', description: 'Send a message the person who reported it will read' },
+  'work:read': { group: 'observe', label: 'View work items', description: 'View tracked work items' },
+  'work:write': { group: 'apps', label: 'Manage work items', description: 'Create work items, change status, link and relate them' },
   'tokens:write': { group: 'sensitive', label: 'Create & revoke keys', description: 'Create and revoke access keys' },
   exec: { group: 'sensitive', label: 'Run commands in an app', description: 'Run commands inside an app' }
 };
@@ -60,10 +68,16 @@ const PRESETS = {
   },
   operator: {
     label: 'Operator',
-    description: 'Everything a deployer can do, plus end users, pages, settings and backups.',
+    description: 'Everything a deployer can do, plus end users, pages, feedback, settings and backups.',
     scopes: ['apps:read', 'apps:write', 'deploys:write', 'runtime:write', 'env:read', 'env:write', 'logs:read',
       'domains:write', 'pages:read', 'pages:write', 'users:read', 'users:write', 'events:read',
-      'settings:read', 'settings:write', 'backups:write']
+      'settings:read', 'settings:write', 'backups:write',
+      'feedback:read', 'feedback:write', 'feedback:reply', 'work:read', 'work:write']
+  },
+  triage: {
+    label: 'Triage',
+    description: 'Read feedback, write internal notes, set status and track work. Cannot send a message to a user: it can draft a reply, and a person decides whether it goes.',
+    scopes: ['apps:read', 'logs:read', 'feedback:read', 'feedback:write', 'work:read', 'work:write']
   },
   platform: {
     label: 'Platform manager',

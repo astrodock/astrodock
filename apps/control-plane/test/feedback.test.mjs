@@ -215,5 +215,54 @@ test('the widget still works when the config call fails', () => {
   assert.match(widget, /catch\(function \(\) \{\}\)/);
 });
 
+console.log('\nfeedback: sending to a user is its own permission');
+
+const scopes = require('../src/lib/scopes.js');
+const adminSrc = fs.readFileSync(new URL('../src/routes/admin-feedback.js', import.meta.url), 'utf8');
+
+test('feedback:reply is sensitive and separate from feedback:write', () => {
+  assert.strictEqual(scopes.SCOPES['feedback:reply'].group, 'sensitive');
+  assert.strictEqual(scopes.SCOPES['feedback:write'].group, 'apps');
+});
+
+test('the triage preset can draft but cannot send', () => {
+  // This preset IS "the AI drafts by default". Not a runtime mode flag, but what
+  // the key it holds actually permits.
+  const t = scopes.PRESETS.triage.scopes;
+  assert.ok(t.includes('feedback:write'), 'triage must be able to write notes and drafts');
+  assert.ok(!t.includes('feedback:reply'), 'triage must not be able to reach a user');
+  assert.ok(!t.includes('exec'));
+});
+
+test('a human operator can send', () => {
+  assert.ok(scopes.PRESETS.operator.scopes.includes('feedback:reply'));
+});
+
+test('read-only picks up the new read scopes and none of the write ones', () => {
+  const r = scopes.PRESETS.readonly.scopes;
+  assert.ok(r.includes('feedback:read') && r.includes('work:read'));
+  assert.ok(!r.includes('feedback:reply') && !r.includes('feedback:write'));
+});
+
+test('posting a reply without feedback:reply produces a draft rather than a refusal', () => {
+  const route = /router\.post\('\/:slug\/:key\/reply'[\s\S]*?\n\}\);/.exec(adminSrc);
+  assert.ok(route, 'could not find the reply route');
+  assert.match(route[0], /requirePermission\('feedback:write'\)/);
+  assert.match(route[0], /callerHasScope\(req\.auth, 'feedback:reply'\)/);
+  assert.match(route[0], /pending = !maySend/);
+});
+
+test('sending a held draft needs the permission its author lacked', () => {
+  const route = /router\.post\('\/:slug\/:key\/messages\/:id\/send'[\s\S]*?\n\}\);/.exec(adminSrc);
+  assert.ok(route, 'could not find the send route');
+  assert.match(route[0], /requirePermission\('feedback:reply'\)/);
+});
+
+test('the internal thread is served only behind feedback:read', () => {
+  assert.match(adminSrc, /router\.use\(requireScope\('feedback:read'\)\)/);
+  // and the app-facing router never mentions the internal thread at all
+  assert.ok(!/'internal'/.test(routeSrc), 'the public route must not reference the internal thread');
+});
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
