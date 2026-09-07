@@ -119,7 +119,7 @@ export default function WorkTab({ app }) {
       )}
 
       {items.length === 0 ? (
-        <EmptyState title="Nothing tracked" message="Work items are what feedback turns into, and anything else you need to remember." />
+        <EmptyState title="Nothing tracked" body="Work items are what feedback turns into, and anything else you need to remember." />
       ) : (
         <div className="field-panel">
           {items.map((i) => (

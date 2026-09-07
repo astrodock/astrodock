@@ -89,7 +89,7 @@ export default function FeedbackTab({ app }) {
       {items.length === 0 ? (
         <EmptyState
           title="Nothing reported yet"
-          message={`Add the widget to ${app.slug} and a button appears for your users. Settings tells you the script tag.`}
+          body={`Add the widget to ${app.slug} and a button appears for your users. Settings tells you the script tag.`}
         />
       ) : (
         <div className="field-panel">
