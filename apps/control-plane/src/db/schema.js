@@ -92,6 +92,9 @@ const apps = pgTable('apps', {
   provisioned: boolean('provisioned').notNull().default(false),
 
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  // From the app.json `feedback` block: { enabled, widget, anonymous, snapshot,
+  // categories[], ai_mode, webhook }. See lib/feedback.js configFor().
+  feedbackConfig: jsonb('feedback_config').notNull().default(sql`'{}'::jsonb`),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 }, (t) => ({
   slugUniq: uniqueIndex('apps_slug_uniq').on(t.slug),
@@ -397,4 +400,83 @@ const customDomains = pgTable('custom_domains', {
   appIdx: index('custom_domains_app_idx').on(t.appId)
 }));
 
-module.exports = { users, webauthnCredentials, recoveryCodes, sessions, authorizationCodes, appRedirectUris, apps, appEnvVars, deployments, authLogs, apiTokens, appHealth, pages, pageFiles, pageData, events, platformSettings, notificationRules, notificationDeliveries, pageViews, backups, customDomains };
+// ── feedback ───────────────────────────────────────────────────────────────
+// What an app's users said, and the work it turns into. Separate on purpose:
+// feedback always ends in a reply to a person, a work item never has one
+// waiting on it directly. See FEEDBACK_DESIGN.md.
+const feedback = pgTable('feedback', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  appId: uuid('app_id').notNull().references(() => apps.id, { onDelete: 'cascade' }),
+  key: text('key').notNull(),                            // F-1 upward, per app
+  submittedBy: uuid('submitted_by').references(() => users.id, { onDelete: 'set null' }),
+  submitterEmail: text('submitter_email').notNull().default(''),
+  category: text('category').notNull().default('other'),
+  title: text('title').notNull().default(''),
+  body: text('body').notNull().default(''),
+  // new | under_review | planned | in_progress | shipped | answered | declined
+  status: text('status').notNull().default('new'),
+  context: jsonb('context').notNull().default(sql`'{}'::jsonb`),
+  snapshotKey: text('snapshot_key').notNull().default(''),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  answeredAt: timestamp('answered_at', { withTimezone: true })
+}, (t) => ({
+  appKeyUniq: uniqueIndex('feedback_app_key_uniq').on(t.appId, t.key),
+  appStatusIdx: index('feedback_app_status_idx').on(t.appId, t.status)
+}));
+
+// Two threads sharing a table. `visibility` has no default here either: the
+// route decides, never the caller. See the migration.
+const feedbackMessages = pgTable('feedback_messages', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  feedbackId: uuid('feedback_id').notNull().references(() => feedback.id, { onDelete: 'cascade' }),
+  visibility: text('visibility').notNull(),              // internal | user
+  authorKind: text('author_kind').notNull().default('operator'), // user | operator | agent
+  authorId: text('author_id').notNull().default(''),
+  body: text('body').notNull().default(''),
+  pending: boolean('pending').notNull().default(false),  // an AI draft awaiting a human
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+}, (t) => ({
+  threadIdx: index('feedback_messages_thread_idx').on(t.feedbackId, t.visibility, t.createdAt)
+}));
+
+const workItems = pgTable('work_items', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  appId: uuid('app_id').notNull().references(() => apps.id, { onDelete: 'cascade' }),
+  key: text('key').notNull(),                            // I-1 upward, per app
+  title: text('title').notNull().default(''),
+  context: text('context').notNull().default(''),        // one-line statement for the list
+  body: text('body').notNull().default(''),
+  status: text('status').notNull().default('open'),      // open | in_progress | done | wont_do
+  priority: text('priority').notNull().default('P2'),
+  size: text('size').notNull().default(''),
+  type: text('type').notNull().default('bug'),           // bug | feature | chore
+  area: text('area').notNull().default(''),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  doneAt: timestamp('done_at', { withTimezone: true })
+}, (t) => ({
+  appKeyUniq: uniqueIndex('work_items_app_key_uniq').on(t.appId, t.key),
+  appStatusIdx: index('work_items_app_status_idx').on(t.appId, t.status)
+}));
+
+const workItemRelations = pgTable('work_item_relations', {
+  fromId: uuid('from_id').notNull().references(() => workItems.id, { onDelete: 'cascade' }),
+  toId: uuid('to_id').notNull().references(() => workItems.id, { onDelete: 'cascade' }),
+  kind: text('kind').notNull()   // relates_to | blocks | parent | duplicate_of | supersedes
+});
+
+const feedbackWorkItems = pgTable('feedback_work_items', {
+  feedbackId: uuid('feedback_id').notNull().references(() => feedback.id, { onDelete: 'cascade' }),
+  workItemId: uuid('work_item_id').notNull().references(() => workItems.id, { onDelete: 'cascade' })
+});
+
+// Per-app sequential keys, incremented in the inserting transaction. MAX+1
+// races; two submissions in the same moment would collide on the unique index.
+const appCounters = pgTable('app_counters', {
+  appId: uuid('app_id').notNull().references(() => apps.id, { onDelete: 'cascade' }),
+  kind: text('kind').notNull(),                          // feedback | work
+  n: integer('n').notNull().default(0)
+});
+
+module.exports = { users, webauthnCredentials, recoveryCodes, sessions, authorizationCodes, appRedirectUris, apps, appEnvVars, deployments, authLogs, apiTokens, appHealth, pages, pageFiles, pageData, events, platformSettings, notificationRules, notificationDeliveries, pageViews, backups, customDomains, feedback, feedbackMessages, workItems, workItemRelations, feedbackWorkItems, appCounters };
