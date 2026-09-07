@@ -20,7 +20,7 @@ const EXPIRY_CHOICES = [
 // iterate in, which put "manage the whole platform" second.
 const PRESET_ORDER = ['readonly', 'deployer', 'operator', 'platform'];
 
-export default function NewKeyModal({ options, apps, onCancel, onCreated }) {
+export default function NewKeyModal({ options, apps, onCancel, onCreated, onReauth }) {
   const [name, setName] = useState('');
   const [preset, setPreset] = useState('deployer');
   const [custom, setCustom] = useState(null); // null = follow the preset
@@ -44,7 +44,7 @@ export default function NewKeyModal({ options, apps, onCancel, onCreated }) {
   };
 
   async function create(e) {
-    e.preventDefault();
+    if (e) e.preventDefault();
     setError(''); setBusy(true);
     try {
       onCreated(await api.createToken({
@@ -53,7 +53,15 @@ export default function NewKeyModal({ options, apps, onCancel, onCreated }) {
         apps: appScope,
         expiresInDays: expiryDays
       }));
-    } catch (err) { setError(err.message); setBusy(false); }
+    } catch (err) {
+      setBusy(false);
+      // Minting a key needs a recently proven factor. Showing the server's
+      // "confirm it is you" as a flat error was a dead end: it named a step
+      // with no way to take it. Hand the retry up so the page can ask, and
+      // stay mounted so the form the operator filled in is still here after.
+      if (err.body?.code === 'reauth_required') return onReauth?.(() => create());
+      setError(err.message);
+    }
   }
 
   return (

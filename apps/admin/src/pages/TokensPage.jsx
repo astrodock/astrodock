@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import * as api from '../lib/api';
 import NewKeyModal from '../components/NewKeyModal';
+import ReauthModal from '../components/ReauthModal';
 import EmptyState from '../components/EmptyState';
 import PageHeader from '../components/PageHeader';
 import useConfirm from '../lib/useConfirm';
@@ -41,6 +42,9 @@ export default function TokensPage() {
   const [created, setCreated] = useState(null);
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  // Creating and revoking a key both need a recently proven factor, and this
+  // page was the only one that asked for it without offering a way to do it.
+  const [reauth, setReauth] = useState(null);
 
   const load = () => api.getTokens().then((d) => setTokens(d.tokens || [])).catch((e) => setError(e.message));
 
@@ -90,6 +94,7 @@ export default function TokensPage() {
           apps={apps}
           onCancel={() => setOpen(false)}
           onCreated={(k) => { setCreated(k); setOpen(false); load(); }}
+          onReauth={(retry) => setReauth({ action: 'Creating an access key', retry })}
         />
       )}
 
@@ -144,11 +149,20 @@ export default function TokensPage() {
                     </>
                   ),
                   onConfirm: async () => {
-                    try {
-                      const r = await api.deleteToken(t.id);
-                      if (r?.revokedChildren) setError(`Also revoked ${r.revokedChildren} key(s) this one created.`);
-                      load();
-                    } catch (e) { setError(e.message); }
+                    const revoke = async () => {
+                      try {
+                        const r = await api.deleteToken(t.id);
+                        if (r?.revokedChildren) setError(`Also revoked ${r.revokedChildren} key(s) this one created.`);
+                        load();
+                      } catch (e) {
+                        if (e.body?.code === 'reauth_required') {
+                          setReauth({ action: `Revoking ${t.name}`, retry: revoke });
+                          return;
+                        }
+                        setError(e.message);
+                      }
+                    };
+                    await revoke();
                   }
                 })}>Revoke</button>
               </td>
@@ -164,6 +178,13 @@ export default function TokensPage() {
           title="No Access Keys Yet"
           body="A key lets the astrodock CLI or an AI agent act on your behalf, with only the permissions you choose. Nothing can use the API until you create one."
           action={<button onClick={() => { setOpen(true); setCreated(null); }}>+ New Key</button>}
+        />
+      )}
+      {reauth && (
+        <ReauthModal
+          action={reauth.action}
+          onConfirm={() => { const again = reauth.retry; setReauth(null); again(); }}
+          onCancel={() => setReauth(null)}
         />
       )}
     </div>
