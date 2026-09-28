@@ -211,8 +211,7 @@
         },
         "webhook": {
           "type": "string",
-          "format": "uri",
-          "description": "HTTPS endpoint POSTed on every new submission, so your own process can take over. Never receives internal notes."
+          "description": "HTTPS endpoint POSTed on every new submission, so your own process can take over. Never receives internal notes. Refused if it is not https or points inside the platform network."
         }
       }
     }
