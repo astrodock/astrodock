@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import * as api from '../lib/api';
 import EmptyState from '../components/EmptyState';
 import UserCreateModal from '../components/UserCreateModal';
+import UserDetailModal from '../components/UserDetailModal';
 import PageHeader from '../components/PageHeader';
 import { SkeletonRows } from '../components/Loading';
 
@@ -18,6 +19,8 @@ export default function UsersPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  // /users/:id renders this same page with the person opened over it.
+  const { id: openUserId } = useParams();
 
   async function load() {
     try {
@@ -95,6 +98,14 @@ export default function UsersPage() {
         <UserCreateModal
           onClose={() => setShowCreate(false)}
           onSave={load}
+        />
+      )}
+
+      {openUserId && (
+        <UserDetailModal
+          key={openUserId}
+          id={openUserId}
+          onClose={() => { navigate('/users'); load(); }}
         />
       )}
     </div>

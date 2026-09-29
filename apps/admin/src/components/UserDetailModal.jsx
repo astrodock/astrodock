@@ -1,16 +1,20 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
 import * as api from '../lib/api';
 import EmptyState from '../components/EmptyState';
+import Modal from '../components/Modal';
 import useConfirm from '../lib/useConfirm';
 
 // Not danger colours: an owner is the most senior role, not the most dangerous
 // thing on the page. Red is reserved for destructive things and failures.
 const ROLE_TONE = { owner: 'role-owner', admin: 'role-admin', operator: 'role-operator', viewer: 'role-viewer' };
 
-export default function UserDetailPage() {
-  const { id } = useParams();
-  const navigate = useNavigate();
+// One user, over the list they came from.
+//
+// This was a routed full page. Everything on it is four short sections of form,
+// which is modal-shaped work: you open a person, change a role or an app toggle,
+// and go back to the list you were reading. A whole page for that lost the list
+// every time. The URL is unchanged, so a link to a user still opens that user.
+export default function UserDetailModal({ id, onClose }) {
   const [user, setUser] = useState(null);
   const [apps, setApps] = useState([]);
   const [error, setError] = useState('');
@@ -103,7 +107,7 @@ export default function UserDetailPage() {
       onConfirm: async () => {
         try {
           await api.deleteUser(id);
-          navigate('/users');
+          onClose();
         } catch (err) {
           setError(err.message);
         }
@@ -138,23 +142,24 @@ export default function UserDetailPage() {
     }
   }
 
-  if (!user) return <p className="text-muted">Loading…</p>;
+  if (!user) {
+    return <Modal wide onClose={onClose} title="Loading…"><p className="text-muted">One moment.</p></Modal>;
+  }
 
   return (
     <>
       {confirmNode}
-    <div>
-      <div className="detail-header">
-        <Link to="/users" className="back-link">Users</Link>
-        <span className="back-sep">/</span>
-        <h1>{user.name}</h1>
-        <div className="detail-meta">
-          <code>{user.email}</code>
-          <span className={`badge ${user.isActive ? 'active' : 'inactive'}`}>
-            {user.isActive ? 'Active' : 'Inactive'}
-          </span>
-          {user.operatorRole && <span className={`chip ${ROLE_TONE[user.operatorRole] || ''}`}>{user.operatorRole}</span>}
-        </div>
+    <Modal
+      wide
+      onClose={onClose}
+      title={user.name}
+      subtitle={user.email}
+    >
+      <div className="user-modal-badges">
+        <span className={`badge ${user.isActive ? 'active' : 'inactive'}`}>
+          {user.isActive ? 'Active' : 'Inactive'}
+        </span>
+        {user.operatorRole && <span className={`chip ${ROLE_TONE[user.operatorRole] || ''}`}>{user.operatorRole}</span>}
       </div>
 
       {error && <div className="error">{error}</div>}
@@ -273,7 +278,7 @@ export default function UserDetailPage() {
           </div>
         </div>
       </section>
-    </div>
+    </Modal>
     </>
   );
 }

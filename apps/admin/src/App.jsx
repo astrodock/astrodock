@@ -10,7 +10,6 @@ import AppsPage from './pages/AppsPage';
 import AppDetailPage from './pages/AppDetailPage';
 import PagesPage from './pages/PagesPage';
 import PageDetailPage from './pages/PageDetailPage';
-import UserDetailPage from './pages/UserDetailPage';
 import ActivityPage from './pages/ActivityPage';
 import HealthPage from './pages/HealthPage';
 import TokensPage from './pages/TokensPage';
@@ -247,7 +246,10 @@ export default function App() {
         <Routes>
           <Route path="/overview" element={<OverviewPage />} />
           <Route path="/users" element={<UsersPage />} />
-          <Route path="/users/:id" element={<UserDetailPage />} />
+          {/* The same page underneath, with the user opened over it. Keeping the
+              URL means a link from Activity still opens that person, and Back
+              still returns to the list rather than leaving the dashboard. */}
+          <Route path="/users/:id" element={<UsersPage />} />
           <Route path="/apps" element={<AppsPage />} />
           <Route path="/apps/:slug" element={<AppDetailPage />} />
           <Route path="/pages" element={<PagesPage />} />

@@ -1320,3 +1320,11 @@ label > .sel { margin-top:.4rem; }
   font-size: 11px; padding: 2px 7px; border-radius: 4px;
   border: 1px solid var(--border); color: var(--text-2); white-space: nowrap;
 }
+
+/* The user modal keeps the badges under the title rather than in the header,
+   where Modal already owns the title and close button. */
+.user-modal-badges { display:flex; align-items:center; gap:8px; margin:-.6rem 0 1.2rem; }
+/* Four stacked sections inside a dialog: the first should not push a second
+   heading gap against the title. */
+.modal .set-section:first-of-type { margin-top:0; }
+.modal .set-section + .set-section { margin-top:26px; border-top:1px solid var(--line); padding-top:22px; }
