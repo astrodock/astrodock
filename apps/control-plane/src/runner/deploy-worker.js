@@ -145,13 +145,13 @@ async function run() {
       : `Health probe: no response after ${PROBE_ATTEMPTS}s — the app may still be starting, or it is not listening on ASTRODOCK_PORT`);
 
     if (app.runtimeType !== 'docker') {
-      const proc = processControl.appStatus(app.slug);
+      const proc = await settledStatus(app);
       const state = proc && proc.status;
-      if (state === 'errored' || state === 'stopped') {
+      if (state !== 'online') {
         await appendLog(`Process is ${state} after ${proc.restarts || 0} restart(s) — the new code is not running.`);
-        await appendLog(healthy
-          ? 'Something is still answering on this address: an older instance is holding the port.'
-          : '');
+        if (healthy) {
+          await appendLog('Something is still answering on this address: an older instance is holding the port.');
+        }
         throw new Error(`app process is ${state} after deploy`);
       }
       await appendLog(`Process online (pid ${proc.pid}, ${proc.restarts || 0} restart(s))`);
@@ -393,6 +393,41 @@ async function deployDocker(app, deployRoot, env, { appendLog, setStatus, commit
 // to say: almost always. The line was there to reassure, and instead it made
 // every successful deploy look doubtful.
 const PROBE_ATTEMPTS = 10;
+
+// How long to let the supervisor make up its mind.
+//
+// pm2 reports a process as `stopped` for a moment while it is still spawning, so
+// a single instantaneous read races it. The read is retried until it settles, and
+// `online` has to hold twice in a row: a crash loop passes through `online` on
+// its way back down, and catching it there is how a dying app looks healthy.
+const SETTLE_ATTEMPTS = 12;
+const SETTLE_WAIT_MS = 1000;
+
+async function settledStatus(app) {
+  let last = { status: 'unknown', restarts: 0, pid: null };
+  let onlineRuns = 0;
+  for (let i = 0; i < SETTLE_ATTEMPTS; i++) {
+    // NB: the app object, not app.slug. appStatus() reads app.runtimeType to
+    // decide between pm2 and docker, so a slug string sent here looked up a
+    // process named `undefined`, found nothing, and returned the not-found
+    // default of `stopped` with 0 restarts. Every Node deploy therefore ended
+    // in "app process is stopped after deploy" while the app ran perfectly:
+    // eight in a row before anyone read the log closely. The guard was written
+    // to stop a deploy reporting success over stale code and managed to invert
+    // itself.
+    last = processControl.appStatus(app) || last;
+    if (last.status === 'online') {
+      if (++onlineRuns >= 2) return last;
+    } else {
+      onlineRuns = 0;
+      // An app that has already burned through its restarts is not going to
+      // settle, and waiting the full window tells nobody anything.
+      if (last.status === 'errored' && (last.restarts || 0) > 3) return last;
+    }
+    await new Promise((r) => setTimeout(r, SETTLE_WAIT_MS));
+  }
+  return last;
+}
 const PROBE_GAP_MS = 1000;
 
 function probeOnce(app) {
