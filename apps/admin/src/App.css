@@ -94,18 +94,37 @@ code, .mono { font-family:var(--mono); }
 .nav-badge { margin-left:auto; font-family:var(--mono); font-size:10px; font-weight:600; background:var(--danger); color:var(--danger-ink); padding:1px 7px; border-radius:20px; }
 
 .sidebar-footer { padding:10px 12px 12px; border-top:1px solid var(--sidebar-line); display:flex; flex-direction:column; gap:8px; }
-.sys-chip { display:flex; align-items:center; gap:10px; padding:11px 13px; border:1px solid var(--line-soft); border-radius:var(--r-sm); background:color-mix(in srgb, var(--text) 3%, transparent); }
-.sys-chip .t { font-size:12px; }
-.sys-chip .t b { display:block; font-weight:600; }
-.sys-chip .t span { font-family:var(--mono); font-size:10px; color:var(--text-3); }
-.sidebar-actions { display:flex; gap:8px; }
-.theme-toggle, .logout-btn {
-  flex:1; display:flex; align-items:center; justify-content:center; gap:8px; padding:9px 10px;
-  background:transparent; border:1px solid var(--line-soft); color:var(--text-2); border-radius:var(--r-sm);
-  cursor:pointer; font-size:12.5px; font-family:var(--font); font-weight:500; transition:.15s;
+/* Identity, pinned to the bottom of the sidebar. Replaces a "Your account" item
+   that sat in the middle of the Manage list, which is where you look for things
+   you administer rather than for yourself. */
+.acct-chip {
+  display:flex; align-items:center; gap:10px; padding:9px 11px; text-decoration:none;
+  border:1px solid var(--line-soft); border-radius:var(--r-sm);
+  background:color-mix(in srgb, var(--text) 3%, transparent); color:var(--text);
 }
-.theme-toggle:hover { background:var(--hover); color:var(--text); }
-.logout-btn:hover { background:var(--danger-dim); color:var(--danger); border-color:transparent; }
+.acct-chip:hover { background:var(--hover); }
+.acct-chip.active { border-color:color-mix(in srgb, var(--accent) 45%, transparent); }
+.acct-avatar {
+  flex:none; width:26px; height:26px; border-radius:50%; display:grid; place-items:center;
+  background:var(--accent); color:var(--accent-ink); font-size:12px; font-weight:700;
+}
+.acct-chip .t { min-width:0; }
+.acct-chip .t b { display:block; font-size:12.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.acct-chip .t span { display:block; font-size:10.5px; color:var(--text-3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+/* State and version on one line. They were two stacked blocks, one of which was
+   a hardcoded claim. */
+.sys-line {
+  display:flex; align-items:center; gap:7px; padding:6px 11px; text-decoration:none;
+  font-size:11px; color:var(--text-3);
+}
+.sys-line:hover { color:var(--text-2); }
+.sys-line .led { flex:none; width:6px; height:6px; border-radius:50%; background:var(--text-3); }
+.sys-line.ok .led { background:var(--ok, #3fb950); }
+.sys-line.bad .led { background:var(--danger); }
+.sys-line.unknown .led { background:var(--text-3); opacity:.6; }
+.sys-line .sys-text { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.sys-line .sys-ver { margin-left:auto; font-family:var(--mono); font-size:10px; flex:none; }
 
 .content { flex:1; margin-left:236px; padding:26px 36px 70px; min-height:100vh; max-width:1400px; }
 
@@ -182,6 +201,19 @@ button.secondary, .cancel-btn { background:var(--surface-2); color:var(--text-2)
 .link-btn:hover { background:none; text-decoration:underline; }
 /* Destructive inline action — removing a passkey, ending a session. */
 .link-btn.danger { color:var(--danger); }
+/* A destructive action in a row is still a button, and .link-btn zeroes the
+   padding for inline links. Revoking a key or signing out a session was a bare
+   red word with no hit area, which is both hard to hit and easy to hit by
+   accident on a phone. Only the danger variant is affected; plain .link-btn
+   stays inline. */
+.link-btn.danger {
+  padding:.4rem .7rem; border-radius:var(--r-sm); line-height:1.1;
+  background:transparent; border:1px solid transparent;
+}
+.link-btn.danger:hover {
+  background:var(--danger-dim); border-color:color-mix(in srgb, var(--danger) 25%, transparent);
+  text-decoration:none;
+}
 
 /* ── Page header / tabs ─────────────────────────────────── */
 .page-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1.6rem; gap:16px;
@@ -244,9 +276,18 @@ button.secondary, .cancel-btn { background:var(--surface-2); color:var(--text-2)
 .process-dot-sm.warning { background:var(--warning); box-shadow:0 0 0 3px var(--warning-dim); }
 
 /* ── Modals ─────────────────────────────────────────────── */
-.modal-overlay { position:fixed; inset:0; background:rgba(4,7,17,.72); backdrop-filter:blur(5px); display:flex; align-items:center; justify-content:center; z-index:100; animation:fadeIn .2s ease; }
+/* align-items:flex-start with margin:auto on the child, not align-items:center:
+   a centred flex item taller than its container overflows in BOTH directions and
+   the top is unreachable, which is what happened to the notification rule modal.
+   Auto margins still centre it vertically whenever there is room. */
+.modal-overlay {
+  position:fixed; inset:0; background:rgba(4,7,17,.72); backdrop-filter:blur(5px);
+  display:flex; align-items:flex-start; justify-content:center;
+  overflow-y:auto; overscroll-behavior:contain; padding:1.5rem;
+  z-index:100; animation:fadeIn .2s ease;
+}
 @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
-.modal { background:var(--surface); border:1px solid var(--line); border-radius:var(--r-lg); padding:2rem; width:100%; max-width:460px; box-shadow:var(--shadow); animation:modalSlide .22s ease; }
+.modal { background:var(--surface); border:1px solid var(--line); border-radius:var(--r-lg); padding:2rem; width:100%; max-width:460px; box-shadow:var(--shadow); animation:modalSlide .22s ease; margin:auto; }
 .modal-wide { max-width:760px; width:90vw; }
 @keyframes modalSlide { from { opacity:0; transform:translateY(8px) scale(.98); } to { opacity:1; transform:none; } }
 .modal h2 { font-size:18px; font-weight:600; margin-bottom:1.4rem; }
@@ -537,7 +578,15 @@ button.secondary, .cancel-btn { background:var(--surface-2); color:var(--text-2)
 .ac-stats b { font-size:15px; font-weight:600; }
 
 /* ── Domains ────────────────────────────────────────────── */
-.basecard { display:flex; align-items:center; gap:22px; border:1px solid var(--line); border-radius:var(--r); background:linear-gradient(135deg,var(--surface),var(--bg-deep)); padding:22px 24px; margin-bottom:14px; }
+/* align-items:flex-start, not center. The card holds a heading, a big domain and
+   two lines of explanation on one side, and a status pill plus a Change link on
+   the other. Centring pinned the pill to the vertical middle of all that text
+   while .pill-ok separately asked for flex-start, so the two rules fought and it
+   read as floating in the middle of the card. Both now hang off the top. */
+.basecard { display:flex; align-items:flex-start; gap:22px; border:1px solid var(--line); border-radius:var(--r); background:linear-gradient(135deg,var(--surface),var(--bg-deep)); padding:22px 24px; margin-bottom:14px; }
+.basecard .bd { flex:1; min-width:0; }
+.basecard .hero-side { margin-left:auto; flex-shrink:0; align-items:flex-end; }
+.basecard .pill-ok { margin-left:0; align-self:auto; }
 .basecard .globe { width:46px; height:46px; flex-shrink:0; color:var(--accent); opacity:.85; }
 .basecard h2 { font-size:11px; font-family:var(--mono); letter-spacing:1.5px; text-transform:uppercase; color:var(--text-3); font-weight:500; }
 .basecard .dom { font-size:24px; font-weight:700; letter-spacing:-.4px; margin-top:3px; }

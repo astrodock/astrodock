@@ -179,6 +179,11 @@ async function pruneLogs() {
   // Keep deployment history bounded (logs already capped per-row).
   try { await db.delete(schema.deployments).where(lt(schema.deployments.createdAt, new Date(Date.now() - 90 * 864e5))); }
   catch (err) { console.error('[health] deployment prune failed:', err.message); }
+
+  // Expired sessions. Nothing ever removed them, so the table only grew: 18 rows
+  // going back two months on the live platform, of which one was live.
+  try { await require('../lib/sessions').pruneExpired(); }
+  catch (err) { console.error('[health] session prune failed:', err.message); }
 }
 
 // Re-check active custom domains' ownership TXT; alert on DNS drift (deduped).

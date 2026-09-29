@@ -11,7 +11,7 @@
 // RECENT factor check regardless of how long you have been signed in.
 
 const jwt = require('jsonwebtoken');
-const { and, eq, isNull } = require('drizzle-orm');
+const { and, eq, isNull, gt, lt } = require('drizzle-orm');
 const config = require('../config');
 const { db, schema } = require('../db');
 
@@ -47,9 +47,37 @@ async function create(user, { ip = '', userAgent = '', reauthed = true } = {}) {
   return { token, session };
 }
 
+/**
+ * The sessions that could still sign in as this person.
+ *
+ * Expiry was not part of the question, so "Where you're signed in" listed every
+ * session ever created that nobody had explicitly revoked. On the live platform
+ * that was 18 rows going back to July, of which exactly one was live: a list of
+ * dead sessions presented as active, next to a Sign out button that did nothing
+ * anyone could observe. A session expires after SESSION_HOURS whether or not a
+ * row says so.
+ */
 async function listFor(userId) {
   return db.select().from(schema.sessions)
-    .where(and(eq(schema.sessions.userId, userId), isNull(schema.sessions.revokedAt)));
+    .where(and(
+      eq(schema.sessions.userId, userId),
+      isNull(schema.sessions.revokedAt),
+      gt(schema.sessions.expiresAt, new Date())
+    ));
+}
+
+/**
+ * Delete sessions that expired a while ago.
+ *
+ * Nothing ever removed them, so the table only grew. Kept for a week past expiry
+ * so "signed in from Lisbon on Tuesday" is still answerable after the fact, which
+ * is the one reason to hold a dead session at all.
+ */
+async function pruneExpired({ olderThanDays = 7 } = {}) {
+  const cutoff = new Date(Date.now() - olderThanDays * 86400 * 1000);
+  const gone = await db.delete(schema.sessions)
+    .where(lt(schema.sessions.expiresAt, cutoff)).returning({ id: schema.sessions.id });
+  return gone.length;
 }
 
 async function revoke(sessionId) {
@@ -88,5 +116,6 @@ function requireRecentAuth(req, res, next) {
 
 module.exports = {
   create, listFor, revoke, revokeAllFor, markReauth, reauthIsFresh, requireRecentAuth,
+  pruneExpired,
   SESSION_HOURS, REAUTH_WINDOW_MS
 };

@@ -11,7 +11,7 @@ import RecoveryCodesModal from '../components/RecoveryCodesModal';
 // Built on the same field-panel / seg / chip vocabulary as Settings, so this reads
 // as part of the dashboard rather than a bolted-on security page.
 
-export default function AccountPage() {
+export default function AccountPage({ theme, onToggleTheme, onSignOut }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [msg, setMsg] = useState('');
@@ -54,7 +54,10 @@ export default function AccountPage() {
   return (
     <div className="settings-page">
       <PageHeader title="Your Account"
-        description="How you sign in, and where you are signed in right now." />
+        description="How you sign in, where you are signed in right now, and how this looks."
+        action={onSignOut
+          ? <button className="danger" onClick={onSignOut}>Sign out</button>
+          : undefined} />
 
       {error && <div className="error">{error}</div>}
       {msg && <div className="provision-banner"><strong>{msg}</strong></div>}
@@ -103,6 +106,32 @@ export default function AccountPage() {
       <Recovery data={data} guarded={guarded} />
       <PasswordSection data={data} guarded={guarded} reload={load} flash={setMsg} />
       <Sessions data={data} guarded={guarded} />
+
+      {/* Moved off the sidebar. It is a setting about you, not navigation, and it
+          was the only thing down there that did not go anywhere. */}
+      {onToggleTheme && (
+        <>
+          <div className="sec-head" style={{ marginTop: 34 }}>
+            <div><h2>Appearance</h2><p>Applies to this browser only, and is remembered here.</p></div>
+          </div>
+          <div className="field-panel">
+            <div className="field">
+              <div className="lab">
+                <b>Theme</b>
+                <span className="desc">Astrodock follows your choice rather than the system setting.</span>
+              </div>
+              <div className="ctl">
+                <div className="seg">
+                  <button type="button" className={theme !== 'dark' ? 'sel' : ''}
+                    onClick={() => { if (theme === 'dark') onToggleTheme(); }}>Light</button>
+                  <button type="button" className={theme === 'dark' ? 'sel' : ''}
+                    onClick={() => { if (theme !== 'dark') onToggleTheme(); }}>Dark</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -381,6 +410,7 @@ function Sessions({ data, guarded }) {
           ))}
         </tbody>
       </table>
+
     </Section>
   );
 }

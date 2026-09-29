@@ -89,7 +89,6 @@ export default function DomainsPage() {
       <PageHeader
         title="Domains"
         description="Every web address this platform answers on, automatic and custom."
-        action={<button onClick={() => setAddOpen(true)}>Add a Domain</button>}
       />
       {error && <div className="error">{error}</div>}
       {msg && <div className="provision-banner"><strong>{msg}</strong></div>}
@@ -99,7 +98,12 @@ export default function DomainsPage() {
         <div className="bd">
           <h2>Your Main Web Address</h2>
           <div className="dom">{data.baseDomain}</div>
-          <div className="meta">Every app and page lives under this. <code>*.{data.baseDomain}</code> already points to your server, so new apps just work — no setup needed.</div>
+          <div className="meta">
+            Every app and page lives under this. <code>*.{data.baseDomain}</code> already points to
+            your server, so new apps just work, with no setup. This is the platform&rsquo;s own
+            address rather than one of the custom domains below: it belongs to no single app, and
+            changing it moves everything at once.
+          </div>
         </div>
         <div className="hero-side">
           <div className="pill-ok"><span className="led ok" /> {data.tlsMode === 'auto' ? 'HTTPS on · renews itself' : `HTTPS: ${data.tlsMode}`}</div>
@@ -108,7 +112,7 @@ export default function DomainsPage() {
       </div>
 
       <div className="sec-head" style={{ marginTop: 34 }}>
-        <div><h2>Your Custom Domains</h2><p>Addresses you own and point at Astrodock yourself.</p></div>
+        <div><h2>Your Custom Domains</h2><p>Addresses you own and point at Astrodock yourself. Each one serves a single app, and the ★ marks which address that app treats as its canonical one.</p></div>
         <button onClick={() => setAddOpen(true)}>Add a Domain</button>
       </div>
       {custom.length === 0 ? (
