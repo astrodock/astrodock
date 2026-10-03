@@ -129,4 +129,4 @@ async function ensureAccess(user, app) {
   return true;
 }
 
-module.exports = { resolveOperator, resolveEndUser, findLinked, link };
+module.exports = { resolveOperator, resolveEndUser, findLinked, findByEmail, link };

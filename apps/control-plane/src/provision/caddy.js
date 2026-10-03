@@ -87,7 +87,7 @@ const ADMIN_PATHS = ['/setup/*', '/admin/*', '/whoami', '/webhooks/*', '/healthz
 
 // End-user surfaces. These belong to auth.<domain> and nothing on that host
 // serves an SPA, so there is nothing for them to collide with.
-const AUTH_PATHS = ['/authorize', '/login*', '/token', '/logout', '/verify', '/account*', '/health'];
+const AUTH_PATHS = ['/authorize', '/login*', '/token', '/logout', '/verify', '/account*', '/invite/*', '/health'];
 
 function apiHandles(paths) {
   return paths.map((p) => `\thandle ${p} {\n\t\treverse_proxy ${API}\n\t}`).join('\n');

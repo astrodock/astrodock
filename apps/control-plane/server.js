@@ -88,6 +88,10 @@ app.use('/setup', require('./src/routes/setup'));
 // never see them. /verify stays for existing apps and non-browser clients.
 app.use('/', require('./src/routes/oauth'));
 
+// Invite redemption. Public by necessity — whoever follows the link has no
+// credential yet, which is the whole point of the link.
+app.use('/invite', require('./src/routes/invites'));
+
 app.use('/verify', require('./src/routes/verify'));
 // Feedback intake. The only route a stranger's browser reaches without an
 // operator credential, so it answers CORS for the app's own origins only and

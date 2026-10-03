@@ -138,6 +138,26 @@ const deployments = pgTable('deployments', {
   createdAtIdx: index('deployments_created_at_idx').on(t.createdAt)
 }));
 
+// ── user_invites ─────────────────────────────────────────────────────────────
+// An invited account exists with no credential and no app access. Redemption is
+// what grants the access, so the invite is the gate rather than is_active —
+// a disabled account is refused by Google sign-in before it can be linked.
+const userInvites = pgTable('user_invites', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  appId: uuid('app_id').notNull().references(() => apps.id, { onDelete: 'cascade' }),
+  // sha256 of the token; the token is returned once and never stored.
+  tokenHash: text('token_hash').notNull(),
+  invitedByName: text('invited_by_name').notNull().default(''),
+  redirectTo: text('redirect_to').notNull().default(''),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  redeemedAt: timestamp('redeemed_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+}, (t) => ({
+  tokenUniq: uniqueIndex('user_invites_token_uniq').on(t.tokenHash),
+  userIdx: index('user_invites_user').on(t.userId)
+}));
+
 // ── auth_logs ────────────────────────────────────────────────────────────────
 const authLogs = pgTable('auth_logs', {
   id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
@@ -479,4 +499,4 @@ const appCounters = pgTable('app_counters', {
   n: integer('n').notNull().default(0)
 });
 
-module.exports = { users, webauthnCredentials, recoveryCodes, sessions, authorizationCodes, appRedirectUris, apps, appEnvVars, deployments, authLogs, apiTokens, appHealth, pages, pageFiles, pageData, events, platformSettings, notificationRules, notificationDeliveries, pageViews, backups, customDomains, feedback, feedbackMessages, workItems, workItemRelations, feedbackWorkItems, appCounters };
+module.exports = { users, userInvites, webauthnCredentials, recoveryCodes, sessions, authorizationCodes, appRedirectUris, apps, appEnvVars, deployments, authLogs, apiTokens, appHealth, pages, pageFiles, pageData, events, platformSettings, notificationRules, notificationDeliveries, pageViews, backups, customDomains, feedback, feedbackMessages, workItems, workItemRelations, feedbackWorkItems, appCounters };

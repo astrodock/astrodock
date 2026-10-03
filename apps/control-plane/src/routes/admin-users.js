@@ -6,6 +6,7 @@ const { db, schema } = require('../db');
 const { requirePermission } = require('../middleware/auth');
 const { hashPassword } = require('../lib/passwords');
 const roles = require('../lib/roles');
+const invites = require('../lib/invites');
 
 const router = express.Router();
 // Agent keys CAN manage end users now, but never operators — enforced per-request
@@ -60,6 +61,51 @@ router.post('/', requirePermission('users:write'), async (req, res) => {
   const passwordHash = await hashPassword(password);
   const rows = await db.insert(schema.users).values({ email: normEmail, name, passwordHash }).returning();
   res.status(201).json({ user: publicUser(rows[0]) });
+});
+
+// Invite
+//
+// The other way to make an end user, and the one to prefer. Creating an account
+// through POST / means choosing a password for another person and then having
+// to send it to them; this creates the account with no credential and no
+// access, and hands back a single-use link so they can set up their own.
+//
+// The link is returned rather than emailed. Sending it is the app's job: an
+// invite to Valise should arrive as an email from Valise, in Valise's voice,
+// not as a generic message from the platform the app happens to run on.
+router.post('/invite', requirePermission('users:write'), async (req, res) => {
+  const { email, name, appId, invitedByName, redirectTo, ttlDays } = req.body || {};
+  if (!email || !appId) return res.status(400).json({ error: 'email and appId are required' });
+
+  const appRows = await db.select().from(schema.apps).where(eq(schema.apps.slug, String(appId))).limit(1);
+  const app = appRows[0];
+  if (!app) return res.status(404).json({ error: 'No app with that slug' });
+
+  // A key is scoped to a set of apps; inviting someone into an app it has no
+  // business touching is a privilege escalation with extra steps.
+  if (req.auth.type === 'token') {
+    const scope = Array.isArray(req.auth.appScope) ? req.auth.appScope : [];
+    if (scope.length && !scope.includes(app.slug)) {
+      return res.status(403).json({ error: 'This key is not scoped to that app.' });
+    }
+  }
+
+  try {
+    const r = await invites.create({
+      email, name, app, invitedByName, redirectTo, ttlDays
+    });
+    // An operator is never created or elevated here, so there is no target to
+    // guard: the worst an invite can do is give an existing end user access to
+    // one more app, which is what users:write already means.
+    res.status(201).json({
+      url: r.url,
+      expiresAt: r.invite.expiresAt,
+      user: publicUser(r.user),
+      existingUser: r.existingUser
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 });
 
 // Update

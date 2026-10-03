@@ -10,7 +10,6 @@
 const express = require('express');
 const path = require('path');
 const { eq } = require('drizzle-orm');
-const config = require('../config');
 const { db, schema } = require('../db');
 const oauth = require('../lib/oauth');
 const userSession = require('../lib/user-session');
@@ -18,6 +17,7 @@ const factors = require('../lib/auth-factors');
 const passkeys = require('../lib/passkeys');
 const google = require('../lib/google');
 const googleAccounts = require('../lib/google-accounts');
+const invites = require('../lib/invites');
 
 // Registered once on the Google client and shared by every app: the app being
 // signed into travels in the sign-in's own context, not in the redirect URI.
@@ -26,6 +26,9 @@ function googleCallbackUrl(req) {
   return `${scheme}://${req.get('host')}/login/google/callback`;
 }
 const { decryptSecret } = require('../lib/crypto');
+// The page shell, shared with the invite redemption page: the same surface at
+// two moments, so one stylesheet.
+const { esc, scriptJson, safeColor, shell, errorPage, brandMark, googleButton } = require('../lib/auth-pages');
 const { emitEvent } = require('../lib/events');
 // The hosted sign-in is the replacement for /verify, which was rate limited.
 // This one was not — same exposure, no throttle.
@@ -213,6 +216,12 @@ router.get('/login/google/callback', pageLoginLimiter, async (req, res) => {
   try {
     const identity = await google.complete({ code: req.query.code, state: req.query.state });
     const ctx = identity.context || {};
+
+    // An invite redeemed with Google comes back here rather than to a callback
+    // of its own, because one callback URL is registered on the Google client
+    // and a second would have to be added by hand on every install.
+    if (ctx.surface === 'invite') return completeInvite({ req, res, identity, ctx });
+
     const app = await appBySlug(ctx.appSlug);
     if (!app) return res.type('html').send(errorPage('Unknown app', 'That application is not registered here.'));
 
@@ -253,6 +262,57 @@ router.get('/login/google/callback', pageLoginLimiter, async (req, res) => {
   }
 });
 
+// Finish an invite that was redeemed with Google.
+//
+// The question this answers is "which account did that Google identity turn out
+// to be", and the invited placeholder is only one of three answers:
+//
+//   • the sub is already linked to an account here — use that one
+//   • the verified address belongs to an account here — link the sub to it
+//   • neither — link the sub to the placeholder the invite created
+//
+// The first two matter because someone invited as ann@work may well redeem with
+// the Google account they actually use. Granting the placeholder in that case
+// would leave them with two accounts and access on the wrong one.
+async function completeInvite({ req, res, identity, ctx }) {
+  const { invite, user: invited, app, error } = await invites.resolve(ctx.inviteToken);
+  if (error) return res.status(400).type('html').send(errorPage('That invite cannot be used', error));
+
+  let target = await googleAccounts.findLinked(identity.sub);
+  if (!target) {
+    // Unverified at Google is not an identity: anyone can put any address on an
+    // account they have not proven they control.
+    if (!identity.emailVerified) {
+      return res.type('html').send(errorPage('Google has not verified that address',
+        'Verify the address with Google first, or set a password on the invite instead.'));
+    }
+    const byEmail = await googleAccounts.findByEmail(identity.email);
+    const existing = byEmail && byEmail.id !== invited.id ? byEmail : null;
+    if (existing && existing.googleSub && existing.googleSub !== identity.sub) {
+      return res.type('html').send(errorPage('Already linked elsewhere',
+        'An account here already uses that address with a different Google account.'));
+    }
+    target = existing || invited;
+    await googleAccounts.link(target.id, identity);
+  }
+
+  if (!target.isActive) {
+    return res.type('html').send(errorPage('That account is disabled',
+      'Ask whoever runs this server to turn it back on.'));
+  }
+
+  const signedIn = await invites.redeem({ invite, userId: target.id });
+  // The invite made an account that nobody turned out to need. Removed rather
+  // than left behind as a second, credential-less copy of the same person.
+  if (target.id !== invited.id) await invites.discardPlaceholder(invited.id);
+
+  userSession.set(res, signedIn);
+  logAttempt(signedIn.email, app.slug, 'SUCCESS_INVITE', req.ip || '');
+
+  const landing = await invites.landingUrl(invite, app);
+  return res.redirect(landing || '/account');
+}
+
 // ── /token ────────────────────────────────────────────────────────────────────
 // Server-to-server. The app secret proves the caller is the app, which is why the
 // code alone is not enough to impersonate a user.
@@ -282,115 +342,12 @@ router.post('/login/passkey/options', pageLoginLimiter, express.json(), async (r
   }
 });
 
-// ── the hosted page ───────────────────────────────────────────────────────────
-// Served as one self-contained document rather than the admin SPA: end users have
-// no business loading the dashboard bundle, and a login page with no dependencies
-// is a login page with a small attack surface.
-function esc(s) {
-  return String(s == null ? '' : s).replace(/[&<>"']/g, (c) =>
-    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-}
-
-// Embedding data inside a <script> is not the same problem as embedding it in
-// HTML, and the HTML escaper is actively wrong here: browsers do not decode
-// entities inside a script block, so esc() produced `const CFG = {&quot;appId&quot;...}`
-// — a syntax error that killed the entire inline script, and with it the sign-in
-// form and the passkey button.
-//
-// What actually needs escaping is anything that could end the script element or
-// be read as a line terminator. The result stays valid JSON.
-function scriptJson(value) {
-  return JSON.stringify(value)
-    .replace(/</g, '\\u003c')
-    .replace(/>/g, '\\u003e')
-    .replace(/&/g, '\\u0026')
-    .replace(/\u2028/g, '\\u2028')
-    .replace(/\u2029/g, '\\u2029');
-}
-
-// A hex colour from the app record, or nothing. Validated rather than trusted:
-// it is interpolated into a stylesheet, and "red;} body{display:none" is a
-// perfectly good string.
-function safeColor(v) {
-  return /^#[0-9a-fA-F]{6}$/.test(String(v || '')) ? String(v) : null;
-}
-
-function shell(title, body, { accent = null } = {}) {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title>
-<link rel="icon" type="image/svg+xml" href="/favicon.svg">
-<style>
-/* This page is the only Astrodock surface an app's end users ever see, and it
-   used to be a generic blue form — GitHub-ish greys and #2f6df6 — sharing no
-   colour, radius or type with the dashboard. Same tokens as the admin theme
-   now, both schemes. Kept self-contained: no webfont, no stylesheet request,
-   because it renders on an app's own domain before anything else loads. */
-:root{
-  color-scheme:light dark;
-  --bg:#f4f6fa; --surface:#fff; --line:#dce2ec; --field:#f4f7fb;
-  --text:#121823; --text-2:#445064; --text-3:#626e7d;
-  --accent:${accent || '#0b7c56'}; --accent-ink:#fff;
-  --danger:#d12536; --danger-bg:rgba(209,37,54,.10);
-  --r:14px; --r-sm:9px;
-}
-@media(prefers-color-scheme:dark){:root{
-  --bg:#0a0e15; --surface:#0f141d; --line:#222d3b; --field:#0c121b;
-  --text:#f1f5fa; --text-2:#b6c4d4; --text-3:#8595a8;
-  --accent:${accent || '#2fe6a8'}; --accent-ink:#06120d;
-  --danger:#ff6573; --danger-bg:rgba(255,101,115,.13);
-}}
-*{box-sizing:border-box}
-body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);
-  display:grid;place-items:center;min-height:100vh;margin:0;line-height:1.55;letter-spacing:.1px}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:2.1rem;
-  width:min(92vw,24rem);box-shadow:0 14px 40px rgba(20,30,60,.09)}
-.mark{display:block;margin:0 auto .9rem}
-.brand-logo{display:block;margin:0 auto 1rem;max-height:48px;max-width:180px;object-fit:contain}
-h1{font-size:1.2rem;font-weight:650;letter-spacing:-.3px;margin:0 0 .3rem;text-align:center}
-p.sub{margin:0 0 1.5rem;color:var(--text-3);font-size:.88rem;text-align:center}
-label{display:block;font-size:.79rem;font-weight:600;color:var(--text-2);margin:0 0 .35rem}
-input{width:100%;padding:.62rem .72rem;border:1px solid var(--line);border-radius:var(--r-sm);
-  font-size:1rem;font-family:inherit;margin-bottom:.9rem;background:var(--field);color:inherit;
-  outline:none;transition:border-color .15s,box-shadow .15s}
-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent)}
-button{width:100%;padding:.72rem;border:0;border-radius:var(--r-sm);background:var(--accent);
-  color:var(--accent-ink);font-family:inherit;font-weight:650;font-size:.95rem;cursor:pointer;
-  transition:filter .15s}
-button:hover{filter:brightness(1.08)}
-button:disabled{opacity:.6;cursor:default}
-button.secondary,a.secondary{background:transparent;border:1px solid var(--line);color:var(--text-2);margin-top:.6rem}
-button.secondary:hover,a.secondary:hover{border-color:var(--accent);color:var(--accent);filter:none}
-/* The Google button is an anchor, not a form control: it leaves the page. */
-a.secondary{display:flex;align-items:center;justify-content:center;gap:.5rem;
-  width:100%;padding:.7rem 1rem;border-radius:8px;text-decoration:none;font:inherit;box-sizing:border-box}
-a.secondary svg{flex:none}
-.err{background:var(--danger-bg);color:var(--danger);padding:.62rem .72rem;border-radius:var(--r-sm);
-  font-size:.86rem;margin-bottom:.9rem;display:none}
-.muted{text-align:center;color:var(--text-3);font-size:.76rem;margin-top:1.2rem}
-</style></head><body><div class="card">${body}</div></body></html>`;
-}
-
-function errorPage(title, message) {
-  return shell(title, `<h1>${esc(title)}</h1><p class="sub">${esc(message)}</p>`);
-}
-
 function loginPage({ appName, appId, redirectUri, state, nonce, brandColor, logoUrl, signedInAs, googleEnabled }) {
   const accent = safeColor(brandColor);
-  // Only https, and no referrer — the platform should not tell a third party who
-  // is signing in to what, merely because someone pasted a logo URL.
-  const logo = /^https:\/\/[^\s"'<>]+$/.test(String(logoUrl || '')) ? String(logoUrl) : null;
   const cfg = scriptJson({ appId, redirectUri, state, nonce });
   return shell(`Sign in to ${appName}`, `
-${logo
-    ? `<img class="brand-logo" src="${esc(logo)}" alt="${esc(appName)}" referrerpolicy="no-referrer">`
-    : `<svg class="mark" width="34" height="34" viewBox="0 0 34 34" fill="none" aria-hidden="true">
-  <circle cx="17" cy="17" r="15" stroke="var(--accent)" stroke-width="1.4" opacity=".4"/>
-  <circle cx="17" cy="17" r="9.5" stroke="var(--accent)" stroke-width="1.4" opacity=".7"/>
-  <circle cx="17" cy="17" r="3.6" fill="var(--accent)"/>
-  <circle cx="32" cy="17" r="2.3" fill="var(--text-3)"/>
-</svg>`}
-<h1>Sign in to ${esc(appName)}</h1>
-<p class="sub">Use your ${esc(config.baseDomain || 'Astrodock')} account.</p>
+${brandMark(logoUrl, appName)}
+<h1 class="solo">Sign in to ${esc(appName)}</h1>
 <div class="err" id="err"></div>
 <form id="f">
   <label for="email">Email</label>
@@ -404,9 +361,7 @@ ${logo
   <button type="submit" id="go">Sign in</button>
 </form>
 <button class="secondary" id="pk" type="button">Sign in with a passkey</button>
-${googleEnabled ? `<a class="secondary google" href="/login/google/start?app_id=${encodeURIComponent(appId)}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state || '')}">
-  <svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.6 9.2c0-.6-.1-1.2-.2-1.8H9v3.5h4.8a4.1 4.1 0 0 1-1.8 2.7v2.2h2.9c1.7-1.6 2.7-3.9 2.7-6.6z"/><path fill="#34A853" d="M9 18c2.4 0 4.5-.8 6-2.2l-2.9-2.2c-.8.5-1.8.9-3.1.9-2.4 0-4.4-1.6-5.1-3.8H.9v2.3A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.9 10.7a5.4 5.4 0 0 1 0-3.4V5H.9a9 9 0 0 0 0 8l3-2.3z"/><path fill="#EA4335" d="M9 3.6c1.3 0 2.5.5 3.4 1.3l2.6-2.6A9 9 0 0 0 .9 5l3 2.3C4.6 5.2 6.6 3.6 9 3.6z"/></svg>
-  Continue with Google</a>` : ''}
+${googleEnabled ? googleButton(`/login/google/start?app_id=${encodeURIComponent(appId)}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state || '')}`) : ''}
 ${signedInAs ? `<p class="muted">Signed in as ${esc(signedInAs)} — sign in again to continue.</p>` : ''}
 <p class="muted">Protected by Astrodock</p>
 <script>
