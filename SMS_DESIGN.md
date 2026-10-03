@@ -20,6 +20,53 @@ times.
 
 ---
 
+## The provider is Telnyx, behind an adapter
+
+`lib/email-config.js` already holds a provider choice (`resend | smtp`) in
+`platform_settings` with the credential encrypted and env as a seed.
+`lib/sms-config.js` is the same shape with `telnyx` as the only implemented
+value, and the seam left where a second would go. That is not hedging: it is what
+makes the choice reversible in a day rather than a rewrite.
+
+Telnyx over Twilio for two reasons that are not price. Its webhooks are signed
+with Ed25519 over the payload, where Twilio's HMAC covers the full URL it thinks
+it called and so has to be reconstructed behind Caddy. And node verifies Ed25519
+with `crypto.verify` out of the box, so the dependency count stays at zero.
+
+Twilio's advantage is that more people have debugged 10DLC registration with it.
+If registration goes badly, that is the thing that will be missed.
+
+**API shapes below should be checked against current Telnyx docs before
+building.** They are from training data, not from a call made today.
+
+```
+POST /v2/messaging_profiles          one profile for the platform; holds the webhook URL
+GET  /v2/available_phone_numbers     search by country and area code
+POST /v2/number_orders               buy
+POST /v2/messages                    send: { from, to, text }
+```
+
+One messaging profile, not one per app. The webhook lives on the profile, so a
+single profile means a single inbound URL and the platform routes by the
+receiving number — which is the whole point of the abstraction. Per-app profiles
+would isolate 10DLC campaigns from each other and are worth revisiting if one
+app's traffic ever threatens another's registration.
+
+## Numbers are bought by the API, on issuance
+
+Assigning a number to an app searches for one and orders it, rather than asking
+an operator to paste one they bought by hand. Which means a button press spends
+money, so:
+
+- the dashboard shows the number and its monthly cost and asks before ordering
+- a cap in `platform_settings` bounds how many numbers an install will ever buy,
+  defaulting low, so a bug in a loop cannot order fifty
+- releasing a number in the dashboard releases it at Telnyx too, or the rental
+  continues for something nothing is using
+- every order and release is an `audit` event, because it is a charge
+
+---
+
 ## One number per app, not a shared one
 
 A shared number cannot be routed. Email solves this with distinct addresses
@@ -96,17 +143,25 @@ Refuses, with a reason the app can show a person:
 - the app is over its rate limit
 - no SMS provider is configured on the platform
 
-### `POST /sms/inbound/twilio` — Twilio delivers
+### `POST /sms/inbound/telnyx` — the provider delivers
 
-Public by necessity. Verifies Twilio's own `X-Twilio-Signature` over the exact
-URL and body, then looks up `To` in `sms_numbers` to find the app, then POSTs to
-`https://<app host><inboundPath>`:
+Public by necessity. Verifies Telnyx's Ed25519 signature
+(`telnyx-signature-ed25519` + `telnyx-timestamp`, over `timestamp|rawBody`,
+against the portal's public key) and rejects a timestamp outside a few minutes.
+Then reads `data.payload.to[0].phone_number`, finds the app in `sms_numbers`, and
+POSTs to `https://<app host><inboundPath>`:
 
 ```json
 { "from": "+15559876543", "to": "+15551234567", "body": "…", "receivedAt": "…", "messageId": "…" }
 ```
 
 signed `X-Astrodock-Signature: sha256=<hmac of the raw body with the app's sms secret>`.
+
+Ed25519 is a real reason to prefer Telnyx here and not a detail. Twilio signs an
+HMAC over the full URL it believes it called, which has to be reconstructed
+behind a reverse proxy or verification fails — and Caddy sits in front of
+everything on this box. A public-key signature over the payload does not care
+what the proxy did to the URL.
 
 A delivery the app rejects or cannot be reached for is logged and retried a small
 number of times. It is not queued indefinitely: a text that arrives an hour late
@@ -128,7 +183,8 @@ Mirrors `/admin/domains`.
 ## Tables
 
 ```
-sms_numbers    id, number (unique), app_id, label, status, created_at
+sms_numbers    id, number (unique), app_id, label, status, provider_id,
+               monthly_cost, ordered_at, released_at, created_at
 sms_messages   id, app_id, direction, from_number, to_number, body_length,
                provider_sid, status, error, created_at
 sms_optouts    number, app_id, created_at        (STOP, per app)
@@ -154,25 +210,25 @@ for free; nothing else changes.
 
 ---
 
-## Decisions I need from you
+## Settled
 
-**1. Who buys the numbers.** The operator buys in the Twilio console and pastes
-the number into the dashboard, or the platform buys it through the Twilio API on
-a button press. Pasting is the smaller first version and never spends your money
-without you in the loop, and it matches custom domains — you own the DNS, you
-tell Astrodock the hostname. Buying through the API is nicer later.
+- **Provider: Telnyx.** Behind an adapter, so a second one is config rather than
+  a rewrite.
+- **Numbers are bought through the API** when a number is issued to an app, with
+  a confirmation, a cap, and an audit event per order.
+- **One number per app.** A shared number cannot be routed; see above.
 
-**2. Toll-free or 10DLC.** Toll-free verification is faster and has no campaign
-paperwork; 10DLC has better deliverability for conversational use and a per-brand
-registration you pay once. This affects what a new app's number costs in days, not
-code.
+## Not a platform question
 
-**3. Whether Valise is the first consumer or the platform ships standalone.**
-Building the platform side alone is testable with a single number and your own
-phone. Wiring Valise's assistant to it is the piece that needs the authorization
-question answered — whether a text from an allowlisted number carries the same
-authority as the web session, or a lower tier the way inbound email already does
-(masked loyalty numbers, `remove_expense` refused).
+Whether a text carries the same authority as a web session, or a lower tier the
+way inbound email already does in Valise (loyalty numbers masked,
+`remove_expense` refused), is Valise's policy and not the platform's. The
+platform delivers a message and says which number it came from. What that is
+allowed to *do* belongs to the app, and this design deliberately does not answer
+it.
 
-That third one is the open question from earlier in this conversation, and it has
-to be settled before Valise can be texted, independently of any of the above.
+## Open
+
+- **Toll-free or 10DLC.** Affects how long a number takes to become usable, not
+  what gets built. 10DLC needs a brand and a campaign; toll-free needs
+  verification and no campaign paperwork.
