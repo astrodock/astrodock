@@ -222,6 +222,10 @@ router.get('/login/google/callback', pageLoginLimiter, async (req, res) => {
     // and a second would have to be added by hand on every install.
     if (ctx.surface === 'invite') return completeInvite({ req, res, identity, ctx });
 
+    // Same reason: attaching a Google account from the account page ends here
+    // too, and is told apart by its context rather than by its own URL.
+    if (ctx.surface === 'link') return completeLink({ req, res, identity, ctx });
+
     const app = await appBySlug(ctx.appSlug);
     if (!app) return res.type('html').send(errorPage('Unknown app', 'That application is not registered here.'));
 
@@ -311,6 +315,26 @@ async function completeInvite({ req, res, identity, ctx }) {
 
   const landing = await invites.landingUrl(invite, app);
   return res.redirect(landing || '/account');
+}
+
+// Finish attaching a Google account to the one already signed in.
+//
+// The session is re-read here rather than trusted from the context that started
+// the round trip, so a link cannot be aimed at an account other than the one
+// holding the cookie right now.
+async function completeLink({ req, res, identity, ctx }) {
+  const session = userSession.read(req);
+  if (!session || (ctx.userId && session.sub !== ctx.userId)) {
+    return res.status(401).type('html').send(errorPage('Sign in first',
+      'That sign-in session has ended. Sign in again and retry from your account page.'));
+  }
+  try {
+    await googleAccounts.linkToUser({ userId: session.sub, identity });
+  } catch (err) {
+    return res.status(400).type('html').send(errorPage('Could not attach that account', err.message));
+  }
+  logAttempt(identity.email, 'account', 'GOOGLE_LINKED', req.ip || '');
+  return res.redirect('/account?linked=1');
 }
 
 // ── /token ────────────────────────────────────────────────────────────────────

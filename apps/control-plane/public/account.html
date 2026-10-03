@@ -185,6 +185,22 @@
       margin-bottom: 1rem;
       font-size: 13px;
     }
+
+    /* The signed-in panel. Hidden until /account/me answers, because this page
+       is also reachable by someone who has only their password. */
+    #signedIn { display: none; }
+    .acct-who { font-size: 13px; color: var(--text-muted, #64748b); margin: 0 0 1.5rem; }
+    .acct-who b { color: var(--text, #0f172a); }
+    .sec { border-top: 1px solid var(--border); padding-top: 1.4rem; margin-top: 1.4rem; }
+    .sec h3 { font-size: 13px; font-weight: 650; margin: 0 0 .3rem; letter-spacing: -.1px; }
+    .sec p { font-size: 12.5px; color: var(--text-muted, #64748b); margin: 0 0 .9rem; line-height: 1.5; }
+    .btn.ghost { background: transparent; border: 1px solid var(--border);
+      color: var(--text, #0f172a); font-weight: 550; }
+    .btn.ghost:hover { border-color: var(--accent); color: var(--accent); }
+    .acct-row { display: flex; align-items: center; gap: .6rem; font-size: 13px; margin-bottom: .8rem; }
+    .acct-row .dot { width: 7px; height: 7px; border-radius: 50%; flex: none; background: #16a34a; }
+    .acct-row .dot.off { background: var(--border); }
+    a.btn { display: block; text-align: center; text-decoration: none; box-sizing: border-box; }
   </style>
 </head>
 <body>
@@ -195,8 +211,33 @@
         <div class="logo-mark">TS</div>
         <span class="logo-text">Astrodock</span>
       </div>
-      <p class="subtitle">Change Password</p>
       <div id="message"></div>
+
+      <div id="signedIn">
+        <p class="acct-who">Signed in as <b id="acctEmail"></b></p>
+
+        <div class="sec" id="googleSec">
+          <h3>Sign in with Google</h3>
+          <div class="acct-row"><span class="dot off" id="gDot"></span><span id="gState"></span></div>
+          <p id="gHelp"></p>
+          <a class="btn ghost" id="gLink" href="/account/google/link">Attach my Google account</a>
+          <button type="button" class="btn ghost" id="gUnlink" style="display:none">Detach it</button>
+        </div>
+
+        <div class="sec">
+          <h3>Sign-in address</h3>
+          <p>Changing it sends a link to the new address. Nothing changes until you follow it.</p>
+          <label>
+            New address
+            <input type="email" id="newEmail" placeholder="you@example.com">
+          </label>
+          <button type="button" class="btn ghost" id="emailBtn">Send the confirmation link</button>
+        </div>
+
+        <div class="sec"><h3>Change password</h3></div>
+      </div>
+
+      <p class="subtitle" id="pwTitle">Change Password</p>
       <label>
         Email
         <input type="email" id="email" required autofocus placeholder="you@example.com">
@@ -220,6 +261,92 @@
     const form = document.getElementById('form');
     const msg = document.getElementById('message');
     const btn = document.getElementById('submitBtn');
+    const show = (kind, text) => { msg.innerHTML = `<div class="${kind}">${text}</div>`; };
+
+    // What this page can offer depends on whether a platform session exists.
+    // With one, the address and the attached Google account are editable here.
+    // Without, it is the password form it has always been — which is what
+    // somebody who arrives holding only their password needs.
+    let me = null;
+    (async function load() {
+      try {
+        const r = await fetch('/account/me');
+        if (!r.ok) return;
+        me = await r.json();
+      } catch { return; }
+
+      document.getElementById('signedIn').style.display = 'block';
+      document.getElementById('pwTitle').style.display = 'none';
+      document.getElementById('acctEmail').textContent = me.email;
+
+      const email = document.getElementById('email');
+      email.value = me.email;
+      email.readOnly = true;
+
+      if (new URLSearchParams(location.search).get('linked')) {
+        show('success', 'That Google account is attached. You can sign in with it from now on.');
+        history.replaceState(null, '', location.pathname);
+      }
+      if (me.pendingEmail) {
+        show('success', `Waiting for ${me.pendingEmail} to confirm. Until then you sign in as ${me.email}.`);
+      }
+
+      const sec = document.getElementById('googleSec');
+      if (!me.googleAvailable) {
+        sec.querySelector('#gState').textContent = 'Not set up on this server';
+        sec.querySelector('#gHelp').textContent = 'An administrator has to configure Google sign-in before this can be used.';
+        sec.querySelector('#gLink').style.display = 'none';
+        return;
+      }
+      const dot = document.getElementById('gDot');
+      const state = document.getElementById('gState');
+      const help = document.getElementById('gHelp');
+      if (me.google.linked) {
+        dot.className = 'dot';
+        state.textContent = me.google.email ? `Attached — ${me.google.email}` : 'Attached';
+        help.textContent = me.hasPassword || me.passkeys
+          ? 'You can sign in with either this or your password.'
+          : 'This is currently the only way into your account.';
+        document.getElementById('gLink').style.display = 'none';
+        document.getElementById('gUnlink').style.display = 'block';
+      } else {
+        state.textContent = 'Not attached';
+        help.textContent = 'It does not have to be the same address as above — whichever Google account you pick becomes a way in.';
+      }
+    })();
+
+    document.getElementById('gUnlink')?.addEventListener('click', async (e) => {
+      e.target.disabled = true;
+      try {
+        const r = await fetch('/account/google/unlink', { method: 'POST' });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error);
+        show('success', d.message);
+        setTimeout(() => location.reload(), 900);
+      } catch (ex) {
+        show('error', ex.message || 'That did not work.');
+        e.target.disabled = false;
+      }
+    });
+
+    document.getElementById('emailBtn')?.addEventListener('click', async (e) => {
+      const value = document.getElementById('newEmail').value.trim();
+      if (!value) return show('error', 'Enter the address you want to use.');
+      e.target.disabled = true;
+      try {
+        const r = await fetch('/account/email', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: value })
+        });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error);
+        show('success', d.message);
+        document.getElementById('newEmail').value = '';
+      } catch (ex) {
+        show('error', ex.message || 'That did not work.');
+      }
+      e.target.disabled = false;
+    });
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();

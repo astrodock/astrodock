@@ -23,6 +23,7 @@ export default function UserDetailModal({ id, onClose }) {
 
   // Editable fields
   const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [operatorRole, setOperatorRole] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -38,6 +39,7 @@ export default function UserDetailModal({ id, onClose }) {
       ]);
       setUser(userData.user);
       setName(userData.user.name);
+      setEmail(userData.user.email);
       setOperatorRole(userData.user.operatorRole || '');
       setApps(appData.apps);
     } catch (err) {
@@ -53,7 +55,7 @@ export default function UserDetailModal({ id, onClose }) {
     setError('');
     setSuccess('');
     try {
-      await api.updateUser(id, { name, operatorRole: operatorRole || null });
+      await api.updateUser(id, { name, email, operatorRole: operatorRole || null });
       setSuccess('User updated');
       load();
     } catch (err) {
@@ -167,7 +169,7 @@ export default function UserDetailModal({ id, onClose }) {
 
       {/* Profile */}
       <section className="set-section">
-        <div className="sec-head"><div><h2>Profile</h2><p>Their name, and whether they can open this dashboard at all.</p></div></div>
+        <div className="sec-head"><div><h2>Profile</h2><p>Their name, the address they sign in with, and whether they can open this dashboard at all.</p></div></div>
         <form onSubmit={handleSave} className="user-form" noValidate>
           <div className="form-row">
             <label>
@@ -180,7 +182,12 @@ export default function UserDetailModal({ id, onClose }) {
             </label>
             <label>
               Email
-              <input value={user.email} disabled />
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                required
+              />
             </label>
           </div>
         <div className="field" style={{ display: 'block', padding: '14px 0' }}>
@@ -199,6 +206,13 @@ export default function UserDetailModal({ id, onClose }) {
               ))}
           </div>
         </div>
+          {email !== user.email && (
+            <p className="desc" style={{ margin: '0 0 12px' }}>
+              They will sign in as <b>{email || '…'}</b> instead of {user.email}. Both addresses are
+              told. Any Google account already attached keeps working, because that link is stored
+              against the Google account itself rather than the address.
+            </p>
+          )}
           <div>
             <button type="submit" className="primary" disabled={saving}>
               {saving ? 'Saving...' : 'Save Changes'}

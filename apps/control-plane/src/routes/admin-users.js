@@ -7,6 +7,7 @@ const { requirePermission } = require('../middleware/auth');
 const { hashPassword } = require('../lib/passwords');
 const roles = require('../lib/roles');
 const invites = require('../lib/invites');
+const accountEmail = require('../lib/account-email');
 
 const router = express.Router();
 // Agent keys CAN manage end users now, but never operators — enforced per-request
@@ -116,10 +117,29 @@ router.patch('/:id', requirePermission('users:write'), async (req, res) => {
   const verdict = guardTarget(req, target);
   if (!verdict.ok) return refuse(res, verdict);
 
-  const { name, isActive, operatorRole } = req.body || {};
+  const { name, isActive, operatorRole, email } = req.body || {};
   const update = { updatedAt: new Date() };
   if (name !== undefined) update.name = name;
   if (isActive !== undefined) update.isActive = isActive;
+
+  // The sign-in address. Previously unchangeable here and everywhere else, which
+  // made a typo in an invite permanent — and the address is also what Google
+  // linking matches on for a first sign-in, so a wrong one locked someone out of
+  // the account they were invited to. Applied without a confirmation round trip
+  // on purpose: the address is wrong precisely because nobody can read mail
+  // there. A person changing their OWN address does have to prove it; that path
+  // is in lib/account-email.
+  if (email !== undefined && accountEmail.normalize(email) !== target.email) {
+    try {
+      await accountEmail.setByOperator({
+        userId: target.id,
+        newEmail: email,
+        actor: req.auth.type === 'token' ? (req.auth.name || 'key') : (req.auth.email || 'operator')
+      });
+    } catch (err) {
+      return res.status(400).json({ error: err.message });
+    }
+  }
 
   if (operatorRole !== undefined) {
     // Granting dashboard access is a privilege change, so it is a person's call —

@@ -158,6 +158,22 @@ const userInvites = pgTable('user_invites', {
   userIdx: index('user_invites_user').on(t.userId)
 }));
 
+// ── email_changes ────────────────────────────────────────────────────────────
+// A self-service address change, pending proof that the person controls the new
+// address. An operator change needs no row: it applies immediately.
+const emailChanges = pgTable('email_changes', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  newEmail: text('new_email').notNull(),
+  tokenHash: text('token_hash').notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  confirmedAt: timestamp('confirmed_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+}, (t) => ({
+  tokenUniq: uniqueIndex('email_changes_token_uniq').on(t.tokenHash),
+  userIdx: index('email_changes_open').on(t.userId)
+}));
+
 // ── auth_logs ────────────────────────────────────────────────────────────────
 const authLogs = pgTable('auth_logs', {
   id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
@@ -499,4 +515,4 @@ const appCounters = pgTable('app_counters', {
   n: integer('n').notNull().default(0)
 });
 
-module.exports = { users, userInvites, webauthnCredentials, recoveryCodes, sessions, authorizationCodes, appRedirectUris, apps, appEnvVars, deployments, authLogs, apiTokens, appHealth, pages, pageFiles, pageData, events, platformSettings, notificationRules, notificationDeliveries, pageViews, backups, customDomains, feedback, feedbackMessages, workItems, workItemRelations, feedbackWorkItems, appCounters };
+module.exports = { users, userInvites, emailChanges, webauthnCredentials, recoveryCodes, sessions, authorizationCodes, appRedirectUris, apps, appEnvVars, deployments, authLogs, apiTokens, appHealth, pages, pageFiles, pageData, events, platformSettings, notificationRules, notificationDeliveries, pageViews, backups, customDomains, feedback, feedbackMessages, workItems, workItemRelations, feedbackWorkItems, appCounters };

@@ -115,6 +115,52 @@ async function resolveEndUser(identity, app) {
   return { user: created, created: true };
 }
 
+/**
+ * Attach a Google identity to an account that is already signed in.
+ *
+ * Deliberately does NOT require the Google address to match the account's own.
+ * That is the point of it: resolveEndUser can only link on a matching verified
+ * address, so somebody invited at a work address who actually uses a personal
+ * Google account had no way in at all. Here the session is the proof of who
+ * they are, and the address is irrelevant.
+ */
+async function linkToUser({ userId, identity }) {
+  if (!identity || !identity.sub) throw new Error('Google did not identify that account');
+  const [user] = await db.select().from(schema.users).where(eq(schema.users.id, userId)).limit(1);
+  if (!user) throw new Error('That account no longer exists');
+  if (!user.isActive) throw new Error('That account is disabled');
+
+  const taken = await findLinked(identity.sub);
+  if (taken && taken.id !== userId) {
+    throw new Error('That Google account is already attached to a different account here');
+  }
+  if (user.googleSub && user.googleSub !== identity.sub) {
+    throw new Error('This account already uses a different Google account. Remove that one first.');
+  }
+  await link(userId, identity);
+  return { ...user, googleSub: identity.sub, googleEmail: identity.email };
+}
+
+/**
+ * Detach it. Refused when Google is the only way in, because an account with no
+ * remaining factor is an account nobody can reach — including its owner.
+ */
+async function unlinkFromUser(userId) {
+  const [user] = await db.select().from(schema.users).where(eq(schema.users.id, userId)).limit(1);
+  if (!user) throw new Error('That account no longer exists');
+  if (!user.googleSub) return user;
+
+  const creds = await db.select({ id: schema.webauthnCredentials.id })
+    .from(schema.webauthnCredentials).where(eq(schema.webauthnCredentials.userId, userId));
+  if (!user.passwordHash && creds.length === 0) {
+    throw new Error('Google is the only way into this account. Set a password first.');
+  }
+  const [updated] = await db.update(schema.users)
+    .set({ googleSub: null, googleEmail: null, googleLinkedAt: null, updatedAt: new Date() })
+    .where(eq(schema.users.id, userId)).returning();
+  return updated;
+}
+
 /** Give an existing user access to this app if they do not have it yet. */
 async function ensureAccess(user, app) {
   if (!app) return false;
@@ -129,4 +175,7 @@ async function ensureAccess(user, app) {
   return true;
 }
 
-module.exports = { resolveOperator, resolveEndUser, findLinked, findByEmail, link };
+module.exports = {
+  resolveOperator, resolveEndUser, findLinked, findByEmail, link,
+  linkToUser, unlinkFromUser
+};

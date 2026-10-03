@@ -93,6 +93,11 @@ function computeEnv(app, envVars) {
       env.ASTRODOCK_AUTHORIZE_URL = `${publicAuth}/authorize`;
       // Ends the platform session only — it cannot clear an app's own cookie.
       env.ASTRODOCK_LOGOUT_URL = `${publicAuth}/logout`;
+      // Where an end user changes their password, their sign-in address, or the
+      // Google account attached to theirs. Injected because an app has to be
+      // able to link to it: nothing else tells its users the page exists, and a
+      // self-service page nobody can find is not self-service.
+      env.ASTRODOCK_ACCOUNT_URL = `${publicAuth}/account`;
     }
     env.ASTRODOCK_APP_ID = app.slug;
     env.ASTRODOCK_APP_SECRET = decryptSecret(app.appSecret);
