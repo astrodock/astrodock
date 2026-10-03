@@ -44,7 +44,32 @@ function safeColor(v) {
   return /^#[0-9a-fA-F]{6}$/.test(String(v || '')) ? String(v) : null;
 }
 
+/**
+ * Readable text on top of a given colour: white, or near-black.
+ *
+ * This exists because one brandColor is used in BOTH schemes while --accent-ink
+ * flipped per scheme — #fff on light, #06120d on dark. An app with a dark brand
+ * colour (Valise's spruce, #24443b) therefore got near-black text on a dark
+ * green button in dark mode, which is unreadable. The ink has to follow the
+ * colour it sits on, not the scheme around it.
+ *
+ * WCAG relative luminance, with the 0.179 threshold that maximizes the worse of
+ * the two contrast ratios.
+ */
+function inkFor(hex) {
+  const n = parseInt(String(hex).slice(1), 16);
+  const chan = (c) => {
+    const v = c / 255;
+    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  };
+  const L = 0.2126 * chan((n >> 16) & 255) + 0.7152 * chan((n >> 8) & 255) + 0.0722 * chan(n & 255);
+  return L > 0.179 ? '#06120d' : '#fff';
+}
+
 function shell(title, body, { accent = null } = {}) {
+  // Only when the app set one. With no brand colour the per-scheme defaults are
+  // already chosen to suit their own scheme, and must not change.
+  const ink = accent ? inkFor(accent) : null;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
@@ -58,14 +83,14 @@ function shell(title, body, { accent = null } = {}) {
   color-scheme:light dark;
   --bg:#f4f6fa; --surface:#fff; --line:#dce2ec; --field:#f4f7fb;
   --text:#121823; --text-2:#445064; --text-3:#626e7d;
-  --accent:${accent || '#0b7c56'}; --accent-ink:#fff;
+  --accent:${accent || '#0b7c56'}; --accent-ink:${ink || '#fff'};
   --danger:#d12536; --danger-bg:rgba(209,37,54,.10);
   --r:14px; --r-sm:9px;
 }
 @media(prefers-color-scheme:dark){:root{
   --bg:#0a0e15; --surface:#0f141d; --line:#222d3b; --field:#0c121b;
   --text:#f1f5fa; --text-2:#b6c4d4; --text-3:#8595a8;
-  --accent:${accent || '#2fe6a8'}; --accent-ink:#06120d;
+  --accent:${accent || '#2fe6a8'}; --accent-ink:${ink || '#06120d'};
   --danger:#ff6573; --danger-bg:rgba(255,101,115,.13);
 }}
 *{box-sizing:border-box}
@@ -139,4 +164,4 @@ function googleButton(href, label = 'Continue with Google') {
   ${esc(label)}</a>`;
 }
 
-module.exports = { esc, scriptJson, safeColor, shell, errorPage, brandMark, googleButton };
+module.exports = { esc, scriptJson, safeColor, shell, errorPage, brandMark, googleButton, inkFor };

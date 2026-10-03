@@ -111,5 +111,28 @@ await test('a logo URL is only used when it is https', () => {
   assert.match(ok, /referrerpolicy="no-referrer"/);
 });
 
+await test('a dark brand colour gets light text, and a light one dark text', () => {
+  // One brandColor is used in both schemes while --accent-ink used to flip per
+  // scheme, so Valise's spruce produced near-black text on a dark green button
+  // in dark mode. The ink follows the colour it sits on now.
+  const { inkFor } = require('../src/lib/auth-pages.js');
+  assert.equal(inkFor('#24443b'), '#fff');
+  assert.equal(inkFor('#a98e4a'), '#06120d');
+  assert.equal(inkFor('#000000'), '#fff');
+  assert.equal(inkFor('#ffffff'), '#06120d');
+
+  const dark = _internal.invitePage({ ...base, brandColor: '#24443b' });
+  for (const decl of dark.match(/--accent-ink:[^;]*/g) || []) {
+    assert.equal(decl, '--accent-ink:#fff', 'dark brand colour kept dark ink in one scheme');
+  }
+});
+
+await test('with no brand colour the per-scheme defaults are untouched', () => {
+  const plain = _internal.invitePage({ ...base, brandColor: '' });
+  const inks = plain.match(/--accent-ink:[^;]*/g) || [];
+  assert.deepEqual(inks, ['--accent-ink:#fff', '--accent-ink:#06120d'],
+    'the unbranded page changed scheme behaviour');
+});
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
