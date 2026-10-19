@@ -3,103 +3,47 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Foundations · Astrodock app design system</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<title>Foundations · Astrodock UI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../kit.css">
 <link rel="stylesheet" href="preview.css">
 </head>
 <body>
-<main class="page">
-  <a class="back" href="index.html"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"/></svg>Overview</a>
-  <div class="page-head">
-  <div class="page-head-main">
-    <div class="page-head-text">
-      <div class="page-title-row"><h1 class="t-title">Foundations</h1></div>
-      <p class="page-desc">Tokens are the only values in the system. Rules use tokens, never raw values, and an app re-brands by changing tokens. Switch the theme at the bottom left: every swatch is the live token.</p>
-      
-    </div>
+<div class="app" data-docs>
+  <nav class="sidebar-nav" aria-label="Design system">
+    <div class="switcher"><span class="avatar avatar-sm avatar-accent"><svg class="icon" aria-hidden="true"><use href="#i-layout-grid"/></svg></span><span class="switcher-name">Astrodock UI</span></div>
+    <div class="nav-list"><a class="item" href="index.html"><svg class="icon" aria-hidden="true"><use href="#i-layout-grid"/></svg>Overview</a><a class="item" href="foundations.html" aria-current="page"><svg class="icon" aria-hidden="true"><use href="#i-eye"/></svg>Foundations</a><a class="item" href="components.html"><svg class="icon" aria-hidden="true"><use href="#i-list"/></svg>Components</a><div class="nav-label">Page types</div><a class="item" href="page-list.html">Collection</a><a class="item" href="page-record.html">Record</a><a class="item" href="page-form.html">Create</a><a class="item" href="page-settings.html">Settings</a><a class="item" href="page-dashboard.html">Dashboard</a><a class="item" href="page-activity.html">Background work</a><a class="item" href="page-wizard.html">Step by step</a><a class="item" href="page-sidebar.html">Queue</a><a class="item" href="page-states.html">Sign-in and errors</a><a class="item" href="mobile.html">On a phone</a></div>
+    <div class="sidebar-foot"><div class="btn-group btn-group-sm" role="group" aria-label="Theme"><button class="btn" type="button" data-theme-set="light"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-sun"/></svg>Light</button><button class="btn" type="button" data-theme-set="dark"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-moon"/></svg>Dark</button></div></div>
+  </nav>
+  <div class="panel">
+    <div class="mobile-bar"><button class="btn btn-icon btn-quiet menu-btn" type="button" aria-label="Open navigation"><svg class="icon" aria-hidden="true"><use href="#i-menu"/></svg></button>Astrodock UI</div>
+    <main class="page">
+      <header class="page-header"><div class="page-head"><div class="page-head-main"><div class="page-head-text"><div class="page-title-row"><h1 class="t-title">Foundations</h1></div><p class="page-desc">Tokens are the only values in the system. An app changes its brand by changing tokens. Switch the theme in the sidebar: every swatch is live.</p></div></div></div></header>
+      <div class="sections">
+        <section class="section"><div class="section-head"><h2 class="section-title">Neutrals</h2><span class="section-meta">Zinc. The frame, the panel, and every shade of text and line.</span></div>
+          <div class="swatches"><div class="swatch"><div class="swatch-chip" style="--swatch: var(--bg-frame)"></div><div class="swatch-body"><b>Frame</b>--bg-frame</div></div><div class="swatch"><div class="swatch-chip" style="--swatch: var(--bg-page)"></div><div class="swatch-body"><b>Page</b>--bg-page</div></div><div class="swatch"><div class="swatch-chip" style="--swatch: var(--bg-subtle)"></div><div class="swatch-body"><b>Subtle</b>--bg-subtle</div></div><div class="swatch"><div class="swatch-chip" style="--swatch: var(--bg-sunken)"></div><div class="swatch-body"><b>Sunken</b>--bg-sunken</div></div><div class="swatch"><div class="swatch-chip" style="--swatch: var(--bg-active)"></div><div class="swatch-body"><b>Active</b>--bg-active</div></div><div class="swatch"><div class="swatch-chip" style="--swatch: var(--line)"></div><div class="swatch-body"><b>Line</b>--line</div></div><div class="swatch"><div class="swatch-chip" style="--swatch: var(--line-input)"></div><div class="swatch-body"><b>Line input</b>--line-input</div></div><div class="swatch"><div class="swatch-chip" style="--swatch: var(--ink-4)"></div><div class="swatch-body"><b>Ink 4</b>--ink-4</div></div><div class="swatch"><div class="swatch-chip" style="--swatch: var(--ink-3)"></div><div class="swatch-body"><b>Ink 3</b>--ink-3</div></div><div class="swatch"><div class="swatch-chip" style="--swatch: var(--ink-2)"></div><div class="swatch-body"><b>Ink 2</b>--ink-2</div></div><div class="swatch"><div class="swatch-chip" style="--swatch: var(--ink)"></div><div class="swatch-body"><b>Ink</b>--ink</div></div></div></section>
+        <section class="section"><div class="section-head"><h2 class="section-title">Accent and meaning</h2><span class="section-meta">The accent is for the primary action, focus and checked marks only.</span></div>
+          <div class="swatches"><div class="swatch"><div class="swatch-chip" style="--swatch: var(--accent)"></div><div class="swatch-body"><b>Accent</b>--accent</div></div><div class="swatch"><div class="swatch-chip" style="--swatch: var(--accent-soft)"></div><div class="swatch-body"><b>Accent soft</b>--accent-soft</div></div><div class="swatch"><div class="swatch-chip" style="--swatch: var(--success)"></div><div class="swatch-body"><b>Success</b>--success</div></div><div class="swatch"><div class="swatch-chip" style="--swatch: var(--warning)"></div><div class="swatch-body"><b>Warning</b>--warning</div></div><div class="swatch"><div class="swatch-chip" style="--swatch: var(--danger)"></div><div class="swatch-body"><b>Danger</b>--danger</div></div><div class="swatch"><div class="swatch-chip" style="--swatch: var(--series-1)"></div><div class="swatch-body"><b>Series 1</b>--series-1</div></div><div class="swatch"><div class="swatch-chip" style="--swatch: var(--series-2)"></div><div class="swatch-body"><b>Series 2</b>--series-2</div></div><div class="swatch"><div class="swatch-chip" style="--swatch: var(--series-3)"></div><div class="swatch-body"><b>Series 3</b>--series-3</div></div></div></section>
+        <section class="section"><div class="section-head"><h2 class="section-title">Type</h2><span class="section-meta">Geist and Geist Mono. Three weights: 400, 500, 600.</span></div>
+          <div class="stack">
+            <div class="type-row"><span class="t-label">Display 32</span><span class="t-display">How apps are built</span></div>
+            <div class="type-row"><span class="t-label">Title 24</span><span class="t-title">StoriiCare</span></div>
+            <div class="type-row"><span class="t-label">Heading 16</span><span class="t-heading">Against Seniorverse</span></div>
+            <div class="type-row"><span class="t-label">Section 14</span><span class="section-title">Pricing</span></div>
+            <div class="type-row"><span class="t-label">Body 14</span><span>The deep dive reads the whole site, then writes the profile from the facts it finds.</span></div>
+            <div class="type-row"><span class="t-label">Small 13</span><span class="t-small muted">Collected 2 h ago · 412 items</span></div>
+            <div class="type-row"><span class="t-label">Label 12</span><span class="t-label">Last change</span></div>
+            <div class="type-row"><span class="t-label">Mono</span><span class="mono">job #4182 · intel.apps.example.com</span></div>
+          </div></section>
+        <section class="section"><div class="section-head"><h2 class="section-title">Radius and depth</h2><span class="section-meta">Three radii. Avatars are rounded squares.</span></div>
+          <div class="cluster"><div class="stack-sm"><span class="radius-demo" style="--r: var(--radius-xs)"></span><span class="t-xs muted">--radius-xs · marks</span></div><div class="stack-sm"><span class="radius-demo" style="--r: var(--radius-sm)"></span><span class="t-xs muted">--radius-sm · controls</span></div><div class="stack-sm"><span class="radius-demo" style="--r: var(--radius-md)"></span><span class="t-xs muted">--radius-md · surfaces</span></div></div></section>
+        <section class="section"><div class="section-head"><h2 class="section-title">Space</h2><span class="section-meta">A 4px scale.</span></div>
+          <div class="stack-sm"><div class="scale-row"><code>--space-1</code><span class="scale-bar" style="--size: var(--space-1)"></span></div><div class="scale-row"><code>--space-2</code><span class="scale-bar" style="--size: var(--space-2)"></span></div><div class="scale-row"><code>--space-3</code><span class="scale-bar" style="--size: var(--space-3)"></span></div><div class="scale-row"><code>--space-4</code><span class="scale-bar" style="--size: var(--space-4)"></span></div><div class="scale-row"><code>--space-5</code><span class="scale-bar" style="--size: var(--space-5)"></span></div><div class="scale-row"><code>--space-6</code><span class="scale-bar" style="--size: var(--space-6)"></span></div><div class="scale-row"><code>--space-8</code><span class="scale-bar" style="--size: var(--space-8)"></span></div><div class="scale-row"><code>--space-10</code><span class="scale-bar" style="--size: var(--space-10)"></span></div><div class="scale-row"><code>--space-12</code><span class="scale-bar" style="--size: var(--space-12)"></span></div><div class="scale-row"><code>--space-16</code><span class="scale-bar" style="--size: var(--space-16)"></span></div></div></section>
+      </div>
+    </main>
   </div>
-  
 </div>
-  <div class="with-sidebar nav-side">
-    <nav class="sidebar nav-list" aria-label="On this page"><a class="item" href="#f-color" data-target="f-color" aria-current="true">Color</a><a class="item" href="#f-type" data-target="f-type">Type</a><a class="item" href="#f-space" data-target="f-space">Space and size</a><a class="item" href="#f-shape" data-target="f-shape">Radius and depth</a><a class="item" href="#f-icons" data-target="f-icons">Icons</a><a class="item" href="#f-motion" data-target="f-motion">Motion</a><a class="item" href="#f-theme" data-target="f-theme">Theming an app</a></nav>
-    <div>
-      <section class="catalog-section" id="f-color">
-        <h2 class="catalog-title">Color</h2>
-        <p class="catalog-lede">Neutrals carry almost everything. One accent marks what can be clicked and what is selected. Success, warning and danger mean exactly that and always come with an icon and a word. Chart series never stand in for status.</p>
-        <div class="t-label mb-2">Surfaces</div>
-        <div class="swatches"><div class="swatch"><div class="swatch-chip" style="--swatch: var(--bg-page)"></div><div class="swatch-body"><b>Page</b>--bg-page<br>Behind everything</div></div><div class="swatch"><div class="swatch-chip" style="--swatch: var(--bg-surface)"></div><div class="swatch-body"><b>Surface</b>--bg-surface<br>Cards, lists, tables</div></div><div class="swatch"><div class="swatch-chip" style="--swatch: var(--bg-raised)"></div><div class="swatch-body"><b>Raised</b>--bg-raised<br>Menus, dialogs, toasts</div></div><div class="swatch"><div class="swatch-chip" style="--swatch: var(--bg-sunken)"></div><div class="swatch-body"><b>Sunken</b>--bg-sunken<br>Headers, avatars, code</div></div><div class="swatch"><div class="swatch-chip" style="--swatch: var(--bg-hover)"></div><div class="swatch-body"><b>Hover</b>--bg-hover<br>Rows and items</div></div><div class="swatch"><div class="swatch-chip" style="--swatch: var(--bg-selected)"></div><div class="swatch-body"><b>Selected</b>--bg-selected<br>Current item, selected rows</div></div><div class="swatch"><div class="swatch-chip" style="--swatch: var(--bg-inverse)"></div><div class="swatch-body"><b>Inverse</b>--bg-inverse<br>Bulk bar, tooltips</div></div></div>
-        <div class="t-label mb-2">Text and lines</div>
-        <div class="swatches"><div class="swatch"><div class="swatch-chip" style="--swatch: var(--ink)"></div><div class="swatch-body"><b>Ink</b>--ink<br>Titles, values</div></div><div class="swatch"><div class="swatch-chip" style="--swatch: var(--ink-2)"></div><div class="swatch-body"><b>Ink 2</b>--ink-2<br>Body in dense screens</div></div><div class="swatch"><div class="swatch-chip" style="--swatch: var(--ink-3)"></div><div class="swatch-body"><b>Ink 3</b>--ink-3<br>Meta, hints</div></div><div class="swatch"><div class="swatch-chip" style="--swatch: var(--ink-4)"></div><div class="swatch-body"><b>Ink 4</b>--ink-4<br>Placeholders, counts</div></div><div class="swatch"><div class="swatch-chip" style="--swatch: var(--line)"></div><div class="swatch-body"><b>Line</b>--line<br>Hairlines</div></div><div class="swatch"><div class="swatch-chip" style="--swatch: var(--line-strong)"></div><div class="swatch-body"><b>Line strong</b>--line-strong<br>Input borders</div></div></div>
-        <div class="t-label mb-2">Accent and meaning</div>
-        <div class="swatches"><div class="swatch"><div class="swatch-chip" style="--swatch: var(--accent)"></div><div class="swatch-body"><b>Accent</b>--accent<br>Primary buttons, focus, current</div></div><div class="swatch"><div class="swatch-chip" style="--swatch: var(--accent-soft)"></div><div class="swatch-body"><b>Accent soft</b>--accent-soft<br>Citations, soft avatars</div></div><div class="swatch"><div class="swatch-chip" style="--swatch: var(--success)"></div><div class="swatch-body"><b>Success</b>--success<br>Done, up</div></div><div class="swatch"><div class="swatch-chip" style="--swatch: var(--warning)"></div><div class="swatch-body"><b>Warning</b>--warning<br>Needs setup</div></div><div class="swatch"><div class="swatch-chip" style="--swatch: var(--danger)"></div><div class="swatch-body"><b>Danger</b>--danger<br>Failed, delete</div></div></div>
-        <div class="t-label mb-2">Chart series, in this order</div>
-        <div class="swatches"><div class="swatch"><div class="swatch-chip" style="--swatch: var(--series-1)"></div><div class="swatch-body"><b>Series 1</b>--series-1<br></div></div><div class="swatch"><div class="swatch-chip" style="--swatch: var(--series-2)"></div><div class="swatch-body"><b>Series 2</b>--series-2<br></div></div><div class="swatch"><div class="swatch-chip" style="--swatch: var(--series-3)"></div><div class="swatch-body"><b>Series 3</b>--series-3<br></div></div><div class="swatch"><div class="swatch-chip" style="--swatch: var(--series-4)"></div><div class="swatch-body"><b>Series 4</b>--series-4<br></div></div><div class="swatch"><div class="swatch-chip" style="--swatch: var(--series-5)"></div><div class="swatch-body"><b>Series 5</b>--series-5<br></div></div><div class="swatch"><div class="swatch-chip" style="--swatch: var(--series-other)"></div><div class="swatch-body"><b>Other</b>--series-other<br>Everything past five</div></div></div>
-      </section>
-
-      <section class="catalog-section" id="f-type">
-        <h2 class="catalog-title">Type</h2>
-        <p class="catalog-lede">Public Sans, falling back to the system font, and a mono for ids and data. Hierarchy comes from size and weight. Four weights only: 400 text, 500 navigation and meta, 600 headings, buttons and labels, 700 display numbers. Chrome text (buttons, tabs, menus) is 13px; content (inputs, options, body) is 14px.</p>
-        <div class="card">
-          <div class="specimen"><div class="specimen-label"><div class="t-subheading">Display</div><p>30, bold. Overview headings, stat values.</p></div><div class="specimen-demo"><div class="t-display">Seniorverse Day</div></div></div>
-          <div class="specimen"><div class="specimen-label"><div class="t-subheading">Title</div><p>24, semibold. One per page.</p></div><div class="specimen-demo"><div class="t-title">StoriiCare</div></div></div>
-          <div class="specimen"><div class="specimen-label"><div class="t-subheading">Heading</div><p>16, semibold. Sections, dialog titles.</p></div><div class="specimen-demo"><div class="t-heading">Recent changes</div></div></div>
-          <div class="specimen"><div class="specimen-label"><div class="t-subheading">Subheading</div><p>14, semibold. Cards, groups, row titles.</p></div><div class="specimen-demo"><div class="t-subheading">At a glance</div></div></div>
-          <div class="specimen"><div class="specimen-label"><div class="t-subheading">Body</div><p>14, regular, 1.5 line height.</p></div><div class="specimen-demo"><div class="t-body">The deep dive reads the whole site, including help docs, then writes the profile from the facts it finds.</div></div></div>
-          <div class="specimen"><div class="specimen-label"><div class="t-subheading">Small</div><p>13. Meta lines, table cells, hints.</p></div><div class="specimen-demo"><div class="t-small muted">Collected 2 h ago · 412 items</div></div></div>
-          <div class="specimen"><div class="specimen-label"><div class="t-subheading">Label</div><p>12, semibold, uppercase. Group names, table headers.</p></div><div class="specimen-demo"><div class="t-label">Study level</div></div></div>
-          <div class="specimen"><div class="specimen-label"><div class="t-subheading">Mono</div><p>Ids, code, JSON.</p></div><div class="specimen-demo"><span class="mono">job #4182 · intel.apps.example.com</span></div></div>
-          <div class="specimen"><div class="specimen-label"><div class="t-subheading">Prose</div><p>Reading text: 1.65 line height, 72 characters wide.</p></div><div class="specimen-demo"><div class="prose"><p>StoriiCare sells care management software to adult day centers, home care agencies and care homes. <button class="cite" type="button">F112</button></p></div></div></div>
-        </div>
-      </section>
-
-      <section class="catalog-section" id="f-space">
-        <h2 class="catalog-title">Space and size</h2>
-        <p class="catalog-lede">A 4px scale. Related things 8px apart, groups 16 to 24px, sections 32px. Controls are 30, 36 or 42px tall (40px on a phone); menu items, options and nav items are 32px. Pages are 760px (forms, reading), 1200px (most) or 1520px (big tables).</p>
-        <div class="card"><div class="card-body">
-          <div class="scale-row"><code>--space-1</code><span class="scale-bar" style="--size: var(--space-1)"></span>4px · icon to text</div><div class="scale-row"><code>--space-2</code><span class="scale-bar" style="--size: var(--space-2)"></span>8px · between buttons, related items</div><div class="scale-row"><code>--space-3</code><span class="scale-bar" style="--size: var(--space-3)"></span>12px · inside compact groups</div><div class="scale-row"><code>--space-4</code><span class="scale-bar" style="--size: var(--space-4)"></span>16px · between fields and cards</div><div class="scale-row"><code>--space-5</code><span class="scale-bar" style="--size: var(--space-5)"></span>20px · card padding</div><div class="scale-row"><code>--space-6</code><span class="scale-bar" style="--size: var(--space-6)"></span>24px · between columns, dialog padding</div><div class="scale-row"><code>--space-8</code><span class="scale-bar" style="--size: var(--space-8)"></span>32px · between sections</div><div class="scale-row"><code>--space-12</code><span class="scale-bar" style="--size: var(--space-12)"></span>48px · empty states</div>
-          <hr>
-          <dl class="kv">
-            <dt>Controls</dt><dd>--ctl-sm 30px · --ctl-md 36px · --ctl-lg 42px</dd>
-            <dt>Items</dt><dd>--item-h 32px (menus, options, nav lists)</dd>
-            <dt>Avatars</dt><dd>--avatar-sm 24 · md 32 · lg 40 · xl 48</dd>
-            <dt>Icons</dt><dd>--icon-sm 14 · md 16 · lg 20</dd>
-            <dt>Breakpoints</dt><dd>1024px side columns stack · 860px sidebars stack · 640px phone</dd>
-          </dl>
-        </div></div>
-      </section>
-
-      <section class="catalog-section" id="f-shape">
-        <h2 class="catalog-title">Radius and depth</h2>
-        <p class="catalog-lede">Three radii and one rule for each. Avatars and identity tiles are rounded squares, never circles; only things that move along a track (switches, progress, radios, spinners) are round. Depth has three steps: card, raised (hover), pop (menus, dialogs, toasts).</p>
-        <div class="card">
-          <div class="specimen"><div class="specimen-label"><div class="t-subheading">Radius</div><p></p></div><div class="specimen-demo"><div class="cluster"><div class="stack-sm"><span class="radius-demo" style="--r: var(--radius-xs)"></span><span class="t-xs muted">--radius-xs<br>4px · marks: checkbox, citation, kbd</span></div><div class="stack-sm"><span class="radius-demo" style="--r: var(--radius-sm)"></span><span class="t-xs muted">--radius-sm<br>6px · controls, items, small avatars</span></div><div class="stack-sm"><span class="radius-demo" style="--r: var(--radius-md)"></span><span class="t-xs muted">--radius-md<br>8px · surfaces, dialogs, avatars</span></div></div></div></div>
-          <div class="specimen"><div class="specimen-label"><div class="t-subheading">Depth</div><p></p></div><div class="specimen-demo"><div class="grid-3"><div class="card"><div class="card-body t-small">--shadow-card</div></div><div class="stat"><span class="t-small">--shadow-card on a stat</span></div><div class="panel-sunken t-small">Sunken, no shadow</div></div></div></div>
-        </div>
-      </section>
-
-      <section class="catalog-section" id="f-icons">
-        <h2 class="catalog-title">Icons</h2>
-        <p class="catalog-lede">Lucide, 16px, 1.8 stroke, the color of the text beside them. An icon sits next to a word; icon-only buttons are kept to universal ones and carry an accessible name. No emoji.</p>
-        <div class="icon-grid"><div class="icon-cell"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>plus add</div><div class="icon-cell"><svg class="icon" aria-hidden="true"><use href="#i-pencil"/></svg>pencil edit</div><div class="icon-cell"><svg class="icon" aria-hidden="true"><use href="#i-trash"/></svg>trash delete</div><div class="icon-cell"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg>search</div><div class="icon-cell"><svg class="icon" aria-hidden="true"><use href="#i-filter"/></svg>filter</div><div class="icon-cell"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"/></svg>arrow-left back</div><div class="icon-cell"><svg class="icon" aria-hidden="true"><use href="#i-more"/></svg>more</div><div class="icon-cell"><svg class="icon" aria-hidden="true"><use href="#i-refresh"/></svg>refresh again</div><div class="icon-cell"><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg>play start</div><div class="icon-cell"><svg class="icon" aria-hidden="true"><use href="#i-external"/></svg>external new tab</div><div class="icon-cell"><svg class="icon" aria-hidden="true"><use href="#i-check-circle"/></svg>check-circle done</div><div class="icon-cell"><svg class="icon" aria-hidden="true"><use href="#i-loader"/></svg>loader running</div><div class="icon-cell"><svg class="icon" aria-hidden="true"><use href="#i-clock"/></svg>clock queued</div><div class="icon-cell"><svg class="icon" aria-hidden="true"><use href="#i-alert-triangle"/></svg>alert-triangle warning</div><div class="icon-cell"><svg class="icon" aria-hidden="true"><use href="#i-info"/></svg>info</div><div class="icon-cell"><svg class="icon" aria-hidden="true"><use href="#i-upload"/></svg>upload</div><div class="icon-cell"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>download</div><div class="icon-cell"><svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg>copy</div><div class="icon-cell"><svg class="icon" aria-hidden="true"><use href="#i-settings"/></svg>settings</div><div class="icon-cell"><svg class="icon" aria-hidden="true"><use href="#i-log-out"/></svg>log-out sign out</div></div>
-      </section>
-
-      <section class="catalog-section" id="f-motion">
-        <h2 class="catalog-title">Motion</h2>
-        <p class="catalog-lede">Motion confirms that something happened: a menu opens, a dialog arrives, a toast appears. 120ms for hover and small changes, 220ms for things entering. Nothing loops except progress. Reduced-motion settings turn it off.</p>
-      </section>
-
-      <section class="catalog-section" id="f-theme">
-        <h2 class="catalog-title">Theming an app</h2>
-        <p class="catalog-lede">An app loads kit.css, then its own theme.css that sets tokens. That file is the only place brand values live. Set data-theme on html to light, dark or auto.</p>
-        <pre class="code-block">/* app/src/theme.css */
-:root { --accent: #0f6fde; --accent-hover: #0b5bb8; --accent-ink: #0a4f9e; --accent-soft: #e8f1fc; }
-:root[data-theme="dark"] { --accent: #5ea2f0; --accent-ink: #9cc6f7; --accent-soft: #14253b; }</pre>
-      </section>
-    </div>
-  </div>
-</main>
 <script src="preview.js"></script>
 </body>
 </html>

@@ -1,52 +1,35 @@
 /* Styles for the preview pages themselves: specimens, swatches, frames.
    Not part of the kit; apps never use these classes. Uses kit tokens only. */
 
-.preview-switcher { position: fixed; left: var(--space-4); bottom: var(--space-4); z-index: var(--z-toast); display: flex; gap: var(--space-2); align-items: center; padding: var(--space-1); border-radius: var(--radius-md); background: var(--bg-raised); box-shadow: var(--shadow-pop); }
+.preview-switcher { position: fixed; left: var(--space-4); bottom: var(--space-4); z-index: var(--z-toast); display: flex; gap: var(--space-1); align-items: center; padding: var(--space-1); border-radius: var(--radius-md); background: var(--bg-raised); box-shadow: var(--shadow-pop); }
 
-/* Catalog sections and specimens */
-.catalog-section { scroll-margin-top: var(--space-6); }
-.catalog-section + .catalog-section { margin-top: var(--space-12); }
-.catalog-title { font-size: var(--text-xl); font-weight: var(--weight-semibold); margin-bottom: var(--space-2); }
-.catalog-lede { color: var(--ink-2); max-width: 72ch; margin-bottom: var(--space-3); }
-.catalog-use { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); margin-bottom: var(--space-4); font-size: var(--text-sm); color: var(--ink-2); max-width: 900px; }
-.catalog-use > div { display: flex; gap: var(--space-2); align-items: flex-start; }
-.catalog-use .icon { margin-top: 2px; }
-.specimen { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: var(--space-6); padding: var(--space-5); }
-.specimen + .specimen { box-shadow: inset 0 var(--line-width) 0 var(--line); }
-.specimen-label > .t-subheading { margin-bottom: var(--space-1); }
-.specimen-label > p { font-size: var(--text-sm); color: var(--ink-3); margin: 0 0 var(--space-3); }
-.specimen-demo { min-width: 0; }
-.specimen-demo > .field, .specimen-demo > .input-wrap, .specimen-demo > .input-affix, .specimen-demo > .form-row { max-width: 560px; }
-.specimen-code { margin-top: var(--space-4); }
-.specimen-code > .code-block { max-height: 320px; }
+/* Components page */
+.catalog-use { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-6); font-size: var(--text-sm); color: var(--ink-3); }
+.catalog-use b { color: var(--ink); font-weight: var(--weight-medium); margin-right: var(--space-1); }
+.specimen { border-radius: var(--radius-md); box-shadow: var(--shadow-panel); overflow: visible; }
+.specimen-head { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4); box-shadow: inset 0 calc(var(--line-width) * -1) 0 var(--line); font-size: var(--text-sm); }
+.specimen-demo { padding: var(--space-6); min-width: 0; background: var(--bg-page); border-radius: 0 0 var(--radius-md) var(--radius-md); }
+.specimen-demo > .field, .specimen-demo > .input-wrap, .specimen-demo > .stack, .specimen-demo > .form-row { max-width: 520px; }
+.specimen-code { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-2); padding: 0 var(--space-4) var(--space-4); }
+.specimen-code > .code-block { width: 100%; }
 
 /* Foundations */
-.swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--space-3); margin-bottom: var(--space-5); }
-.swatch { border-radius: var(--radius-md); background: var(--bg-surface); box-shadow: var(--shadow-card); overflow: hidden; }
-.swatch-chip { height: 52px; background: var(--swatch); box-shadow: inset 0 calc(var(--line-width) * -1) 0 var(--line); }
-.swatch-body { padding: var(--space-2) var(--space-3); font-size: var(--text-xs); color: var(--ink-3); }
-.swatch-body > b { display: block; font-size: var(--text-sm); color: var(--ink); font-weight: var(--weight-semibold); }
-.scale-row { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-1) 0; font-size: var(--text-sm); }
-.scale-row > code { width: 110px; color: var(--ink-3); font-family: var(--font-mono); font-size: var(--text-xs); }
-.scale-bar { height: 12px; width: var(--size); background: var(--accent); border-radius: var(--radius-xs); }
-.radius-demo { width: 72px; height: 72px; background: var(--accent-soft); box-shadow: inset 0 0 0 var(--line-width) var(--accent); border-radius: var(--r); }
-.icon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: var(--space-2); }
-.icon-cell { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); padding: var(--space-3) var(--space-2); border-radius: var(--radius-md); background: var(--bg-surface); box-shadow: var(--shadow-card); font-size: var(--text-xs); color: var(--ink-3); text-align: center; }
-.icon-cell > .icon { width: var(--icon-lg); height: var(--icon-lg); color: var(--ink); }
-.do-dont { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
+.swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: var(--space-3); }
+.swatch { display: flex; flex-direction: column; gap: var(--space-2); }
+.swatch-chip { height: 56px; border-radius: var(--radius-sm); background: var(--swatch); box-shadow: inset 0 0 0 var(--line-width) var(--line); }
+.swatch-body { font-size: var(--text-xs); color: var(--ink-3); font-family: var(--font-mono); }
+.swatch-body > b { display: block; font-family: var(--font-sans); font-size: var(--text-sm); color: var(--ink); font-weight: var(--weight-medium); }
+.type-row { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: var(--space-4); align-items: baseline; padding: var(--space-2) 0; }
+.radius-demo { display: block; width: 72px; height: 72px; background: var(--bg-sunken); box-shadow: inset 0 0 0 var(--line-width) var(--line-strong); border-radius: var(--r); }
+.scale-row { display: flex; align-items: center; gap: var(--space-4); font-size: var(--text-sm); }
+.scale-row > code { width: 96px; color: var(--ink-3); font-family: var(--font-mono); font-size: var(--text-xs); }
+.scale-bar { height: 10px; width: var(--size); background: var(--ink); border-radius: var(--radius-xs); }
 
-/* Frames for showing whole screens inside a page */
-.frame { border-radius: var(--radius-md); overflow: hidden; background: var(--bg-page); box-shadow: var(--shadow-raised); }
-.frame + .frame-label { margin-top: var(--space-10); }
-.frame-label { margin-bottom: var(--space-3); }
-.frame .shell-bar { position: static; }
-.frame .center { min-height: 400px; }
+/* Frames for whole screens inside a page */
+.frame { border-radius: var(--radius-md); overflow: hidden; background: var(--bg-page); box-shadow: var(--shadow-panel); }
+.frame .center { min-height: 360px; }
 .phone-row { display: flex; gap: var(--space-8); flex-wrap: wrap; }
-.phone { width: 390px; height: 780px; border-radius: var(--space-6); overflow: hidden; background: var(--bg-surface); box-shadow: var(--shadow-pop), 0 0 0 8px var(--bg-inverse); }
+.phone { width: 390px; height: 780px; border-radius: var(--space-8); overflow: hidden; background: var(--bg-page); box-shadow: var(--shadow-pop), 0 0 0 8px var(--bg-inverse); }
 .phone > iframe { width: 100%; height: 100%; border: 0; }
-.phone-caption { text-align: center; margin-top: var(--space-4); font-size: var(--text-sm); color: var(--ink-3); }
-
-@media (max-width: 760px) {
-  .specimen { grid-template-columns: minmax(0, 1fr); }
-  .catalog-use, .do-dont { grid-template-columns: minmax(0, 1fr); }
-}
+.phone-caption { text-align: center; font-size: var(--text-sm); color: var(--ink-3); padding-top: var(--space-3); }
+.preview-switcher.in-sidebar { position: static; box-shadow: none; background: transparent; padding: 0 0 var(--space-2); margin-bottom: var(--space-2); box-shadow: inset 0 calc(var(--line-width) * -1) 0 var(--line); justify-content: space-between; }

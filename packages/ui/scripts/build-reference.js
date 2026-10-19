@@ -28,9 +28,8 @@ const cut = (file, start, end) => {
   const b = src.indexOf(end, a) + end.length;
   return src.slice(a, b);
 };
-const topShell = cut('preview/page-list.html', '<header class="shell-bar">', '</header>');
-const sideShell = cut('preview/page-sidebar.html', '<nav class="shell-sidebar"', '</nav>\n');
-const pageHead = cut('preview/page-list.html', '<a class="back"', '</div>\n</div>');
+const appFrame = cut('preview/page-list.html', '<div class="app">', '<div class="mobile-bar">');
+const pageHead = cut('preview/page-record.html', '<header class="page-header">', '</header>');
 
 const fence = (lang, code) => `\`\`\`${lang}\n${code.trim()}\n\`\`\``;
 
@@ -41,7 +40,7 @@ The rules live in README.md; this file is the markup. The live versions are in \
 
 ## Using it
 
-- Load \`kit.css\` first, then the app's \`theme.css\` (tokens only). Load Public Sans: \`<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">\`.
+- Load \`kit.css\` first, then the app's \`theme.css\` (tokens only). Load Geist: \`<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">\`.
 - Set \`data-theme\` on \`<html>\`: \`light\`, \`dark\` or \`auto\`.
 - Icons: \`<svg class="icon"><use href="#i-NAME"/></svg>\` below stands for the Lucide icon NAME. In React: \`<Plus className="icon" />\`; small: \`className="icon icon-sm"\`.
 - Behavior hooks are data attributes (\`data-toggle\`, \`data-open\`, \`data-row-check\`...). In the preview, \`preview/preview.js\` wires them; in an app, the React components do.
@@ -60,15 +59,13 @@ The rules live in README.md; this file is the markup. The live versions are in \
 
 ${fence('css', tokenBlock)}
 
-## Top-bar shell
+## App frame: sidebar and panel
 
-${fence('html', topShell)}
+The sidebar sits on the gray frame; the page sits on one white panel. Every app uses this frame.
 
-## Sidebar shell
+${fence('html', appFrame + '\n    <main class="page">…</main>\n  </div>\n</div>')}
 
-${fence('html', sideShell)}
-
-## Back button and page header
+## Page header (back, title, actions, tabs)
 
 ${fence('html', pageHead)}
 

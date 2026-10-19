@@ -4,62 +4,35 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Astrodock app design system</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../kit.css">
 <link rel="stylesheet" href="preview.css">
 </head>
 <body>
-<main class="page">
-  <div class="t-label mb-2">Astrodock · packages/ui</div>
-  <h1 class="t-display mb-2">How Astrodock apps are built</h1>
-  <p class="page-desc page-desc-lg">One design system for every app on the platform. Tokens make primitives, primitives make components, components make page types, and every screen is one of the page types. An agent building an app reads REFERENCE.md; a person who knows one app finds the next one works the same way.</p>
-
-  <section class="section">
-    <div class="section-head"><h2 class="t-heading">How it builds on itself</h2></div>
-    <div class="grid-3">
-      <div class="card"><div class="card-body"><div class="cluster mb-2"><span class="avatar avatar-sm">1</span><span class="strong">Tokens</span></div><p class="t-small muted">Every color, size, radius, weight and shadow. An app changes its brand here and nowhere else.</p></div></div>
-      <div class="card"><div class="card-body"><div class="cluster mb-2"><span class="avatar avatar-sm">2</span><span class="strong">Primitives</span></div><p class="t-small muted">One control shape (buttons, inputs, selects), one item shape (menus, options, navigation), one surface, one avatar, one checkbox.</p></div></div>
-      <div class="card"><div class="card-body"><div class="cluster mb-2"><span class="avatar avatar-sm">3</span><span class="strong">Components and pages</span></div><p class="t-small muted">Built only from primitives. Pages are built only from components. scripts/check.js fails on anything else.</p></div></div>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="section-head"><h2 class="t-heading">Principles</h2></div>
-    <div class="card"><div class="card-body"><ol class="timeline">
-      <li class="timeline-item"><div class="timeline-date">01</div><div class="timeline-mark"><span class="avatar avatar-sm">1</span><span class="timeline-stem"></span></div><div class="timeline-body"><div class="timeline-title">Content leads.</div><div class="timeline-text">Chrome is one compact bar. The title, what matters and the main action are visible without scrolling.</div></div></li>
-      <li class="timeline-item"><div class="timeline-date">02</div><div class="timeline-mark"><span class="avatar avatar-sm">2</span><span class="timeline-stem"></span></div><div class="timeline-body"><div class="timeline-title">One way to do each thing.</div><div class="timeline-text">One select, one modal, one checkbox, one way to filter. A screen never invents its own control.</div></div></li>
-      <li class="timeline-item"><div class="timeline-date">03</div><div class="timeline-mark"><span class="avatar avatar-sm">3</span><span class="timeline-stem"></span></div><div class="timeline-body"><div class="timeline-title">You always know where you are and how to get back.</div><div class="timeline-text">A back button names the parent; the URL holds the tab, filters and sort.</div></div></li>
-      <li class="timeline-item"><div class="timeline-date">04</div><div class="timeline-mark"><span class="avatar avatar-sm">4</span><span class="timeline-stem"></span></div><div class="timeline-body"><div class="timeline-title">Actions are buttons; navigation is links.</div><div class="timeline-text">A button does something. A link goes somewhere and opens in a new tab when asked.</div></div></li>
-      <li class="timeline-item"><div class="timeline-date">05</div><div class="timeline-mark"><span class="avatar avatar-sm">5</span><span class="timeline-stem"></span></div><div class="timeline-body"><div class="timeline-title">Shading, not lines.</div><div class="timeline-text">Surfaces separate by background and elevation. Borders are kept for inputs.</div></div></li>
-      <li class="timeline-item"><div class="timeline-date">06</div><div class="timeline-mark"><span class="avatar avatar-sm">6</span><span class="timeline-stem"></span></div><div class="timeline-body"><div class="timeline-title">Color means something.</div><div class="timeline-text">The accent marks what can be clicked or is selected. Green, amber and red mean success, attention and danger, always with an icon and a word.</div></div></li>
-      <li class="timeline-item"><div class="timeline-date">07</div><div class="timeline-mark"><span class="avatar avatar-sm">7</span><span class="timeline-stem"></span></div><div class="timeline-body"><div class="timeline-title">Every state is designed.</div><div class="timeline-text">Loading, nothing yet, no matches, error, no access and running in the background each have a set look and words.</div></div></li>
-      <li class="timeline-item"><div class="timeline-date">08</div><div class="timeline-mark"><span class="avatar avatar-sm">8</span><span class="timeline-stem"></span></div><div class="timeline-body"><div class="timeline-title">Nothing is lost by accident.</div><div class="timeline-text">Unsaved changes are guarded, removals can be undone, irreversible deletes are confirmed.</div></div></li>
-    </ol></div></div>
-  </section>
-
-  <section class="section">
-    <div class="section-head"><h2 class="t-heading">Preview pages</h2><span class="t-small muted">The switcher at the bottom left moves between them and sets light or dark.</span></div>
-    <div class="grid-3">
-    <a class="card" href="foundations.html"><div class="card-body"><div class="cluster mb-2"><span class="avatar avatar-sm avatar-soft"><svg class="icon" aria-hidden="true"><use href="#i-eye"/></svg></span><span class="strong">Foundations</span></div><p class="t-small muted">Color in both themes, type, space, size, radius, depth, icons, motion, theming.</p></div></a>
-    <a class="card" href="components.html"><div class="card-body"><div class="cluster mb-2"><span class="avatar avatar-sm avatar-soft"><svg class="icon" aria-hidden="true"><use href="#i-layout-grid"/></svg></span><span class="strong">Components</span></div><p class="t-small muted">Every part with its examples, when to use it, and its markup to copy.</p></div></a>
-    <a class="card" href="page-list.html"><div class="card-body"><div class="cluster mb-2"><span class="avatar avatar-sm avatar-soft"><svg class="icon" aria-hidden="true"><use href="#i-list"/></svg></span><span class="strong">Collection page</span></div><p class="t-small muted">Summary counts, filters on the left, toolbar, grouped list or cards, selection and bulk actions.</p></div></a>
-    <a class="card" href="page-record.html"><div class="card-body"><div class="cluster mb-2"><span class="avatar avatar-sm avatar-soft"><svg class="icon" aria-hidden="true"><use href="#i-file"/></svg></span><span class="strong">Record page</span></div><p class="t-small muted">Back button, header, tabs, summary first, detail on demand.</p></div></a>
-    <a class="card" href="page-form.html"><div class="card-body"><div class="cluster mb-2"><span class="avatar avatar-sm avatar-soft"><svg class="icon" aria-hidden="true"><use href="#i-pencil"/></svg></span><span class="strong">Create and edit</span></div><p class="t-small muted">Long forms as a page with grouped fields, validation and a save bar.</p></div></a>
-    <a class="card" href="page-settings.html"><div class="card-body"><div class="cluster mb-2"><span class="avatar avatar-sm avatar-soft"><svg class="icon" aria-hidden="true"><use href="#i-settings"/></svg></span><span class="strong">Settings</span></div><p class="t-small muted">Groups in a side list, each saved on its own, the danger zone last.</p></div></a>
-    <a class="card" href="page-dashboard.html"><div class="card-body"><div class="cluster mb-2"><span class="avatar avatar-sm avatar-soft"><svg class="icon" aria-hidden="true"><use href="#i-bar-chart"/></svg></span><span class="strong">Dashboard</span></div><p class="t-small muted">Numbers that link to their lists, a chart, what needs attention.</p></div></a>
-    <a class="card" href="page-activity.html"><div class="card-body"><div class="cluster mb-2"><span class="avatar avatar-sm avatar-soft"><svg class="icon" aria-hidden="true"><use href="#i-activity"/></svg></span><span class="strong">Background work</span></div><p class="t-small muted">What is running, what failed, history with filters, detail in a drawer.</p></div></a>
-    <a class="card" href="page-wizard.html"><div class="card-body"><div class="cluster mb-2"><span class="avatar avatar-sm avatar-soft"><svg class="icon" aria-hidden="true"><use href="#i-flag"/></svg></span><span class="strong">Step by step</span></div><p class="t-small muted">Decisions in order, with progress saved and a review at the end.</p></div></a>
-    <a class="card" href="page-sidebar.html"><div class="card-body"><div class="cluster mb-2"><span class="avatar avatar-sm avatar-soft"><svg class="icon" aria-hidden="true"><use href="#i-inbox"/></svg></span><span class="strong">Sidebar shell and queue</span></div><p class="t-small muted">For apps with many sections, and for working through items one by one.</p></div></a>
-    <a class="card" href="page-states.html"><div class="card-body"><div class="cluster mb-2"><span class="avatar avatar-sm avatar-soft"><svg class="icon" aria-hidden="true"><use href="#i-alert-circle"/></svg></span><span class="strong">Sign-in, errors, loading</span></div><p class="t-small muted">Signing in, no access, not found, errors, first use, loading.</p></div></a>
-    <a class="card" href="mobile.html"><div class="card-body"><div class="cluster mb-2"><span class="avatar avatar-sm avatar-soft"><svg class="icon" aria-hidden="true"><use href="#i-layout-grid"/></svg></span><span class="strong">On a phone</span></div><p class="t-small muted">The same pages at phone width.</p></div></a>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="notice"><svg class="icon" aria-hidden="true"><use href="#i-info"/></svg><div class="notice-body"><div class="notice-title">What exists today</div>kit.css, these preview pages, README.md (the rules) and REFERENCE.md (every component's markup, built from the catalog). The React components are next; they render the same markup.</div></div>
-  </section>
-</main>
+<div class="app" data-docs>
+  <nav class="sidebar-nav" aria-label="Design system">
+    <div class="switcher"><span class="avatar avatar-sm avatar-accent"><svg class="icon" aria-hidden="true"><use href="#i-layout-grid"/></svg></span><span class="switcher-name">Astrodock UI</span></div>
+    <div class="nav-list"><a class="item" href="index.html" aria-current="page"><svg class="icon" aria-hidden="true"><use href="#i-layout-grid"/></svg>Overview</a><a class="item" href="foundations.html"><svg class="icon" aria-hidden="true"><use href="#i-eye"/></svg>Foundations</a><a class="item" href="components.html"><svg class="icon" aria-hidden="true"><use href="#i-list"/></svg>Components</a><div class="nav-label">Page types</div><a class="item" href="page-list.html">Collection</a><a class="item" href="page-record.html">Record</a><a class="item" href="page-form.html">Create</a><a class="item" href="page-settings.html">Settings</a><a class="item" href="page-dashboard.html">Dashboard</a><a class="item" href="page-activity.html">Background work</a><a class="item" href="page-wizard.html">Step by step</a><a class="item" href="page-sidebar.html">Queue</a><a class="item" href="page-states.html">Sign-in and errors</a><a class="item" href="mobile.html">On a phone</a></div>
+    <div class="sidebar-foot"><div class="btn-group btn-group-sm" role="group" aria-label="Theme"><button class="btn" type="button" data-theme-set="light"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-sun"/></svg>Light</button><button class="btn" type="button" data-theme-set="dark"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-moon"/></svg>Dark</button></div></div>
+  </nav>
+  <div class="panel">
+    <div class="mobile-bar"><button class="btn btn-icon btn-quiet menu-btn" type="button" aria-label="Open navigation"><svg class="icon" aria-hidden="true"><use href="#i-menu"/></svg></button>Astrodock UI</div>
+    <main class="page">
+      <header class="page-header"><div class="page-head-text">
+        <span class="t-label">Astrodock · packages/ui</span>
+        <h1 class="t-display">How Astrodock apps are built</h1>
+        <p class="page-desc page-desc-lg">One quiet, precise system for every app on the platform. Tokens make primitives, primitives make components, components make page types, and every screen is one of the page types.</p>
+      </div></header>
+      <div class="sections">
+        <section class="section"><div class="section-head"><h2 class="section-title">Principles</h2></div><div class="grid-3"><div class="stack-sm"><span class="medium">Content leads</span><span class="t-small muted">One quiet frame; the page is a single white panel. Titles, data and the main action come first.</span></div><div class="stack-sm"><span class="medium">One way to do each thing</span><span class="t-small muted">One button, one select, one list, one checkbox. A screen never invents a control.</span></div><div class="stack-sm"><span class="medium">Fewer boxes</span><span class="t-small muted">Structure from type, space and hairlines. Cards only for things that are objects.</span></div><div class="stack-sm"><span class="medium">Color means something</span><span class="t-small muted">The accent is the primary action, focus and checked. Green, amber and red mean what they say.</span></div><div class="stack-sm"><span class="medium">Always a way back</span><span class="t-small muted">A back link names the parent; the URL keeps the tab, view and filters.</span></div><div class="stack-sm"><span class="medium">Every state designed</span><span class="t-small muted">Loading, empty, no matches, error, no access, running: each has a set look and words.</span></div></div></section>
+        <section class="section"><div class="section-head"><h2 class="section-title">Start here</h2></div><div class="grid-3"><a class="card" href="foundations.html"><div class="card-body stack-sm"><span class="medium">Foundations</span><span class="t-small muted">Color, type, space, radius, depth, icons.</span></div></a><a class="card" href="components.html"><div class="card-body stack-sm"><span class="medium">Components</span><span class="t-small muted">Every part with its markup.</span></div></a><a class="card" href="page-list.html"><div class="card-body stack-sm"><span class="medium">Collection</span><span class="t-small muted">Views, filter, list, bulk actions.</span></div></a><a class="card" href="page-record.html"><div class="card-body stack-sm"><span class="medium">Record</span><span class="t-small muted">Sections and a properties column.</span></div></a><a class="card" href="page-form.html"><div class="card-body stack-sm"><span class="medium">Create</span><span class="t-small muted">Grouped fields and the save bar.</span></div></a><a class="card" href="page-sidebar.html"><div class="card-body stack-sm"><span class="medium">Queue</span><span class="t-small muted">Working through items one by one.</span></div></a></div></section>
+        <section class="section"><div class="section-head"><h2 class="section-title">For agents building an app</h2></div>
+          <p class="section-lead">Read REFERENCE.md for the markup of every part and README.md for the rules. Start each screen from a page type. After changing the kit, run <span class="mono">node scripts/check.js</span> and <span class="mono">node scripts/build-reference.js</span>.</p></section>
+      </div>
+    </main>
+  </div>
+</div>
 <script src="preview.js"></script>
 </body>
 </html>

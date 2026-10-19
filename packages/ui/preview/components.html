@@ -3,64 +3,51 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Components · Astrodock app design system</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<title>Components · Astrodock UI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../kit.css">
 <link rel="stylesheet" href="preview.css">
 </head>
 <body>
-<main class="page page-wide">
-  <a class="back" href="index.html"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"/></svg>Overview</a>
-  <div class="page-head">
-    <div class="page-head-main"><div class="page-head-text">
-      <div class="page-title-row"><h1 class="t-title">Components</h1></div>
-      <p class="page-desc">Every part an app is built from, its examples, and when to use it. Each example's markup is the canonical markup: Show markup reveals it, and REFERENCE.md is built from this same catalog.</p>
-    </div></div>
+<div class="app" data-docs>
+  <nav class="sidebar-nav" aria-label="Design system">
+    <div class="switcher"><span class="avatar avatar-sm avatar-accent"><svg class="icon" aria-hidden="true"><use href="#i-layout-grid"/></svg></span><span class="switcher-name">Astrodock UI</span></div>
+    <div class="nav-list"><a class="item" href="index.html"><svg class="icon" aria-hidden="true"><use href="#i-layout-grid"/></svg>Overview</a><a class="item" href="foundations.html"><svg class="icon" aria-hidden="true"><use href="#i-eye"/></svg>Foundations</a><a class="item" href="components.html" aria-current="page"><svg class="icon" aria-hidden="true"><use href="#i-list"/></svg>Components</a><div class="nav-list" id="catalog-nav"></div><div class="nav-label">Page types</div><a class="item" href="page-list.html">Collection</a><a class="item" href="page-record.html">Record</a><a class="item" href="page-form.html">Create</a><a class="item" href="page-settings.html">Settings</a><a class="item" href="page-dashboard.html">Dashboard</a><a class="item" href="page-activity.html">Background work</a><a class="item" href="page-wizard.html">Step by step</a><a class="item" href="page-sidebar.html">Queue</a><a class="item" href="page-states.html">Sign-in and errors</a><a class="item" href="mobile.html">On a phone</a></div>
+    <div class="sidebar-foot"><div class="btn-group btn-group-sm" role="group" aria-label="Theme"><button class="btn" type="button" data-theme-set="light"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-sun"/></svg>Light</button><button class="btn" type="button" data-theme-set="dark"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-moon"/></svg>Dark</button></div></div>
+  </nav>
+  <div class="panel">
+    <div class="mobile-bar"><button class="btn btn-icon btn-quiet menu-btn" type="button" aria-label="Open navigation"><svg class="icon" aria-hidden="true"><use href="#i-menu"/></svg></button>Astrodock UI</div>
+    <main class="page">
+      <header class="page-header"><div class="page-head"><div class="page-head-main"><div class="page-head-text"><div class="page-title-row"><h1 class="t-title">Components</h1></div><p class="page-desc">Every part, its examples and when to use it. Show markup reveals the canonical markup; REFERENCE.md is built from the same catalog.</p></div></div></div></header>
+      <div class="sections" id="catalog"></div>
+    </main>
   </div>
-  <div class="with-sidebar nav-side">
-    <nav class="sidebar nav-list" id="catalog-nav" aria-label="Components"></nav>
-    <div id="catalog"></div>
-  </div>
-</main>
+</div>
 <script src="catalog.js"></script>
 <script>
-  // Render the catalog. Each example shows its live markup and the same markup as text.
   (function () {
     const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const nav = document.getElementById('catalog-nav');
-    const out = document.getElementById('catalog');
-    let navHtml = '';
-    let html = '';
-    let n = 0;
+    let navHtml = '', html = '', n = 0;
     for (const g of window.KIT_CATALOG) {
-      navHtml += `<span class="t-label">${g.group}</span>`;
+      navHtml += `<div class="nav-label">${g.group}</div>`;
       for (const c of g.components) {
         navHtml += `<a class="item" href="#${c.id}" data-target="${c.id}">${c.title}</a>`;
-        html += `<section class="catalog-section" id="${c.id}">
-          <h2 class="catalog-title">${c.title}</h2>
-          <p class="catalog-lede">${c.lede}</p>
-          ${c.use || c.notFor ? `<div class="catalog-use">
-            ${c.use ? `<div><svg class="icon icon-sm text-success" aria-hidden="true"><use href="#i-check"/></svg><span><b>Use for</b> ${c.use}</span></div>` : ''}
-            ${c.notFor ? `<div><svg class="icon icon-sm text-danger" aria-hidden="true"><use href="#i-x"/></svg><span><b>Not for</b> ${c.notFor}</span></div>` : ''}
-          </div>` : ''}
-          <div class="card">
-            ${c.examples.map((ex) => {
-              n += 1;
-              return `<div class="specimen">
-                <div class="specimen-label"><div class="t-subheading">${ex.title}</div>${ex.desc ? `<p>${ex.desc}</p>` : ''}
-                  <button class="btn btn-sm btn-quiet" type="button" data-reveal="code-${n}" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
-                <div class="specimen-demo">${ex.html}
-                  <div class="specimen-code" id="code-${n}" hidden><pre class="code-block">${esc(ex.html)}</pre><div class="actions mt-2"><button class="btn btn-sm" type="button" data-copy="code-${n}" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div></div>
-                </div>
-              </div>`;
-            }).join('')}
-          </div>
+        html += `<section class="section" id="${c.id}">
+          <div class="section-head"><h2 class="t-heading">${c.title}</h2></div>
+          <p class="section-lead">${c.lede}</p>
+          ${c.use || c.notFor ? `<div class="catalog-use">${c.use ? `<span><b>Use for</b> ${c.use}</span>` : ''}${c.notFor ? `<span><b>Not for</b> ${c.notFor}</span>` : ''}</div>` : ''}
+          ${c.examples.map((ex) => { n += 1; return `<div class="specimen">
+            <div class="specimen-head"><span class="medium">${ex.title}</span>${ex.desc ? `<span class="t-small muted">${ex.desc}</span>` : ''}<span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-${n}" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo">${ex.html}</div>
+            <div class="specimen-code" id="code-${n}" hidden><pre class="code-block">${esc(ex.html)}</pre><button class="btn btn-sm" type="button" data-copy="code-${n}" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div>`; }).join('')}
         </section>`;
       }
     }
     nav.innerHTML = navHtml;
-    out.innerHTML = html;
+    document.getElementById('catalog').innerHTML = html;
     document.addEventListener('click', (e) => {
       const b = e.target.closest('[data-copy]');
       if (b) navigator.clipboard?.writeText(document.querySelector(`#${b.dataset.copy} .code-block`).textContent);

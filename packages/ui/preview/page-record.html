@@ -4,134 +4,131 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>StoriiCare · Competitor Intel</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../kit.css">
 <link rel="stylesheet" href="preview.css">
 </head>
 <body>
-<header class="shell-bar">
-  <button class="btn btn-quiet btn-icon shell-menu-btn" type="button" aria-label="Open menu"><svg class="icon" aria-hidden="true"><use href="#i-menu"/></svg></button>
-  <a class="shell-app" href="page-dashboard.html"><span class="avatar avatar-sm avatar-accent"><svg class="icon" aria-hidden="true"><use href="#i-radar"/></svg></span>Competitor Intel</a>
-  <nav class="shell-nav" aria-label="Sections">
-    <a href="page-dashboard.html">Home</a>
-    <a href="page-list.html" aria-current="page">Projects</a>
-    <a href="page-activity.html">Activity</a>
-    <a href="page-settings.html">Settings</a>
-  </nav>
-  <div class="shell-end">
-    <button class="btn btn-quiet btn-icon" type="button" aria-label="Help"><svg class="icon" aria-hidden="true"><use href="#i-help-circle"/></svg></button>
-    <div class="menu-wrap">
-      <button class="avatar-btn" type="button" data-toggle aria-haspopup="menu" aria-expanded="false" aria-label="Account"><span class="avatar">SL</span></button>
-      <div class="menu" role="menu" hidden>
-        <div class="menu-head"><span class="avatar">SL</span><span><span class="strong">Sam Lee</span><br><span class="t-xs muted">sam@example.com</span></span></div>
-        <div class="menu-sep"></div>
-        <a class="item" role="menuitem" href="#"><svg class="icon" aria-hidden="true"><use href="#i-external"/></svg>Open the company OS</a>
-        <button class="item" role="menuitem" type="button"><svg class="icon" aria-hidden="true"><use href="#i-log-out"/></svg>Sign out</button>
+<div class="app">
+  <nav class="sidebar-nav" aria-label="Competitor Intel">
+    <div class="menu-wrap w-full">
+      <button class="switcher" type="button" data-toggle aria-haspopup="menu" aria-expanded="false"><span class="avatar avatar-sm avatar-accent"><svg class="icon" aria-hidden="true"><use href="#i-radar"/></svg></span><span class="switcher-name">Competitor Intel</span><svg class="icon" aria-hidden="true"><use href="#i-chevrons-up-down"/></svg></button>
+      <div class="menu menu-start" role="menu" hidden>
+        <div class="menu-head"><span class="t-label">Seniorverse apps</span></div>
+        <a class="item" role="menuitem" href="#"><svg class="icon" aria-hidden="true"><use href="#i-external"/></svg>Company OS</a>
+        <a class="item" role="menuitem" href="page-sidebar.html"><svg class="icon" aria-hidden="true"><use href="#i-clipboard"/></svg>Assessment Builder</a>
       </div>
     </div>
-  </div>
-</header>
-<main class="page">
-  <a class="back" href="page-list.html"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"/></svg>Seniorverse Day</a>
-  <div class="page-head">
-  <div class="page-head-main">
-    <span class="avatar avatar-lg">SC</span>
-    <div class="page-head-text">
-      <div class="page-title-row"><h1 class="t-title">StoriiCare</h1><span class="label">Full study</span></div>
-      
-      <div class="page-meta"><a href="#">storiicare.com <svg class="icon icon-sm" aria-hidden="true"><use href="#i-external"/></svg></a><span><b>412</b> items</span><span><b>1,842</b> facts</span><span class="has-tip" tabindex="0">Collected 2 h ago<span class="tooltip" role="tooltip">Oct 19, 2026, 12:14 PM</span></span><span class="status running"><span class="spinner"></span>Reading 14 items</span></div>
+    <button class="search-btn" type="button" data-open="command"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg>Search<kbd>⌘K</kbd></button>
+    <div class="nav-list">
+      <a class="item" href="page-dashboard.html"><svg class="icon" aria-hidden="true"><use href="#i-layout-grid"/></svg>Home</a>
+      <a class="item" href="page-activity.html"><svg class="icon" aria-hidden="true"><use href="#i-activity"/></svg>Activity<span class="count">5</span></a>
+      <div class="nav-label">Projects<a class="btn btn-icon btn-quiet btn-sm" href="page-form.html" aria-label="New project"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-plus"/></svg></a></div>
+      <a class="item" href="page-list.html" aria-current="page"><span class="avatar avatar-xs">SD</span>Seniorverse Day</a>
+      <a class="item" href="page-list.html"><span class="avatar avatar-xs">SH</span>Seniorverse Home Care</a>
     </div>
+    <div class="sidebar-foot">
+      <a class="item" href="page-settings.html"><svg class="icon" aria-hidden="true"><use href="#i-settings"/></svg>Settings</a>
+      <div class="menu-wrap w-full">
+        <button class="item" type="button" data-toggle aria-haspopup="menu" aria-expanded="false"><span class="avatar avatar-xs">SL</span>Sam Lee<svg class="icon icon-sm end" aria-hidden="true"><use href="#i-chevrons-up-down"/></svg></button>
+        <div class="menu menu-start menu-up" role="menu" hidden>
+          <div class="menu-head"><span class="t-small muted">sam@example.com</span></div>
+          <button class="item" role="menuitem" type="button" ><svg class="icon" aria-hidden="true"><use href="#i-help-circle"/></svg>Help</button>
+          <div class="menu-sep"></div>
+          <button class="item" role="menuitem" type="button" ><svg class="icon" aria-hidden="true"><use href="#i-log-out"/></svg>Sign out</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+  <div class="panel">
+    <div class="mobile-bar"><button class="btn btn-icon btn-quiet menu-btn" type="button" aria-label="Open navigation"><svg class="icon" aria-hidden="true"><use href="#i-menu"/></svg></button>Competitor Intel</div>
+    <main class="page page-wide">
+      <header class="page-header"><a class="back" href="page-list.html"><svg class="icon" aria-hidden="true"><use href="#i-chevron-left"/></svg>Seniorverse Day</a><div class="page-head"><div class="page-head-main"><span class="avatar avatar-lg">SC</span><div class="page-head-text"><div class="page-title-row"><h1 class="t-title">StoriiCare</h1><span class="label">Full study</span></div><div class="page-meta"><a class="link" href="#">storiicare.com</a><span class="has-tip" tabindex="0">Collected 2 h ago<span class="tooltip" role="tooltip">Oct 19, 2026, 12:14 PM</span></span><span class="status running"><span class="spinner"></span>Reading 14 items</span></div></div></div><div class="actions"><div class="menu-wrap"><button class="btn btn-icon" type="button" data-toggle aria-haspopup="menu" aria-expanded="false" aria-label="More actions"><svg class="icon" aria-hidden="true"><use href="#i-more"/></svg></button><div class="menu" role="menu" hidden><button class="item" role="menuitem" type="button" ><svg class="icon" aria-hidden="true"><use href="#i-pencil"/></svg>Edit name and website</button><button class="item" role="menuitem" type="button" ><svg class="icon" aria-hidden="true"><use href="#i-upload"/></svg>Add reviews or notes</button><div class="menu-sep"></div><button class="item danger" role="menuitem" type="button" data-toast="StoriiCare removed|Still in other projects" data-undo="true"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg>Remove from project</button></div></div><button class="btn" type="button" data-toast="Updating the profile"><svg class="icon" aria-hidden="true"><use href="#i-refresh"/></svg>Update profile</button><button class="btn btn-primary" type="button" data-toast="Collecting again"><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg>Collect again</button></div></div><nav class="tabs" aria-label="Views"><a class="tab" href="#" aria-current="page">Profile</a><a class="tab" href="#">Timeline<span class="count">38</span></a><a class="tab" href="#">Facts<span class="count">1,842</span></a><a class="tab" href="#">Collected<span class="count">412</span></a><a class="tab" href="#">Sources<span class="count">6</span></a><a class="tab" href="#">Ask</a></nav></header>
+      <div class="with-aside">
+        <div class="sections">
+        <section class="section">
+          <div class="section-head"><h2 class="section-title">Summary</h2><span class="section-meta">Written 2 h ago from 9 sections</span></div>
+          <p class="section-lead">[Two or three sentences: what StoriiCare sells, to whom, and what stands out.] <button class="cite" type="button">112</button><button class="cite" type="button">87</button></p>
+        </section>
+        <section class="section">
+          <div class="section-head"><h2 class="section-title">Against Seniorverse</h2></div>
+          <div class="grid-3">
+            <div class="stack-sm"><span class="t-label">They are stronger</span><ul class="bullets"><li>[Point from both profiles] <button class="cite" type="button">150</button></li><li>[Point from both profiles] <button class="cite" type="button">151</button></li></ul></div>
+            <div class="stack-sm"><span class="t-label">We are stronger</span><ul class="bullets"><li>[Point from both profiles] <button class="cite" type="button">902</button></li></ul></div>
+            <div class="stack-sm"><span class="t-label">To watch</span><ul class="bullets"><li>[Point from both profiles] <button class="cite" type="button">160</button></li></ul></div>
+          </div>
+        </section>
+        <section class="section" id="overview">
+          <div class="section-head"><h2 class="section-title">Overview</h2><div class="actions"><span class="section-meta">62 facts</span><span class="status success"><span class="status-dot"></span>Reviewed</span></div></div>
+          <p class="section-lead">[Two-sentence lead from the section.] <button class="cite" type="button">112</button></p>
+          <div><button class="btn btn-sm btn-quiet align-start" type="button" data-reveal="overview-d" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show detail</span></button></div>
+          <div class="reveal-body prose" id="overview-d" hidden><p>[The full section: lists, tables and citations, written from the facts collected.]</p></div>
+        </section>
+        <section class="section" id="products">
+          <div class="section-head"><h2 class="section-title">Products and features</h2><div class="actions"><span class="section-meta">211 facts</span><button class="btn btn-sm" type="button" data-toast="Marked reviewed"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>Mark reviewed</button></div></div>
+          <p class="section-lead">[Two-sentence lead from the section.] <button class="cite" type="button">140</button><button class="cite" type="button">141</button></p>
+          <div><button class="btn btn-sm btn-quiet align-start" type="button" data-reveal="products-d" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show detail</span></button></div>
+          <div class="reveal-body prose" id="products-d" hidden><p>[The full section: lists, tables and citations, written from the facts collected.]</p></div>
+        </section>
+        <section class="section" id="pricing">
+          <div class="section-head"><h2 class="section-title">Pricing</h2><div class="actions"><span class="section-meta">14 facts</span><button class="btn btn-sm" type="button" data-toast="Marked reviewed"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>Mark reviewed</button></div></div>
+          <p class="section-lead">[Two-sentence lead from the section.] <button class="cite" type="button">301</button></p>
+          <div><button class="btn btn-sm btn-quiet align-start" type="button" data-reveal="pricing-d" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show detail</span></button></div>
+          <div class="reveal-body prose" id="pricing-d" hidden><p>[The full section: lists, tables and citations, written from the facts collected.]</p></div>
+        </section>
+        <section class="section">
+          <div class="section-head"><h2 class="section-title">Customers and market</h2><span class="section-meta">Not written yet</span></div>
+          <p class="section-lead muted">No facts about customers yet. This is written once collected items name customers, counts or regions.</p>
+        </section>
+        </div>
+        <aside class="aside" aria-label="Details">
+          <div class="aside-block">
+            <span class="t-label">Details</span>
+            <dl class="properties">
+              <dt>Status</dt><dd><span class="status success"><span class="status-dot"></span>Up to date</span></dd>
+              <dt>Study</dt><dd>Full study</dd>
+              <dt>Facts</dt><dd>1,842</dd>
+              <dt>Items</dt><dd>412</dd>
+              <dt>Reviewed</dt><dd>1 of 9 sections</dd>
+            </dl>
+          </div>
+          <div class="aside-block">
+            <span class="t-label">At a glance</span>
+            <dl class="properties">
+              <dt>Sells</dt><dd>[From the profile] <button class="cite" type="button">112</button></dd>
+              <dt>For</dt><dd>[From the profile] <button class="cite" type="button">87</button></dd>
+              <dt>Price</dt><dd>[From the profile] <button class="cite" type="button">301</button></dd>
+              <dt>Founded</dt><dd>[From the profile] <button class="cite" type="button">9</button></dd>
+              <dt>Ownership</dt><dd class="faint">Not found</dd>
+              <dt>HIPAA, SOC 2</dt><dd>[From the profile] <button class="cite" type="button">220</button></dd>
+            </dl>
+          </div>
+          <div class="aside-block">
+            <div class="section-head"><span class="t-label">Recent</span><a class="btn btn-sm btn-quiet" href="#">Timeline<svg class="icon icon-sm" aria-hidden="true"><use href="#i-arrow-right"/></svg></a></div>
+            <ol class="timeline">
+              <li class="timeline-item"><div class="timeline-mark"><span class="avatar avatar-sm"><svg class="icon" aria-hidden="true"><use href="#i-eye"/></svg></span><span class="timeline-stem"></span></div><div class="timeline-body"><span class="timeline-title">[A site change]</span><span class="timeline-meta">Seen by us</span></div><span class="timeline-date">Oct 17</span></li>
+              <li class="timeline-item"><div class="timeline-mark"><span class="avatar avatar-sm"><svg class="icon" aria-hidden="true"><use href="#i-newspaper"/></svg></span><span class="timeline-stem"></span></div><div class="timeline-body"><span class="timeline-title">[A reported event]</span><span class="timeline-meta">Partnership</span></div><span class="timeline-date">Sep</span></li>
+            </ol>
+          </div>
+        </aside>
+      </div>
+    </main>
   </div>
-  <div class="actions"><div class="menu-wrap"><button class="btn btn-icon" type="button" data-toggle aria-haspopup="menu" aria-expanded="false" aria-label="More actions"><svg class="icon" aria-hidden="true"><use href="#i-more"/></svg></button>
-      <div class="menu" role="menu" hidden><button class="item" role="menuitem" type="button" ><svg class="icon" aria-hidden="true"><use href="#i-pencil"/></svg>Edit name and website</button><button class="item" role="menuitem" type="button" ><svg class="icon" aria-hidden="true"><use href="#i-upload"/></svg>Add reviews or notes</button><div class="menu-sep"></div><button class="item danger" role="menuitem" type="button" data-toast="StoriiCare removed|It is still in other projects" data-undo="true"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg>Remove from project</button></div></div><button class="btn" type="button" data-toast="Updating the profile|Sections whose facts changed are rewritten"><svg class="icon" aria-hidden="true"><use href="#i-refresh"/></svg>Update profile</button><button class="btn btn-primary" type="button" data-toast="Collecting again"><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg>Collect again</button></div>
 </div>
-  <nav class="tabs" aria-label="Views"><a class="tab" href="#" aria-current="page">Profile</a><a class="tab" href="#">Timeline<span class="count">38</span></a><a class="tab" href="#">Facts<span class="count">1,842</span></a><a class="tab" href="#">Collected<span class="count">412</span></a><a class="tab" href="#">Sources<span class="count">6</span></a><a class="tab" href="#">Ask</a></nav>
-
-  <div class="with-sidebar nav-side">
-    <nav class="sidebar nav-list" aria-label="Profile sections">
-      <span class="t-label">Summary</span>
-      <a class="item" href="#r-glance" data-target="r-glance" aria-current="true">At a glance</a>
-      <a class="item" href="#r-points" data-target="r-points">Key points</a>
-      <a class="item" href="#r-recent" data-target="r-recent">Recent</a>
-      <span class="t-label">Sections</span>
-      <a class="item" href="#r-overview" data-target="r-overview">Overview</a>
-      <a class="item" href="#r-products" data-target="r-products">Products and features</a>
-      <a class="item" href="#r-pricing" data-target="r-pricing">Pricing</a>
-      <a class="item" href="#r-customers" data-target="r-customers">Customers and market</a>
-    </nav>
-
-    <div class="stack">
-      <section class="card" id="r-glance">
-        <div class="card-head"><div><h2 class="card-title">At a glance</h2><div class="card-sub">Written 2 h ago from the sections below</div></div></div>
-        <div class="card-body columns-2">
-          <dl class="kv">
-            <dt>What they sell</dt><dd>[From the profile] <button class="cite" type="button">F112</button></dd>
-            <dt>Who it is for</dt><dd>[From the profile] <button class="cite" type="button">F87</button></dd>
-            <dt>Headline price</dt><dd>[From the profile] <button class="cite" type="button">F301</button></dd>
-            <dt>Customers</dt><dd>[From the profile] <button class="cite" type="button">F45</button></dd>
-            <dt>Founded</dt><dd>[From the profile] <button class="cite" type="button">F9</button></dd>
-          </dl>
-          <dl class="kv">
-            <dt>Headquarters</dt><dd>[From the profile] <button class="cite" type="button">F10</button></dd>
-            <dt>Ownership</dt><dd class="empty-value">Not found</dd>
-            <dt>Team size</dt><dd class="empty-value">Not found</dd>
-            <dt>HIPAA and SOC 2</dt><dd>[From the profile] <button class="cite" type="button">F220</button></dd>
-            <dt>Where they sell</dt><dd>[From the profile] <button class="cite" type="button">F61</button></dd>
-          </dl>
-        </div>
-      </section>
-
-      <section class="card" id="r-points">
-        <div class="card-head"><h2 class="card-title">Key points against Seniorverse</h2></div>
-        <div class="card-body grid-3">
-          <div><div class="cluster mb-2"><svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right"/></svg><span class="t-subheading">Where they are stronger</span></div><ul class="bullets"><li>[Point from both profiles] <button class="cite" type="button">F150</button></li><li>[Point from both profiles] <button class="cite" type="button">F151</button></li></ul></div>
-          <div><div class="cluster mb-2"><svg class="icon" aria-hidden="true"><use href="#i-arrow-down-right"/></svg><span class="t-subheading">Where we are stronger</span></div><ul class="bullets"><li>[Point from both profiles] <button class="cite" type="button">F902</button></li></ul></div>
-          <div><div class="cluster mb-2"><svg class="icon" aria-hidden="true"><use href="#i-eye"/></svg><span class="t-subheading">To watch</span></div><ul class="bullets"><li>[Point from both profiles] <button class="cite" type="button">F160</button></li></ul></div>
-        </div>
-      </section>
-
-      <section class="card" id="r-recent">
-        <div class="card-head"><h2 class="card-title">Recent</h2><a class="btn btn-sm btn-quiet" href="#">Full timeline<svg class="icon icon-sm" aria-hidden="true"><use href="#i-arrow-right"/></svg></a></div>
-        <div class="card-body">
-          <ol class="timeline">
-            <li class="timeline-item"><div class="timeline-date">Oct 17</div><div class="timeline-mark"><span class="avatar avatar-sm"><svg class="icon" aria-hidden="true"><use href="#i-eye"/></svg></span><span class="timeline-stem"></span></div><div class="timeline-body"><div class="timeline-title">[A notable site change]</div><div class="timeline-meta">Site change we saw · Notable</div></div></li>
-            <li class="timeline-item"><div class="timeline-date">Sep 2026</div><div class="timeline-mark"><span class="avatar avatar-sm"><svg class="icon" aria-hidden="true"><use href="#i-newspaper"/></svg></span><span class="timeline-stem"></span></div><div class="timeline-body"><div class="timeline-title">[A reported event]</div><div class="timeline-meta">Partnership · <button class="cite" type="button">2 sources</button></div></div></li>
-          </ol>
-        </div>
-      </section>
-
-      <section class="card" id="r-overview">
-        <div class="card-head"><h2 class="card-title">Overview</h2><div class="actions"><span class="t-small muted">Version 4 · 62 facts</span><span class="status success"><svg class="icon" aria-hidden="true"><use href="#i-check-circle"/></svg>Reviewed</span></div></div>
-        <div class="card-body">
-          <p>[Two-sentence lead from the section.] <button class="cite" type="button">F112</button></p>
-          <button class="btn btn-sm btn-quiet" type="button" data-reveal="r-overview-d" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show detail</span></button>
-          <div class="reveal-body prose" id="r-overview-d" hidden><p>[The full section, with its lists, tables and citations.]</p></div>
-        </div>
-      </section>
-      <section class="card" id="r-products">
-        <div class="card-head"><h2 class="card-title">Products and features</h2><div class="actions"><span class="t-small muted">Version 2 · 211 facts</span><button class="btn btn-sm" type="button" data-toast="Marked reviewed"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-check"/></svg>Mark reviewed</button></div></div>
-        <div class="card-body">
-          <p>[Two-sentence lead from the section.] <button class="cite" type="button">F112</button></p>
-          <button class="btn btn-sm btn-quiet" type="button" data-reveal="r-products-d" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show detail</span></button>
-          <div class="reveal-body prose" id="r-products-d" hidden><p>[The full section, with its lists, tables and citations.]</p></div>
-        </div>
-      </section>
-      <section class="card" id="r-pricing">
-        <div class="card-head"><h2 class="card-title">Pricing</h2><div class="actions"><span class="t-small muted">Version 3 · 14 facts</span><button class="btn btn-sm" type="button" data-toast="Marked reviewed"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-check"/></svg>Mark reviewed</button></div></div>
-        <div class="card-body">
-          <p>[Two-sentence lead from the section.] <button class="cite" type="button">F112</button></p>
-          <button class="btn btn-sm btn-quiet" type="button" data-reveal="r-pricing-d" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show detail</span></button>
-          <div class="reveal-body prose" id="r-pricing-d" hidden><p>[The full section, with its lists, tables and citations.]</p></div>
-        </div>
-      </section>
-      <section class="card" id="r-customers">
-        <div class="card-head"><h2 class="card-title">Customers and market</h2><span class="t-small muted">Not written yet</span></div>
-        <div class="card-body"><div class="empty empty-sm"><p class="empty-text">No facts about customers yet. This is written once collected items mention named customers, counts or regions.</p></div></div>
-      </section>
-    </div>
+<div class="scrim command-scrim" id="command" hidden>
+  <div class="command" role="dialog" aria-modal="true" aria-label="Search">
+    <div class="command-input"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><input type="text" placeholder="Search or run a command" aria-label="Search"></div>
+    <div class="command-list" role="listbox"><div class="nav-label">Companies</div>
+      <a class="item" aria-current="true" href="page-record.html"><span class="avatar avatar-xs">SC</span>StoriiCare<span class="count">Seniorverse Day</span></a>
+      <a class="item" href="page-record.html"><span class="avatar avatar-xs">CB</span>Collabrios<span class="count">Seniorverse Day</span></a>
+      <div class="nav-label">Actions</div>
+      <button class="item" type="button"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>Add a competitor</button>
+      <button class="item" type="button"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg>Run a survey</button>
+      <a class="item" href="page-form.html"><svg class="icon" aria-hidden="true"><use href="#i-folder"/></svg>New project</a></div>
+    <div class="command-foot"><span><kbd>↑</kbd><kbd>↓</kbd>Move</span><span><kbd>↵</kbd>Open</span><span><kbd>esc</kbd>Close</span></div>
   </div>
-</main>
+</div>
 <script src="preview.js"></script>
 </body>
 </html>

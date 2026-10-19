@@ -4,62 +4,77 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Set up mailing lists · Competitor Intel</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../kit.css">
 <link rel="stylesheet" href="preview.css">
 </head>
 <body>
-<header class="shell-bar">
-  <button class="btn btn-quiet btn-icon shell-menu-btn" type="button" aria-label="Open menu"><svg class="icon" aria-hidden="true"><use href="#i-menu"/></svg></button>
-  <a class="shell-app" href="page-dashboard.html"><span class="avatar avatar-sm avatar-accent"><svg class="icon" aria-hidden="true"><use href="#i-radar"/></svg></span>Competitor Intel</a>
-  <nav class="shell-nav" aria-label="Sections">
-    <a href="page-dashboard.html">Home</a>
-    <a href="page-list.html">Projects</a>
-    <a href="page-activity.html">Activity</a>
-    <a href="page-settings.html" aria-current="page">Settings</a>
-  </nav>
-  <div class="shell-end">
-    <button class="btn btn-quiet btn-icon" type="button" aria-label="Help"><svg class="icon" aria-hidden="true"><use href="#i-help-circle"/></svg></button>
-    <div class="menu-wrap">
-      <button class="avatar-btn" type="button" data-toggle aria-haspopup="menu" aria-expanded="false" aria-label="Account"><span class="avatar">SL</span></button>
-      <div class="menu" role="menu" hidden>
-        <div class="menu-head"><span class="avatar">SL</span><span><span class="strong">Sam Lee</span><br><span class="t-xs muted">sam@example.com</span></span></div>
-        <div class="menu-sep"></div>
-        <a class="item" role="menuitem" href="#"><svg class="icon" aria-hidden="true"><use href="#i-external"/></svg>Open the company OS</a>
-        <button class="item" role="menuitem" type="button"><svg class="icon" aria-hidden="true"><use href="#i-log-out"/></svg>Sign out</button>
+<div class="app">
+  <nav class="sidebar-nav" aria-label="Competitor Intel">
+    <div class="menu-wrap w-full">
+      <button class="switcher" type="button" data-toggle aria-haspopup="menu" aria-expanded="false"><span class="avatar avatar-sm avatar-accent"><svg class="icon" aria-hidden="true"><use href="#i-radar"/></svg></span><span class="switcher-name">Competitor Intel</span><svg class="icon" aria-hidden="true"><use href="#i-chevrons-up-down"/></svg></button>
+      <div class="menu menu-start" role="menu" hidden>
+        <div class="menu-head"><span class="t-label">Seniorverse apps</span></div>
+        <a class="item" role="menuitem" href="#"><svg class="icon" aria-hidden="true"><use href="#i-external"/></svg>Company OS</a>
+        <a class="item" role="menuitem" href="page-sidebar.html"><svg class="icon" aria-hidden="true"><use href="#i-clipboard"/></svg>Assessment Builder</a>
       </div>
     </div>
-  </div>
-</header>
-<main class="page page-narrow">
-  <a class="back" href="page-settings.html"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"/></svg>Settings</a>
-  <div class="page-head">
-  <div class="page-head-main">
-    <div class="page-head-text">
-      <div class="page-title-row"><h1 class="t-title">Set up mailing lists</h1></div>
-      <p class="page-desc">Each company gets its own address to sign up to their newsletters with. Mail that arrives is read like any page.</p>
-      
+    <button class="search-btn" type="button" data-open="command"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg>Search<kbd>⌘K</kbd></button>
+    <div class="nav-list">
+      <a class="item" href="page-dashboard.html"><svg class="icon" aria-hidden="true"><use href="#i-layout-grid"/></svg>Home</a>
+      <a class="item" href="page-activity.html"><svg class="icon" aria-hidden="true"><use href="#i-activity"/></svg>Activity<span class="count">5</span></a>
+      <div class="nav-label">Projects<a class="btn btn-icon btn-quiet btn-sm" href="page-form.html" aria-label="New project"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-plus"/></svg></a></div>
+      <a class="item" href="page-list.html"><span class="avatar avatar-xs">SD</span>Seniorverse Day</a>
+      <a class="item" href="page-list.html"><span class="avatar avatar-xs">SH</span>Seniorverse Home Care</a>
     </div>
+    <div class="sidebar-foot">
+      <a class="item" href="page-settings.html" aria-current="page"><svg class="icon" aria-hidden="true"><use href="#i-settings"/></svg>Settings</a>
+      <div class="menu-wrap w-full">
+        <button class="item" type="button" data-toggle aria-haspopup="menu" aria-expanded="false"><span class="avatar avatar-xs">SL</span>Sam Lee<svg class="icon icon-sm end" aria-hidden="true"><use href="#i-chevrons-up-down"/></svg></button>
+        <div class="menu menu-start menu-up" role="menu" hidden>
+          <div class="menu-head"><span class="t-small muted">sam@example.com</span></div>
+          <button class="item" role="menuitem" type="button" ><svg class="icon" aria-hidden="true"><use href="#i-help-circle"/></svg>Help</button>
+          <div class="menu-sep"></div>
+          <button class="item" role="menuitem" type="button" ><svg class="icon" aria-hidden="true"><use href="#i-log-out"/></svg>Sign out</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+  <div class="panel">
+    <div class="mobile-bar"><button class="btn btn-icon btn-quiet menu-btn" type="button" aria-label="Open navigation"><svg class="icon" aria-hidden="true"><use href="#i-menu"/></svg></button>Competitor Intel</div>
+    <main class="page page-narrow">
+      <header class="page-header"><a class="back" href="page-settings.html"><svg class="icon" aria-hidden="true"><use href="#i-chevron-left"/></svg>Settings</a><div class="page-head"><div class="page-head-main"><div class="page-head-text"><div class="page-title-row"><h1 class="t-title">Set up mailing lists</h1></div><p class="page-desc">Each company gets its own address to sign up to their newsletters with.</p></div></div></div></header>
+      <ol class="steps" aria-label="Steps"><li class="done"><span>Choose a domain</span></li><li aria-current="step"><span>Point its mail here</span></li><li><span>Test it</span></li><li><span>Review</span></li></ol>
+      <section class="card">
+        <div class="card-head"><div><h2 class="card-title">Point mail for <span class="mono">intel-mail.example.com</span> here</h2><div class="card-sub">Add these records where the domain's DNS is managed. This page checks every minute.</div></div></div>
+        <div class="card-body stack">
+          <div class="table-box flush"><table class="table table-compact">
+            <thead><tr><th>Type</th><th>Name</th><th>Value</th><th>Found</th><th class="actions-col"><span class="sr-only">Copy</span></th></tr></thead>
+            <tbody>
+              <tr><td>MX</td><td class="mono">intel-mail</td><td class="mono">inbound.mail.example</td><td><span class="status success"><span class="status-dot"></span>Found</span></td><td class="actions-col"><button class="btn btn-sm btn-quiet btn-icon" type="button" data-toast="Copied" aria-label="Copy"><svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg></button></td></tr>
+              <tr><td>TXT</td><td class="mono">intel-mail</td><td class="mono">v=spf1 include:mail.example ~all</td><td><span class="status neutral"><span class="status-dot"></span>Not yet</span></td><td class="actions-col"><button class="btn btn-sm btn-quiet btn-icon" type="button" data-toast="Copied" aria-label="Copy"><svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg></button></td></tr>
+            </tbody>
+          </table></div>
+        </div>
+        <div class="card-foot"><button class="btn btn-quiet start" type="button"><svg class="icon" aria-hidden="true"><use href="#i-chevron-left"/></svg>Back</button><span class="t-small muted">Checked 20 s ago</span><span class="has-tip"><button class="btn btn-primary" type="button" disabled>Next: test it</button><span class="tooltip" role="tooltip">Waiting for the TXT record</span></span></div>
+      </section>
+    </main>
   </div>
-  
 </div>
-  <ol class="steps" aria-label="Steps"><li class="done"><span>Choose a domain</span></li><li aria-current="step"><span>Point its mail here</span></li><li><span>Test it</span></li><li><span>Review</span></li></ol>
-  <section class="card">
-    <div class="card-head"><div><h2 class="card-title">Point mail for <span class="mono">intel-mail.example.com</span> here</h2><div class="card-sub">Add these two records where the domain's DNS is managed. This page checks every minute.</div></div></div>
-    <div class="card-body stack">
-      <div class="table-box"><table class="table table-compact">
-        <thead><tr><th>Type</th><th>Name</th><th>Value</th><th>Found</th><th class="actions-col"><span class="sr-only">Copy</span></th></tr></thead>
-        <tbody>
-          <tr><td>MX</td><td class="mono">intel-mail</td><td class="mono">inbound.mail-provider.example</td><td><span class="status success"><svg class="icon" aria-hidden="true"><use href="#i-check-circle"/></svg>Found</span></td><td class="actions-col"><button class="btn btn-sm btn-quiet" type="button" data-toast="Copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></td></tr>
-          <tr><td>TXT</td><td class="mono">intel-mail</td><td class="mono">v=spf1 include:mail-provider.example ~all</td><td><span class="status neutral"><svg class="icon" aria-hidden="true"><use href="#i-clock"/></svg>Not yet</span></td><td class="actions-col"><button class="btn btn-sm btn-quiet" type="button" data-toast="Copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></td></tr>
-        </tbody>
-      </table></div>
-      <div class="notice"><svg class="icon" aria-hidden="true"><use href="#i-info"/></svg><div class="notice-body">Records can take up to an hour to take effect. You can leave; setup picks up where it stopped.</div></div>
-    </div>
-    <div class="card-foot"><button class="btn btn-quiet start" type="button"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"/></svg>Back</button><span class="t-small muted">Checked 20 s ago</span><span class="has-tip"><button class="btn btn-primary" type="button" disabled>Next: test it</button><span class="tooltip" role="tooltip">Waiting for the TXT record</span></span></div>
-  </section>
-</main>
+<div class="scrim command-scrim" id="command" hidden>
+  <div class="command" role="dialog" aria-modal="true" aria-label="Search">
+    <div class="command-input"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><input type="text" placeholder="Search or run a command" aria-label="Search"></div>
+    <div class="command-list" role="listbox"><div class="nav-label">Companies</div>
+      <a class="item" aria-current="true" href="page-record.html"><span class="avatar avatar-xs">SC</span>StoriiCare<span class="count">Seniorverse Day</span></a>
+      <a class="item" href="page-record.html"><span class="avatar avatar-xs">CB</span>Collabrios<span class="count">Seniorverse Day</span></a>
+      <div class="nav-label">Actions</div>
+      <button class="item" type="button"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>Add a competitor</button>
+      <button class="item" type="button"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg>Run a survey</button>
+      <a class="item" href="page-form.html"><svg class="icon" aria-hidden="true"><use href="#i-folder"/></svg>New project</a></div>
+    <div class="command-foot"><span><kbd>↑</kbd><kbd>↓</kbd>Move</span><span><kbd>↵</kbd>Open</span><span><kbd>esc</kbd>Close</span></div>
+  </div>
+</div>
 <script src="preview.js"></script>
 </body>
 </html>

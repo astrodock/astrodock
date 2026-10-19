@@ -3,124 +3,34 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sign-in, errors, loading · Astrodock app design system</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<title>Sign-in, errors, loading · Astrodock UI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../kit.css">
 <link rel="stylesheet" href="preview.css">
 </head>
 <body>
-<main class="page">
-  <a class="back" href="index.html"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"/></svg>Overview</a>
-  <div class="page-head">
-  <div class="page-head-main">
-    <div class="page-head-text">
-      <div class="page-title-row"><h1 class="t-title">Sign-in, errors, loading</h1></div>
-      <p class="page-desc">The pages nobody designs until they are needed. Each says what happened in plain words and offers one way forward. Never a stack trace, an error code alone, or a blank page.</p>
-      
-    </div>
+<div class="app" data-docs>
+  <nav class="sidebar-nav" aria-label="Design system">
+    <div class="switcher"><span class="avatar avatar-sm avatar-accent"><svg class="icon" aria-hidden="true"><use href="#i-layout-grid"/></svg></span><span class="switcher-name">Astrodock UI</span></div>
+    <div class="nav-list"><a class="item" href="index.html"><svg class="icon" aria-hidden="true"><use href="#i-layout-grid"/></svg>Overview</a><a class="item" href="foundations.html"><svg class="icon" aria-hidden="true"><use href="#i-eye"/></svg>Foundations</a><a class="item" href="components.html"><svg class="icon" aria-hidden="true"><use href="#i-list"/></svg>Components</a><div class="nav-label">Page types</div><a class="item" href="page-list.html">Collection</a><a class="item" href="page-record.html">Record</a><a class="item" href="page-form.html">Create</a><a class="item" href="page-settings.html">Settings</a><a class="item" href="page-dashboard.html">Dashboard</a><a class="item" href="page-activity.html">Background work</a><a class="item" href="page-wizard.html">Step by step</a><a class="item" href="page-sidebar.html">Queue</a><a class="item" href="page-states.html" aria-current="page">Sign-in and errors</a><a class="item" href="mobile.html">On a phone</a></div>
+    <div class="sidebar-foot"><div class="btn-group btn-group-sm" role="group" aria-label="Theme"><button class="btn" type="button" data-theme-set="light"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-sun"/></svg>Light</button><button class="btn" type="button" data-theme-set="dark"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-moon"/></svg>Dark</button></div></div>
+  </nav>
+  <div class="panel">
+    <div class="mobile-bar"><button class="btn btn-icon btn-quiet menu-btn" type="button" aria-label="Open navigation"><svg class="icon" aria-hidden="true"><use href="#i-menu"/></svg></button>Astrodock UI</div>
+    <main class="page">
+      <header class="page-header"><div class="page-head"><div class="page-head-main"><div class="page-head-text"><div class="page-title-row"><h1 class="t-title">Sign-in, errors, loading</h1></div><p class="page-desc">Each says what happened in plain words and offers one way forward.</p></div></div></div></header>
+      <div class="sections">
+        <section class="section"><div class="section-head"><h2 class="section-title">Signing in</h2><span class="section-meta">The moment between Astrodock's sign-in and the app.</span></div><div class="frame"><div class="center"><div class="empty"><span class="avatar avatar-xl avatar-accent"><svg class="icon" aria-hidden="true"><use href="#i-radar"/></svg></span><div class="empty-title">Competitor Intel</div><span class="status running"><span class="spinner"></span>Signing you in</span></div></div></div></section>
+        <section class="section"><div class="section-head"><h2 class="section-title">No access</h2><span class="section-meta">Who is signed in, and who can grant access.</span></div><div class="frame"><div class="center"><div class="empty"><span class="avatar avatar-xl"><svg class="icon" aria-hidden="true"><use href="#i-lock"/></svg></span><div class="empty-title">You don't have access</div><p class="empty-text">You're signed in as sam@example.com. An administrator can give you access in Astrodock.</p><div class="actions actions-center"><button class="btn" type="button">Switch account</button><a class="btn btn-primary" href="#">Back to Company OS</a></div></div></div></div></section>
+        <section class="section"><div class="section-head"><h2 class="section-title">Not found</h2><span class="section-meta">Keep people moving.</span></div><div class="frame"><div class="center"><div class="empty"><span class="avatar avatar-xl"><svg class="icon" aria-hidden="true"><use href="#i-file-question"/></svg></span><div class="empty-title">This company isn't here</div><p class="empty-text">It may have been removed, or the link may be wrong.</p><a class="btn" href="page-list.html">Go to projects</a></div></div></div></section>
+        <section class="section"><div class="section-head"><h2 class="section-title">Something went wrong</h2><span class="section-meta">What failed, nothing lost, what to do, a reference.</span></div><div class="frame"><div class="center"><div class="empty"><span class="avatar avatar-xl avatar-danger"><svg class="icon" aria-hidden="true"><use href="#i-alert-triangle"/></svg></span><div class="empty-title">This page could not load</div><p class="empty-text">The server did not answer. Nothing you entered was lost. Reference <span class="mono">req 7f3a-19c2</span></p><div class="actions actions-center"><button class="btn" type="button" data-toast="Reference copied"><svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg>Copy reference</button><button class="btn btn-primary" type="button">Try again</button></div></div></div></div></section>
+        <section class="section"><div class="section-head"><h2 class="section-title">First use</h2><span class="section-meta">One sentence and the first step. No tour.</span></div><div class="frame"><div class="center"><div class="empty"><span class="avatar avatar-xl avatar-soft"><svg class="icon" aria-hidden="true"><use href="#i-radar"/></svg></span><div class="empty-title">Start with a project</div><p class="empty-text">A project is one market. Describe it, add the competitors you know, and the app finds the rest.</p><a class="btn btn-primary btn-lg" href="page-form.html"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>New project</a></div></div></div></section>
+        <section class="section"><div class="section-head"><h2 class="section-title">Loading</h2><span class="section-meta">Skeletons shaped like what is coming.</span></div><div class="frame"><div class="page"><div class="stack-sm"><span class="skeleton skeleton-title" style="--w: 240px"></span><span class="skeleton" style="--w: 360px"></span></div><div class="list"><div class="row"><div class="row-lead"><span class="skeleton skeleton-avatar"></span><div class="row-main w-full"><span class="skeleton" style="--w: 30%"></span><span class="skeleton" style="--w: 55%"></span></div></div></div><div class="row"><div class="row-lead"><span class="skeleton skeleton-avatar"></span><div class="row-main w-full"><span class="skeleton" style="--w: 24%"></span><span class="skeleton" style="--w: 48%"></span></div></div></div><div class="row"><div class="row-lead"><span class="skeleton skeleton-avatar"></span><div class="row-main w-full"><span class="skeleton" style="--w: 34%"></span><span class="skeleton" style="--w: 40%"></span></div></div></div></div></div></div></section>
+      </div>
+    </main>
   </div>
-  
 </div>
-  <div class="frame-label"><div class="t-subheading">Signing in</div><p class="t-small muted">Opened from the company OS, people arrive signed in and never see this. Opened directly, the app sends them to Astrodock's sign-in and back; this is the moment in between.</p></div>
-  <div class="frame"><div class="center"><div class="empty"><span class="avatar avatar-xl avatar-accent"><svg class="icon" aria-hidden="true"><use href="#i-radar"/></svg></span><div class="empty-title">Competitor Intel</div><span class="status running"><span class="spinner"></span>Signing you in</span></div></div></div>
-  <div class="frame-label"><div class="t-subheading">No access</div><p class="t-small muted">Signed in, but not given this app. Say who is signed in and who can grant access.</p></div>
-  <div class="frame"><div class="center"><div class="empty"><span class="avatar avatar-xl"><svg class="icon" aria-hidden="true"><use href="#i-lock"/></svg></span><div class="empty-title">You don't have access to Competitor Intel</div><p class="empty-text">You're signed in as sam@example.com. An administrator can give you access in Astrodock.</p><div class="actions actions-center"><button class="btn" type="button">Sign in as someone else</button><a class="btn btn-primary" href="#">Back to the company OS</a></div></div></div></div>
-  <div class="frame-label"><div class="t-subheading">Not found</div><p class="t-small muted">Inside the shell, so people can carry on.</p></div>
-  <div class="frame"><header class="shell-bar">
-  <button class="btn btn-quiet btn-icon shell-menu-btn" type="button" aria-label="Open menu"><svg class="icon" aria-hidden="true"><use href="#i-menu"/></svg></button>
-  <a class="shell-app" href="page-dashboard.html"><span class="avatar avatar-sm avatar-accent"><svg class="icon" aria-hidden="true"><use href="#i-radar"/></svg></span>Competitor Intel</a>
-  <nav class="shell-nav" aria-label="Sections">
-    <a href="page-dashboard.html">Home</a>
-    <a href="page-list.html" aria-current="page">Projects</a>
-    <a href="page-activity.html">Activity</a>
-    <a href="page-settings.html">Settings</a>
-  </nav>
-  <div class="shell-end">
-    <button class="btn btn-quiet btn-icon" type="button" aria-label="Help"><svg class="icon" aria-hidden="true"><use href="#i-help-circle"/></svg></button>
-    <div class="menu-wrap">
-      <button class="avatar-btn" type="button" data-toggle aria-haspopup="menu" aria-expanded="false" aria-label="Account"><span class="avatar">SL</span></button>
-      <div class="menu" role="menu" hidden>
-        <div class="menu-head"><span class="avatar">SL</span><span><span class="strong">Sam Lee</span><br><span class="t-xs muted">sam@example.com</span></span></div>
-        <div class="menu-sep"></div>
-        <a class="item" role="menuitem" href="#"><svg class="icon" aria-hidden="true"><use href="#i-external"/></svg>Open the company OS</a>
-        <button class="item" role="menuitem" type="button"><svg class="icon" aria-hidden="true"><use href="#i-log-out"/></svg>Sign out</button>
-      </div>
-    </div>
-  </div>
-</header><div class="center"><div class="empty"><span class="avatar avatar-xl"><svg class="icon" aria-hidden="true"><use href="#i-file-question"/></svg></span><div class="empty-title">This company isn't here</div><p class="empty-text">It may have been removed, or the link may be wrong.</p><a class="btn btn-primary" href="page-list.html">Go to projects</a></div></div></div>
-  <div class="frame-label"><div class="t-subheading">Something went wrong</div><p class="t-small muted">What failed, that nothing was lost (when true), what to do, and a reference to send.</p></div>
-  <div class="frame"><header class="shell-bar">
-  <button class="btn btn-quiet btn-icon shell-menu-btn" type="button" aria-label="Open menu"><svg class="icon" aria-hidden="true"><use href="#i-menu"/></svg></button>
-  <a class="shell-app" href="page-dashboard.html"><span class="avatar avatar-sm avatar-accent"><svg class="icon" aria-hidden="true"><use href="#i-radar"/></svg></span>Competitor Intel</a>
-  <nav class="shell-nav" aria-label="Sections">
-    <a href="page-dashboard.html">Home</a>
-    <a href="page-list.html" aria-current="page">Projects</a>
-    <a href="page-activity.html">Activity</a>
-    <a href="page-settings.html">Settings</a>
-  </nav>
-  <div class="shell-end">
-    <button class="btn btn-quiet btn-icon" type="button" aria-label="Help"><svg class="icon" aria-hidden="true"><use href="#i-help-circle"/></svg></button>
-    <div class="menu-wrap">
-      <button class="avatar-btn" type="button" data-toggle aria-haspopup="menu" aria-expanded="false" aria-label="Account"><span class="avatar">SL</span></button>
-      <div class="menu" role="menu" hidden>
-        <div class="menu-head"><span class="avatar">SL</span><span><span class="strong">Sam Lee</span><br><span class="t-xs muted">sam@example.com</span></span></div>
-        <div class="menu-sep"></div>
-        <a class="item" role="menuitem" href="#"><svg class="icon" aria-hidden="true"><use href="#i-external"/></svg>Open the company OS</a>
-        <button class="item" role="menuitem" type="button"><svg class="icon" aria-hidden="true"><use href="#i-log-out"/></svg>Sign out</button>
-      </div>
-    </div>
-  </div>
-</header><div class="center"><div class="empty"><span class="avatar avatar-xl avatar-danger"><svg class="icon" aria-hidden="true"><use href="#i-alert-triangle"/></svg></span><div class="empty-title">This page could not load</div><p class="empty-text">The server did not answer. Nothing you entered was lost. Try again in a moment; if it keeps happening, send this reference: <span class="mono">req 7f3a-19c2</span></p><div class="actions actions-center"><button class="btn" type="button" data-toast="Reference copied"><svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg>Copy reference</button><button class="btn btn-primary" type="button"><svg class="icon" aria-hidden="true"><use href="#i-refresh"/></svg>Try again</button></div></div></div></div>
-  <div class="frame-label"><div class="t-subheading">First use</div><p class="t-small muted">An empty app explains itself in one sentence and offers the first step. No tour.</p></div>
-  <div class="frame"><header class="shell-bar">
-  <button class="btn btn-quiet btn-icon shell-menu-btn" type="button" aria-label="Open menu"><svg class="icon" aria-hidden="true"><use href="#i-menu"/></svg></button>
-  <a class="shell-app" href="page-dashboard.html"><span class="avatar avatar-sm avatar-accent"><svg class="icon" aria-hidden="true"><use href="#i-radar"/></svg></span>Competitor Intel</a>
-  <nav class="shell-nav" aria-label="Sections">
-    <a href="page-dashboard.html">Home</a>
-    <a href="page-list.html" aria-current="page">Projects</a>
-    <a href="page-activity.html">Activity</a>
-    <a href="page-settings.html">Settings</a>
-  </nav>
-  <div class="shell-end">
-    <button class="btn btn-quiet btn-icon" type="button" aria-label="Help"><svg class="icon" aria-hidden="true"><use href="#i-help-circle"/></svg></button>
-    <div class="menu-wrap">
-      <button class="avatar-btn" type="button" data-toggle aria-haspopup="menu" aria-expanded="false" aria-label="Account"><span class="avatar">SL</span></button>
-      <div class="menu" role="menu" hidden>
-        <div class="menu-head"><span class="avatar">SL</span><span><span class="strong">Sam Lee</span><br><span class="t-xs muted">sam@example.com</span></span></div>
-        <div class="menu-sep"></div>
-        <a class="item" role="menuitem" href="#"><svg class="icon" aria-hidden="true"><use href="#i-external"/></svg>Open the company OS</a>
-        <button class="item" role="menuitem" type="button"><svg class="icon" aria-hidden="true"><use href="#i-log-out"/></svg>Sign out</button>
-      </div>
-    </div>
-  </div>
-</header><div class="center"><div class="empty"><span class="avatar avatar-xl avatar-soft"><svg class="icon" aria-hidden="true"><use href="#i-radar"/></svg></span><div class="empty-title">Start with a project</div><p class="empty-text">A project is one market. Describe it, add the competitors you know, and the app finds the rest and studies them.</p><a class="btn btn-primary btn-lg" href="page-form.html"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>New project</a></div></div></div>
-  <div class="frame-label"><div class="t-subheading">Page loading</div><p class="t-small muted">The shell and header appear at once; content arrives into skeletons shaped like it. After 10 seconds, say it is still working.</p></div>
-  <div class="frame"><header class="shell-bar">
-  <button class="btn btn-quiet btn-icon shell-menu-btn" type="button" aria-label="Open menu"><svg class="icon" aria-hidden="true"><use href="#i-menu"/></svg></button>
-  <a class="shell-app" href="page-dashboard.html"><span class="avatar avatar-sm avatar-accent"><svg class="icon" aria-hidden="true"><use href="#i-radar"/></svg></span>Competitor Intel</a>
-  <nav class="shell-nav" aria-label="Sections">
-    <a href="page-dashboard.html">Home</a>
-    <a href="page-list.html" aria-current="page">Projects</a>
-    <a href="page-activity.html">Activity</a>
-    <a href="page-settings.html">Settings</a>
-  </nav>
-  <div class="shell-end">
-    <button class="btn btn-quiet btn-icon" type="button" aria-label="Help"><svg class="icon" aria-hidden="true"><use href="#i-help-circle"/></svg></button>
-    <div class="menu-wrap">
-      <button class="avatar-btn" type="button" data-toggle aria-haspopup="menu" aria-expanded="false" aria-label="Account"><span class="avatar">SL</span></button>
-      <div class="menu" role="menu" hidden>
-        <div class="menu-head"><span class="avatar">SL</span><span><span class="strong">Sam Lee</span><br><span class="t-xs muted">sam@example.com</span></span></div>
-        <div class="menu-sep"></div>
-        <a class="item" role="menuitem" href="#"><svg class="icon" aria-hidden="true"><use href="#i-external"/></svg>Open the company OS</a>
-        <button class="item" role="menuitem" type="button"><svg class="icon" aria-hidden="true"><use href="#i-log-out"/></svg>Sign out</button>
-      </div>
-    </div>
-  </div>
-</header><div class="page"><span class="skeleton" style="--w: 120px"></span><span class="skeleton skeleton-title" style="--w: 280px"></span><span class="skeleton mb-6" style="--w: 420px"></span><div class="list"><div class="row"><span class="skeleton skeleton-avatar"></span><div class="row-main"><span class="skeleton" style="--w: 30%"></span><span class="skeleton" style="--w: 60%"></span></div></div><div class="row"><span class="skeleton skeleton-avatar"></span><div class="row-main"><span class="skeleton" style="--w: 24%"></span><span class="skeleton" style="--w: 52%"></span></div></div><div class="row"><span class="skeleton skeleton-avatar"></span><div class="row-main"><span class="skeleton" style="--w: 34%"></span><span class="skeleton" style="--w: 48%"></span></div></div></div></div></div>
-  <div class="frame-label"><div class="t-subheading">Saving failed</div><p class="t-small muted">Keep what was typed. Say it in the page, beside the Save button.</p></div>
-  <div class="frame"><div class="page"><div class="save-bar"><span class="status danger"><svg class="icon" aria-hidden="true"><use href="#i-alert-triangle"/></svg>Not saved: the connection dropped. Your changes are still here.</span><div class="actions"><button class="btn btn-primary" type="button"><svg class="icon" aria-hidden="true"><use href="#i-refresh"/></svg>Try saving again</button></div></div></div></div>
-</main>
 <script src="preview.js"></script>
 </body>
 </html>

@@ -27,24 +27,28 @@ How every app on an Astrodock platform is built and how it looks: the frame, the
 |---|---|---|
 | 1. Tokens | Every color, size, radius, weight, shadow, layer and duration | The only place values appear. Apps change tokens, never rules |
 | 2. Base | Element defaults, focus ring, icons, checkboxes and radios | One checkbox and one radio look everywhere |
-| 3. Primitives | Control (button, input, select trigger), item (menu row, option, nav row), surface (card, list, table, stat), avatar, count, text roles | Components are built from these; a menu option and a nav row are the same item |
-| 4. Components | Buttons, fields, select, menus, lists, tables, toolbar, modals, toasts... | Built only from primitives and tokens |
-| 5. Layout and page types | Shells, page, page header, columns, split view | Every screen is one page type |
+| 3. Primitives | Control (button, input, select trigger), item (menu row, option, nav row), surface (card, table, stat), avatar, count, text roles | Components are built from these; a menu option and a nav row are the same item |
+| 4. Components | Buttons, fields, select, menus, lists, view bar, sections, modals, toasts... | Built only from primitives and tokens |
+| 5. Layout and page types | App frame (sidebar and panel), page, page header, columns, split view | Every screen is one page type |
 
-Shape rules: `--radius-xs` (4px) for marks (checkbox, citation, kbd), `--radius-sm` (6px) for controls, items and small avatars, `--radius-md` (8px) for surfaces: cards, popovers, menus, modals, toasts, larger avatars. Avatars and identity tiles are rounded squares, never circles. Only things that move along a track are round: switches, radios, progress, spinners.
+**The look:** quiet and precise. A soft gray frame holds the sidebar; the page sits on one white panel. Inside it, structure comes from type, whitespace and hairlines, not boxes. Cards are for things that are objects (a project, a stat, a chart), never for wrapping a section. Current and selected states are neutral; the accent is kept for the primary button, focus and checked marks. Type is Geist and Geist Mono.
 
-Weights: 400 text, 500 navigation and meta, 600 headings, buttons and labels, 700 display numbers. Chrome text (buttons, tabs, menus, nav) is 13px; content (inputs, options, body) is 14px.
+**Shape:** `--radius-xs` (5px) for marks (checkbox, citation, kbd, small avatars), `--radius-sm` (8px) for controls, items and avatars, `--radius-md` (12px) for surfaces: the panel, cards, popovers, modals, drawers, toasts. Avatars are rounded squares, never circles. Only things that move along a track are round: switches, radios, progress, spinners, dots.
+
+**Weights:** 400 text, 500 navigation, labels and meta, 600 titles. Buttons, tabs, menus and labels are 13px; body and inputs 14px.
+
+**Spacing:** space between siblings always comes from the parent's gap (`.page`, `.stack`, `.sections`), never from a margin on "the one after". That rule is what keeps cards in a grid aligned.
 
 ---
 
 ## Principles
 
-1. **Content leads.** Chrome is one compact bar. The page title, what matters and the main action are visible without scrolling.
+1. **Content leads.** One quiet frame; the page is a single white panel. The title, what matters and the main action are visible without scrolling.
 2. **One way to do each thing.** One select, one modal, one way to filter, one place for page actions. A screen never invents its own control.
 3. **You always know where you are and how to get back.** Every page below a section's first level has a back button naming its parent. The URL holds the tab, filters and sort, so back, reload and a shared link all land in the same place.
 4. **Actions are buttons; navigation is links.** A button does something. A link goes somewhere and opens in a new tab when asked.
-5. **Shading, not lines.** Surfaces separate by background and elevation. Borders are kept for inputs, where they show what can be typed in.
-6. **Color means something.** The accent marks what can be clicked or is selected. Green, amber and red mean success, attention and danger, always with an icon and a word.
+5. **Fewer boxes.** Sections separate by space and a hairline, not by cards and shadows. Borders are kept for inputs.
+6. **Color means something.** The accent is the primary action, focus and checked marks. Green, amber and red mean success, attention and failure, always with a word.
 7. **Every state is designed.** Loading, nothing yet, no matches, error, no access, and working in the background each have a set look and set words.
 8. **Nothing is lost by accident.** Unsaved changes are guarded. Deletes can be undone, or are confirmed when they cannot. Long work runs in the background and shows progress.
 
@@ -69,14 +73,14 @@ Rules:
 - Load `kit.css` once, first. App CSS may set tokens and lay out app-specific pieces; it never restyles a kit component.
 - Every page uses one of the page types below, unchanged in anatomy.
 - Every control comes from the kit. If something is missing, add it to the kit, not to the app.
-- Load the font with `<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">`, or leave it out and the system font is used.
+- Load the fonts with `<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">`, or leave them out and the system font is used.
 - Set `data-theme` on `<html>`: `light`, `dark`, or `auto` (follows the device). Default `auto`.
 
 ### React components (planned: `@astrodock/ui/react`)
 
 | Component | Covers |
 |---|---|
-| `AppShell` | Top-bar shell, or the sidebar shell with `variant="sidebar"`; account menu; phone menu |
+| `AppFrame`, `Sidebar` | The gray frame, the sidebar (switcher, search, sections, person) and the white panel; the phone menu |
 | `Page`, `PageHeader`, `BackButton` | Page width, back button, title row, meta line, actions |
 | `Tabs` | Tabs synced to `?tab=` |
 | `Button`, `IconButton`, `ButtonGroup` | Kinds, sizes, working state |
@@ -85,10 +89,11 @@ Rules:
 | `Select`, `MultiSelect` | Listbox with hints, search, groups; never a native select |
 | `Checkbox`, `Radio`, `ChoiceCard`, `Switch` | Choice controls |
 | `FileDrop` | Upload with progress |
-| `Card`, `List`, `Row`, `Table`, `BulkBar`, `Pagination` | Showing records |
-| `FilterSidebar`, `FilterGroup` | Filters, synced to the URL |
+| `List`, `Row`, `Table`, `BulkBar`, `Card` | Showing records |
+| `ViewBar`, `FilterButton`, `FilterSidebar` | Views, filters, search, sort and layout, synced to the URL |
+| `Sections`, `Section`, `Properties` | The structure of record and settings pages |
 | `KeyValue`, `Stat`, `Status`, `Label`, `Avatar`, `Progress`, `Timeline` | Showing values |
-| `Toolbar`, `Summary`, `Queue`, `Thread`, `CommandMenu` | Collections, queues, discussion, Cmd+K |
+| `Queue`, `Thread`, `Composer`, `CommandMenu` | Queues, discussion, Cmd+K |
 | `Modal`, `Confirm`, `Drawer` | Overlays with focus handling and Escape |
 | `Toast` (`toast()`), `Notice`, `EmptyState`, `Skeleton`, `Spinner`, `Tooltip` | Feedback |
 | `BarChart`, `LineChart` | Charts following the chart rules |
@@ -98,11 +103,12 @@ Rules:
 
 ## The shell
 
-**Top-bar shell (default).** One 52px bar: the app mark and name (links home), up to six sections, then help and the account menu on the right. The account menu shows who is signed in, links out (for example back to the company OS) and Sign out. On a phone the sections move behind a menu button.
+**App frame (every app).** The sidebar sits on the gray frame; the page sits on one white panel beside it.
+- **Sidebar, top to bottom:** the switcher (the app's avatar and name; it opens the other apps), a search button that opens the command menu (Cmd+K), the sections with icons and counts, then labeled groups of records people go to often (projects, queues), and at the bottom Settings and the person (help, sign out).
+- **Current section:** a white fill with a hairline, the same shape as the panel.
+- **On a phone:** the sidebar hides behind a menu button in a slim bar at the top of the panel.
 
-**Sidebar shell.** For apps with more than six sections, or sections that fall into groups. A left column with the app name, grouped sections with optional counts, settings and the person at the bottom. Stacks above the content on a phone.
-
-Nothing else is permanent chrome: no footer, no second bar, no banner unless something needs setup (then a notice in the page that is affected).
+Nothing else is permanent chrome: no footer, no second bar, no banner unless something needs setup (then a notice in the page that is affected). The CSS keeps a top-bar frame (`.app-topbar`) for one-screen tools; everything else uses the sidebar.
 
 ---
 
@@ -134,36 +140,36 @@ Every screen is one of these. Each has a preview page.
 
 ### 1. Collection page (`preview/page-list.html`)
 A set of records to find, scan and act on.
-- **Header:** back button if not a section root; title; meta line (counts, scope); actions: the primary "Add …" last, rare actions in a More menu.
-- **Summary links** under the tabs: up to four counts ("Changed this week", "With failures"), each opening that filtered view.
-- **Body:** filter sidebar on the left (checkbox groups with counts, selects for long lists); results on the right under a toolbar (search, sort, list or cards, the count).
-- **Results:** a list when people scan by name, with an avatar, labels, aligned value cells, status and a More button; group headings when the list has natural parts. A table when they compare many values. Load more at the end; no numbered pages.
-- **Selection:** checkboxes on rows bring up the bulk bar above the results: the count, then what can be done to all of them.
+- **Header:** back link if not a section root; avatar, title, one line of context; actions: the primary "Add …" last, rare actions in More. Tabs below when the record has views.
+- **View bar:** saved views on the left with counts ("All", "Changed this week", "Needs attention"); on the right the Filter button (a panel of checkbox groups; a badge shows how many are set), search, and list or cards.
+- **List:** columns set once and named once in a header row; each row is the avatar, the name with its labels and one line of context, aligned values, status as a dot and a word, and its More button on hover. Group labels when the list has natural parts. The whole row opens the record. A table instead when people compare many values. Load more at the end; no numbered pages.
+- **Selection:** hovering a row turns its avatar into a checkbox; selecting brings up the bulk bar floating at the bottom of the window.
+- **Filter sidebar** only on pages people filter constantly (history, logs).
 - **Empty:** "Nothing yet" (what goes here, how to start) differs from "No matches" (clear the filters).
 
 ### 2. Record page (`preview/page-record.html`)
 One thing in detail.
 - **Header:** back button naming the parent; title with a label for its type or level; meta line (key facts, freshness with the full time on hover, background work in progress); actions (main action primary, others plain, rare and destructive in More).
 - **Tabs** under the header when the record has several views. Counts on tabs that hold lists.
-- **First tab:** summary first (at a glance, key points), then detail on demand: each section shows its lead and a "Show detail" button. A side list of sections when the page is long.
-- **Side column** (`.with-aside`) for related context that is not the main content (details, people, links). Moves below on narrow screens.
+- **First tab:** sections, not cards. Summary first, then the comparison, then each section with its lead and Show detail.
+- **Properties column** on the right: the record's details and at-a-glance fields as a properties list, then recent activity. Moves below the content on narrow screens.
 
 ### 3. Create and edit (`preview/page-form.html`)
-- **Five fields or fewer:** a modal. **More:** a page, narrow width, fields grouped under headings, one column (two short related fields may share a row).
+- **Five fields or fewer:** a modal. **More:** a page where each group has its title and one sentence on the left and its fields on the right, hairlines between groups (two short related fields may share a row).
 - **Validation:** check a field when it is left, and everything on save. On a failed save, a notice at the top lists what needs fixing with links to the fields, and each field shows its own error.
-- **Save:** a save bar at the bottom of long forms; the card footer on short ones. Primary button names the result ("Create project", "Save changes").
+- **Save:** the save bar floats at the bottom of the window once something changed: what changed, Discard, and the primary button named for the result ("Create project", "Save changes").
 - **Leaving with changes** asks first ("Discard your changes?"), via `useUnsavedChanges`.
 - **After save:** go to the record, toast "Saved".
 - **Inline edit** only for a single obvious value (a name), never a group of fields.
 
 ### 4. Settings (`preview/page-settings.html`)
-- A section root (no back button). Groups listed on the left; each group is a card.
-- Each card saves on its own (Save in its footer). Switches are the exception: they apply at once with a toast, and never sit in a card with a Save button.
+- A section root (no back button). Tabs for large areas; inside, the same grouped layout as forms, saved with the save bar.
+- Switches apply at once with a toast and never sit in a group that needs Save.
 - Connected services show their status, not their keys.
 - **Danger zone** last: red title, each action explained, confirmation for anything that cannot be undone. Typing the name to confirm is kept for deleting large amounts of data.
 
 ### 5. Dashboard (`preview/page-dashboard.html`)
-- Up to four stat tiles, each linking to the list behind it, each with one line of context.
+- Up to four stats, each linking to the list behind it, each with one line of context. "Needs attention" and "Running now" sit in the side column.
 - A chart only when the trend matters; one chart per question.
 - "Needs attention" lists what someone should act on (failures, setup missing, items to review), each row linking to where it is fixed.
 - "Running now" with progress when the app does background work.
@@ -205,7 +211,7 @@ When to use each, and when not. `preview/components.html` shows them.
 | Button, quiet | Cancel; small actions inside rows | The main action |
 | Button, danger | Deleting and removing | Anything reversible without consequence |
 | Icon button | Close, more, refresh, menu: universal actions, always with an accessible name | Anything that needs a word to be understood |
-| Toggle group | Switching views of the same data | Filters (use the sidebar) |
+| Segmented control | Switching views of the same data (list or cards, 7 or 30 days) | Filters (use the Filter button) |
 | Menu | Rare actions, a row's third action onward, destructive actions away from the main one | Hiding the main action; navigation between sections |
 | Text field | Short text | Choices from a known list |
 | Textarea | Long text; grows to a limit then scrolls | |
@@ -219,35 +225,37 @@ When to use each, and when not. `preview/components.html` shows them.
 | Switch | A setting that applies when flipped, with a toast | Anything inside a form with Save |
 | Date and time | The browser's own pickers, styled as fields | |
 | File drop | Uploads: says accepted types and size; progress per file | |
-| Card | One topic on a page, with its own actions | Nesting cards; decorating text |
-| List | Records people scan by name | Comparing values (table) |
+| Section | The structure of a page: title, meta or action, content, hairline between | Wrapping in a card |
+| Properties | A record's fields in its side column; "Not found" rather than blank | |
+| Card | Things that are objects: a project, a stat, a chart | Wrapping sections; nesting |
+| List | Records people scan and open: header row once, hairline rows, actions on hover | Repeated labels in rows; comparing many values (table) |
 | Table | Comparing values across rows; sortable headers; numbers right-aligned | Two-column data (key-value) |
 | Bulk bar | Acting on selected rows | |
-| Summary links | Counts above a collection, each opening a filtered view | Pills that filter in place |
-| Toolbar | Search, sort, view toggle and the count above a collection | Filters (they stay in the sidebar) |
+| View bar | Views, Filter, search, layout above a collection | Rows of filter pills |
+| Filter button | Filters in a panel, a badge for how many are set | |
 | Comments | A record's discussion and history in one thread, composer last | |
 | Key-value | A record's fields; "Not found" or "None" rather than blank | |
 | Stat tile | The few numbers that matter, linking to the list behind them | Every number available |
-| Status | Done, Running, Queued, Needs setup, Failed: icon, word and color | Decoration |
+| Status | Done, Running, Queued, Needs setup, Failed: a dot (a spinner while running) and a word | Decoration |
 | Label | Describing a record (level, role, draft) in neutral gray | Filters; buttons |
 | Timeline | History, newest first, grouped by year; dates only as precise as known | |
 | Show detail | Summary first, detail on demand | Hiding required information |
 | Tabs | Views of one record | Steps; filters |
 | Side list | Sections of a long page or settings groups | |
-| Filter sidebar | Filtering a collection: search, checkbox groups with counts, selects | Pills or chips |
-| Modal | Short blocking tasks: up to five fields, a choice. Title and description, body, actions on the right; no gray footer band | Long forms; reading |
-| Confirmation | Actions that cannot be undone: an icon tile, the question, what will be lost, Cancel focused | Reversible actions (toast with Undo instead) |
+| Filter sidebar | Pages filtered constantly (history, logs) | Ordinary collections (use the Filter button) |
+| Modal | Short blocking tasks: up to five fields, a choice. Title and one line, the fields, actions on the right | Long forms; reading |
+| Confirmation | Actions that cannot be undone: a small icon, the question, what will be lost, Cancel focused | Reversible actions (toast with Undo instead) |
 | Command menu | Finding any record or action by typing (Cmd+K) | Replacing a page's own search |
 | Drawer | A record's detail beside the list it came from | Editing large records (page) |
-| Toast | Confirming an action that worked; Undo. Bottom right, a light card with an icon tile, a title and an optional line, six seconds | Errors people must act on; anything to read later |
-| Notice | A situation that persists: setup missing, read-only, a run stopped. Shaded, icon, bold first line. No colored side bar | Confirmations |
+| Toast | Confirming an action that worked; Undo. Bottom right, one line with an icon, an optional second line, six seconds | Errors people must act on; anything to read later |
+| Notice | A situation that persists: setup missing, read-only, a run stopped. Neutral or tinted, an icon, a first line in medium weight. No colored side bar | Confirmations |
 | Empty state | Nothing yet (what goes here, how to start) or no matches (clear filters) | |
 | Skeleton | Content loading, in the shape of what is coming | A blank page or a centered spinner |
 | Spinner | A button working; a status that is running | Page loads |
 | Progress | Long work with a known size; words beside it say what is happening | |
 | Tooltip | An icon button's name, a full date, why a button is disabled | Anything needed to do the work |
-| Avatar | People, companies and things: a rounded square with initials or an icon; accent for the app or "us" | Circles |
-| Citation | Linking a claim to its source (`[F123]` and similar) | |
+| Avatar | People, companies and things: a rounded square with initials or an icon; accent for the app or "us"; in list rows it turns into the checkbox on hover | Circles |
+| Citation | A small numbered mark linking a claim to its source | |
 
 ---
 
@@ -335,7 +343,7 @@ An app's `theme.css` overrides tokens only:
 :root[data-theme="dark"] { --accent: #5ea2f0; --accent-ink: #9cc6f7; --accent-soft: #14253b; }
 ```
 
-- The default tokens are the Seniorverse theme: purple accent, cool slate neutrals.
+- The default tokens are the Seniorverse theme: purple accent, zinc neutrals.
 - Dark mode is its own set of values for the same tokens, chosen by hand, never inverted. An app that changes the accent sets both.
 - Do not override neutrals or meaning colors per app.
 
@@ -354,7 +362,8 @@ An app's `theme.css` overrides tokens only:
 ## Checklist for a new screen
 
 - [ ] It is one of the page types, with that type's anatomy.
-- [ ] Back button (if below a section root) names the parent and goes there.
+- [ ] Back link (if below a section root) names the parent and goes there.
+- [ ] Sections, not cards; cards only for objects.
 - [ ] Tab, filters, sort and search are in the URL.
 - [ ] One primary action in view, named with a verb and object.
 - [ ] Loading, nothing yet, no matches, error and no access are all handled.

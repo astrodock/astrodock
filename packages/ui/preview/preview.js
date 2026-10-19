@@ -92,32 +92,35 @@
   const root = document.documentElement;
   const saved = (() => { try { return localStorage.getItem('kit-theme'); } catch { return null; } })();
   if (saved) root.dataset.theme = saved;
-  const setTheme = (t) => { root.dataset.theme = t; try { localStorage.setItem('kit-theme', t); } catch { /* private window */ } };
+  const markTheme = () => document.querySelectorAll('[data-theme-set]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.themeSet === (root.dataset.theme || 'light'))));
+  const setTheme = (t) => { root.dataset.theme = t; markTheme(); try { localStorage.setItem('kit-theme', t); } catch { /* private window */ } };
 
   // ---------------------------------------------------------------- preview switcher
   const PAGES = [
     ['index.html', 'Overview'], ['foundations.html', 'Foundations'], ['components.html', 'Components'],
     ['page-list.html', 'Collection page'], ['page-record.html', 'Record page'], ['page-form.html', 'Create and edit'],
     ['page-settings.html', 'Settings'], ['page-dashboard.html', 'Dashboard'], ['page-activity.html', 'Background work'],
-    ['page-wizard.html', 'Step by step'], ['page-sidebar.html', 'Sidebar shell and queue'], ['page-states.html', 'Sign-in, errors, loading'],
+    ['page-wizard.html', 'Step by step'], ['page-sidebar.html', 'Queue'], ['page-states.html', 'Sign-in, errors, loading'],
     ['mobile.html', 'On a phone'],
   ];
-  if (!window.frameElement) {
+  window.KIT_PAGES = PAGES;
+  if (!window.frameElement && !document.querySelector('[data-docs]')) {
     const here = location.pathname.split('/').pop() || 'index.html';
     const bar = document.createElement('div');
     bar.className = 'preview-switcher';
     bar.innerHTML = `
       <div class="menu-wrap">
-        <button class="btn btn-sm" type="button" data-toggle aria-haspopup="menu" aria-expanded="false">${icon('layout-grid', 'icon icon-sm')}Kit preview: ${(PAGES.find((p) => p[0] === here) || ['', 'Page'])[1]}</button>
+        <button class="btn btn-sm" type="button" data-toggle aria-haspopup="menu" aria-expanded="false">${icon('layout-grid', 'icon icon-sm')}Pages${icon('chevrons-up-down', 'icon icon-sm')}</button>
         <div class="menu menu-start menu-up" role="menu" hidden>
           ${PAGES.map(([href, label]) => `<a class="item" role="menuitem" href="${href}"${href === here ? ' aria-current="page"' : ''}>${label}</a>`).join('')}
         </div>
       </div>
-      <div class="btn-group" role="group" aria-label="Theme">
-        <button class="btn btn-sm btn-icon" type="button" data-theme-set="light" aria-label="Light theme">${icon('sun', 'icon icon-sm')}</button>
-        <button class="btn btn-sm btn-icon" type="button" data-theme-set="dark" aria-label="Dark theme">${icon('moon', 'icon icon-sm')}</button>
+      <div class="btn-group btn-group-sm" role="group" aria-label="Theme">
+        <button class="btn btn-icon" type="button" data-theme-set="light" aria-label="Light theme">${icon('sun', 'icon icon-sm')}</button>
+        <button class="btn btn-icon" type="button" data-theme-set="dark" aria-label="Dark theme">${icon('moon', 'icon icon-sm')}</button>
       </div>`;
-    document.body.append(bar);
+    const foot = document.querySelector('.sidebar-foot');
+    if (foot) { bar.classList.add('in-sidebar'); foot.prepend(bar); } else document.body.append(bar);
   }
 
   // ---------------------------------------------------------------- toasts
@@ -126,9 +129,10 @@
   function toast(spec, { kind = 'success', undo = false } = {}) {
     const [title, text] = String(spec).split('|');
     const t = document.createElement('div');
-    t.className = 'toast';
-    t.innerHTML = `<span class="avatar avatar-sm avatar-${kind === 'danger' ? 'danger' : 'success'}">${icon(kind === 'danger' ? 'alert-triangle' : 'check')}</span>
-      <div class="toast-body"><div class="toast-title"></div>${text ? '<div class="toast-text"></div>' : ''}${undo ? '<div class="actions"><button class="btn btn-sm" type="button">Undo</button></div>' : ''}</div>
+    t.className = `toast${kind === 'danger' ? ' danger' : ''}`;
+    t.innerHTML = `${icon(kind === 'danger' ? 'alert-circle' : 'check-circle')}
+      <div class="toast-body"><div class="toast-title"></div>${text ? '<div class="toast-text"></div>' : ''}</div>
+      ${undo ? '<button class="btn btn-sm" type="button">Undo</button>' : ''}
       <button class="btn btn-icon btn-quiet btn-sm" type="button" aria-label="Dismiss">${icon('x')}</button>`;
     t.querySelector('.toast-title').textContent = title;
     if (text) t.querySelector('.toast-text').textContent = text;
@@ -159,8 +163,7 @@
     rows.forEach((b) => b.closest('tr, .row')?.classList.toggle('selected', b.checked));
     const all = box.querySelector('[data-all-check]');
     if (all) { all.checked = n === rows.length && n > 0; all.indeterminate = n > 0 && n < rows.length; }
-    let bar = box.previousElementSibling;
-    while (bar && !bar.hasAttribute('data-bulk')) bar = bar.previousElementSibling;
+    const bar = box.querySelector('[data-bulk]') || box.parentElement.querySelector('[data-bulk]');
     if (bar) { bar.hidden = n === 0; const c = bar.querySelector('[data-selected-count]'); if (c) c.textContent = `${n} selected`; }
   }
 
@@ -268,6 +271,13 @@
       }
     }
 
+    const menuBtn = t.closest('.menu-btn');
+    if (menuBtn) { document.querySelector('.sidebar-nav')?.classList.toggle('open'); return; }
+    if (!t.closest('.sidebar-nav')) document.querySelector('.sidebar-nav.open')?.classList.remove('open');
+
+    const view = t.closest('.views > .view');
+    if (view) view.parentElement.querySelectorAll('.view').forEach((v) => (v === view ? v.setAttribute('aria-current', 'true') : v.removeAttribute('aria-current')));
+
     const ft = t.closest('[data-filters-toggle]');
     if (ft) {
       const side = ft.parentElement.querySelector('.filters');
@@ -307,4 +317,5 @@
   });
 
   document.querySelectorAll('.select.multi').forEach(updateMulti);
+  markTheme();
 })();
