@@ -11,102 +11,122 @@
 </head>
 <body>
 <header class="shell-bar">
-  <button class="btn btn-quiet btn-icon shell-menu-btn" type="button" aria-label="Open menu"><svg class="icon"><use href="#i-menu"/></svg></button>
-  <a class="shell-app" href="page-dashboard.html"><span class="shell-mark"><svg class="icon icon-sm"><use href="#i-radar"/></svg></span>Competitor Intel</a>
+  <button class="btn btn-quiet btn-icon shell-menu-btn" type="button" aria-label="Open menu"><svg class="icon" aria-hidden="true"><use href="#i-menu"/></svg></button>
+  <a class="shell-app" href="page-dashboard.html"><span class="avatar avatar-sm avatar-accent"><svg class="icon" aria-hidden="true"><use href="#i-radar"/></svg></span>Competitor Intel</a>
   <nav class="shell-nav" aria-label="Sections">
     <a href="page-dashboard.html">Home</a>
     <a href="page-list.html">Projects</a>
     <a href="page-activity.html">Activity</a>
     <a href="page-settings.html" aria-current="page">Settings</a>
   </nav>
-  <div class="shell-end"><span class="avatar" aria-label="Sam Lee">SL</span></div>
+  <div class="shell-end">
+    <button class="btn btn-quiet btn-icon" type="button" aria-label="Help"><svg class="icon" aria-hidden="true"><use href="#i-help-circle"/></svg></button>
+    <div class="menu-wrap">
+      <button class="avatar-btn" type="button" data-toggle aria-haspopup="menu" aria-expanded="false" aria-label="Account"><span class="avatar">SL</span></button>
+      <div class="menu" role="menu" hidden>
+        <div class="menu-head"><span class="avatar">SL</span><span><span class="strong">Sam Lee</span><br><span class="t-xs muted">sam@example.com</span></span></div>
+        <div class="menu-sep"></div>
+        <a class="item" role="menuitem" href="#"><svg class="icon" aria-hidden="true"><use href="#i-external"/></svg>Open the company OS</a>
+        <button class="item" role="menuitem" type="button"><svg class="icon" aria-hidden="true"><use href="#i-log-out"/></svg>Sign out</button>
+      </div>
+    </div>
+  </div>
 </header>
-
 <main class="page">
-  <div class="page-head"><div class="page-head-main"><h1 class="t-title">Settings</h1><div class="page-meta"><span>For everyone using Competitor Intel</span></div></div></div>
-
-  <div class="with-sidebar narrow-side">
-    <nav class="sidebar side-nav" aria-label="Settings groups">
-      <button type="button" class="active" data-target="s-general">General</button>
-      <button type="button" data-target="s-collect">Collecting</button>
-      <button type="button" data-target="s-services">Connected services</button>
-      <button type="button" data-target="s-notify">Notifications</button>
-      <button type="button" data-target="s-access">Who has access</button>
-      <button type="button" data-target="s-danger">Danger zone</button>
+  <div class="page-head">
+  <div class="page-head-main">
+    <div class="page-head-text">
+      <div class="page-title-row"><h1 class="t-title">Settings</h1></div>
+      
+      <div class="page-meta"><span>For everyone using Competitor Intel</span></div>
+    </div>
+  </div>
+  
+</div>
+  <div class="with-sidebar nav-side">
+    <nav class="sidebar nav-list" aria-label="Settings groups">
+      <a class="item" href="#s-general" data-target="s-general" aria-current="true"><svg class="icon" aria-hidden="true"><use href="#i-settings"/></svg>General</a>
+      <a class="item" href="#s-collect" data-target="s-collect"><svg class="icon" aria-hidden="true"><use href="#i-radar"/></svg>Collecting</a>
+      <a class="item" href="#s-services" data-target="s-services"><svg class="icon" aria-hidden="true"><use href="#i-external"/></svg>Connected services</a>
+      <a class="item" href="#s-notify" data-target="s-notify"><svg class="icon" aria-hidden="true"><use href="#i-mail"/></svg>Notifications</a>
+      <a class="item" href="#s-access" data-target="s-access"><svg class="icon" aria-hidden="true"><use href="#i-users"/></svg>Who has access</a>
+      <a class="item danger" href="#s-danger" data-target="s-danger"><svg class="icon" aria-hidden="true"><use href="#i-trash"/></svg>Danger zone</a>
     </nav>
-
     <div class="stack">
-      <section class="card catalog-section" id="s-general" style="margin: 0">
+      <section class="card" id="s-general">
         <div class="card-head"><div><h2 class="card-title">General</h2><div class="card-sub">How the app shows things.</div></div></div>
-        <div class="card-body" style="max-width: 560px">
-          <div class="field"><span class="field-label" id="tz-l">Time zone</span>
-            <div class="select"><button class="select-trigger" type="button" data-toggle aria-haspopup="listbox" aria-expanded="false" aria-labelledby="tz-l"><span class="value">Eastern time (New York)</span><svg class="icon"><use href="#i-chevron-down"/></svg></button>
-              <div class="popover" hidden><div class="listbox" role="listbox"><div class="option" role="option" aria-selected="true" data-label="Eastern time (New York)"><svg class="icon check-mark"><use href="#i-check"/></svg>Eastern time (New York)</div><div class="option" role="option" aria-selected="false" data-label="Central time (Chicago)"><svg class="icon check-mark"><use href="#i-check"/></svg>Central time (Chicago)</div><div class="option" role="option" aria-selected="false" data-label="Pacific time (Los Angeles)"><svg class="icon check-mark"><use href="#i-check"/></svg>Pacific time (Los Angeles)</div></div></div></div>
-          </div>
-          <div class="field mb-0"><span class="field-label">Theme</span>
-            <label class="check"><input type="radio" name="th" checked> Match this device</label>
-            <label class="check"><input type="radio" name="th"> Light</label>
-            <label class="check"><input type="radio" name="th"> Dark</label>
+        <div class="card-body">
+          <div class="form-row">
+            <div class="field"><span class="field-label" id="tz-l">Time zone</span><div class="select"><button class="select-trigger" type="button" data-toggle aria-haspopup="listbox" aria-expanded="false" aria-labelledby="tz-l"><span class="value">Eastern time (New York)</span><svg class="icon" aria-hidden="true"><use href="#i-chevron-down"/></svg></button>
+  <div class="popover" hidden><div class="listbox" role="listbox" aria-labelledby="tz-l">
+<div class="item option" role="option" aria-selected="true" data-label="Eastern time (New York)"><svg class="icon check-mark" aria-hidden="true"><use href="#i-check"/></svg><span class="option-text">Eastern time (New York)</span></div>
+<div class="item option" role="option" aria-selected="false" data-label="Central time (Chicago)"><svg class="icon check-mark" aria-hidden="true"><use href="#i-check"/></svg><span class="option-text">Central time (Chicago)</span></div>
+<div class="item option" role="option" aria-selected="false" data-label="Mountain time (Denver)"><svg class="icon check-mark" aria-hidden="true"><use href="#i-check"/></svg><span class="option-text">Mountain time (Denver)</span></div>
+<div class="item option" role="option" aria-selected="false" data-label="Pacific time (Los Angeles)"><svg class="icon check-mark" aria-hidden="true"><use href="#i-check"/></svg><span class="option-text">Pacific time (Los Angeles)</span></div>
+  </div></div></div></div>
+            <div class="field"><span class="field-label" id="th-l">Theme</span><div class="select"><button class="select-trigger" type="button" data-toggle aria-haspopup="listbox" aria-expanded="false" aria-labelledby="th-l"><span class="value">Match this device</span><svg class="icon" aria-hidden="true"><use href="#i-chevron-down"/></svg></button>
+  <div class="popover" hidden><div class="listbox" role="listbox" aria-labelledby="th-l">
+<div class="item option" role="option" aria-selected="true" data-label="Match this device"><svg class="icon check-mark" aria-hidden="true"><use href="#i-check"/></svg><span class="option-text">Match this device</span></div>
+<div class="item option" role="option" aria-selected="false" data-label="Light"><svg class="icon check-mark" aria-hidden="true"><use href="#i-check"/></svg><span class="option-text">Light</span></div>
+<div class="item option" role="option" aria-selected="false" data-label="Dark"><svg class="icon check-mark" aria-hidden="true"><use href="#i-check"/></svg><span class="option-text">Dark</span></div>
+  </div></div></div></div>
           </div>
         </div>
         <div class="card-foot"><button class="btn btn-primary" type="button" data-toast="General settings saved">Save</button></div>
       </section>
 
-      <section class="card catalog-section" id="s-collect" style="margin: 0">
+      <section class="card" id="s-collect">
         <div class="card-head"><div><h2 class="card-title">Collecting</h2><div class="card-sub">How politely and how much the crawler reads.</div></div></div>
-        <div class="card-body" style="max-width: 560px">
+        <div class="card-body">
           <div class="form-row">
-            <div class="field"><label for="s1">Seconds between requests to one site</label><input id="s1" class="input num" value="5"><div class="field-hint">A site's robots.txt can ask for longer; it is always honored.</div></div>
-            <div class="field"><label for="s2">Most pages per site</label><input id="s2" class="input num" value="600"></div>
-          </div>
-          <div class="form-row">
-            <div class="field mb-0"><label for="s3">Collecting workers</label><input id="s3" class="input num" value="3"></div>
-            <div class="field mb-0"><label for="s4">Reading and writing workers</label><input id="s4" class="input num" value="4"></div>
+            <div class="field"><label class="field-label" for="s1">Time between requests to one site</label><div class="input-affix"><input class="input num" id="s1" value="5"><span class="affix">seconds</span></div><div class="field-hint">A site's robots.txt can ask for longer; it is always honored.</div></div>
+            <div class="field"><label class="field-label" for="s2">Most pages per site</label><div class="input-affix"><input class="input num" id="s2" value="600"><span class="affix">pages</span></div></div>
           </div>
         </div>
-        <div class="card-foot"><button class="btn btn-quiet" type="button">Discard changes</button><button class="btn btn-primary" type="button" data-toast="Collecting settings saved">Save</button></div>
+        <div class="card-foot"><button class="btn btn-quiet start" type="button">Discard changes</button><button class="btn btn-primary" type="button" data-toast="Collecting settings saved">Save</button></div>
       </section>
 
-      <section class="card catalog-section" id="s-services" style="margin: 0">
+      <section class="card" id="s-services">
         <div class="card-head"><div><h2 class="card-title">Connected services</h2><div class="card-sub">Keys are set on the app in Astrodock and never shown here.</div></div></div>
-        <div class="card-body flush">
-          <div class="row"><div class="row-main"><div class="row-title">AI (Amazon Bedrock)</div><div class="row-sub">Reading, profiles, comparisons, Q&amp;A</div></div><span class="status success"><svg class="icon icon-sm"><use href="#i-check-circle"/></svg>Connected</span></div>
-          <div class="row"><div class="row-main"><div class="row-title">Search (Perplexity)</div><div class="row-sub">Surveys and news · $5 per 1,000 requests</div></div><span class="status success"><svg class="icon icon-sm"><use href="#i-check-circle"/></svg>Connected</span></div>
-          <div class="row"><div class="row-main"><div class="row-title">Inbound email</div><div class="row-sub">Mailing lists · needs INTEL_EMAIL_DOMAIN</div></div><span class="status warning"><svg class="icon icon-sm"><use href="#i-alert-triangle"/></svg>Needs setup</span><button class="btn btn-sm" type="button">How to set up</button></div>
+        <div class="card-body flush-x">
+          <div class="row"><span class="avatar"><svg class="icon" aria-hidden="true"><use href="#i-activity"/></svg></span><div class="row-main"><div class="row-title">AI (Amazon Bedrock)</div><div class="row-sub">Reading, profiles, comparisons, questions</div></div><span class="status success"><svg class="icon" aria-hidden="true"><use href="#i-check-circle"/></svg>Connected</span></div>
+          <div class="row"><span class="avatar"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg></span><div class="row-main"><div class="row-title">Search (Perplexity)</div><div class="row-sub">Surveys and news · $5 per 1,000 requests</div></div><span class="status success"><svg class="icon" aria-hidden="true"><use href="#i-check-circle"/></svg>Connected</span></div>
+          <div class="row"><span class="avatar"><svg class="icon" aria-hidden="true"><use href="#i-mail"/></svg></span><div class="row-main"><div class="row-title">Inbound email</div><div class="row-sub">Mailing lists · needs INTEL_EMAIL_DOMAIN</div></div><span class="status warning"><svg class="icon" aria-hidden="true"><use href="#i-alert-triangle"/></svg>Needs setup</span><a class="btn btn-sm" href="page-wizard.html">Set up</a></div>
         </div>
       </section>
 
-      <section class="card catalog-section" id="s-notify" style="margin: 0">
-        <div class="card-head"><div><h2 class="card-title">Notifications</h2><div class="card-sub">These take effect as soon as they are switched.</div></div></div>
-        <div class="card-body stack">
+      <section class="card" id="s-notify">
+        <div class="card-head"><div><h2 class="card-title">Notifications</h2><div class="card-sub">These apply as soon as they are switched.</div></div></div>
+        <div class="card-body stack-sm">
           <button class="switch" type="button" role="switch" aria-checked="true" data-toast="Weekly digest on"><span class="switch-track"></span>Email me the weekly digest</button>
-          <button class="switch" type="button" role="switch" aria-checked="false" data-toast="Notable change emails on"><span class="switch-track"></span>Email me when a notable change is found</button>
+          <button class="switch" type="button" role="switch" aria-checked="false" data-toast="Change alerts on"><span class="switch-track"></span>Email me when a notable change is found</button>
         </div>
       </section>
 
-      <section class="card catalog-section" id="s-access" style="margin: 0">
-        <div class="card-head"><div><h2 class="card-title">Who has access</h2><div class="card-sub">Managed in Astrodock. Everyone listed can see and change everything.</div></div><a class="btn btn-sm" href="#s-access">Manage in Astrodock<svg class="icon icon-sm"><use href="#i-external"/></svg></a></div>
-        <div class="card-body flush">
-          <div class="row"><span class="avatar">SL</span><div class="row-main"><div class="row-title">Sam Lee</div><div class="row-sub">sam@example.com</div></div><span class="row-meta">Last here today</span></div>
-          <div class="row"><span class="avatar">JM</span><div class="row-main"><div class="row-title">Jordan Moss</div><div class="row-sub">jordan@example.com</div></div><span class="row-meta">Last here Oct 12</span></div>
+      <section class="card" id="s-access">
+        <div class="card-head"><div><h2 class="card-title">Who has access</h2><div class="card-sub">Managed in Astrodock. Everyone listed can see and change everything.</div></div><a class="btn btn-sm" href="#">Manage in Astrodock<svg class="icon icon-sm" aria-hidden="true"><use href="#i-external"/></svg></a></div>
+        <div class="card-body flush-x">
+          <div class="row"><span class="avatar">SL</span><div class="row-main"><div class="row-title">Sam Lee</div><div class="row-sub">sam@example.com</div></div><span class="row-meta">Here today</span></div>
+          <div class="row"><span class="avatar">JM</span><div class="row-main"><div class="row-title">Jordan Moss</div><div class="row-sub">jordan@example.com</div></div><span class="row-meta">Oct 12</span></div>
         </div>
       </section>
 
-      <section class="card danger-zone catalog-section" id="s-danger" style="margin: 0">
+      <section class="card danger-zone" id="s-danger">
         <div class="card-head"><div><h2 class="card-title">Danger zone</h2><div class="card-sub">These cannot be undone.</div></div></div>
-        <div class="card-body flush">
-          <div class="row"><div class="row-main"><div class="row-title">Delete all archived website copies</div><div class="row-sub">Frees storage. The timeline loses its archive entries.</div></div><button class="btn btn-sm btn-danger" type="button" data-open="confirm-archive">Delete copies</button></div>
+        <div class="card-body flush-x">
+          <div class="row"><div class="row-main"><div class="row-title">Delete archived website copies</div><div class="row-sub">Frees storage. The timeline loses its archive entries.</div></div><button class="btn btn-sm btn-danger" type="button" data-open="confirm-archive">Delete copies</button></div>
         </div>
       </section>
     </div>
   </div>
 </main>
-
 <div class="scrim" id="confirm-archive" hidden>
-  <div class="modal modal-sm" role="alertdialog" aria-modal="true" aria-labelledby="ca-t">
-    <div class="modal-head"><div class="modal-title" id="ca-t">Delete 1,204 archived copies?</div></div>
-    <div class="modal-body t-small" style="color: var(--ink-2)">The copies and the timeline entries made from them are deleted for every company. Collecting history again reads them from the Wayback Machine, which is slow.<div class="field mt-4 mb-0"><label for="ca-c">Type <b>delete</b> to confirm</label><input id="ca-c" class="input" autocomplete="off"></div></div>
-    <div class="modal-foot"><button class="btn btn-quiet" type="button" data-close>Cancel</button><button class="btn btn-danger-solid" type="button" data-close data-toast="Archived copies deleted">Delete copies</button></div>
+  <div class="modal modal-sm modal-confirm" role="alertdialog" aria-modal="true" aria-labelledby="confirm-archive-t" aria-describedby="confirm-archive-d">
+    <div class="modal-head">
+      <span class="avatar avatar-lg avatar-danger"><svg class="icon" aria-hidden="true"><use href="#i-trash"/></svg></span>
+      <div class="overlay-heading"><div class="overlay-title" id="confirm-archive-t">Delete 1,204 archived copies?</div><div class="overlay-desc" id="confirm-archive-d">The copies and the timeline entries made from them are deleted for every company. Collecting history again reads them from the Wayback Machine, which is slow.</div></div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-quiet" type="button" data-close autofocus>Cancel</button><button class="btn btn-danger-solid" type="button" data-close data-toast="Archived copies deleted">Delete copies</button></div>
   </div>
 </div>
 <script src="preview.js"></script>

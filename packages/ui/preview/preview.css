@@ -1,46 +1,52 @@
-/* Styles for the preview pages themselves (specimens, swatches). Not part of the kit. */
+/* Styles for the preview pages themselves: specimens, swatches, frames.
+   Not part of the kit; apps never use these classes. Uses kit tokens only. */
 
-.specimen { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: var(--space-5); padding: var(--space-5) 0; box-shadow: inset 0 1px 0 var(--line); }
-.specimen:first-of-type { box-shadow: none; }
-.specimen-label .t-subheading { margin-bottom: 4px; }
-.specimen-label p { font-size: var(--text-sm); color: var(--ink-3); margin: 0; }
-.specimen-label .use { margin-top: var(--space-2); font-size: var(--text-xs); color: var(--ink-3); }
-.specimen-label .use b { color: var(--ink-2); }
+.preview-switcher { position: fixed; left: var(--space-4); bottom: var(--space-4); z-index: var(--z-toast); display: flex; gap: var(--space-2); align-items: center; padding: var(--space-1); border-radius: var(--radius-md); background: var(--bg-raised); box-shadow: var(--shadow-pop); }
+
+/* Catalog sections and specimens */
+.catalog-section { scroll-margin-top: var(--space-6); }
+.catalog-section + .catalog-section { margin-top: var(--space-12); }
+.catalog-title { font-size: var(--text-xl); font-weight: var(--weight-semibold); margin-bottom: var(--space-2); }
+.catalog-lede { color: var(--ink-2); max-width: 72ch; margin-bottom: var(--space-3); }
+.catalog-use { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); margin-bottom: var(--space-4); font-size: var(--text-sm); color: var(--ink-2); max-width: 900px; }
+.catalog-use > div { display: flex; gap: var(--space-2); align-items: flex-start; }
+.catalog-use .icon { margin-top: 2px; }
+.specimen { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: var(--space-6); padding: var(--space-5); }
+.specimen + .specimen { box-shadow: inset 0 var(--line-width) 0 var(--line); }
+.specimen-label > .t-subheading { margin-bottom: var(--space-1); }
+.specimen-label > p { font-size: var(--text-sm); color: var(--ink-3); margin: 0 0 var(--space-3); }
 .specimen-demo { min-width: 0; }
-.catalog-section { scroll-margin-top: 72px; }
-.catalog-section + .catalog-section { margin-top: var(--space-10); }
-.catalog-section > h2 { font-size: var(--text-xl); margin-bottom: var(--space-2); }
-.catalog-section > .lede { color: var(--ink-3); margin-bottom: var(--space-4); max-width: 72ch; }
+.specimen-demo > .field, .specimen-demo > .input-wrap, .specimen-demo > .input-affix, .specimen-demo > .form-row { max-width: 560px; }
+.specimen-code { margin-top: var(--space-4); }
+.specimen-code > .code-block { max-height: 320px; }
 
-.swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--space-3); }
+/* Foundations */
+.swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--space-3); margin-bottom: var(--space-5); }
 .swatch { border-radius: var(--radius-md); background: var(--bg-surface); box-shadow: var(--shadow-card); overflow: hidden; }
-.swatch-chip { height: 52px; box-shadow: inset 0 -1px 0 var(--line); }
-.swatch-body { padding: 8px 10px; font-size: var(--text-xs); }
-.swatch-body b { display: block; font-size: var(--text-sm); color: var(--ink); }
-.swatch-body code { color: var(--ink-3); }
-
-.space-row { display: flex; align-items: center; gap: var(--space-4); padding: 4px 0; font-size: var(--text-sm); }
-.space-row .bar { height: 12px; background: var(--accent); border-radius: 3px; }
-.space-row code { width: 90px; color: var(--ink-3); }
-
-.icon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: var(--space-2); }
-.icon-cell { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 6px; border-radius: var(--radius-md); background: var(--bg-surface); box-shadow: var(--shadow-card); font-size: var(--text-xs); color: var(--ink-3); }
-.icon-cell .icon { width: 20px; height: 20px; color: var(--ink); }
-
+.swatch-chip { height: 52px; background: var(--swatch); box-shadow: inset 0 calc(var(--line-width) * -1) 0 var(--line); }
+.swatch-body { padding: var(--space-2) var(--space-3); font-size: var(--text-xs); color: var(--ink-3); }
+.swatch-body > b { display: block; font-size: var(--text-sm); color: var(--ink); font-weight: var(--weight-semibold); }
+.scale-row { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-1) 0; font-size: var(--text-sm); }
+.scale-row > code { width: 110px; color: var(--ink-3); font-family: var(--font-mono); font-size: var(--text-xs); }
+.scale-bar { height: 12px; width: var(--size); background: var(--accent); border-radius: var(--radius-xs); }
+.radius-demo { width: 72px; height: 72px; background: var(--accent-soft); box-shadow: inset 0 0 0 var(--line-width) var(--accent); border-radius: var(--r); }
+.icon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: var(--space-2); }
+.icon-cell { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); padding: var(--space-3) var(--space-2); border-radius: var(--radius-md); background: var(--bg-surface); box-shadow: var(--shadow-card); font-size: var(--text-xs); color: var(--ink-3); text-align: center; }
+.icon-cell > .icon { width: var(--icon-lg); height: var(--icon-lg); color: var(--ink); }
 .do-dont { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
-.do-dont > div { padding: var(--space-4); border-radius: var(--radius-md); background: var(--bg-surface); box-shadow: var(--shadow-card); }
-.do-dont .t-label { margin-bottom: var(--space-2); display: flex; gap: 6px; align-items: center; }
-.do-dont .do .t-label { color: var(--success); }
-.do-dont .dont .t-label { color: var(--danger); }
-.do-dont ul { margin: 0; padding-left: 18px; font-size: var(--text-sm); color: var(--ink-2); }
-.do-dont li { margin: 3px 0; }
 
-.phone-row { display: flex; gap: var(--space-6); flex-wrap: wrap; }
-.phone { width: 390px; height: 780px; border-radius: 28px; overflow: hidden; background: var(--bg-surface); box-shadow: var(--shadow-pop), 0 0 0 8px var(--bg-inverse); }
-.phone iframe { width: 100%; height: 100%; border: 0; }
+/* Frames for showing whole screens inside a page */
+.frame { border-radius: var(--radius-md); overflow: hidden; background: var(--bg-page); box-shadow: var(--shadow-raised); }
+.frame + .frame-label { margin-top: var(--space-10); }
+.frame-label { margin-bottom: var(--space-3); }
+.frame .shell-bar { position: static; }
+.frame .center { min-height: 400px; }
+.phone-row { display: flex; gap: var(--space-8); flex-wrap: wrap; }
+.phone { width: 390px; height: 780px; border-radius: var(--space-6); overflow: hidden; background: var(--bg-surface); box-shadow: var(--shadow-pop), 0 0 0 8px var(--bg-inverse); }
+.phone > iframe { width: 100%; height: 100%; border: 0; }
 .phone-caption { text-align: center; margin-top: var(--space-4); font-size: var(--text-sm); color: var(--ink-3); }
 
-/* A static stand-in for an overlay shown in place on a catalog page. */
-.inline-overlay { position: relative; border-radius: var(--radius-lg); background: var(--scrim); padding: var(--space-6); display: grid; place-items: center; }
-.inline-overlay .modal { animation: none; }
-@media (max-width: 760px) { .specimen { grid-template-columns: 1fr; } .do-dont { grid-template-columns: 1fr; } }
+@media (max-width: 760px) {
+  .specimen { grid-template-columns: minmax(0, 1fr); }
+  .catalog-use, .do-dont { grid-template-columns: minmax(0, 1fr); }
+}

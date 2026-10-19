@@ -16,6 +16,11 @@ these before doing substantial work — they are the source of truth:
   those details, though the file still carries the pre-naming `PLATFORM_` prefix pending a
   rewrite.
 
+## App design system
+Apps built on Astrodock use `packages/ui`: `REFERENCE.md` (markup for every part, generated),
+`README.md` (rules), `kit.css` (tokens and styles), `preview/index.html` (open in a browser).
+After changing it: `node packages/ui/scripts/check.js && node packages/ui/scripts/build-reference.js`.
+
 ## Locked decisions (do not re-litigate)
 - **Name:** Astrodock (working name). Env prefix `ASTRODOCK_`, CLI `astrodock` (alias `adock`), npm scope `@astrodock`.
 - **Zero external deps:** control plane + internal app DBs on **Postgres**; internal object

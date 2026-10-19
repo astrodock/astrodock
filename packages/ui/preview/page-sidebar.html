@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Inbox · Assessment Builder</title>
+<title>To review · Assessment Builder</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../kit.css">
@@ -12,46 +12,140 @@
 <body>
 <div class="shell-sidebar-layout">
   <nav class="shell-sidebar" aria-label="Sections">
-    <a class="shell-app" href="page-sidebar.html"><span class="shell-mark"><svg class="icon icon-sm"><use href="#i-clipboard"/></svg></span>Assessment Builder</a>
-    <div class="shell-sidebar-group">
-      <a class="nav-item" href="page-sidebar.html"><svg class="icon"><use href="#i-layout-grid"/></svg>Home</a>
-      <a class="nav-item active" aria-current="page" href="page-sidebar.html"><svg class="icon"><use href="#i-inbox"/></svg>To review<span class="count">8</span></a>
+    <div class="menu-wrap">
+      <button class="shell-switcher" type="button" data-toggle aria-haspopup="menu" aria-expanded="false"><span class="avatar avatar-accent"><svg class="icon" aria-hidden="true"><use href="#i-clipboard"/></svg></span><span class="shell-switcher-name">Assessment Builder<span class="shell-switcher-sub">Maple Health</span></span><svg class="icon" aria-hidden="true"><use href="#i-chevrons-up-down"/></svg></button>
+      <div class="menu menu-start" role="menu" hidden>
+        <a class="item" role="menuitem" href="#"><svg class="icon" aria-hidden="true"><use href="#i-external"/></svg>Open the company OS</a>
+        <a class="item" role="menuitem" href="page-dashboard.html"><svg class="icon" aria-hidden="true"><use href="#i-radar"/></svg>Competitor Intel</a>
+      </div>
     </div>
-    <div class="shell-sidebar-group"><span class="t-label">Build</span>
-      <a class="nav-item" href="page-sidebar.html"><svg class="icon"><use href="#i-clipboard"/></svg>Assessments</a>
-      <a class="nav-item" href="page-sidebar.html"><svg class="icon"><use href="#i-file"/></svg>Question bank</a>
-      <a class="nav-item" href="page-sidebar.html"><svg class="icon"><use href="#i-folder"/></svg>Templates</a>
+    <button class="shell-search" type="button" data-open="command"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg>Search<kbd>⌘K</kbd></button>
+    <div class="nav-list">
+      <a class="item" href="#"><svg class="icon" aria-hidden="true"><use href="#i-layout-grid"/></svg>Home</a>
+      <a class="item" href="#" aria-current="page"><svg class="icon" aria-hidden="true"><use href="#i-inbox"/></svg>To review<span class="count">8</span></a>
+      <a class="item" href="#"><svg class="icon" aria-hidden="true"><use href="#i-flag"/></svg>Flagged<span class="count">2</span></a>
+      <span class="t-label">Build</span>
+      <a class="item" href="#"><svg class="icon" aria-hidden="true"><use href="#i-clipboard"/></svg>Assessments</a>
+      <a class="item" href="#"><svg class="icon" aria-hidden="true"><use href="#i-file"/></svg>Question bank</a>
+      <a class="item" href="#"><svg class="icon" aria-hidden="true"><use href="#i-folder"/></svg>Templates</a>
+      <span class="t-label">Results</span>
+      <a class="item" href="#"><svg class="icon" aria-hidden="true"><use href="#i-users"/></svg>Participants</a>
+      <a class="item" href="#"><svg class="icon" aria-hidden="true"><use href="#i-bar-chart"/></svg>Reports</a>
+      <a class="item" href="#"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Exports</a>
     </div>
-    <div class="shell-sidebar-group"><span class="t-label">Results</span>
-      <a class="nav-item" href="page-sidebar.html"><svg class="icon"><use href="#i-users"/></svg>Participants</a>
-      <a class="nav-item" href="page-sidebar.html"><svg class="icon"><use href="#i-bar-chart"/></svg>Reports</a>
-      <a class="nav-item" href="page-sidebar.html"><svg class="icon"><use href="#i-download"/></svg>Exports</a>
-    </div>
-    <div class="shell-sidebar-foot shell-sidebar-group">
-      <a class="nav-item" href="page-settings.html"><svg class="icon"><use href="#i-settings"/></svg>Settings</a>
-      <a class="nav-item" href="page-sidebar.html"><span class="avatar avatar-sm">SL</span>Sam Lee</a>
+    <div class="shell-sidebar-foot">
+      <a class="item" href="page-settings.html"><svg class="icon" aria-hidden="true"><use href="#i-settings"/></svg>Settings</a>
+      <a class="item" href="#"><svg class="icon" aria-hidden="true"><use href="#i-help-circle"/></svg>Help</a>
+      <div class="menu-wrap">
+        <button class="item" type="button" data-toggle aria-haspopup="menu" aria-expanded="false"><span class="avatar avatar-sm">SL</span><span class="shell-user"><span><span class="shell-user-name">Sam Lee</span><br><span class="shell-user-sub">sam@example.com</span></span></span></button>
+        <div class="menu menu-start menu-up" role="menu" hidden><button class="item" role="menuitem" type="button"><svg class="icon" aria-hidden="true"><use href="#i-log-out"/></svg>Sign out</button></div>
+      </div>
     </div>
   </nav>
 
   <div class="split">
-    <div class="split-list" aria-label="To review">
-      <div style="padding: var(--space-4) var(--space-4) var(--space-3)">
-        <div class="cluster mb-2"><h1 class="t-heading">To review</h1><span class="spacer"></span><span class="t-small muted">8</span></div>
-        <div class="input-wrap"><svg class="icon"><use href="#i-search"/></svg><input class="input input-sm" type="search" placeholder="Search" aria-label="Search submissions"></div>
+    <section class="queue" aria-label="To review">
+      <div class="queue-head">
+        <div class="queue-title"><h1 class="t-heading">To review</h1><span class="count">8</span><span class="spacer"></span><button class="btn btn-icon btn-quiet btn-sm" type="button" aria-label="Filter"><svg class="icon" aria-hidden="true"><use href="#i-filter"/></svg></button></div>
+        <div class="input-wrap"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><input class="input input-sm" type="search" placeholder="Search submissions" aria-label="Search submissions"></div>
+        <nav class="tabs tabs-tight" aria-label="Queue views"><a class="tab" href="#" aria-current="page">Waiting<span class="count">8</span></a><a class="tab" href="#">Sent back<span class="count">3</span></a><a class="tab" href="#">Approved</a></nav>
       </div>
-      <a class="row selected" href="page-sidebar.html"><div class="row-main"><div class="row-title">6-month assessment</div><div class="row-sub">Participant 1042 · Maple Center</div></div><span class="row-meta">2 h</span></a>
-      <a class="row" href="page-sidebar.html"><div class="row-main"><div class="row-title">Fall risk screen</div><div class="row-sub">Participant 0988 · Maple Center</div></div><span class="row-meta">5 h</span></a>
-      <a class="row" href="page-sidebar.html"><div class="row-main"><div class="row-title">Intake</div><div class="row-sub">Participant 1101 · Oak Center</div></div><span class="row-meta">Yesterday</span></a>
-      <a class="row" href="page-sidebar.html"><div class="row-main"><div class="row-title">6-month assessment</div><div class="row-sub">Participant 0871 · Oak Center</div></div><span class="row-meta">Oct 16</span></a>
-    </div>
-    <div class="split-detail">
-      <div class="page-head">
-        <div class="page-head-main"><div class="page-title-row"><h2 class="t-title">6-month assessment</h2><span class="label">Submitted</span></div><div class="page-meta"><span>Participant 1042</span><span>Maple Center</span><span>Submitted 2 h ago by a nurse</span></div></div>
-        <div class="actions"><button class="btn" type="button">Send back</button><button class="btn btn-primary" type="button" data-toast="Approved; next item opened">Approve</button></div>
+      <div class="queue-list">
+        <a class="queue-item current" href="#" aria-current="true">
+          <span class="avatar">JM</span>
+          <span class="row-main"><span class="queue-item-top"><span class="dot" aria-label="New"></span><span class="queue-item-title">6-month assessment</span><span class="queue-item-time">2 h</span></span>
+          <span class="queue-item-sub">Participant 1042 · Maple Center</span>
+          <span class="queue-item-tags"><span class="label">Submitted</span></span></span>
+        </a>
+        <a class="queue-item" href="#">
+          <span class="avatar">AR</span>
+          <span class="row-main"><span class="queue-item-top"><span class="dot" aria-label="New"></span><span class="queue-item-title">Fall risk screen</span><span class="queue-item-time">5 h</span></span>
+          <span class="queue-item-sub">Participant 0988 · Maple Center</span>
+          <span class="queue-item-tags"><span class="label">Submitted</span></span></span>
+        </a>
+        <a class="queue-item" href="#">
+          <span class="avatar">JM</span>
+          <span class="row-main"><span class="queue-item-top"><span class="queue-item-title">Intake</span><span class="queue-item-time">Yesterday</span></span>
+          <span class="queue-item-sub">Participant 1101 · Oak Center</span>
+          <span class="queue-item-tags"><span class="label">Submitted</span><span class="status warning"><svg class="icon" aria-hidden="true"><use href="#i-alert-triangle"/></svg>Missing 2 answers</span></span></span>
+        </a>
+        <a class="queue-item" href="#">
+          <span class="avatar">KT</span>
+          <span class="row-main"><span class="queue-item-top"><span class="queue-item-title">6-month assessment</span><span class="queue-item-time">Oct 16</span></span>
+          <span class="queue-item-sub">Participant 0871 · Oak Center</span>
+          <span class="queue-item-tags"><span class="label">Resubmitted</span></span></span>
+        </a>
+        <a class="queue-item" href="#">
+          <span class="avatar">AR</span>
+          <span class="row-main"><span class="queue-item-top"><span class="queue-item-title">Nutrition screen</span><span class="queue-item-time">Oct 15</span></span>
+          <span class="queue-item-sub">Participant 0790 · Maple Center</span>
+          <span class="queue-item-tags"><span class="label">Submitted</span></span></span>
+        </a>
       </div>
-      <div class="card"><div class="card-body"><dl class="kv"><dt>Mobility</dt><dd>[Answer]</dd><dt>Cognition</dt><dd>[Answer]</dd><dt>Nutrition</dt><dd>[Answer]</dd><dt>Notes</dt><dd class="empty-value">None</dd></dl></div></div>
-      <p class="t-small muted mt-4">Approve moves to the next item in the list. <kbd>J</kbd> and <kbd>K</kbd> move down and up.</p>
+      <div class="queue-foot"><span><kbd>J</kbd> <kbd>K</kbd> move</span><span><kbd>A</kbd> approve</span><span><kbd>S</kbd> send back</span></div>
+    </section>
+
+    <section class="detail" aria-label="Submission">
+      <div class="detail-bar">
+        <span class="detail-pos">1 of 8</span>
+        <div class="btn-group" role="group" aria-label="Move"><button class="btn btn-icon btn-sm" type="button" aria-label="Previous" disabled><svg class="icon" aria-hidden="true"><use href="#i-chevron-up"/></svg></button><button class="btn btn-icon btn-sm" type="button" aria-label="Next"><svg class="icon" aria-hidden="true"><use href="#i-chevron-down"/></svg></button></div>
+        <span class="spacer"></span>
+        <div class="menu-wrap"><button class="btn btn-icon btn-quiet" type="button" data-toggle aria-haspopup="menu" aria-expanded="false" aria-label="More actions"><svg class="icon" aria-hidden="true"><use href="#i-more"/></svg></button>
+      <div class="menu" role="menu" hidden><button class="item" role="menuitem" type="button" ><svg class="icon" aria-hidden="true"><use href="#i-flag"/></svg>Flag for later</button><button class="item" role="menuitem" type="button" ><svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg>Copy link</button><div class="menu-sep"></div><button class="item danger" role="menuitem" type="button" ><svg class="icon" aria-hidden="true"><use href="#i-trash"/></svg>Discard submission</button></div></div>
+        <button class="btn" type="button" data-toast="Sent back|The nurse is asked to confirm mobility"><svg class="icon" aria-hidden="true"><use href="#i-undo"/></svg>Send back</button>
+        <button class="btn btn-primary" type="button" data-toast="Approved|Next submission opened"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>Approve</button>
+      </div>
+      <div class="detail-body">
+        <div class="page-head">
+  <div class="page-head-main">
+    <span class="avatar avatar-lg">JM</span>
+    <div class="page-head-text">
+      <div class="page-title-row"><h1 class="t-title">6-month assessment</h1><span class="label">Submitted</span></div>
+      
+      <div class="page-meta"><span>Participant 1042</span><span>Maple Center</span><span>Submitted 2 h ago by Jordan Moss</span></div>
     </div>
+  </div>
+  
+</div>
+        <div class="stack">
+          <section class="card">
+            <div class="card-head"><h2 class="card-title">Scores</h2><span class="t-small muted">Compared with April</span></div>
+            <div class="card-body">
+              <dl class="kv">
+                <dt>Mobility</dt><dd>[Answer] <span class="status warning"><svg class="icon" aria-hidden="true"><use href="#i-arrow-down-right"/></svg>Lower than April</span></dd>
+                <dt>Cognition</dt><dd>[Answer]</dd>
+                <dt>Nutrition</dt><dd>[Answer]</dd>
+                <dt>Notes</dt><dd class="empty-value">None</dd>
+              </dl>
+            </div>
+          </section>
+          <section class="card">
+            <div class="card-head"><h2 class="card-title">Discussion</h2></div>
+            <div class="card-body">
+              <div class="thread">
+                <div class="comment event"><span class="avatar avatar-sm"><svg class="icon" aria-hidden="true"><use href="#i-activity"/></svg></span><div><div class="comment-body">Submitted by Jordan Moss · 2 h ago</div></div></div>
+                <div class="comment"><span class="avatar avatar-sm">SL</span><div><div class="comment-head"><b>Sam Lee</b><span>1 h ago</span></div><div class="comment-body">Mobility is lower than April. Can we confirm before approving?</div></div></div>
+                <div class="composer"><label class="sr-only" for="reply">Reply</label><textarea class="input" id="reply" placeholder="Reply, or @ someone"></textarea><div class="actions"><button class="btn btn-primary btn-sm" type="button" data-toast="Reply sent"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-send"/></svg>Send</button></div></div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+<div class="scrim command-scrim" id="command" hidden>
+  <div class="command" role="dialog" aria-modal="true" aria-label="Search">
+    <div class="command-input"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><input type="text" placeholder="Search participants, assessments and actions" aria-label="Search"></div>
+    <div class="command-list" role="listbox">
+      <div class="t-label">Participants</div>
+      <a class="item" aria-current="true" href="#"><span class="avatar avatar-sm">10</span>Participant 1042<span class="count">Maple Center</span></a>
+      <a class="item" href="#"><span class="avatar avatar-sm">09</span>Participant 0988<span class="count">Maple Center</span></a>
+      <div class="t-label">Actions</div>
+      <button class="item" type="button"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>New assessment</button>
+      <button class="item" type="button"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Export results</button>
+    </div>
+    <div class="command-foot"><span><kbd>↑</kbd> <kbd>↓</kbd> to move</span><span><kbd>↵</kbd> to open</span><span><kbd>esc</kbd> to close</span></div>
   </div>
 </div>
 <script src="preview.js"></script>

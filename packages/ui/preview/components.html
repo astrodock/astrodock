@@ -11,559 +11,62 @@
 </head>
 <body>
 <main class="page page-wide">
-  <a class="back" href="index.html"><svg class="icon"><use href="#i-arrow-left"/></svg>Overview</a>
-  <div class="page-head"><div class="page-head-main"><h1 class="t-title">Components</h1><p class="page-desc">Every part an app is built from, with its states, and when to use it and when not to. The controls on this page work.</p></div></div>
-
-  <div class="with-sidebar narrow-side">
-    <nav class="sidebar side-nav" aria-label="Components">
-      <span class="t-label">Actions</span>
-      <button type="button" data-target="c-buttons" class="active">Buttons</button>
-      <button type="button" data-target="c-menus">Menus</button>
-      <span class="t-label">Input</span>
-      <button type="button" data-target="c-text">Text fields</button>
-      <button type="button" data-target="c-select">Select and multi-select</button>
-      <button type="button" data-target="c-choice">Checkboxes, radios, switches</button>
-      <button type="button" data-target="c-file">File upload</button>
-      <button type="button" data-target="c-form">Form layout</button>
-      <span class="t-label">Showing data</span>
-      <button type="button" data-target="c-cards">Cards</button>
-      <button type="button" data-target="c-lists">Lists</button>
-      <button type="button" data-target="c-tables">Tables</button>
-      <button type="button" data-target="c-kv">Details and numbers</button>
-      <button type="button" data-target="c-status">Status and labels</button>
-      <button type="button" data-target="c-timeline">Timeline</button>
-      <button type="button" data-target="c-disclosure">Show more</button>
-      <button type="button" data-target="c-charts">Charts</button>
-      <span class="t-label">Moving around</span>
-      <button type="button" data-target="c-tabs">Tabs and side lists</button>
-      <button type="button" data-target="c-filters">Filters</button>
-      <span class="t-label">Feedback</span>
-      <button type="button" data-target="c-overlays">Modals and drawers</button>
-      <button type="button" data-target="c-toasts">Toasts</button>
-      <button type="button" data-target="c-notices">Notices</button>
-      <button type="button" data-target="c-empty">Empty states</button>
-      <button type="button" data-target="c-loading">Loading and progress</button>
-      <button type="button" data-target="c-tooltip">Tooltips</button>
-    </nav>
-
-    <div>
-      <!-- ============================================================ buttons -->
-      <section class="catalog-section" id="c-buttons">
-        <h2>Buttons</h2>
-        <p class="lede">Every action is a button, labeled with a verb and what it acts on ("Add competitor", not "Add" or "Submit"). One primary button per area: the thing most people came to do. Navigation is a link, not a button.</p>
-        <div class="card"><div class="card-body">
-          <div class="specimen"><div class="specimen-label"><div class="t-subheading">Kinds</div><p>Primary: the main action. Default: other actions. Quiet: cancel, low-weight actions in rows. Danger: deletes and other harm.</p></div>
-            <div class="specimen-demo actions">
-              <button class="btn btn-primary" type="button"><svg class="icon"><use href="#i-plus"/></svg>Add competitor</button>
-              <button class="btn" type="button">Edit</button>
-              <button class="btn btn-quiet" type="button">Cancel</button>
-              <button class="btn btn-danger" type="button"><svg class="icon"><use href="#i-trash"/></svg>Delete</button>
-              <button class="btn btn-danger-solid" type="button">Delete project</button>
-            </div></div>
-          <div class="specimen"><div class="specimen-label"><div class="t-subheading">Sizes</div><p>Medium everywhere. Small inside rows, tables and toolbars. Large only on sign-in and empty-state calls to action.</p></div>
-            <div class="specimen-demo actions">
-              <button class="btn btn-primary btn-lg" type="button">Large</button>
-              <button class="btn btn-primary" type="button">Medium</button>
-              <button class="btn btn-primary btn-sm" type="button">Small</button>
-              <button class="btn btn-sm" type="button">Small</button>
-            </div></div>
-          <div class="specimen"><div class="specimen-label"><div class="t-subheading">States</div><p>Working: the label stays, a spinner joins it, the button is disabled until the answer arrives. Disabled: say why in a tooltip or the hint beside it.</p></div>
-            <div class="specimen-demo actions">
-              <button class="btn btn-primary" type="button" disabled><span class="spinner"></span>Saving</button>
-              <span class="has-tip"><button class="btn" type="button" disabled>Compare pricing</button><span class="tooltip">Study at least two companies first</span></span>
-            </div></div>
-          <div class="specimen"><div class="specimen-label"><div class="t-subheading">Icon buttons</div><p>Only for universal actions, always with an accessible name.</p></div>
-            <div class="specimen-demo actions">
-              <button class="btn btn-icon" type="button" aria-label="Refresh"><svg class="icon"><use href="#i-refresh"/></svg></button>
-              <button class="btn btn-icon btn-quiet" type="button" aria-label="More actions"><svg class="icon"><use href="#i-more"/></svg></button>
-              <button class="btn btn-icon btn-quiet btn-sm" type="button" aria-label="Close"><svg class="icon"><use href="#i-x"/></svg></button>
-            </div></div>
-          <div class="specimen"><div class="specimen-label"><div class="t-subheading">Toggle group</div><p>Switching between views of the same data (grid, list). Not for filters: filters go in the sidebar.</p></div>
-            <div class="specimen-demo"><div class="btn-group" role="group" aria-label="View"><button class="btn btn-sm" type="button" aria-pressed="true">Cost</button><button class="btn btn-sm" type="button" aria-pressed="false">Tokens</button><button class="btn btn-sm" type="button" aria-pressed="false">Calls</button></div></div></div>
-          <div class="specimen"><div class="specimen-label"><div class="t-subheading">Where they go</div><p>Page actions top right of the page header, primary last. Dialog actions bottom right, primary last. Row actions at the end of the row; more than two go in a menu.</p></div>
-            <div class="specimen-demo do-dont">
-              <div class="do"><div class="t-label"><svg class="icon icon-sm"><use href="#i-check"/></svg>Do</div><ul><li>"Add competitor", "Run survey", "Delete project"</li><li>One primary button in view</li><li>Buttons for actions, even small ones (Edit, Retry)</li></ul></div>
-              <div class="dont"><div class="t-label"><svg class="icon icon-sm"><use href="#i-x"/></svg>Don't</div><ul><li>"Submit", "OK", "Click here"</li><li>Two primary buttons side by side</li><li>Text links that do things</li></ul></div>
-            </div></div>
-        </div></div>
-      </section>
-
-      <!-- ============================================================ menus -->
-      <section class="catalog-section" id="c-menus">
-        <h2>Menus</h2>
-        <p class="lede">Actions that are needed now and then sit behind a "More" button: a row's actions beyond the first two, rare page actions, and anything destructive that should not sit next to the main action. Menus never hide the main action.</p>
-        <div class="card"><div class="card-body">
-          <div class="specimen"><div class="specimen-label"><div class="t-subheading">Actions menu</div><p>Icon, verb, an optional shortcut. Destructive items last, after a separator, in red.</p></div>
-            <div class="specimen-demo"><div class="menu-wrap">
-              <button class="btn" type="button" data-toggle aria-haspopup="menu" aria-expanded="false">More<svg class="icon"><use href="#i-chevron-down"/></svg></button>
-              <div class="menu" role="menu" hidden style="left: 0; right: auto">
-                <button class="menu-item" role="menuitem" type="button"><svg class="icon"><use href="#i-pencil"/></svg>Edit details</button>
-                <button class="menu-item" role="menuitem" type="button"><svg class="icon"><use href="#i-copy"/></svg>Duplicate<kbd class="shortcut">D</kbd></button>
-                <button class="menu-item" role="menuitem" type="button"><svg class="icon"><use href="#i-download"/></svg>Export as CSV</button>
-                <div class="menu-sep"></div>
-                <button class="menu-item danger" role="menuitem" type="button" data-open="confirm-delete"><svg class="icon"><use href="#i-trash"/></svg>Delete</button>
-              </div>
-            </div></div></div>
-          <div class="specimen"><div class="specimen-label"><div class="t-subheading">Account menu</div><p>In the shell, under the avatar: who is signed in, links out, sign out.</p></div>
-            <div class="specimen-demo"><div class="menu-wrap">
-              <button class="avatar-btn" type="button" data-toggle aria-haspopup="menu" aria-expanded="false" aria-label="Account"><span class="avatar">SL</span></button>
-              <div class="menu" role="menu" hidden style="left: 0; right: auto">
-                <div class="menu-head"><div class="strong">Sam Lee</div><div class="muted t-xs">sam@example.com</div></div>
-                <div class="menu-sep"></div>
-                <a class="menu-item" role="menuitem" href="#c-menus"><svg class="icon"><use href="#i-external"/></svg>Open the company OS</a>
-                <button class="menu-item" role="menuitem" type="button"><svg class="icon"><use href="#i-log-out"/></svg>Sign out</button>
-              </div>
-            </div></div></div>
-        </div></div>
-      </section>
-
-      <!-- ============================================================ text -->
-      <section class="catalog-section" id="c-text">
-        <h2>Text fields</h2>
-        <p class="lede">A label above every field, always visible. Hints below say what is expected; errors replace hints and say how to fix it. Placeholders show an example, never the instructions.</p>
-        <div class="card"><div class="card-body">
-          <div class="specimen"><div class="specimen-label"><div class="t-subheading">Text</div><p>Label, field, hint. Optional fields are marked; required ones are not.</p></div>
-            <div class="specimen-demo" style="max-width: 420px">
-              <div class="field"><label for="tf1">Company name</label><input id="tf1" class="input" value="StoriiCare"></div>
-              <div class="field"><label for="tf2">Website <span class="optional">Optional</span></label><input id="tf2" class="input" placeholder="storiicare.com"><div class="field-hint">Its whole site is read, including help and docs subdomains.</div></div>
-            </div></div>
-          <div class="specimen"><div class="specimen-label"><div class="t-subheading">Error</div><p>Shown when the field is left, or on save. Says what is wrong and what to do.</p></div>
-            <div class="specimen-demo" style="max-width: 420px">
-              <div class="field"><label for="tf3">Website</label><input id="tf3" class="input" value="storiicare" aria-invalid="true" aria-describedby="tf3e"><div class="field-error" id="tf3e"><svg class="icon icon-sm"><use href="#i-alert-circle"/></svg>Enter a full address, like storiicare.com</div></div>
-            </div></div>
-          <div class="specimen"><div class="specimen-label"><div class="t-subheading">Disabled and read-only</div><p>Read-only for values people should see and copy but not change here.</p></div>
-            <div class="specimen-demo form-row" style="max-width: 640px">
-              <div class="field"><label for="tf4">Plan</label><input id="tf4" class="input" value="Set by your administrator" disabled></div>
-              <div class="field"><label for="tf5">App address</label><input id="tf5" class="input mono" value="intel.apps.example.com" readonly></div>
-            </div></div>
-          <div class="specimen"><div class="specimen-label"><div class="t-subheading">Search, prefix, suffix</div><p>Search fields carry the icon. Units sit in the field, not in the label.</p></div>
-            <div class="specimen-demo stack" style="max-width: 420px">
-              <div class="input-wrap"><svg class="icon"><use href="#i-search"/></svg><input class="input" type="search" placeholder="Search facts" aria-label="Search facts"></div>
-              <div class="input-affix"><span class="affix">$</span><input class="input num" value="750" aria-label="Monthly fee"><span class="affix">per center per month</span></div>
-            </div></div>
-          <div class="specimen"><div class="specimen-label"><div class="t-subheading">Long text</div><p>Grows with its content up to a limit, then scrolls.</p></div>
-            <div class="specimen-demo" style="max-width: 560px"><div class="field"><label for="tf6">The market</label><textarea id="tf6" class="textarea">Software for adult day centers in the US: attendance, care plans, billing, family communication.</textarea><div class="field-hint">The survey searches from this.</div></div></div></div>
-          <div class="specimen"><div class="specimen-label"><div class="t-subheading">Dates and times</div><p>The browser's own date and time pickers, styled as fields. Show dates as "Oct 19, 2026", times in the person's time zone.</p></div>
-            <div class="specimen-demo form-row" style="max-width: 560px">
-              <div class="field"><label for="tf7">Start date</label><input id="tf7" class="input" type="date" value="2026-11-02"></div>
-              <div class="field"><label for="tf8">Daily at</label><input id="tf8" class="input" type="time" value="06:00"></div>
-            </div></div>
-        </div></div>
-      </section>
-
-      <!-- ============================================================ select -->
-      <section class="catalog-section" id="c-select">
-        <h2>Select and multi-select</h2>
-        <p class="lede">Never the browser's own select: it ignores the app's type and cannot show a description. Options can carry a second line saying what they mean. Long lists get a search box. Multi-select shows checkboxes and a count.</p>
-        <div class="card"><div class="card-body">
-          <div class="specimen"><div class="specimen-label"><div class="t-subheading">Select</div><p>One choice from up to about ten. More than ten: add search.</p><div class="use"><b>Not for</b> two or three choices that should all be visible: use radios.</div></div>
-            <div class="specimen-demo" style="max-width: 360px">
-              <div class="field"><span class="field-label" id="sel1l">Study</span>
-                <div class="select">
-                  <button class="select-trigger" type="button" data-toggle aria-haspopup="listbox" aria-expanded="false" aria-labelledby="sel1l"><span class="value">Light profile</span><svg class="icon"><use href="#i-chevron-down"/></svg></button>
-                  <div class="popover" hidden><div class="listbox" role="listbox" aria-labelledby="sel1l">
-                    <div class="option" role="option" aria-selected="true" data-label="Light profile"><svg class="icon check-mark"><use href="#i-check"/></svg><span><span class="option-text">Light profile</span><span class="option-hint">Key pages only: home, pricing, product, about. Read once.</span></span></div>
-                    <div class="option" role="option" aria-selected="false" data-label="Full study"><svg class="icon check-mark"><use href="#i-check"/></svg><span><span class="option-text">Full study</span><span class="option-hint">The whole site and help docs, news, website history, re-checked.</span></span></div>
-                    <div class="option" role="option" aria-selected="false" data-label="Not now"><svg class="icon check-mark"><use href="#i-check"/></svg><span><span class="option-text">Not now</span><span class="option-hint">Add it without collecting anything yet.</span></span></div>
-                  </div></div>
-                </div>
-              </div>
-            </div></div>
-          <div class="specimen"><div class="specimen-label"><div class="t-subheading">Searchable select</div><p>For companies, people and other long lists. Typing filters; groups keep their headings.</p></div>
-            <div class="specimen-demo" style="max-width: 360px">
-              <div class="field"><span class="field-label" id="sel2l">Company</span>
-                <div class="select">
-                  <button class="select-trigger" type="button" data-toggle aria-haspopup="listbox" aria-expanded="false" aria-labelledby="sel2l"><span class="value placeholder">All companies</span><svg class="icon"><use href="#i-chevron-down"/></svg></button>
-                  <div class="popover" hidden>
-                    <div class="popover-search"><div class="input-wrap"><svg class="icon"><use href="#i-search"/></svg><input class="input input-sm" type="search" placeholder="Search" aria-label="Search companies"></div></div>
-                    <div class="listbox" role="listbox" aria-labelledby="sel2l">
-                      <div class="t-label listbox-group">This project</div>
-                      <div class="option" role="option" aria-selected="false"><svg class="icon check-mark"><use href="#i-check"/></svg><span class="option-text">Collabrios</span></div>
-                      <div class="option" role="option" aria-selected="false"><svg class="icon check-mark"><use href="#i-check"/></svg><span class="option-text">Seniorverse</span></div>
-                      <div class="option" role="option" aria-selected="false"><svg class="icon check-mark"><use href="#i-check"/></svg><span class="option-text">StoriiCare</span></div>
-                      <div class="t-label listbox-group">Other projects</div>
-                      <div class="option" role="option" aria-selected="false"><svg class="icon check-mark"><use href="#i-check"/></svg><span class="option-text">Turning Point Systems</span></div>
-                      <div class="option" role="option" aria-selected="false"><svg class="icon check-mark"><use href="#i-check"/></svg><span class="option-text">WellSky Adult Day</span></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div></div>
-          <div class="specimen"><div class="specimen-label"><div class="t-subheading">Multi-select</div><p>Several choices from a list too long for checkboxes in place. Shows up to two names, then a count. Clear and Done at the bottom.</p></div>
-            <div class="specimen-demo" style="max-width: 360px">
-              <div class="field"><span class="field-label" id="sel3l">Event types</span>
-                <div class="select multi">
-                  <button class="select-trigger" type="button" data-toggle aria-haspopup="listbox" aria-expanded="false" aria-labelledby="sel3l"><span class="value" data-placeholder="All types">All types</span><svg class="icon"><use href="#i-chevron-down"/></svg></button>
-                  <div class="popover" hidden>
-                    <div class="popover-search"><div class="input-wrap"><svg class="icon"><use href="#i-search"/></svg><input class="input input-sm" type="search" placeholder="Search" aria-label="Search types"></div></div>
-                    <div class="listbox" style="padding: 0 8px">
-                      <label class="check" data-label="Funding"><input type="checkbox" checked> Funding <span class="count">4</span></label>
-                      <label class="check" data-label="Product launch"><input type="checkbox" checked> Product launch <span class="count">11</span></label>
-                      <label class="check" data-label="Leadership"><input type="checkbox"> Leadership <span class="count">6</span></label>
-                      <label class="check" data-label="Partnership"><input type="checkbox"> Partnership <span class="count">5</span></label>
-                      <label class="check" data-label="Pricing change"><input type="checkbox"> Pricing change <span class="count">3</span></label>
-                      <label class="check" data-label="Customer win"><input type="checkbox"> Customer win <span class="count">9</span></label>
-                    </div>
-                    <div class="popover-foot"><button class="btn btn-sm btn-quiet" type="button">Clear</button><button class="btn btn-sm btn-primary" type="button" data-toggle-close>Done</button></div>
-                  </div>
-                </div>
-              </div>
-            </div></div>
-        </div></div>
-      </section>
-
-      <!-- ============================================================ choice -->
-      <section class="catalog-section" id="c-choice">
-        <h2>Checkboxes, radios, switches</h2>
-        <p class="lede">Checkboxes for independent yes/no choices and multi-select filters. Radios for one of two to five choices that should all be visible. Choice cards when each option needs a sentence. Switches only for settings that take effect immediately.</p>
-        <div class="card"><div class="card-body">
-          <div class="specimen"><div class="specimen-label"><div class="t-subheading">Checkboxes and radios</div></div>
-            <div class="specimen-demo grid-2" style="max-width: 560px">
-              <fieldset class="fieldset" style="margin: 0"><legend class="t-label mb-2" style="font-size: var(--text-xs)">Show</legend>
-                <label class="check"><input type="checkbox" checked> Important only</label>
-                <label class="check"><input type="checkbox"> Where companies differ</label>
-                <label class="check"><input type="checkbox"> Where we lack it</label>
-              </fieldset>
-              <fieldset class="fieldset" style="margin: 0"><legend class="t-label mb-2" style="font-size: var(--text-xs)">Repeat the survey</legend>
-                <label class="check"><input type="radio" name="rp" checked> Every month</label>
-                <label class="check"><input type="radio" name="rp"> Every 3 months</label>
-                <label class="check"><input type="radio" name="rp"> Only when asked</label>
-              </fieldset>
-            </div></div>
-          <div class="specimen"><div class="specimen-label"><div class="t-subheading">Choice cards</div><p>A decision with consequences people should read.</p></div>
-            <div class="specimen-demo grid-2" style="max-width: 640px">
-              <label class="check-card"><input type="radio" name="lvl" checked><span><span class="strong">Light profile</span><span class="check-desc">Key pages only: home, pricing, product, about. Read once, no news or history.</span></span></label>
-              <label class="check-card"><input type="radio" name="lvl"><span><span class="strong">Full study</span><span class="check-desc">The whole site and help docs, news, website history, re-checked weekly.</span></span></label>
-            </div></div>
-          <div class="specimen"><div class="specimen-label"><div class="t-subheading">Switch</div><p>Takes effect when flipped, with a toast. Not inside a form with a Save button: use a checkbox there.</p></div>
-            <div class="specimen-demo stack-sm">
-              <button class="switch" type="button" role="switch" aria-checked="true"><span class="switch-track"></span>Write a digest every week</button>
-              <button class="switch" type="button" role="switch" aria-checked="false"><span class="switch-track"></span>Email me when a notable change is found</button>
-            </div></div>
-        </div></div>
-      </section>
-
-      <!-- ============================================================ file -->
-      <section class="catalog-section" id="c-file">
-        <h2>File upload</h2>
-        <p class="lede">A drop area that is also a button. Say what files are accepted and how large. Each file shows its progress, then a row with remove.</p>
-        <div class="card"><div class="card-body" style="max-width: 640px">
-          <button class="dropzone w-full" type="button"><svg class="icon icon-lg"><use href="#i-upload"/></svg><span class="strong">Drop files here, or choose files</span><span class="t-small">PDF, Word or CSV, up to 25 MB each</span></button>
-          <div class="stack-sm mt-4">
-            <div class="file-row"><svg class="icon"><use href="#i-file"/></svg><div class="row-main"><div class="truncate">G2 reviews export.csv</div><div class="progress mt-2"><span style="width: 64%"></span></div></div><span class="muted num">64%</span></div>
-            <div class="file-row"><svg class="icon"><use href="#i-file"/></svg><div class="row-main truncate">Sales call notes.pdf <span class="muted">· 1.2 MB</span></div><button class="btn btn-sm btn-quiet btn-icon" type="button" aria-label="Remove file"><svg class="icon"><use href="#i-x"/></svg></button></div>
-          </div>
-        </div></div>
-      </section>
-
-      <!-- ============================================================ form layout -->
-      <section class="catalog-section" id="c-form">
-        <h2>Form layout</h2>
-        <p class="lede">One column by default; two short fields may share a row when they belong together (city and state). Group fields under headings when there are more than six. Five fields or fewer: a modal. More: a page (see Create and edit).</p>
-        <div class="card"><div class="card-body" style="max-width: 720px">
-          <fieldset class="fieldset"><legend>The market</legend><div class="fieldset-desc">What the survey and comparisons work from.</div>
-            <div class="field"><label for="fl1">Project name</label><input id="fl1" class="input" value="Seniorverse Day"></div>
-            <div class="form-row"><div class="field"><label for="fl2">Compare prices at</label><div class="input-affix"><input id="fl2" class="input num" value="50"><span class="affix">participants</span></div></div><div class="field"><label for="fl3">Digest every</label><div class="input-affix"><input id="fl3" class="input num" value="7"><span class="affix">days</span></div></div></div>
-          </fieldset>
-        </div><div class="card-foot"><button class="btn btn-quiet" type="button">Cancel</button><button class="btn btn-primary" type="button" data-toast="Settings saved">Save</button></div></div>
-      </section>
-
-      <!-- ============================================================ cards -->
-      <section class="catalog-section" id="c-cards">
-        <h2>Cards</h2>
-        <p class="lede">A card groups one topic on a page: a title, optional actions on the right, content, and a footer for its own actions. Cards are not nested. A whole card can be a link when it stands for a record.</p>
-        <div class="grid-2">
-          <div class="card">
-            <div class="card-head"><h3 class="card-title">At a glance</h3><button class="btn btn-sm btn-quiet" type="button">Edit</button></div>
-            <div class="card-body"><dl class="kv"><dt>What they sell</dt><dd>Care management and EHR software <button class="cite" type="button">F112</button></dd><dt>Founded</dt><dd>2016 <button class="cite" type="button">F9</button></dd><dt>Team size</dt><dd class="empty-value">Not found</dd></dl></div>
-          </div>
-          <a class="card card-link" href="#c-cards"><div class="card-body">
-            <div class="row-title mb-2">Seniorverse Day <svg class="icon icon-sm faint"><use href="#i-arrow-right"/></svg></div>
-            <p class="t-small muted">Adult day center software in the US</p>
-            <div class="page-meta"><span><b>3</b> competitors</span><span><b>12</b> to review</span><span>2 changes this week</span></div>
-          </div></a>
-        </div>
-      </section>
-
-      <!-- ============================================================ lists -->
-      <section class="catalog-section" id="c-lists">
-        <h2>Lists</h2>
-        <p class="lede">For records people scan by name: a title, one line of context, and meta on the right. Use a table instead when people compare values across rows.</p>
-        <div class="list" data-selectable="#list-bulk">
-          <div class="row"><input type="checkbox" class="row-check" aria-label="Select StoriiCare"><div class="row-main"><a class="row-title" href="page-record.html">StoriiCare</a><div class="row-sub">storiicare.com · Care management and EHR for adult day, home care and care homes</div></div><div class="row-meta"><div>Full study · 1,842 facts</div><div class="faint">Notable change 2 d ago</div></div><div class="row-actions"><div class="menu-wrap"><button class="btn btn-sm btn-quiet btn-icon" type="button" data-toggle aria-haspopup="menu" aria-expanded="false" aria-label="Actions for StoriiCare"><svg class="icon"><use href="#i-more"/></svg></button><div class="menu" role="menu" hidden><button class="menu-item" type="button" role="menuitem"><svg class="icon"><use href="#i-play"/></svg>Collect again</button><div class="menu-sep"></div><button class="menu-item danger" type="button" role="menuitem">Remove from project</button></div></div></div></div>
-          <div class="row"><input type="checkbox" class="row-check" aria-label="Select Collabrios"><div class="row-main"><a class="row-title" href="page-record.html">Collabrios</a><div class="row-sub">collabrios.com · Adult day and aging services software with billing</div></div><div class="row-meta"><div>Light profile · 214 facts</div><div class="faint">Collected 3 d ago</div></div><div class="row-actions"><button class="btn btn-sm btn-quiet btn-icon" type="button" aria-label="Actions for Collabrios"><svg class="icon"><use href="#i-more"/></svg></button></div></div>
-          <div class="row"><input type="checkbox" class="row-check" aria-label="Select Turning Point"><div class="row-main"><a class="row-title" href="page-record.html">Turning Point Systems</a><div class="row-sub">No website yet</div></div><div class="row-meta">Not studied yet</div><div class="row-actions"><button class="btn btn-sm btn-quiet btn-icon" type="button" aria-label="Actions for Turning Point Systems"><svg class="icon"><use href="#i-more"/></svg></button></div></div>
-        </div>
-        <div class="bulk-bar mt-2" id="list-bulk" hidden><span class="selected-count">0 selected</span><div class="spacer"></div><button class="btn btn-sm" type="button">Dismiss</button><button class="btn btn-sm btn-primary" type="button">Full study</button></div>
-      </section>
-
-      <!-- ============================================================ tables -->
-      <section class="catalog-section" id="c-tables">
-        <h2>Tables</h2>
-        <p class="lede">For comparing values across rows. Headers sort when clicked. Numbers align right and use tabular figures. Selecting rows brings up the bulk bar above the table. A row opens its record; its own actions sit at the end. Show the total count and load more as people scroll down.</p>
-        <div class="bulk-bar" id="table-bulk" hidden><span class="selected-count">0 selected</span><div class="spacer"></div><button class="btn btn-sm" type="button">Cancel jobs</button><button class="btn btn-sm btn-primary" type="button" data-toast="2 jobs queued again">Retry</button></div>
-        <div class="table-box" data-selectable="#table-bulk">
-          <table class="table">
-            <thead><tr>
-              <th class="check-col"><input type="checkbox" class="all-check" aria-label="Select all"></th>
-              <th class="sortable" aria-sort="descending">When <svg class="icon icon-sm"><use href="#i-chevron-down"/></svg></th>
-              <th class="sortable">Job <svg class="icon icon-sm"><use href="#i-chevrons-up-down"/></svg></th>
-              <th>For</th><th>Status</th><th class="num">AI calls</th><th class="num sortable">Cost <svg class="icon icon-sm"><use href="#i-chevrons-up-down"/></svg></th><th class="actions-col"><span class="sr-only">Actions</span></th>
-            </tr></thead>
-            <tbody>
-              <tr class="group"><td colspan="8">Today</td></tr>
-              <tr class="clickable"><td class="check-col"><input type="checkbox" class="row-check" aria-label="Select job 4182"></td><td class="num">2:14 PM</td><td class="primary">Read an item</td><td>StoriiCare</td><td><span class="status success"><svg class="icon icon-sm"><use href="#i-check-circle"/></svg>Done</span></td><td class="num">2</td><td class="num">$0.04</td><td class="actions-col"><button class="btn btn-sm btn-quiet btn-icon" type="button" aria-label="Actions"><svg class="icon"><use href="#i-more"/></svg></button></td></tr>
-              <tr class="clickable"><td class="check-col"><input type="checkbox" class="row-check" aria-label="Select job 4181"></td><td class="num">2:13 PM</td><td class="primary">Crawl pages</td><td>Collabrios</td><td><span class="status"><svg class="icon icon-sm"><use href="#i-loader"/></svg>Running</span></td><td class="num"></td><td class="num"></td><td class="actions-col"><button class="btn btn-sm btn-quiet btn-icon" type="button" aria-label="Actions"><svg class="icon"><use href="#i-more"/></svg></button></td></tr>
-              <tr class="clickable"><td class="check-col"><input type="checkbox" class="row-check" aria-label="Select job 4176"></td><td class="num">1:58 PM</td><td class="primary">Write the profile</td><td>StoriiCare</td><td><span class="status danger"><svg class="icon icon-sm"><use href="#i-alert-triangle"/></svg>Failed</span></td><td class="num">4</td><td class="num">$0.61</td><td class="actions-col"><button class="btn btn-sm" type="button">Retry</button></td></tr>
-              <tr class="group"><td colspan="8">Yesterday</td></tr>
-              <tr class="clickable"><td class="check-col"><input type="checkbox" class="row-check" aria-label="Select job 4102"></td><td class="num">11:02 PM</td><td class="primary">Survey for competitors</td><td>Seniorverse Day</td><td><span class="status success"><svg class="icon icon-sm"><use href="#i-check-circle"/></svg>Done</span></td><td class="num">31</td><td class="num">$1.92</td><td class="actions-col"><button class="btn btn-sm btn-quiet btn-icon" type="button" aria-label="Actions"><svg class="icon"><use href="#i-more"/></svg></button></td></tr>
-            </tbody>
-          </table>
-          <div class="table-foot"><span>Showing 4 of 2,318 jobs</span><button class="btn btn-sm" type="button">Load more</button></div>
-        </div>
-      </section>
-
-      <!-- ============================================================ kv and stats -->
-      <section class="catalog-section" id="c-kv">
-        <h2>Details and numbers</h2>
-        <p class="lede">Key-value lists for a record's fields. Stat tiles for the few numbers that matter, each linking to the list behind it. Say "Not found" or "None" rather than leaving a blank.</p>
-        <div class="grid-2">
-          <div class="card"><div class="card-body"><dl class="kv">
-            <dt>Status</dt><dd><span class="status success"><svg class="icon icon-sm"><use href="#i-check-circle"/></svg>Done</span></dd>
-            <dt>Started</dt><dd>Oct 19, 2026, 2:13 PM · waited 4 s</dd>
-            <dt>Took</dt><dd>1 min 42 s</dd>
-            <dt>For</dt><dd><a href="page-record.html">StoriiCare</a></dd>
-            <dt>Error</dt><dd class="empty-value">None</dd>
-          </dl></div></div>
-          <div class="stat-grid">
-            <a class="stat" href="page-activity.html"><div class="stat-label">Spent today</div><div class="stat-value">$4.18</div><div class="stat-sub">AI $3.93 · Search $0.25</div></a>
-            <a class="stat" href="page-list.html"><div class="stat-label">Candidates to review</div><div class="stat-value">12</div><div class="stat-sub"><svg class="icon icon-sm up"><use href="#i-arrow-up-right"/></svg><span class="up">5</span> since the last survey</div></a>
-          </div>
-        </div>
-      </section>
-
-      <!-- ============================================================ status -->
-      <section class="catalog-section" id="c-status">
-        <h2>Status and labels</h2>
-        <p class="lede">Status is an icon and a word, in the color of its meaning. Labels describe a record (its level, its role) in neutral gray and are never clickable. Neither is a filter: filters live in the sidebar.</p>
-        <div class="card"><div class="card-body">
-          <div class="specimen"><div class="specimen-label"><div class="t-subheading">Status</div><p>The same five words across every app.</p></div>
-            <div class="specimen-demo actions" style="gap: 18px">
-              <span class="status success"><svg class="icon icon-sm"><use href="#i-check-circle"/></svg>Done</span>
-              <span class="status"><span class="spinner" style="width: 13px; height: 13px"></span>Running</span>
-              <span class="status neutral"><svg class="icon icon-sm"><use href="#i-clock"/></svg>Queued</span>
-              <span class="status warning"><svg class="icon icon-sm"><use href="#i-alert-triangle"/></svg>Needs setup</span>
-              <span class="status danger"><svg class="icon icon-sm"><use href="#i-alert-triangle"/></svg>Failed</span>
-            </div></div>
-          <div class="specimen"><div class="specimen-label"><div class="t-subheading">Labels</div><p>Short nouns. The accent version only for "you" or "us".</p></div>
-            <div class="specimen-demo actions"><span class="label">Full study</span><span class="label">Light profile</span><span class="label">Draft</span><span class="label label-accent">Us</span></div></div>
-          <div class="specimen"><div class="specimen-label"><div class="t-subheading">Avatars</div><p>Initials on a neutral circle. Photos only when the app has them for everyone.</p></div>
-            <div class="specimen-demo actions"><span class="avatar">SL</span><span class="avatar">JM</span><span class="avatar avatar-sm">AR</span></div></div>
-        </div></div>
-      </section>
-
-      <!-- ============================================================ timeline -->
-      <section class="catalog-section" id="c-timeline">
-        <h2>Timeline</h2>
-        <p class="lede">History in date order, newest first, grouped by year. The icon says where the entry came from. Dates show only as precisely as they are known ("2021", "Mar 2021").</p>
-        <div class="card"><div class="card-body">
-          <div class="timeline-year" style="margin-top: 0">2026</div>
-          <ol class="timeline">
-            <li class="timeline-item"><div class="timeline-date">Oct 17</div><div class="timeline-mark"><span class="dot"><svg class="icon icon-sm"><use href="#i-eye"/></svg></span><span class="stem"></span></div><div class="timeline-body"><div class="strong">Pricing page lists a per-participant plan</div><div class="t-small muted">Site change we saw · Notable · <a href="page-record.html">storiicare.com/pricing</a></div></div></li>
-            <li class="timeline-item"><div class="timeline-date">Mar 2026</div><div class="timeline-mark"><span class="dot"><svg class="icon icon-sm"><use href="#i-newspaper"/></svg></span><span class="stem"></span></div><div class="timeline-body"><div class="strong">Launched a billing module for adult day</div><div class="t-small" style="color: var(--ink-2)">Two press releases and a blog post describe the launch. <button class="cite" type="button">3 sources</button></div><div class="t-small muted">Product launch · Notable</div></div></li>
-            <li class="timeline-item"><div class="timeline-date">2021</div><div class="timeline-mark"><span class="dot"><svg class="icon icon-sm"><use href="#i-archive"/></svg></span><span class="stem"></span></div><div class="timeline-body"><div class="strong">Between Mar and Aug 2021 the Pro plan went from $149 to $199</div><div class="t-small muted">From an archived copy · Worth knowing · <a href="#c-timeline">Archived copy</a></div></div></li>
-          </ol>
-        </div></div>
-      </section>
-
-      <!-- ============================================================ disclosure -->
-      <section class="catalog-section" id="c-disclosure">
-        <h2>Show more</h2>
-        <p class="lede">Summary first, detail on demand. Lead with the two sentences that matter, then a quiet button reveals the rest. For a list of independent topics, use disclosure rows.</p>
-        <div class="card"><div class="card-head"><h3 class="card-title">Pricing</h3><span class="t-small muted">Version 3 · 14 facts</span></div>
-          <div class="card-body">
-            <p>Published pricing is per participant per month, with a minimum per center. <button class="cite" type="button">F301</button></p>
-            <button class="btn btn-sm btn-quiet" type="button" data-reveal="pricing-detail" aria-expanded="false"><svg class="icon icon-sm"><use href="#i-chevron-right"/></svg><span class="reveal-label">Show detail</span></button>
-            <div id="pricing-detail" hidden class="prose mt-4" style="padding-top: var(--space-4); box-shadow: inset 0 1px 0 var(--line)"><p>The detail of the section goes here, with its tables and citations.</p></div>
-          </div></div>
-        <details class="disclosure mt-4"><summary><svg class="icon"><use href="#i-chevron-right"/></svg>How are facts checked?</summary><div class="disclosure-body t-small muted">Each fact keeps the exact words it rests on; a fact whose words are not on the page is dropped.</div></details>
-        <details class="disclosure"><summary><svg class="icon"><use href="#i-chevron-right"/></svg>Why is a section marked draft?</summary><div class="disclosure-body t-small muted">Sections are drafts until someone marks them reviewed.</div></details>
-      </section>
-
-      <!-- ============================================================ charts -->
-      <section class="catalog-section" id="c-charts">
-        <h2>Charts</h2>
-        <p class="lede">Bars for amounts over time, lines for trends. Series colors in a fixed order and kept with their thing when filters change. A legend whenever there are two series or more, a tooltip on hover, one axis only. Status colors are never series colors. When a single number says it, use a stat tile instead of a chart.</p>
-        <div class="card"><div class="card-head"><h3 class="card-title">Estimated cost per day</h3><div class="btn-group" role="group" aria-label="Period"><button class="btn btn-sm" type="button" aria-pressed="true">7 days</button><button class="btn btn-sm" type="button" aria-pressed="false">30 days</button></div></div>
-          <div class="card-body">
-            <div class="chart-legend"><span><i style="background: var(--series-1)"></i>Opus 5.5</span><span><i style="background: var(--series-2)"></i>Haiku 4.5</span><span><i style="background: var(--series-3)"></i>Search</span></div>
-            <svg viewBox="0 0 700 180" width="100%" role="img" aria-label="Estimated cost per day for the last 7 days, split by model and search">
-              <line class="chart-grid" x1="40" x2="690" y1="150" y2="150"/><line class="chart-grid" x1="40" x2="690" y1="90" y2="90"/><line class="chart-grid" x1="40" x2="690" y1="30" y2="30"/>
-              <text class="chart-axis" x="34" y="153" text-anchor="end">$0</text><text class="chart-axis" x="34" y="93" text-anchor="end">$5</text><text class="chart-axis" x="34" y="33" text-anchor="end">$10</text>
-              <g>
-                <rect x="78" y="114" width="26" height="36" rx="0" fill="var(--series-1)"/><rect x="78" y="100" width="26" height="12" fill="var(--series-2)"/><path d="M78 98 V94 Q78 90 82 90 H100 Q104 90 104 94 V98 Z" fill="var(--series-3)"/>
-                <rect x="170" y="90" width="26" height="60" fill="var(--series-1)"/><rect x="170" y="72" width="26" height="16" fill="var(--series-2)"/><path d="M170 70 V64 Q170 60 174 60 H192 Q196 60 196 64 V70 Z" fill="var(--series-3)"/>
-                <rect x="262" y="120" width="26" height="30" fill="var(--series-1)"/><path d="M262 118 V110 Q262 106 266 106 H284 Q288 106 288 110 V118 Z" fill="var(--series-2)"/>
-                <rect x="354" y="70" width="26" height="80" fill="var(--series-1)"/><rect x="354" y="50" width="26" height="18" fill="var(--series-2)"/><path d="M354 48 V42 Q354 38 358 38 H376 Q380 38 380 42 V48 Z" fill="var(--series-3)"/>
-                <rect x="446" y="104" width="26" height="46" fill="var(--series-1)"/><path d="M446 102 V92 Q446 88 450 88 H468 Q472 88 472 92 V102 Z" fill="var(--series-2)"/>
-                <rect x="538" y="96" width="26" height="54" fill="var(--series-1)"/><rect x="538" y="80" width="26" height="14" fill="var(--series-2)"/><path d="M538 78 V74 Q538 70 542 70 H560 Q564 70 564 74 V78 Z" fill="var(--series-3)"/>
-                <path d="M630 150 V128 Q630 124 634 124 H652 Q656 124 656 128 V150 Z" fill="var(--series-1)"/>
-              </g>
-              <text class="chart-axis" x="91" y="170" text-anchor="middle">Oct 13</text><text class="chart-axis" x="183" y="170" text-anchor="middle">Oct 14</text><text class="chart-axis" x="275" y="170" text-anchor="middle">Oct 15</text><text class="chart-axis" x="367" y="170" text-anchor="middle">Oct 16</text><text class="chart-axis" x="459" y="170" text-anchor="middle">Oct 17</text><text class="chart-axis" x="551" y="170" text-anchor="middle">Oct 18</text><text class="chart-axis" x="643" y="170" text-anchor="middle">Oct 19</text>
-            </svg>
-          </div></div>
-      </section>
-
-      <!-- ============================================================ tabs -->
-      <section class="catalog-section" id="c-tabs">
-        <h2>Tabs and side lists</h2>
-        <p class="lede">Tabs split a record into views (Profile, Timeline, Facts) and sit under the page header. The selected tab is in the URL so back and reload return to it. Counts show how much is in each. A long single page gets a side list of its sections instead.</p>
-        <div class="card"><div class="card-body">
-          <div class="tabs" role="tablist" data-tabs="#tab-demo">
-            <button class="tab active" role="tab" aria-selected="true" type="button" data-tab="a">Profile</button>
-            <button class="tab" role="tab" aria-selected="false" type="button" data-tab="b">Timeline<span class="count">38</span></button>
-            <button class="tab" role="tab" aria-selected="false" type="button" data-tab="c">Facts<span class="count">1,842</span></button>
-          </div>
-          <div id="tab-demo"><div data-panel="a" class="t-small muted">The profile tab's content.</div><div data-panel="b" hidden class="t-small muted">The timeline tab's content.</div><div data-panel="c" hidden class="t-small muted">The facts tab's content.</div></div>
-        </div></div>
-      </section>
-
-      <!-- ============================================================ filters -->
-      <section class="catalog-section" id="c-filters">
-        <h2>Filters</h2>
-        <p class="lede">Filters live in a sidebar on the left of the results: a search box, then groups of checkboxes with counts, then selects for long lists. Every filter is in the URL. A "Clear" button appears once anything is set. Never a row of clickable pills.</p>
-        <div class="card"><div class="card-body" style="max-width: 260px">
-          <div class="stack">
-            <div class="filters-head"><span class="t-subheading">Filters</span><button class="btn btn-sm btn-quiet" type="button">Clear</button></div>
-            <div class="input-wrap"><svg class="icon"><use href="#i-search"/></svg><input class="input" type="search" placeholder="Search errors and progress" aria-label="Search"></div>
-            <div class="filter-group"><span class="t-label">Status</span>
-              <label class="check"><input type="checkbox"> Running <span class="count">7</span></label>
-              <label class="check"><input type="checkbox" checked> Failed <span class="count">3</span></label>
-              <label class="check"><input type="checkbox"> Done <span class="count">2,308</span></label>
-            </div>
-            <div class="filter-group"><span class="t-label">Company</span>
-              <div class="select"><button class="select-trigger" type="button" data-toggle aria-haspopup="listbox" aria-expanded="false" aria-label="Company"><span class="value">All companies</span><svg class="icon"><use href="#i-chevron-down"/></svg></button>
-                <div class="popover" hidden><div class="listbox" role="listbox"><div class="option" role="option" aria-selected="true" data-label="All companies"><svg class="icon check-mark"><use href="#i-check"/></svg>All companies</div><div class="option" role="option" aria-selected="false" data-label="StoriiCare"><svg class="icon check-mark"><use href="#i-check"/></svg>StoriiCare</div><div class="option" role="option" aria-selected="false" data-label="Collabrios"><svg class="icon check-mark"><use href="#i-check"/></svg>Collabrios</div></div></div></div>
-            </div>
-          </div>
-        </div></div>
-      </section>
-
-      <!-- ============================================================ overlays -->
-      <section class="catalog-section" id="c-overlays">
-        <h2>Modals and drawers</h2>
-        <p class="lede">A modal is for a short task that blocks the page: a small form (five fields or fewer), a confirmation, a choice. A drawer shows a record's detail beside the list it came from, so people can go through items one by one. Anything longer is a page. Escape and the scrim close both; a form with changes asks first.</p>
-        <div class="card"><div class="card-body">
-          <div class="actions">
-            <button class="btn" type="button" data-open="modal-form">Open a form modal</button>
-            <button class="btn btn-danger" type="button" data-open="confirm-delete">Open a confirmation</button>
-            <button class="btn" type="button" data-open="drawer-demo">Open a drawer</button>
-          </div>
-          <div class="specimen mt-4"><div class="specimen-label"><div class="t-subheading">Confirm only what cannot be undone</div><p>Deleting a project asks first and names what goes. Removing a company from a project does not: it shows a toast with Undo.</p></div>
-            <div class="specimen-demo"><div class="inline-overlay">
-              <div class="modal modal-sm" role="dialog" aria-labelledby="cm-t" aria-modal="false">
-                <div class="modal-head"><div><div class="modal-title" id="cm-t">Delete Seniorverse Day?</div></div></div>
-                <div class="modal-body t-small" style="color: var(--ink-2)">The project, its surveys, comparisons and digests are deleted. Its companies and what was collected about them are kept.</div>
-                <div class="modal-foot"><button class="btn btn-quiet" type="button">Cancel</button><button class="btn btn-danger-solid" type="button">Delete project</button></div>
-              </div>
-            </div></div></div>
-        </div></div>
-      </section>
-
-      <!-- ============================================================ toasts -->
-      <section class="catalog-section" id="c-toasts">
-        <h2>Toasts</h2>
-        <p class="lede">A toast confirms an action that worked, or offers Undo. It appears at the bottom center, stays six seconds, and never holds anything people must read later. Errors that block work go in the page, next to what failed.</p>
-        <div class="card"><div class="card-body actions">
-          <button class="btn" type="button" data-toast="Settings saved">Show a confirmation</button>
-          <button class="btn" type="button" data-toast="StoriiCare removed from the project" data-undo="true">Show one with Undo</button>
-          <button class="btn" type="button" data-toast="Could not reach the server. Your changes are kept; try again." data-kind="danger">Show an error</button>
-        </div></div>
-      </section>
-
-      <!-- ============================================================ notices -->
-      <section class="catalog-section" id="c-notices">
-        <h2>Notices</h2>
-        <p class="lede">A notice sits in the page and stays until the situation changes: something is not set up, a run stopped, a record is read-only. Shaded, with an icon and a bold first line. No colored side bar.</p>
-        <div class="stack">
-          <div class="notice"><svg class="icon"><use href="#i-info"/></svg><div class="notice-body"><div class="notice-title">This profile is a light profile.</div>Only the key pages were read. A full study adds help docs, news and website history.<div class="actions"><button class="btn btn-sm" type="button">Upgrade to full study</button></div></div></div>
-          <div class="notice warning"><svg class="icon"><use href="#i-alert-triangle"/></svg><div class="notice-body"><div class="notice-title">Inbound email is not set up.</div>Mailing lists are not collected until INTEL_EMAIL_DOMAIN is set.</div></div>
-          <div class="notice danger"><svg class="icon"><use href="#i-alert-triangle"/></svg><div class="notice-body"><div class="notice-title">The last survey stopped.</div>The search provider refused the key (HTTP 401).</div></div>
-          <div class="notice success"><svg class="icon"><use href="#i-check-circle"/></svg><div class="notice-body"><div class="notice-title">Import finished.</div>48 reviews added; 2 were already in.</div></div>
-        </div>
-      </section>
-
-      <!-- ============================================================ empty -->
-      <section class="catalog-section" id="c-empty">
-        <h2>Empty states</h2>
-        <p class="lede">Two different kinds. Nothing yet: say what will be here and offer the way to start. Nothing matches: say so and offer to clear the filters.</p>
-        <div class="grid-2">
-          <div class="list"><div class="empty"><div class="empty-icon"><svg class="icon icon-lg"><use href="#i-radar"/></svg></div><div class="t-heading">No competitors yet</div><p>Add the ones you know, or run a survey to search widely first.</p><div class="actions"><button class="btn" type="button">Run a survey</button><button class="btn btn-primary" type="button">Add competitor</button></div></div></div>
-          <div class="list"><div class="empty"><div class="empty-icon"><svg class="icon icon-lg"><use href="#i-filter"/></svg></div><div class="t-heading">No jobs match these filters</div><p>Nothing failed in the last 7 days for StoriiCare.</p><div class="actions"><button class="btn" type="button">Clear filters</button></div></div></div>
-        </div>
-      </section>
-
-      <!-- ============================================================ loading -->
-      <section class="catalog-section" id="c-loading">
-        <h2>Loading and progress</h2>
-        <p class="lede">Pages load with skeletons in the shape of what is coming, never a blank page or a centered spinner. Spinners are for small things: a button that is working, a status. Long work shows progress with words ("Page 7 of 20: storiicare.com/pricing") and runs in the background.</p>
-        <div class="grid-2">
-          <div class="card"><div class="card-body">
-            <div class="skeleton skeleton-line" style="width: 40%; height: 18px"></div>
-            <div class="skeleton skeleton-line" style="width: 90%"></div>
-            <div class="skeleton skeleton-line" style="width: 75%"></div>
-            <div class="skeleton skeleton-line" style="width: 82%"></div>
-          </div></div>
-          <div class="card"><div class="card-body stack">
-            <div><div class="cluster t-small mb-2"><span class="strong">Crawling storiicare.com</span><span class="spacer"></span><span class="muted num">132 of 412</span></div><div class="progress"><span style="width: 32%"></span></div><div class="t-xs muted mt-2">Page 7 of 20: storiicare.com/pricing</div></div>
-            <div><div class="t-small strong mb-2">Waiting for the first result</div><div class="progress indeterminate"><span></span></div></div>
-          </div></div>
-        </div>
-      </section>
-
-      <!-- ============================================================ tooltip -->
-      <section class="catalog-section" id="c-tooltip">
-        <h2>Tooltips</h2>
-        <p class="lede">For the name of an icon button, a full date behind "2 h ago", or why a button is disabled. Never for anything people need to do their work: that goes on the page.</p>
-        <div class="card"><div class="card-body actions" style="padding-top: 40px">
-          <span class="has-tip"><button class="btn btn-icon" type="button" aria-label="Refresh"><svg class="icon"><use href="#i-refresh"/></svg></button><span class="tooltip" role="tooltip">Refresh</span></span>
-          <span class="has-tip t-small muted" tabindex="0">2 h ago<span class="tooltip" role="tooltip">Oct 19, 2026, 2:14 PM</span></span>
-        </div></div>
-      </section>
-    </div>
+  <a class="back" href="index.html"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"/></svg>Overview</a>
+  <div class="page-head">
+    <div class="page-head-main"><div class="page-head-text">
+      <div class="page-title-row"><h1 class="t-title">Components</h1></div>
+      <p class="page-desc">Every part an app is built from, its examples, and when to use it. Each example's markup is the canonical markup: Show markup reveals it, and REFERENCE.md is built from this same catalog.</p>
+    </div></div>
+  </div>
+  <div class="with-sidebar nav-side">
+    <nav class="sidebar nav-list" id="catalog-nav" aria-label="Components"></nav>
+    <div id="catalog"></div>
   </div>
 </main>
-
-<!-- overlays -->
-<div class="scrim" id="modal-form" hidden>
-  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mf-t">
-    <div class="modal-head"><div><div class="modal-title" id="mf-t">Add a competitor</div><div class="modal-desc">It is added to Seniorverse Day.</div></div><button class="btn btn-icon btn-quiet btn-sm" type="button" data-close aria-label="Close"><svg class="icon"><use href="#i-x"/></svg></button></div>
-    <div class="modal-body">
-      <div class="field"><label for="mf1">Name</label><input id="mf1" class="input" placeholder="StoriiCare" autofocus></div>
-      <div class="field"><label for="mf2">Website</label><input id="mf2" class="input" placeholder="storiicare.com"><div class="field-hint">A company already in another project is reused.</div></div>
-      <div class="grid-2"><label class="check-card"><input type="radio" name="mfl" checked><span><span class="strong">Light profile</span><span class="check-desc">Key pages, read once.</span></span></label><label class="check-card"><input type="radio" name="mfl"><span><span class="strong">Full study</span><span class="check-desc">Everything, re-checked.</span></span></label></div>
-    </div>
-    <div class="modal-foot"><button class="btn btn-quiet" type="button" data-close>Cancel</button><button class="btn btn-primary" type="button" data-close data-toast="StoriiCare added; collecting has started">Add competitor</button></div>
-  </div>
-</div>
-<div class="scrim" id="confirm-delete" hidden>
-  <div class="modal modal-sm" role="alertdialog" aria-modal="true" aria-labelledby="cd-t" aria-describedby="cd-d">
-    <div class="modal-head"><div class="modal-title" id="cd-t">Delete Seniorverse Day?</div></div>
-    <div class="modal-body t-small" id="cd-d" style="color: var(--ink-2)">The project, its surveys, comparisons and digests are deleted. Its companies and what was collected about them are kept.</div>
-    <div class="modal-foot"><button class="btn btn-quiet" type="button" data-close autofocus>Cancel</button><button class="btn btn-danger-solid" type="button" data-close data-toast="Seniorverse Day deleted">Delete project</button></div>
-  </div>
-</div>
-<div class="drawer-scrim" id="drawer-demo" hidden>
-  <aside class="drawer" role="dialog" aria-modal="true" aria-labelledby="dr-t">
-    <div class="drawer-head"><div><div class="t-label mb-2">Job #4176</div><div class="modal-title" id="dr-t">Write the profile</div><div class="modal-desc">StoriiCare · Reading and writing lane</div></div><button class="btn btn-icon btn-quiet btn-sm" type="button" data-close aria-label="Close"><svg class="icon"><use href="#i-x"/></svg></button></div>
-    <div class="drawer-body stack">
-      <div class="notice danger"><svg class="icon"><use href="#i-alert-triangle"/></svg><div class="notice-body"><div class="notice-title">Failed after 3 attempts</div>The reply was cut off at the token limit.</div></div>
-      <dl class="kv"><dt>Started</dt><dd>Oct 19, 2026, 1:56 PM</dd><dt>Took</dt><dd>2 min 4 s</dd><dt>AI calls</dt><dd>4 · $0.61 estimated</dd></dl>
-      <div><div class="t-label mb-2">Input</div><pre class="code-block">{ "companyId": 2, "force": false }</pre></div>
-    </div>
-    <div class="drawer-foot"><button class="btn" type="button" data-close>Close</button><button class="btn btn-primary" type="button" data-close data-toast="Queued again">Retry</button></div>
-  </aside>
-</div>
+<script src="catalog.js"></script>
+<script>
+  // Render the catalog. Each example shows its live markup and the same markup as text.
+  (function () {
+    const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const nav = document.getElementById('catalog-nav');
+    const out = document.getElementById('catalog');
+    let navHtml = '';
+    let html = '';
+    let n = 0;
+    for (const g of window.KIT_CATALOG) {
+      navHtml += `<span class="t-label">${g.group}</span>`;
+      for (const c of g.components) {
+        navHtml += `<a class="item" href="#${c.id}" data-target="${c.id}">${c.title}</a>`;
+        html += `<section class="catalog-section" id="${c.id}">
+          <h2 class="catalog-title">${c.title}</h2>
+          <p class="catalog-lede">${c.lede}</p>
+          ${c.use || c.notFor ? `<div class="catalog-use">
+            ${c.use ? `<div><svg class="icon icon-sm text-success" aria-hidden="true"><use href="#i-check"/></svg><span><b>Use for</b> ${c.use}</span></div>` : ''}
+            ${c.notFor ? `<div><svg class="icon icon-sm text-danger" aria-hidden="true"><use href="#i-x"/></svg><span><b>Not for</b> ${c.notFor}</span></div>` : ''}
+          </div>` : ''}
+          <div class="card">
+            ${c.examples.map((ex) => {
+              n += 1;
+              return `<div class="specimen">
+                <div class="specimen-label"><div class="t-subheading">${ex.title}</div>${ex.desc ? `<p>${ex.desc}</p>` : ''}
+                  <button class="btn btn-sm btn-quiet" type="button" data-reveal="code-${n}" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+                <div class="specimen-demo">${ex.html}
+                  <div class="specimen-code" id="code-${n}" hidden><pre class="code-block">${esc(ex.html)}</pre><div class="actions mt-2"><button class="btn btn-sm" type="button" data-copy="code-${n}" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div></div>
+                </div>
+              </div>`;
+            }).join('')}
+          </div>
+        </section>`;
+      }
+    }
+    nav.innerHTML = navHtml;
+    out.innerHTML = html;
+    document.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-copy]');
+      if (b) navigator.clipboard?.writeText(document.querySelector(`#${b.dataset.copy} .code-block`).textContent);
+    });
+  })();
+</script>
 <script src="preview.js"></script>
 </body>
 </html>

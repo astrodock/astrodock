@@ -11,76 +11,87 @@
 </head>
 <body>
 <header class="shell-bar">
-  <button class="btn btn-quiet btn-icon shell-menu-btn" type="button" aria-label="Open menu"><svg class="icon"><use href="#i-menu"/></svg></button>
-  <a class="shell-app" href="page-dashboard.html"><span class="shell-mark"><svg class="icon icon-sm"><use href="#i-radar"/></svg></span>Competitor Intel</a>
+  <button class="btn btn-quiet btn-icon shell-menu-btn" type="button" aria-label="Open menu"><svg class="icon" aria-hidden="true"><use href="#i-menu"/></svg></button>
+  <a class="shell-app" href="page-dashboard.html"><span class="avatar avatar-sm avatar-accent"><svg class="icon" aria-hidden="true"><use href="#i-radar"/></svg></span>Competitor Intel</a>
   <nav class="shell-nav" aria-label="Sections">
     <a href="page-dashboard.html">Home</a>
     <a href="page-list.html" aria-current="page">Projects</a>
     <a href="page-activity.html">Activity</a>
     <a href="page-settings.html">Settings</a>
   </nav>
-  <div class="shell-end"><span class="avatar" aria-label="Sam Lee">SL</span></div>
+  <div class="shell-end">
+    <button class="btn btn-quiet btn-icon" type="button" aria-label="Help"><svg class="icon" aria-hidden="true"><use href="#i-help-circle"/></svg></button>
+    <div class="menu-wrap">
+      <button class="avatar-btn" type="button" data-toggle aria-haspopup="menu" aria-expanded="false" aria-label="Account"><span class="avatar">SL</span></button>
+      <div class="menu" role="menu" hidden>
+        <div class="menu-head"><span class="avatar">SL</span><span><span class="strong">Sam Lee</span><br><span class="t-xs muted">sam@example.com</span></span></div>
+        <div class="menu-sep"></div>
+        <a class="item" role="menuitem" href="#"><svg class="icon" aria-hidden="true"><use href="#i-external"/></svg>Open the company OS</a>
+        <button class="item" role="menuitem" type="button"><svg class="icon" aria-hidden="true"><use href="#i-log-out"/></svg>Sign out</button>
+      </div>
+    </div>
+  </div>
 </header>
-
 <main class="page page-narrow">
-  <a class="back" href="page-list.html"><svg class="icon"><use href="#i-arrow-left"/></svg>Projects</a>
-  <div class="page-head"><div class="page-head-main"><h1 class="t-title">New project</h1><p class="page-desc">A project is one market and the companies in it. You can change all of this later in the project's settings.</p></div></div>
+  <a class="back" href="page-list.html"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"/></svg>Projects</a>
+  <div class="page-head">
+  <div class="page-head-main">
+    <div class="page-head-text">
+      <div class="page-title-row"><h1 class="t-title">New project</h1></div>
+      <p class="page-desc">A project is one market and the companies in it. Everything here can be changed later in the project's settings.</p>
+      
+    </div>
+  </div>
+  
+</div>
 
-  <div class="notice danger mb-4" role="alert"><svg class="icon"><use href="#i-alert-triangle"/></svg><div class="notice-body"><div class="notice-title">Two things need fixing before the project can be created.</div><a href="#nf-market">Describe the market</a> · <a href="#nf-site">Check the website address</a></div></div>
+  <div class="notice danger mb-4" role="alert"><svg class="icon" aria-hidden="true"><use href="#i-alert-triangle"/></svg><div class="notice-body"><div class="notice-title">Two things need fixing before the project can be created.</div><a href="#nf-market">Describe the market</a> · <a href="#nf-site">Check the website address</a></div></div>
 
-  <form class="card" onsubmit="return false">
+  <form class="card">
     <div class="card-body">
       <fieldset class="fieldset">
-        <legend>Basics</legend>
+        <legend class="fieldset-title">Basics</legend>
         <div class="fieldset-desc">The survey searches from the market description, and comparisons use it.</div>
-        <div class="field"><label for="nf-name">Project name</label><input id="nf-name" class="input" value="Seniorverse Home Care"></div>
-        <div class="field"><label for="nf-market">The market</label><textarea id="nf-market" class="textarea" aria-invalid="true" aria-describedby="nf-market-e" placeholder="Software for home care agencies in the US: scheduling, EVV, billing, caregiver apps."></textarea><div class="field-error" id="nf-market-e"><svg class="icon icon-sm"><use href="#i-alert-circle"/></svg>Describe the market in a sentence or two. The survey has nothing to search from without it.</div></div>
+        <div class="field"><label class="field-label" for="nf-name">Project name</label><input class="input" id="nf-name" value="Seniorverse Home Care"></div>
+        <div class="field"><label class="field-label" for="nf-market">The market</label><textarea class="input" id="nf-market" aria-invalid="true" aria-describedby="nf-market-e" placeholder="Software for home care agencies in the US: scheduling, EVV, billing, caregiver apps."></textarea><div class="field-error" id="nf-market-e"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-alert-circle"/></svg>Describe the market in a sentence or two. The survey has nothing to search from without it.</div></div>
       </fieldset>
-
       <hr>
-
       <fieldset class="fieldset">
-        <legend>Compare against</legend>
-        <div class="fieldset-desc">The company comparisons are written against: usually your own.</div>
+        <legend class="fieldset-title">Compare against</legend>
+        <div class="fieldset-desc">The company comparisons are written against, usually your own.</div>
         <div class="form-row">
-          <div class="field"><label for="nf-us">Company</label><input id="nf-us" class="input" value="Seniorverse"></div>
-          <div class="field"><label for="nf-site">Website</label><input id="nf-site" class="input" value="seniorverse" aria-invalid="true" aria-describedby="nf-site-e"><div class="field-error" id="nf-site-e"><svg class="icon icon-sm"><use href="#i-alert-circle"/></svg>Enter a full address, like seniorverse.com</div></div>
+          <div class="field"><label class="field-label" for="nf-us">Company</label><input class="input" id="nf-us" value="Seniorverse"></div>
+          <div class="field"><label class="field-label" for="nf-site">Website</label><input class="input" id="nf-site" value="seniorverse" aria-invalid="true" aria-describedby="nf-site-e"><div class="field-error" id="nf-site-e"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-alert-circle"/></svg>Enter a full address, like seniorverse.com</div></div>
         </div>
       </fieldset>
-
       <hr>
-
       <fieldset class="fieldset">
-        <legend>Competitors to start with <span class="optional t-small muted" style="font-weight: 400">Optional</span></legend>
+        <legend class="fieldset-title">Competitors to start with<span class="optional">Optional</span></legend>
         <div class="fieldset-desc">Add the ones you know. The survey finds more.</div>
-        <div class="stack-sm">
-          <div class="form-row" style="grid-template-columns: 1fr 1fr auto; align-items: end"><div class="field mb-0"><label for="nf-c1">Name</label><input id="nf-c1" class="input" value="AxisCare"></div><div class="field mb-0"><label for="nf-c1s">Website</label><input id="nf-c1s" class="input" value="axiscare.com"></div><button class="btn btn-icon btn-quiet" type="button" aria-label="Remove AxisCare"><svg class="icon"><use href="#i-x"/></svg></button></div>
-          <div class="form-row" style="grid-template-columns: 1fr 1fr auto; align-items: end"><div class="field mb-0"><label for="nf-c2" class="sr-only">Name</label><input id="nf-c2" class="input" placeholder="Name"></div><div class="field mb-0"><label for="nf-c2s" class="sr-only">Website</label><input id="nf-c2s" class="input" placeholder="Website"></div><button class="btn btn-icon btn-quiet" type="button" aria-label="Remove this row"><svg class="icon"><use href="#i-x"/></svg></button></div>
-        </div>
-        <button class="btn btn-sm mt-4" type="button"><svg class="icon icon-sm"><use href="#i-plus"/></svg>Add another</button>
+        <div class="form-row-action"><div class="field"><label class="field-label" for="nf-c1">Name</label><input class="input" id="nf-c1" value="AxisCare"></div><div class="field"><label class="field-label" for="nf-c1s">Website</label><input class="input" id="nf-c1s" value="axiscare.com"></div><button class="btn btn-icon btn-quiet" type="button" aria-label="Remove AxisCare"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+        <div class="form-row-action"><div class="field"><label class="sr-only" for="nf-c2">Name</label><input class="input" id="nf-c2" placeholder="Name"></div><div class="field"><label class="sr-only" for="nf-c2s">Website</label><input class="input" id="nf-c2s" placeholder="Website"></div><button class="btn btn-icon btn-quiet" type="button" aria-label="Remove this row"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+        <button class="btn btn-sm mt-4" type="button"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-plus"/></svg>Add another</button>
       </fieldset>
-
       <hr>
-
-      <fieldset class="fieldset mb-0">
-        <legend>How deep to go</legend>
+      <fieldset class="fieldset">
+        <legend class="fieldset-title">How deep to go</legend>
         <div class="fieldset-desc">For the competitors above. Each can be changed later.</div>
-        <div class="grid-2">
-          <label class="check-card"><input type="radio" name="nf-l" checked><span><span class="strong">Light profile</span><span class="check-desc">Key pages only: home, pricing, product, about. Read once.</span></span></label>
-          <label class="check-card"><input type="radio" name="nf-l"><span><span class="strong">Full study</span><span class="check-desc">The whole site and help docs, news, website history, re-checked weekly.</span></span></label>
+        <div class="grid-2 mb-4">
+          <label class="choice-card"><input type="radio" name="nf-l" checked><span><span class="strong">Light profile</span><span class="check-desc">Key pages only: home, pricing, product, about. Read once.</span></span></label>
+          <label class="choice-card"><input type="radio" name="nf-l"><span><span class="strong">Full study</span><span class="check-desc">The whole site and help docs, news, website history, re-checked weekly.</span></span></label>
         </div>
-        <div class="field mt-4 mb-0"><span class="field-label">Repeat the survey</span>
-          <label class="check"><input type="radio" name="nf-r" checked> Every month</label>
-          <label class="check"><input type="radio" name="nf-r"> Every 3 months</label>
-          <label class="check"><input type="radio" name="nf-r"> Only when asked</label>
-        </div>
+        <fieldset class="field"><legend class="field-label mb-2">Repeat the survey</legend>
+          <label class="check"><input type="radio" name="nf-r" checked>Every month</label>
+          <label class="check"><input type="radio" name="nf-r">Every 3 months</label>
+          <label class="check"><input type="radio" name="nf-r">Only when asked</label>
+        </fieldset>
       </fieldset>
     </div>
   </form>
 
   <div class="save-bar">
-    <span class="t-small muted">Nothing is saved until you create the project.</span>
-    <div class="actions"><a class="btn btn-quiet" href="page-list.html">Cancel</a><button class="btn btn-primary" type="button"><span class="spinner" hidden></span>Create project</button></div>
+    <span class="muted">Nothing is saved until you create the project.</span>
+    <div class="actions"><a class="btn btn-quiet" href="page-list.html">Cancel</a><button class="btn btn-primary" type="button">Create project</button></div>
   </div>
 </main>
 <script src="preview.js"></script>

@@ -11,76 +11,81 @@
 </head>
 <body>
 <header class="shell-bar">
-  <button class="btn btn-quiet btn-icon shell-menu-btn" type="button" aria-label="Open menu"><svg class="icon"><use href="#i-menu"/></svg></button>
-  <a class="shell-app" href="page-dashboard.html"><span class="shell-mark"><svg class="icon icon-sm"><use href="#i-radar"/></svg></span>Competitor Intel</a>
+  <button class="btn btn-quiet btn-icon shell-menu-btn" type="button" aria-label="Open menu"><svg class="icon" aria-hidden="true"><use href="#i-menu"/></svg></button>
+  <a class="shell-app" href="page-dashboard.html"><span class="avatar avatar-sm avatar-accent"><svg class="icon" aria-hidden="true"><use href="#i-radar"/></svg></span>Competitor Intel</a>
   <nav class="shell-nav" aria-label="Sections">
     <a href="page-dashboard.html" aria-current="page">Home</a>
     <a href="page-list.html">Projects</a>
     <a href="page-activity.html">Activity</a>
     <a href="page-settings.html">Settings</a>
   </nav>
-  <div class="shell-end"><span class="avatar" aria-label="Sam Lee">SL</span></div>
+  <div class="shell-end">
+    <button class="btn btn-quiet btn-icon" type="button" aria-label="Help"><svg class="icon" aria-hidden="true"><use href="#i-help-circle"/></svg></button>
+    <div class="menu-wrap">
+      <button class="avatar-btn" type="button" data-toggle aria-haspopup="menu" aria-expanded="false" aria-label="Account"><span class="avatar">SL</span></button>
+      <div class="menu" role="menu" hidden>
+        <div class="menu-head"><span class="avatar">SL</span><span><span class="strong">Sam Lee</span><br><span class="t-xs muted">sam@example.com</span></span></div>
+        <div class="menu-sep"></div>
+        <a class="item" role="menuitem" href="#"><svg class="icon" aria-hidden="true"><use href="#i-external"/></svg>Open the company OS</a>
+        <button class="item" role="menuitem" type="button"><svg class="icon" aria-hidden="true"><use href="#i-log-out"/></svg>Sign out</button>
+      </div>
+    </div>
+  </div>
 </header>
-
 <main class="page">
   <div class="page-head">
-    <div class="page-head-main"><h1 class="t-title">Home</h1><div class="page-meta"><span>Across all projects</span><span>Updated just now</span></div></div>
-    <div class="actions"><a class="btn" href="page-form.html"><svg class="icon"><use href="#i-plus"/></svg>New project</a></div>
+  <div class="page-head-main">
+    <div class="page-head-text">
+      <div class="page-title-row"><h1 class="t-title">Home</h1></div>
+      
+      <div class="page-meta"><span>Across all projects</span><span>Updated just now</span></div>
+    </div>
   </div>
-
+  <div class="actions"><a class="btn btn-primary" href="page-form.html"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>New project</a></div>
+</div>
   <div class="stat-grid">
     <a class="stat" href="page-list.html"><div class="stat-label">Companies studied</div><div class="stat-value">9</div><div class="stat-sub">6 full studies · 3 light profiles</div></a>
-    <a class="stat" href="page-list.html"><div class="stat-label">Candidates to review</div><div class="stat-value">12</div><div class="stat-sub"><svg class="icon icon-sm up"><use href="#i-arrow-up-right"/></svg><span class="up">5</span> new since last survey</div></a>
+    <a class="stat" href="page-list.html"><div class="stat-label">Candidates to review</div><div class="stat-value">12</div><div class="stat-sub up"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-arrow-up-right"/></svg>5 new since the last survey</div></a>
     <a class="stat" href="page-list.html"><div class="stat-label">Notable changes, 7 days</div><div class="stat-value">4</div><div class="stat-sub">2 at StoriiCare</div></a>
     <a class="stat" href="page-activity.html"><div class="stat-label">Spent this month</div><div class="stat-value">$61.40</div><div class="stat-sub">AI $58.20 · Search $3.20</div></a>
   </div>
-
   <div class="with-aside section">
     <div class="stack">
-      <div class="card">
+      <section class="card">
         <div class="card-head"><h2 class="card-title">Work finished per day</h2><div class="btn-group" role="group" aria-label="Period"><button class="btn btn-sm" type="button" aria-pressed="true">7 days</button><button class="btn btn-sm" type="button" aria-pressed="false">30 days</button></div></div>
         <div class="card-body">
-          <div class="chart-legend"><span><i style="background: var(--series-1)"></i>Collected</span><span><i style="background: var(--series-2)"></i>Read</span></div>
-          <svg viewBox="0 0 700 170" width="100%" role="img" aria-label="Items collected and read per day, last 7 days">
-            <line class="chart-grid" x1="40" x2="690" y1="140" y2="140"/><line class="chart-grid" x1="40" x2="690" y1="85" y2="85"/><line class="chart-grid" x1="40" x2="690" y1="30" y2="30"/>
-            <text class="chart-axis" x="34" y="143" text-anchor="end">0</text><text class="chart-axis" x="34" y="88" text-anchor="end">250</text><text class="chart-axis" x="34" y="33" text-anchor="end">500</text>
-            <rect x="74" y="80" width="18" height="60" fill="var(--series-1)"/><path d="M94 140 V96 Q94 92 98 92 H108 Q112 92 112 96 V140 Z" fill="var(--series-2)"/>
-            <path d="M166 140 V44 Q166 40 170 40 H180 Q184 40 184 44 V140 Z" fill="var(--series-1)"/><path d="M186 140 V64 Q186 60 190 60 H200 Q204 60 204 64 V140 Z" fill="var(--series-2)"/>
-            <path d="M258 140 V104 Q258 100 262 100 H272 Q276 100 276 104 V140 Z" fill="var(--series-1)"/><path d="M278 140 V96 Q278 92 282 92 H292 Q296 92 296 96 V140 Z" fill="var(--series-2)"/>
-            <path d="M350 140 V74 Q350 70 354 70 H364 Q368 70 368 74 V140 Z" fill="var(--series-1)"/><path d="M370 140 V84 Q370 80 374 80 H384 Q388 80 388 84 V140 Z" fill="var(--series-2)"/>
-            <path d="M442 140 V118 Q442 114 446 114 H456 Q460 114 460 118 V140 Z" fill="var(--series-1)"/><path d="M462 140 V110 Q462 106 466 106 H476 Q480 106 480 110 V140 Z" fill="var(--series-2)"/>
-            <path d="M534 140 V60 Q534 56 538 56 H548 Q552 56 552 60 V140 Z" fill="var(--series-1)"/><path d="M554 140 V76 Q554 72 558 72 H568 Q572 72 572 76 V140 Z" fill="var(--series-2)"/>
-            <path d="M626 140 V100 Q626 96 630 96 H640 Q644 96 644 100 V140 Z" fill="var(--series-1)"/><path d="M646 140 V112 Q646 108 650 108 H660 Q664 108 664 112 V140 Z" fill="var(--series-2)"/>
-            <text class="chart-axis" x="93" y="160" text-anchor="middle">Oct 13</text><text class="chart-axis" x="185" y="160" text-anchor="middle">Oct 14</text><text class="chart-axis" x="277" y="160" text-anchor="middle">Oct 15</text><text class="chart-axis" x="369" y="160" text-anchor="middle">Oct 16</text><text class="chart-axis" x="461" y="160" text-anchor="middle">Oct 17</text><text class="chart-axis" x="553" y="160" text-anchor="middle">Oct 18</text><text class="chart-axis" x="645" y="160" text-anchor="middle">Oct 19</text>
-          </svg>
+          <div class="chart-legend"><span><i class="chart-key" style="--key: var(--series-1)"></i>Collected</span><span><i class="chart-key" style="--key: var(--series-2)"></i>Read</span></div>
+          <svg class="chart" viewBox="0 0 680 160" role="img" aria-label="Items collected and read per day, last 7 days">
+  <line class="chart-grid" x1="40" x2="670" y1="130" y2="130"/><line class="chart-grid" x1="40" x2="670" y1="80" y2="80"/><line class="chart-grid" x1="40" x2="670" y1="30" y2="30"/>
+  <text class="chart-axis" x="34" y="133" text-anchor="end">0</text><text class="chart-axis" x="34" y="83" text-anchor="end">250</text><text class="chart-axis" x="34" y="33" text-anchor="end">500</text>
+  <rect x="70" y="70" width="24" height="60" fill="var(--series-1)"/><path d="M70 68 V32 Q70 28 74 28 H90 Q94 28 94 32 V68 Z" fill="var(--series-2)"/><rect x="160" y="40" width="24" height="90" fill="var(--series-1)"/><path d="M160 38 V-28 Q160 -32 164 -32 H180 Q184 -32 184 -28 V38 Z" fill="var(--series-2)"/><rect x="250" y="94" width="24" height="36" fill="var(--series-1)"/><path d="M250 92 V52 Q250 48 254 48 H270 Q274 48 274 52 V92 Z" fill="var(--series-2)"/><rect x="340" y="60" width="24" height="70" fill="var(--series-1)"/><path d="M340 58 V6 Q340 2 344 2 H360 Q364 2 364 6 V58 Z" fill="var(--series-2)"/><rect x="430" y="106" width="24" height="24" fill="var(--series-1)"/><path d="M430 104 V78 Q430 74 434 74 H450 Q454 74 454 78 V104 Z" fill="var(--series-2)"/><rect x="520" y="46" width="24" height="84" fill="var(--series-1)"/><path d="M520 44 V-18 Q520 -22 524 -22 H540 Q544 -22 544 -18 V44 Z" fill="var(--series-2)"/><rect x="610" y="90" width="24" height="40" fill="var(--series-1)"/><path d="M610 88 V66 Q610 62 614 62 H630 Q634 62 634 66 V88 Z" fill="var(--series-2)"/><text class="chart-axis" x="82" y="150" text-anchor="middle">Oct 13</text><text class="chart-axis" x="172" y="150" text-anchor="middle">Oct 14</text><text class="chart-axis" x="262" y="150" text-anchor="middle">Oct 15</text><text class="chart-axis" x="352" y="150" text-anchor="middle">Oct 16</text><text class="chart-axis" x="442" y="150" text-anchor="middle">Oct 17</text><text class="chart-axis" x="532" y="150" text-anchor="middle">Oct 18</text><text class="chart-axis" x="622" y="150" text-anchor="middle">Oct 19</text>
+</svg>
         </div>
-      </div>
-
-      <div>
+      </section>
+      <section>
         <div class="section-head"><h2 class="t-heading">Projects</h2></div>
         <div class="grid-2">
-          <a class="card card-link" href="page-list.html"><div class="card-body"><div class="row-title mb-2">Seniorverse Day <svg class="icon icon-sm faint"><use href="#i-arrow-right"/></svg></div><p class="t-small muted">Adult day center software in the US</p><div class="page-meta"><span><b>6</b> companies</span><span><b>12</b> to review</span><span>2 changes this week</span></div></div></a>
-          <a class="card card-link" href="page-list.html"><div class="card-body"><div class="row-title mb-2">Seniorverse Home Care <svg class="icon icon-sm faint"><use href="#i-arrow-right"/></svg></div><p class="t-small muted">Home care agency software in the US</p><div class="page-meta"><span><b>3</b> companies</span><span>Survey running</span></div></div></a>
+          <a class="card" href="page-list.html"><div class="card-body"><div class="cluster mb-2"><span class="avatar">SD</span><span class="strong">Seniorverse Day</span></div><p class="t-small muted mb-4">Adult day center software in the US</p><div class="page-meta"><span><b>6</b> companies</span><span><b>12</b> to review</span><span>2 changes this week</span></div></div></a>
+          <a class="card" href="page-list.html"><div class="card-body"><div class="cluster mb-2"><span class="avatar">SH</span><span class="strong">Seniorverse Home Care</span></div><p class="t-small muted mb-4">Home care agency software in the US</p><div class="page-meta"><span><b>3</b> companies</span><span class="status running"><span class="spinner"></span>Survey running</span></div></div></a>
         </div>
-      </div>
+      </section>
     </div>
-
     <aside class="stack">
-      <div class="card">
+      <section class="card">
         <div class="card-head"><h2 class="card-title">Needs attention</h2></div>
-        <div class="card-body flush">
-          <a class="row" href="page-activity.html"><svg class="icon" style="color: var(--danger)"><use href="#i-alert-triangle"/></svg><div class="row-main"><div class="row-title">3 jobs failed</div><div class="row-sub">Writing the StoriiCare profile, and 2 more</div></div><svg class="icon faint"><use href="#i-chevron-right"/></svg></a>
-          <a class="row" href="page-settings.html"><svg class="icon" style="color: var(--warning)"><use href="#i-alert-triangle"/></svg><div class="row-main"><div class="row-title">Inbound email not set up</div><div class="row-sub">Mailing lists are not collected</div></div><svg class="icon faint"><use href="#i-chevron-right"/></svg></a>
-          <a class="row" href="page-list.html"><svg class="icon" style="color: var(--ink-3)"><use href="#i-inbox"/></svg><div class="row-main"><div class="row-title">12 candidates to review</div><div class="row-sub">From the Oct 18 survey</div></div><svg class="icon faint"><use href="#i-chevron-right"/></svg></a>
+        <div class="card-body flush-x">
+          <a class="row" href="page-activity.html"><span class="avatar avatar-sm avatar-danger"><svg class="icon" aria-hidden="true"><use href="#i-alert-triangle"/></svg></span><div class="row-main"><div class="row-title">3 jobs failed</div><div class="row-sub">Writing the StoriiCare profile, and 2 more</div></div><svg class="icon faint" aria-hidden="true"><use href="#i-chevron-right"/></svg></a>
+          <a class="row" href="page-settings.html"><span class="avatar avatar-sm avatar-warning"><svg class="icon" aria-hidden="true"><use href="#i-mail"/></svg></span><div class="row-main"><div class="row-title">Inbound email not set up</div><div class="row-sub">Mailing lists are not collected</div></div><svg class="icon faint" aria-hidden="true"><use href="#i-chevron-right"/></svg></a>
+          <a class="row" href="page-list.html"><span class="avatar avatar-sm"><svg class="icon" aria-hidden="true"><use href="#i-inbox"/></svg></span><div class="row-main"><div class="row-title">12 candidates to review</div><div class="row-sub">From the Oct 18 survey</div></div><svg class="icon faint" aria-hidden="true"><use href="#i-chevron-right"/></svg></a>
         </div>
-      </div>
-      <div class="card">
-        <div class="card-head"><h2 class="card-title">Running now</h2><a class="btn btn-sm btn-quiet" href="page-activity.html">Activity</a></div>
+      </section>
+      <section class="card">
+        <div class="card-head"><h2 class="card-title">Running now</h2><a class="btn btn-sm btn-quiet" href="page-activity.html">Activity<svg class="icon icon-sm" aria-hidden="true"><use href="#i-arrow-right"/></svg></a></div>
         <div class="card-body stack">
-          <div><div class="cluster t-small mb-2"><span class="strong">Crawling storiicare.com</span><span class="spacer"></span><span class="muted num">132 of 412</span></div><div class="progress"><span style="width: 32%"></span></div></div>
-          <div><div class="cluster t-small mb-2"><span class="strong">Reading archived copies of collabrios.com</span><span class="spacer"></span><span class="muted num">40 of 211</span></div><div class="progress"><span style="width: 19%"></span></div></div>
+          <div><div class="progress-head"><span class="strong">Crawling storiicare.com</span><span>132 of 412</span></div><div class="progress" style="--value: 32%"><span></span></div></div>
+          <div><div class="progress-head"><span class="strong">Archived copies of collabrios.com</span><span>40 of 211</span></div><div class="progress" style="--value: 19%"><span></span></div></div>
         </div>
-      </div>
+      </section>
     </aside>
   </div>
 </main>

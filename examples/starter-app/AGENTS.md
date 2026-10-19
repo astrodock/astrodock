@@ -9,6 +9,11 @@ https://docs.astrodock.ai/building-apps.md — both plain markdown, fetch them d
 - `server/` — Express server, entry `server/server.js`. Reached at `/api/*` (same origin).
 - A standalone `server.js` = server-only; a standalone `package.json` with no server = frontend-only.
 
+## Look and structure
+Build every screen with the Astrodock app design system in `packages/ui` of the Astrodock repo:
+`REFERENCE.md` has the markup for every part, `README.md` the rules (shell, back button, page types,
+states, writing). Load its `kit.css` first and keep app CSS to token overrides and app-specific layout.
+
 ## Hard rules
 1. **Bind `process.env.ASTRODOCK_PORT`** in the server (the documented `PORT` alias also works).
 2. **Namespace every server route under `/api`** — Caddy proxies `/api/*` to the server and serves

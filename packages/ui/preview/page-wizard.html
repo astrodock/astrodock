@@ -11,48 +11,54 @@
 </head>
 <body>
 <header class="shell-bar">
-  <button class="btn btn-quiet btn-icon shell-menu-btn" type="button" aria-label="Open menu"><svg class="icon"><use href="#i-menu"/></svg></button>
-  <a class="shell-app" href="page-dashboard.html"><span class="shell-mark"><svg class="icon icon-sm"><use href="#i-radar"/></svg></span>Competitor Intel</a>
+  <button class="btn btn-quiet btn-icon shell-menu-btn" type="button" aria-label="Open menu"><svg class="icon" aria-hidden="true"><use href="#i-menu"/></svg></button>
+  <a class="shell-app" href="page-dashboard.html"><span class="avatar avatar-sm avatar-accent"><svg class="icon" aria-hidden="true"><use href="#i-radar"/></svg></span>Competitor Intel</a>
   <nav class="shell-nav" aria-label="Sections">
     <a href="page-dashboard.html">Home</a>
     <a href="page-list.html">Projects</a>
     <a href="page-activity.html">Activity</a>
     <a href="page-settings.html" aria-current="page">Settings</a>
   </nav>
-  <div class="shell-end"><span class="avatar" aria-label="Sam Lee">SL</span></div>
-</header>
-
-<main class="page page-narrow">
-  <a class="back" href="page-settings.html"><svg class="icon"><use href="#i-arrow-left"/></svg>Settings</a>
-  <div class="page-head"><div class="page-head-main"><h1 class="t-title">Set up mailing lists</h1><p class="page-desc">Each company gets its own address to sign up to their newsletters with. Mail that arrives is read like any page.</p></div></div>
-
-  <ol class="steps" aria-label="Steps">
-    <li class="done"><span>Choose a domain</span></li>
-    <li class="current" aria-current="step"><span>Point its mail here</span></li>
-    <li><span>Test it</span></li>
-    <li><span>Review</span></li>
-  </ol>
-
-  <div class="card">
-    <div class="card-body">
-      <h2 class="t-heading mb-2">Point mail for <span class="mono">intel-mail.example.com</span> here</h2>
-      <p class="muted">Add these two records where the domain's DNS is managed. They can take up to an hour to take effect; this page checks every minute.</p>
-      <div class="table-box mt-4" style="box-shadow: none; background: var(--bg-sunken)">
-        <table class="table table-compact">
-          <thead><tr><th>Type</th><th>Name</th><th>Value</th><th>Found</th><th class="actions-col"><span class="sr-only">Copy</span></th></tr></thead>
-          <tbody>
-            <tr><td>MX</td><td class="mono">intel-mail</td><td class="mono">inbound.mail-provider.example</td><td><span class="status success"><svg class="icon icon-sm"><use href="#i-check-circle"/></svg>Found</span></td><td class="actions-col"><button class="btn btn-sm btn-quiet" type="button" data-toast="Copied"><svg class="icon icon-sm"><use href="#i-copy"/></svg>Copy</button></td></tr>
-            <tr><td>TXT</td><td class="mono">intel-mail</td><td class="mono truncate" style="max-width: 220px">v=spf1 include:mail-provider.example ~all</td><td><span class="status neutral"><svg class="icon icon-sm"><use href="#i-clock"/></svg>Not yet</span></td><td class="actions-col"><button class="btn btn-sm btn-quiet" type="button" data-toast="Copied"><svg class="icon icon-sm"><use href="#i-copy"/></svg>Copy</button></td></tr>
-          </tbody>
-        </table>
+  <div class="shell-end">
+    <button class="btn btn-quiet btn-icon" type="button" aria-label="Help"><svg class="icon" aria-hidden="true"><use href="#i-help-circle"/></svg></button>
+    <div class="menu-wrap">
+      <button class="avatar-btn" type="button" data-toggle aria-haspopup="menu" aria-expanded="false" aria-label="Account"><span class="avatar">SL</span></button>
+      <div class="menu" role="menu" hidden>
+        <div class="menu-head"><span class="avatar">SL</span><span><span class="strong">Sam Lee</span><br><span class="t-xs muted">sam@example.com</span></span></div>
+        <div class="menu-sep"></div>
+        <a class="item" role="menuitem" href="#"><svg class="icon" aria-hidden="true"><use href="#i-external"/></svg>Open the company OS</a>
+        <button class="item" role="menuitem" type="button"><svg class="icon" aria-hidden="true"><use href="#i-log-out"/></svg>Sign out</button>
       </div>
-      <div class="notice mt-4"><svg class="icon"><use href="#i-info"/></svg><div class="notice-body">You can leave this page. Setup picks up where it stopped the next time you open it.</div></div>
-    </div>
-    <div class="card-foot" style="justify-content: space-between">
-      <button class="btn btn-quiet" type="button"><svg class="icon"><use href="#i-arrow-left"/></svg>Back</button>
-      <div class="actions"><span class="t-small muted">Checked 20 s ago</span><button class="btn btn-primary" type="button" disabled>Next: test it</button></div>
     </div>
   </div>
+</header>
+<main class="page page-narrow">
+  <a class="back" href="page-settings.html"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"/></svg>Settings</a>
+  <div class="page-head">
+  <div class="page-head-main">
+    <div class="page-head-text">
+      <div class="page-title-row"><h1 class="t-title">Set up mailing lists</h1></div>
+      <p class="page-desc">Each company gets its own address to sign up to their newsletters with. Mail that arrives is read like any page.</p>
+      
+    </div>
+  </div>
+  
+</div>
+  <ol class="steps" aria-label="Steps"><li class="done"><span>Choose a domain</span></li><li aria-current="step"><span>Point its mail here</span></li><li><span>Test it</span></li><li><span>Review</span></li></ol>
+  <section class="card">
+    <div class="card-head"><div><h2 class="card-title">Point mail for <span class="mono">intel-mail.example.com</span> here</h2><div class="card-sub">Add these two records where the domain's DNS is managed. This page checks every minute.</div></div></div>
+    <div class="card-body stack">
+      <div class="table-box"><table class="table table-compact">
+        <thead><tr><th>Type</th><th>Name</th><th>Value</th><th>Found</th><th class="actions-col"><span class="sr-only">Copy</span></th></tr></thead>
+        <tbody>
+          <tr><td>MX</td><td class="mono">intel-mail</td><td class="mono">inbound.mail-provider.example</td><td><span class="status success"><svg class="icon" aria-hidden="true"><use href="#i-check-circle"/></svg>Found</span></td><td class="actions-col"><button class="btn btn-sm btn-quiet" type="button" data-toast="Copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></td></tr>
+          <tr><td>TXT</td><td class="mono">intel-mail</td><td class="mono">v=spf1 include:mail-provider.example ~all</td><td><span class="status neutral"><svg class="icon" aria-hidden="true"><use href="#i-clock"/></svg>Not yet</span></td><td class="actions-col"><button class="btn btn-sm btn-quiet" type="button" data-toast="Copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></td></tr>
+        </tbody>
+      </table></div>
+      <div class="notice"><svg class="icon" aria-hidden="true"><use href="#i-info"/></svg><div class="notice-body">Records can take up to an hour to take effect. You can leave; setup picks up where it stopped.</div></div>
+    </div>
+    <div class="card-foot"><button class="btn btn-quiet start" type="button"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"/></svg>Back</button><span class="t-small muted">Checked 20 s ago</span><span class="has-tip"><button class="btn btn-primary" type="button" disabled>Next: test it</button><span class="tooltip" role="tooltip">Waiting for the TXT record</span></span></div>
+  </section>
 </main>
 <script src="preview.js"></script>
 </body>

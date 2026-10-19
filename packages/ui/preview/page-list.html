@@ -11,8 +11,8 @@
 </head>
 <body>
 <header class="shell-bar">
-  <button class="btn btn-quiet btn-icon shell-menu-btn" type="button" aria-label="Open menu"><svg class="icon"><use href="#i-menu"/></svg></button>
-  <a class="shell-app" href="page-dashboard.html"><span class="shell-mark"><svg class="icon icon-sm"><use href="#i-radar"/></svg></span>Competitor Intel</a>
+  <button class="btn btn-quiet btn-icon shell-menu-btn" type="button" aria-label="Open menu"><svg class="icon" aria-hidden="true"><use href="#i-menu"/></svg></button>
+  <a class="shell-app" href="page-dashboard.html"><span class="avatar avatar-sm avatar-accent"><svg class="icon" aria-hidden="true"><use href="#i-radar"/></svg></span>Competitor Intel</a>
   <nav class="shell-nav" aria-label="Sections">
     <a href="page-dashboard.html">Home</a>
     <a href="page-list.html" aria-current="page">Projects</a>
@@ -20,110 +20,213 @@
     <a href="page-settings.html">Settings</a>
   </nav>
   <div class="shell-end">
+    <button class="btn btn-quiet btn-icon" type="button" aria-label="Help"><svg class="icon" aria-hidden="true"><use href="#i-help-circle"/></svg></button>
     <div class="menu-wrap">
       <button class="avatar-btn" type="button" data-toggle aria-haspopup="menu" aria-expanded="false" aria-label="Account"><span class="avatar">SL</span></button>
-      <div class="menu" role="menu" hidden><div class="menu-head"><div class="strong">Sam Lee</div><div class="muted t-xs">sam@example.com</div></div><div class="menu-sep"></div><button class="menu-item" role="menuitem" type="button"><svg class="icon"><use href="#i-log-out"/></svg>Sign out</button></div>
+      <div class="menu" role="menu" hidden>
+        <div class="menu-head"><span class="avatar">SL</span><span><span class="strong">Sam Lee</span><br><span class="t-xs muted">sam@example.com</span></span></div>
+        <div class="menu-sep"></div>
+        <a class="item" role="menuitem" href="#"><svg class="icon" aria-hidden="true"><use href="#i-external"/></svg>Open the company OS</a>
+        <button class="item" role="menuitem" type="button"><svg class="icon" aria-hidden="true"><use href="#i-log-out"/></svg>Sign out</button>
+      </div>
     </div>
   </div>
 </header>
-
 <main class="page">
-  <a class="back" href="page-dashboard.html"><svg class="icon"><use href="#i-arrow-left"/></svg>Projects</a>
+  <a class="back" href="page-dashboard.html"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"/></svg>Projects</a>
   <div class="page-head">
-    <div class="page-head-main">
+  <div class="page-head-main">
+    <span class="avatar avatar-lg">SD</span>
+    <div class="page-head-text">
       <div class="page-title-row"><h1 class="t-title">Seniorverse Day</h1></div>
-      <div class="page-meta"><span>Adult day center software in the US</span><span>Compared against <a href="page-record.html">Seniorverse</a></span><span>Survey repeats monthly</span></div>
-    </div>
-    <div class="actions">
-      <div class="menu-wrap"><button class="btn btn-icon" type="button" data-toggle aria-haspopup="menu" aria-expanded="false" aria-label="More project actions"><svg class="icon"><use href="#i-more"/></svg></button>
-        <div class="menu" role="menu" hidden><button class="menu-item" role="menuitem" type="button"><svg class="icon"><use href="#i-download"/></svg>Export companies as CSV</button><a class="menu-item" role="menuitem" href="page-settings.html"><svg class="icon"><use href="#i-settings"/></svg>Project settings</a><div class="menu-sep"></div><button class="menu-item danger" role="menuitem" type="button" data-open="confirm-delete"><svg class="icon"><use href="#i-trash"/></svg>Delete project</button></div></div>
-      <button class="btn" type="button" data-toast="Survey started; it runs in the background"><svg class="icon"><use href="#i-search"/></svg>Run survey</button>
-      <button class="btn btn-primary" type="button" data-open="add-modal"><svg class="icon"><use href="#i-plus"/></svg>Add competitor</button>
+      <p class="page-desc">Adult day center software in the US: attendance, care plans, billing, family communication.</p>
+      <div class="page-meta"><span>Compared against <a href="page-record.html">Seniorverse</a></span><span>Survey repeats monthly, next Nov 18</span><span>Created by Sam Lee</span></div>
     </div>
   </div>
+  <div class="actions"><div class="menu-wrap"><button class="btn btn-icon" type="button" data-toggle aria-haspopup="menu" aria-expanded="false" aria-label="More project actions"><svg class="icon" aria-hidden="true"><use href="#i-more"/></svg></button>
+      <div class="menu" role="menu" hidden><button class="item" role="menuitem" type="button" ><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Export as CSV</button><button class="item" role="menuitem" type="button" ><svg class="icon" aria-hidden="true"><use href="#i-settings"/></svg>Project settings</button><div class="menu-sep"></div><button class="item danger" role="menuitem" type="button" data-open="confirm-delete"><svg class="icon" aria-hidden="true"><use href="#i-trash"/></svg>Delete project</button></div></div><button class="btn" type="button" data-toast="Survey started|It runs in the background"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg>Run survey</button><button class="btn btn-primary" type="button" data-open="add-modal"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>Add competitor</button></div>
+</div>
+  <nav class="tabs" aria-label="Views"><a class="tab" href="#" aria-current="page">Competitors<span class="count">6</span></a><a class="tab" href="#">Find competitors<span class="count">12</span></a><a class="tab" href="#">Compare</a><a class="tab" href="#">Changes<span class="count">4</span></a><a class="tab" href="#">Ask</a></nav>
 
-  <nav class="tabs" aria-label="Project views">
-    <a class="tab active" aria-current="page" href="page-list.html">Competitors<span class="count">6</span></a>
-    <a class="tab" href="page-list.html">Find competitors<span class="count">12</span></a>
-    <a class="tab" href="page-list.html">Compare</a>
-    <a class="tab" href="page-list.html">Changes</a>
-    <a class="tab" href="page-list.html">Ask</a>
-  </nav>
+  <div class="summary">
+    <a class="summary-item current" href="#"><span class="avatar avatar-sm"><svg class="icon" aria-hidden="true"><use href="#i-layout-grid"/></svg></span><span><span class="summary-value">6</span><br><span class="summary-label">All companies</span></span></a>
+    <a class="summary-item" href="#"><span class="avatar avatar-sm"><svg class="icon" aria-hidden="true"><use href="#i-eye"/></svg></span><span><span class="summary-value">2</span><br><span class="summary-label">Changed this week</span></span></a>
+    <a class="summary-item" href="#"><span class="avatar avatar-sm"><svg class="icon" aria-hidden="true"><use href="#i-inbox"/></svg></span><span><span class="summary-value">12</span><br><span class="summary-label">Candidates to review</span></span></a>
+    <a class="summary-item" href="#"><span class="avatar avatar-sm avatar-danger"><svg class="icon" aria-hidden="true"><use href="#i-alert-triangle"/></svg></span><span><span class="summary-value">1</span><br><span class="summary-label">With failures</span></span></a>
+  </div>
 
   <div class="with-sidebar">
-    <button class="btn filters-toggle" type="button" data-filters-toggle aria-expanded="false"><svg class="icon"><use href="#i-filter"/></svg>Filters<span class="muted">· 1 set</span></button>
-      <aside class="sidebar filters" aria-label="Filters">
+    <button class="btn filters-toggle" type="button" data-filters-toggle aria-expanded="false"><svg class="icon" aria-hidden="true"><use href="#i-filter"/></svg>Filters</button>
+    <aside class="sidebar filters" aria-label="Filters">
       <div class="filters-head"><span class="t-subheading">Filters</span><button class="btn btn-sm btn-quiet" type="button">Clear</button></div>
-      <div class="input-wrap"><svg class="icon"><use href="#i-search"/></svg><input class="input" type="search" placeholder="Search companies" aria-label="Search companies"></div>
-      <div class="filter-group"><span class="t-label">Study</span>
-        <label class="check"><input type="checkbox"> Full study <span class="count">3</span></label>
-        <label class="check"><input type="checkbox"> Light profile <span class="count">2</span></label>
-        <label class="check"><input type="checkbox"> Not studied <span class="count">1</span></label>
-      </div>
-      <div class="filter-group"><span class="t-label">Activity</span>
-        <label class="check"><input type="checkbox" checked> Changed this week <span class="count">2</span></label>
-        <label class="check"><input type="checkbox"> Collecting now <span class="count">2</span></label>
-        <label class="check"><input type="checkbox"> Has failures <span class="count">1</span></label>
-      </div>
-      <div class="filter-group"><span class="t-label">Sort by</span>
-        <div class="select"><button class="select-trigger" type="button" data-toggle aria-haspopup="listbox" aria-expanded="false" aria-label="Sort by"><span class="value">Name</span><svg class="icon"><use href="#i-chevron-down"/></svg></button>
-          <div class="popover" hidden><div class="listbox" role="listbox"><div class="option" role="option" aria-selected="true" data-label="Name"><svg class="icon check-mark"><use href="#i-check"/></svg>Name</div><div class="option" role="option" aria-selected="false" data-label="Last change"><svg class="icon check-mark"><use href="#i-check"/></svg>Last change</div><div class="option" role="option" aria-selected="false" data-label="Most facts"><svg class="icon check-mark"><use href="#i-check"/></svg>Most facts</div></div></div></div>
+      <fieldset class="filter-group"><legend class="t-label">Study</legend>
+        <label class="check"><input type="checkbox">Full study<span class="count">3</span></label>
+        <label class="check"><input type="checkbox">Light profile<span class="count">2</span></label>
+        <label class="check"><input type="checkbox">Not studied<span class="count">1</span></label>
+      </fieldset>
+      <fieldset class="filter-group"><legend class="t-label">Status</legend>
+        <label class="check"><input type="checkbox">Collecting now<span class="count">1</span></label>
+        <label class="check"><input type="checkbox">Up to date<span class="count">2</span></label>
+        <label class="check"><input type="checkbox">Has failures<span class="count">1</span></label>
+      </fieldset>
+      <div class="filter-group"><span class="t-label" id="f-changed">Changed</span>
+        <div class="select"><button class="select-trigger input-sm" type="button" data-toggle aria-haspopup="listbox" aria-expanded="false" aria-labelledby="f-changed"><span class="value">Any time</span><svg class="icon" aria-hidden="true"><use href="#i-chevron-down"/></svg></button>
+  <div class="popover" hidden><div class="listbox" role="listbox" aria-labelledby="f-changed">
+<div class="item option" role="option" aria-selected="true" data-label="Any time"><svg class="icon check-mark" aria-hidden="true"><use href="#i-check"/></svg><span class="option-text">Any time</span></div>
+<div class="item option" role="option" aria-selected="false" data-label="This week"><svg class="icon check-mark" aria-hidden="true"><use href="#i-check"/></svg><span class="option-text">This week</span></div>
+<div class="item option" role="option" aria-selected="false" data-label="This month"><svg class="icon check-mark" aria-hidden="true"><use href="#i-check"/></svg><span class="option-text">This month</span></div>
+<div class="item option" role="option" aria-selected="false" data-label="Never"><svg class="icon check-mark" aria-hidden="true"><use href="#i-check"/></svg><span class="option-text">Never</span></div>
+  </div></div></div>
       </div>
     </aside>
 
     <div>
-      <div class="cluster mb-2"><span class="t-small muted">2 of 6 companies · filtered to changed this week</span></div>
-      <div class="bulk-bar" id="bulk" hidden><span class="selected-count">0 selected</span><div class="spacer"></div><button class="btn btn-sm" type="button">Remove from project</button><button class="btn btn-sm" type="button">Collect again</button><button class="btn btn-sm btn-primary" type="button" data-toast="2 companies moved to a full study">Full study</button></div>
-      <div class="list" data-selectable="#bulk">
-        <div class="row">
-          <input type="checkbox" class="row-check" aria-label="Select Seniorverse">
-          <div class="row-main"><div class="row-title"><a href="page-record.html" style="color: inherit">Seniorverse</a><span class="label label-accent">Us</span></div><div class="row-sub">seniorverse.com · Adult day software: attendance, care plans, billing, family portal</div></div>
-          <div class="row-meta"><div>Full study · 1,015 facts</div><div class="faint">9 of 9 sections</div></div>
-          <span class="status" style="min-width: 110px"><span class="spinner" style="width: 13px; height: 13px"></span>Collecting</span>
+      <div class="toolbar">
+        <div class="input-wrap"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><input class="input" type="search" placeholder="Search companies" aria-label="Search companies"><kbd>/</kbd></div>
+        <span class="sr-only" id="sort-l">Sort by</span>
+        <div class="select select-inline"><button class="select-trigger" type="button" data-toggle aria-haspopup="listbox" aria-expanded="false" aria-labelledby="sort-l"><span class="value">Sort: Name</span><svg class="icon" aria-hidden="true"><use href="#i-chevron-down"/></svg></button>
+  <div class="popover" hidden><div class="listbox" role="listbox" aria-labelledby="sort-l">
+<div class="item option" role="option" aria-selected="true" data-label="Sort: Name"><svg class="icon check-mark" aria-hidden="true"><use href="#i-check"/></svg><span class="option-text">Sort: Name</span></div>
+<div class="item option" role="option" aria-selected="false" data-label="Sort: Last change"><svg class="icon check-mark" aria-hidden="true"><use href="#i-check"/></svg><span class="option-text">Sort: Last change</span></div>
+<div class="item option" role="option" aria-selected="false" data-label="Sort: Most facts"><svg class="icon check-mark" aria-hidden="true"><use href="#i-check"/></svg><span class="option-text">Sort: Most facts</span></div>
+  </div></div></div>
+        <div class="btn-group" role="group" aria-label="View" data-view="#results">
+          <button class="btn btn-icon" type="button" aria-pressed="true" data-value="list" aria-label="List"><svg class="icon" aria-hidden="true"><use href="#i-list"/></svg></button>
+          <button class="btn btn-icon" type="button" aria-pressed="false" data-value="cards" aria-label="Cards"><svg class="icon" aria-hidden="true"><use href="#i-layout-grid"/></svg></button>
         </div>
-        <div class="row">
-          <input type="checkbox" class="row-check" aria-label="Select StoriiCare">
-          <div class="row-main"><div class="row-title"><a href="page-record.html" style="color: inherit">StoriiCare</a></div><div class="row-sub">storiicare.com · Care management and EHR for adult day, home care and care homes</div></div>
-          <div class="row-meta"><div>Full study · 1,842 facts</div><div class="faint">Notable change 2 d ago</div></div>
-          <span class="status success" style="min-width: 110px"><svg class="icon icon-sm"><use href="#i-check-circle"/></svg>Up to date</span>
-        </div>
+        <span class="toolbar-count">6 companies</span>
       </div>
-
-      <div class="section">
-        <div class="section-head"><h2 class="t-heading">Also in this project</h2></div>
-        <div class="table-box">
-          <table class="table">
-            <thead><tr><th class="sortable" aria-sort="ascending">Company <svg class="icon icon-sm"><use href="#i-chevron-down"/></svg></th><th>Study</th><th class="num sortable">Facts <svg class="icon icon-sm"><use href="#i-chevrons-up-down"/></svg></th><th class="sortable">Last change <svg class="icon icon-sm"><use href="#i-chevrons-up-down"/></svg></th><th class="actions-col"><span class="sr-only">Actions</span></th></tr></thead>
-            <tbody>
-              <tr class="clickable"><td class="primary">Collabrios</td><td>Light profile</td><td class="num">214</td><td class="muted">Oct 12</td><td class="actions-col"><button class="btn btn-sm" type="button">Upgrade</button></td></tr>
-              <tr class="clickable"><td class="primary">CareWatch</td><td>Light profile</td><td class="num">96</td><td class="muted">None yet</td><td class="actions-col"><button class="btn btn-sm" type="button">Upgrade</button></td></tr>
-              <tr class="clickable"><td class="primary">Turning Point Systems</td><td class="muted">Not studied</td><td class="num muted">0</td><td class="muted">None yet</td><td class="actions-col"><button class="btn btn-sm btn-primary" type="button">Study</button></td></tr>
-              <tr class="clickable"><td class="primary">WellSky Adult Day</td><td>Full study</td><td class="num">2,410</td><td class="muted">Oct 2</td><td class="actions-col"><button class="btn btn-sm btn-quiet btn-icon" type="button" aria-label="Actions"><svg class="icon"><use href="#i-more"/></svg></button></td></tr>
-            </tbody>
-          </table>
-          <div class="table-foot"><span>4 companies</span></div>
+      <div id="results">
+        <div data-view-panel="list">
+          <div class="bulk-bar" data-bulk hidden><span data-selected-count>0 selected</span><div class="actions"><button class="btn btn-sm" type="button">Collect again</button><button class="btn btn-sm" type="button">Remove from project</button><button class="btn btn-sm btn-primary" type="button" data-toast="Moved to a full study">Full study</button></div></div>
+          <div class="list" data-selectable>
+  <div class="list-head"><span class="t-label">Us</span><span class="count">1</span></div>
+  <div class="row">
+    <input type="checkbox" data-row-check aria-label="Select Seniorverse">
+    <span class="avatar avatar-accent">SV</span>
+    <div class="row-main"><div class="row-title"><a href="page-record.html">Seniorverse</a><span class="label label-accent">Us</span><span class="label">Full study</span></div><div class="row-sub">seniorverse.com · Adult day software: attendance, care plans, billing, family portal</div></div>
+    <div class="row-cell"><span class="t-label">Facts</span>1,015</div>
+    <div class="row-cell"><span class="t-label">Last change</span>Oct 18</div>
+    <div class="row-cell wide"><span class="t-label">Status</span><span class="status running"><span class="spinner"></span>Collecting</span></div>
+    <div class="row-end"><div class="menu-wrap"><button class="btn btn-icon btn-quiet btn-sm" type="button" data-toggle aria-haspopup="menu" aria-expanded="false" aria-label="Actions for Seniorverse"><svg class="icon" aria-hidden="true"><use href="#i-more"/></svg></button>
+      <div class="menu" role="menu" hidden><button class="item" role="menuitem" type="button" ><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg>Collect again</button><button class="item" role="menuitem" type="button" ><svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right"/></svg>Upgrade to full study</button><div class="menu-sep"></div><button class="item danger" role="menuitem" type="button" data-toast="Seniorverse removed|It is still in other projects" data-undo="true"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg>Remove from project</button></div></div></div>
+  </div>
+  <div class="list-head"><span class="t-label">Competitors</span><span class="count">5</span></div>
+  <div class="row">
+    <input type="checkbox" data-row-check aria-label="Select StoriiCare">
+    <span class="avatar">SC</span>
+    <div class="row-main"><div class="row-title"><a href="page-record.html">StoriiCare</a><span class="label">Full study</span></div><div class="row-sub">storiicare.com · Care management and EHR for adult day, home care and care homes</div></div>
+    <div class="row-cell"><span class="t-label">Facts</span>1,842</div>
+    <div class="row-cell"><span class="t-label">Last change</span>Oct 17</div>
+    <div class="row-cell wide"><span class="t-label">Status</span><span class="status success"><svg class="icon" aria-hidden="true"><use href="#i-check-circle"/></svg>Up to date</span></div>
+    <div class="row-end"><div class="menu-wrap"><button class="btn btn-icon btn-quiet btn-sm" type="button" data-toggle aria-haspopup="menu" aria-expanded="false" aria-label="Actions for StoriiCare"><svg class="icon" aria-hidden="true"><use href="#i-more"/></svg></button>
+      <div class="menu" role="menu" hidden><button class="item" role="menuitem" type="button" ><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg>Collect again</button><button class="item" role="menuitem" type="button" ><svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right"/></svg>Upgrade to full study</button><div class="menu-sep"></div><button class="item danger" role="menuitem" type="button" data-toast="StoriiCare removed|It is still in other projects" data-undo="true"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg>Remove from project</button></div></div></div>
+  </div>
+  <div class="row">
+    <input type="checkbox" data-row-check aria-label="Select WellSky Adult Day">
+    <span class="avatar">WS</span>
+    <div class="row-main"><div class="row-title"><a href="page-record.html">WellSky Adult Day</a><span class="label">Full study</span></div><div class="row-sub">wellsky.com · Adult day module of a larger post-acute suite</div></div>
+    <div class="row-cell"><span class="t-label">Facts</span>2,410</div>
+    <div class="row-cell"><span class="t-label">Last change</span>Oct 2</div>
+    <div class="row-cell wide"><span class="t-label">Status</span><span class="status success"><svg class="icon" aria-hidden="true"><use href="#i-check-circle"/></svg>Up to date</span></div>
+    <div class="row-end"><div class="menu-wrap"><button class="btn btn-icon btn-quiet btn-sm" type="button" data-toggle aria-haspopup="menu" aria-expanded="false" aria-label="Actions for WellSky Adult Day"><svg class="icon" aria-hidden="true"><use href="#i-more"/></svg></button>
+      <div class="menu" role="menu" hidden><button class="item" role="menuitem" type="button" ><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg>Collect again</button><button class="item" role="menuitem" type="button" ><svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right"/></svg>Upgrade to full study</button><div class="menu-sep"></div><button class="item danger" role="menuitem" type="button" data-toast="WellSky Adult Day removed|It is still in other projects" data-undo="true"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg>Remove from project</button></div></div></div>
+  </div>
+  <div class="row">
+    <input type="checkbox" data-row-check aria-label="Select Collabrios">
+    <span class="avatar">CB</span>
+    <div class="row-main"><div class="row-title"><a href="page-record.html">Collabrios</a><span class="label">Light profile</span></div><div class="row-sub">collabrios.com · Adult day and aging services software with billing</div></div>
+    <div class="row-cell"><span class="t-label">Facts</span>214</div>
+    <div class="row-cell"><span class="t-label">Last change</span>Oct 12</div>
+    <div class="row-cell wide"><span class="t-label">Status</span><span class="status danger"><svg class="icon" aria-hidden="true"><use href="#i-alert-triangle"/></svg>1 failed</span></div>
+    <div class="row-end"><div class="menu-wrap"><button class="btn btn-icon btn-quiet btn-sm" type="button" data-toggle aria-haspopup="menu" aria-expanded="false" aria-label="Actions for Collabrios"><svg class="icon" aria-hidden="true"><use href="#i-more"/></svg></button>
+      <div class="menu" role="menu" hidden><button class="item" role="menuitem" type="button" ><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg>Collect again</button><button class="item" role="menuitem" type="button" ><svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right"/></svg>Upgrade to full study</button><div class="menu-sep"></div><button class="item danger" role="menuitem" type="button" data-toast="Collabrios removed|It is still in other projects" data-undo="true"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg>Remove from project</button></div></div></div>
+  </div>
+  <div class="row">
+    <input type="checkbox" data-row-check aria-label="Select CareWatch">
+    <span class="avatar">CW</span>
+    <div class="row-main"><div class="row-title"><a href="page-record.html">CareWatch</a><span class="label">Light profile</span></div><div class="row-sub">carewatch.com · Attendance and billing for adult day centers</div></div>
+    <div class="row-cell"><span class="t-label">Facts</span>96</div>
+    <div class="row-cell"><span class="t-label">Last change</span>None yet</div>
+    <div class="row-cell wide"><span class="t-label">Status</span><span class="status neutral"><svg class="icon" aria-hidden="true"><use href="#i-clock"/></svg>Queued</span></div>
+    <div class="row-end"><div class="menu-wrap"><button class="btn btn-icon btn-quiet btn-sm" type="button" data-toggle aria-haspopup="menu" aria-expanded="false" aria-label="Actions for CareWatch"><svg class="icon" aria-hidden="true"><use href="#i-more"/></svg></button>
+      <div class="menu" role="menu" hidden><button class="item" role="menuitem" type="button" ><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg>Collect again</button><button class="item" role="menuitem" type="button" ><svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right"/></svg>Upgrade to full study</button><div class="menu-sep"></div><button class="item danger" role="menuitem" type="button" data-toast="CareWatch removed|It is still in other projects" data-undo="true"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg>Remove from project</button></div></div></div>
+  </div>
+  <div class="row">
+    <input type="checkbox" data-row-check aria-label="Select Turning Point Systems">
+    <span class="avatar">TP</span>
+    <div class="row-main"><div class="row-title"><a href="page-record.html">Turning Point Systems</a></div><div class="row-sub">No website yet</div></div>
+    <div class="row-cell"><span class="t-label">Facts</span>0</div>
+    <div class="row-cell"><span class="t-label">Last change</span>None yet</div>
+    <div class="row-cell wide"><span class="t-label">Status</span><span class="status neutral">Not studied</span></div>
+    <div class="row-end"><div class="menu-wrap"><button class="btn btn-icon btn-quiet btn-sm" type="button" data-toggle aria-haspopup="menu" aria-expanded="false" aria-label="Actions for Turning Point Systems"><svg class="icon" aria-hidden="true"><use href="#i-more"/></svg></button>
+      <div class="menu" role="menu" hidden><button class="item" role="menuitem" type="button" ><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg>Collect again</button><button class="item" role="menuitem" type="button" ><svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right"/></svg>Upgrade to full study</button><div class="menu-sep"></div><button class="item danger" role="menuitem" type="button" data-toast="Turning Point Systems removed|It is still in other projects" data-undo="true"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg>Remove from project</button></div></div></div>
+  </div>
+          </div>
+        </div>
+        <div class="grid-cards" data-view-panel="cards" hidden>
+  <a class="card" href="page-record.html"><div class="card-body">
+    <div class="cluster mb-2"><span class="avatar avatar-accent">SV</span><span class="strong">Seniorverse</span></div>
+    <p class="t-small muted mb-4">seniorverse.com · Adult day software: attendance, care plans, billing, family portal</p>
+    <div class="cluster"><span class="label label-accent">Us</span><span class="label">Full study</span></div>
+    <div class="page-meta mt-4"><span><b>1,015</b> facts</span><span>Last change Oct 18</span></div>
+  </div></a>
+  <a class="card" href="page-record.html"><div class="card-body">
+    <div class="cluster mb-2"><span class="avatar">SC</span><span class="strong">StoriiCare</span></div>
+    <p class="t-small muted mb-4">storiicare.com · Care management and EHR for adult day, home care and care homes</p>
+    <div class="cluster"><span class="label">Full study</span></div>
+    <div class="page-meta mt-4"><span><b>1,842</b> facts</span><span>Last change Oct 17</span></div>
+  </div></a>
+  <a class="card" href="page-record.html"><div class="card-body">
+    <div class="cluster mb-2"><span class="avatar">WS</span><span class="strong">WellSky Adult Day</span></div>
+    <p class="t-small muted mb-4">wellsky.com · Adult day module of a larger post-acute suite</p>
+    <div class="cluster"><span class="label">Full study</span></div>
+    <div class="page-meta mt-4"><span><b>2,410</b> facts</span><span>Last change Oct 2</span></div>
+  </div></a>
+  <a class="card" href="page-record.html"><div class="card-body">
+    <div class="cluster mb-2"><span class="avatar">CB</span><span class="strong">Collabrios</span></div>
+    <p class="t-small muted mb-4">collabrios.com · Adult day and aging services software with billing</p>
+    <div class="cluster"><span class="label">Light profile</span></div>
+    <div class="page-meta mt-4"><span><b>214</b> facts</span><span>Last change Oct 12</span></div>
+  </div></a>
+  <a class="card" href="page-record.html"><div class="card-body">
+    <div class="cluster mb-2"><span class="avatar">CW</span><span class="strong">CareWatch</span></div>
+    <p class="t-small muted mb-4">carewatch.com · Attendance and billing for adult day centers</p>
+    <div class="cluster"><span class="label">Light profile</span></div>
+    <div class="page-meta mt-4"><span><b>96</b> facts</span><span>Last change None yet</span></div>
+  </div></a>
+  <a class="card" href="page-record.html"><div class="card-body">
+    <div class="cluster mb-2"><span class="avatar">TP</span><span class="strong">Turning Point Systems</span></div>
+    <p class="t-small muted mb-4">No website yet</p>
+    <div class="cluster"><span class="label">Not studied</span></div>
+    <div class="page-meta mt-4"><span><b>0</b> facts</span><span>Last change None yet</span></div>
+  </div></a>
         </div>
       </div>
     </div>
   </div>
 </main>
-
 <div class="scrim" id="add-modal" hidden>
-  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="am-t">
-    <div class="modal-head"><div><div class="modal-title" id="am-t">Add a competitor</div><div class="modal-desc">It is added to Seniorverse Day.</div></div><button class="btn btn-icon btn-quiet btn-sm" type="button" data-close aria-label="Close"><svg class="icon"><use href="#i-x"/></svg></button></div>
-    <div class="modal-body">
-      <div class="field"><label for="am1">Name</label><input id="am1" class="input" placeholder="StoriiCare"></div>
-      <div class="field"><label for="am2">Website</label><input id="am2" class="input" placeholder="storiicare.com"><div class="field-hint">A company already in another project is reused.</div></div>
-      <div class="grid-2"><label class="check-card"><input type="radio" name="aml" checked><span><span class="strong">Light profile</span><span class="check-desc">Key pages, read once.</span></span></label><label class="check-card"><input type="radio" name="aml"><span><span class="strong">Full study</span><span class="check-desc">Everything, re-checked.</span></span></label></div>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="add-modal-t">
+    <div class="modal-head">
+      <div class="overlay-heading"><div class="overlay-title" id="add-modal-t">Add a competitor</div><div class="overlay-desc">It is added to Seniorverse Day.</div></div>
+      <button class="btn btn-icon btn-quiet btn-sm overlay-close" type="button" data-close aria-label="Close"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>
     </div>
-    <div class="modal-foot"><button class="btn btn-quiet" type="button" data-close>Cancel</button><button class="btn btn-primary" type="button" data-close data-toast="Competitor added; collecting has started">Add competitor</button></div>
+    <div class="modal-body">
+      <div class="field"><label class="field-label" for="am1">Name</label><input class="input" id="am1" placeholder="StoriiCare"></div>
+      <div class="field"><label class="field-label" for="am2">Website</label><input class="input" id="am2" placeholder="storiicare.com"><div class="field-hint">A company already in another project is reused.</div></div>
+      <div class="grid-2"><label class="choice-card"><input type="radio" name="aml" checked><span><span class="strong">Light profile</span><span class="check-desc">Key pages, read once.</span></span></label><label class="choice-card"><input type="radio" name="aml"><span><span class="strong">Full study</span><span class="check-desc">Everything, re-checked.</span></span></label></div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-quiet" type="button" data-close>Cancel</button><button class="btn btn-primary" type="button" data-close data-toast="Competitor added|Collecting has started">Add competitor</button></div>
   </div>
 </div>
 <div class="scrim" id="confirm-delete" hidden>
-  <div class="modal modal-sm" role="alertdialog" aria-modal="true" aria-labelledby="cd-t">
-    <div class="modal-head"><div class="modal-title" id="cd-t">Delete Seniorverse Day?</div></div>
-    <div class="modal-body t-small" style="color: var(--ink-2)">The project, its surveys, comparisons and digests are deleted. Its companies and what was collected about them are kept.</div>
-    <div class="modal-foot"><button class="btn btn-quiet" type="button" data-close>Cancel</button><button class="btn btn-danger-solid" type="button" data-close data-toast="Project deleted">Delete project</button></div>
+  <div class="modal modal-sm modal-confirm" role="alertdialog" aria-modal="true" aria-labelledby="confirm-delete-t" aria-describedby="confirm-delete-d">
+    <div class="modal-head">
+      <span class="avatar avatar-lg avatar-danger"><svg class="icon" aria-hidden="true"><use href="#i-trash"/></svg></span>
+      <div class="overlay-heading"><div class="overlay-title" id="confirm-delete-t">Delete Seniorverse Day?</div><div class="overlay-desc" id="confirm-delete-d">Its surveys, comparisons and digests are deleted. Its companies and what was collected about them are kept.</div></div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-quiet" type="button" data-close autofocus>Cancel</button><button class="btn btn-danger-solid" type="button" data-close data-toast="Seniorverse Day deleted">Delete project</button></div>
   </div>
 </div>
 <script src="preview.js"></script>

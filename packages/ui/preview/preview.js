@@ -1,10 +1,20 @@
 // Behavior for the static preview pages only. Apps get the same behavior from
-// the React components (see README.md); nothing here ships to an app.
+// the React components (README.md); nothing here ships to an app.
 //
-// - icons: a Lucide sprite injected once, used as <svg class="icon"><use href="#i-name"/></svg>
-// - theme: light / dark / auto, remembered in this browser
-// - menus, popovers, selects, multi-selects, modals, drawers, tabs, switches,
-//   toasts, row selection with a bulk bar, sortable headers
+// Hooks are data attributes, never style classes:
+//   data-toggle            opens the .menu or .popover beside it
+//   data-toggle-close      closes the open popover (Done)
+//   data-clear             clears a multi-select
+//   data-open="id"         shows a hidden overlay; data-close hides it
+//   data-toast="Title|Text" shows a toast; data-undo, data-kind="danger"
+//   data-tabs="#scope"     tabs that switch [data-panel] blocks in scope
+//   data-view="#scope"     a toggle group that switches [data-view-panel] blocks
+//   data-selectable        a list or table whose [data-row-check] boxes drive
+//                          the [data-bulk] bar just before it
+//   data-reveal="id"       shows and hides detail
+//   data-target="id"       a nav item that scrolls to a section
+//   data-filters-toggle    shows the filter sidebar on a phone
+//   ⌘K / Ctrl+K           opens the command menu when the page has one
 
 (function () {
   const ICONS = {
@@ -15,6 +25,7 @@
     plus: '<path d="M5 12h14"/><path d="M12 5v14"/>',
     search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
     'chevron-down': '<path d="m6 9 6 6 6-6"/>',
+    'chevron-up': '<path d="m18 15-6-6-6 6"/>',
     'chevron-right': '<path d="m9 18 6-6-6-6"/>',
     'chevron-left': '<path d="m15 18-6-6 6-6"/>',
     'chevrons-up-down': '<path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/>',
@@ -63,6 +74,10 @@
     'grip': '<circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/>',
     'mail': '<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
     'undo': '<path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/>',
+    list: '<line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/>',
+    send: '<path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/>',
+    'message': '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>',
+    'flag': '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" x2="4" y1="22" y2="15"/>',
   };
 
   // ---------------------------------------------------------------- icons
@@ -71,6 +86,7 @@
   sprite.style.display = 'none';
   sprite.innerHTML = Object.entries(ICONS).map(([k, v]) => `<symbol id="i-${k}" viewBox="0 0 24 24">${v}</symbol>`).join('');
   document.body.prepend(sprite);
+  const icon = (name, cls = 'icon') => `<svg class="${cls}" aria-hidden="true"><use href="#i-${name}"/></svg>`;
 
   // ---------------------------------------------------------------- theme
   const root = document.documentElement;
@@ -83,7 +99,7 @@
     ['index.html', 'Overview'], ['foundations.html', 'Foundations'], ['components.html', 'Components'],
     ['page-list.html', 'Collection page'], ['page-record.html', 'Record page'], ['page-form.html', 'Create and edit'],
     ['page-settings.html', 'Settings'], ['page-dashboard.html', 'Dashboard'], ['page-activity.html', 'Background work'],
-    ['page-wizard.html', 'Step by step'], ['page-sidebar.html', 'Sidebar shell and split view'], ['page-states.html', 'Sign-in, errors, loading'],
+    ['page-wizard.html', 'Step by step'], ['page-sidebar.html', 'Sidebar shell and queue'], ['page-states.html', 'Sign-in, errors, loading'],
     ['mobile.html', 'On a phone'],
   ];
   if (!window.frameElement) {
@@ -92,50 +108,67 @@
     bar.className = 'preview-switcher';
     bar.innerHTML = `
       <div class="menu-wrap">
-        <button class="btn btn-sm" type="button" data-toggle aria-haspopup="menu" aria-expanded="false">
-          <svg class="icon icon-sm"><use href="#i-layout-grid"/></svg>Kit preview: ${(PAGES.find((p) => p[0] === here) || ['', 'Page'])[1]}
-        </button>
-        <div class="menu" role="menu" hidden style="bottom: calc(100% + 6px); top: auto; left: 0; right: auto; min-width: 240px">
-          ${PAGES.map(([href, label]) => `<a class="menu-item" role="menuitem" href="${href}"${href === here ? ' aria-current="page" style="font-weight:650"' : ''}>${label}</a>`).join('')}
+        <button class="btn btn-sm" type="button" data-toggle aria-haspopup="menu" aria-expanded="false">${icon('layout-grid', 'icon icon-sm')}Kit preview: ${(PAGES.find((p) => p[0] === here) || ['', 'Page'])[1]}</button>
+        <div class="menu menu-start menu-up" role="menu" hidden>
+          ${PAGES.map(([href, label]) => `<a class="item" role="menuitem" href="${href}"${href === here ? ' aria-current="page"' : ''}>${label}</a>`).join('')}
         </div>
       </div>
       <div class="btn-group" role="group" aria-label="Theme">
-        <button class="btn btn-sm btn-icon" type="button" data-theme-set="light" aria-label="Light theme"><svg class="icon icon-sm"><use href="#i-sun"/></svg></button>
-        <button class="btn btn-sm btn-icon" type="button" data-theme-set="dark" aria-label="Dark theme"><svg class="icon icon-sm"><use href="#i-moon"/></svg></button>
+        <button class="btn btn-sm btn-icon" type="button" data-theme-set="light" aria-label="Light theme">${icon('sun', 'icon icon-sm')}</button>
+        <button class="btn btn-sm btn-icon" type="button" data-theme-set="dark" aria-label="Dark theme">${icon('moon', 'icon icon-sm')}</button>
       </div>`;
     document.body.append(bar);
-    const style = document.createElement('style');
-    style.textContent = '.preview-switcher{position:fixed;left:16px;bottom:16px;z-index:70;display:flex;gap:8px;align-items:center;padding:6px;border-radius:10px;background:var(--bg-raised);box-shadow:var(--shadow-pop)}';
-    document.head.append(style);
   }
 
   // ---------------------------------------------------------------- toasts
   let region = document.querySelector('.toast-region');
   if (!region) { region = document.createElement('div'); region.className = 'toast-region'; region.setAttribute('role', 'status'); document.body.append(region); }
-  function toast(text, { kind = 'success', undo = false } = {}) {
+  function toast(spec, { kind = 'success', undo = false } = {}) {
+    const [title, text] = String(spec).split('|');
     const t = document.createElement('div');
-    t.className = `toast ${kind}`;
-    t.innerHTML = `<svg class="icon icon-sm"><use href="#i-${kind === 'danger' ? 'alert-circle' : 'check-circle'}"/></svg><span></span>${undo ? '<button class="btn btn-sm" type="button">Undo</button>' : ''}<button class="btn btn-sm btn-icon" type="button" aria-label="Dismiss"><svg class="icon icon-sm"><use href="#i-x"/></svg></button>`;
-    t.querySelector('span').textContent = text;
+    t.className = 'toast';
+    t.innerHTML = `<span class="avatar avatar-sm avatar-${kind === 'danger' ? 'danger' : 'success'}">${icon(kind === 'danger' ? 'alert-triangle' : 'check')}</span>
+      <div class="toast-body"><div class="toast-title"></div>${text ? '<div class="toast-text"></div>' : ''}${undo ? '<div class="actions"><button class="btn btn-sm" type="button">Undo</button></div>' : ''}</div>
+      <button class="btn btn-icon btn-quiet btn-sm" type="button" aria-label="Dismiss">${icon('x')}</button>`;
+    t.querySelector('.toast-title').textContent = title;
+    if (text) t.querySelector('.toast-text').textContent = text;
     t.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => t.remove()));
     region.append(t);
     setTimeout(() => t.remove(), 6000);
   }
 
-  // ---------------------------------------------------------------- popovers and menus
+  // ---------------------------------------------------------------- popovers
   const closeAll = (except) => document.querySelectorAll('[data-toggle][aria-expanded="true"]').forEach((b) => {
     if (b === except) return;
     b.setAttribute('aria-expanded', 'false');
-    const pop = b.parentElement.querySelector('.menu, .popover');
+    const pop = b.parentElement.querySelector(':scope > .menu, :scope > .popover');
     if (pop) pop.hidden = true;
   });
 
   function updateMulti(sel) {
-    const picked = [...sel.querySelectorAll('.popover input[type="checkbox"]:checked')].map((c) => c.closest('label').dataset.label || c.closest('label').textContent.trim());
-    const v = sel.querySelector('.select-trigger .value');
+    const picked = [...sel.querySelectorAll('.popover input[type="checkbox"]:checked')].map((c) => c.closest('[data-label]').dataset.label);
+    const v = sel.querySelector('.select-trigger > .value');
     if (!v) return;
     v.classList.toggle('placeholder', !picked.length);
     v.textContent = !picked.length ? (v.dataset.placeholder || 'Any') : picked.length <= 2 ? picked.join(', ') : `${picked.length} selected`;
+  }
+
+  function syncSelection(box) {
+    const rows = [...box.querySelectorAll('[data-row-check]')];
+    const n = rows.filter((b) => b.checked).length;
+    rows.forEach((b) => b.closest('tr, .row')?.classList.toggle('selected', b.checked));
+    const all = box.querySelector('[data-all-check]');
+    if (all) { all.checked = n === rows.length && n > 0; all.indeterminate = n > 0 && n < rows.length; }
+    let bar = box.previousElementSibling;
+    while (bar && !bar.hasAttribute('data-bulk')) bar = bar.previousElementSibling;
+    if (bar) { bar.hidden = n === 0; const c = bar.querySelector('[data-selected-count]'); if (c) c.textContent = `${n} selected`; }
+  }
+
+  function openOverlay(el) {
+    if (!el) return;
+    el.hidden = false;
+    const f = el.querySelector('[autofocus], input, textarea, .btn');
+    if (f) f.focus();
   }
 
   document.addEventListener('click', (e) => {
@@ -145,11 +178,11 @@
 
     const toggle = t.closest('[data-toggle]');
     if (toggle) {
-      const pop = toggle.parentElement.querySelector('.menu, .popover');
+      const pop = toggle.parentElement.querySelector(':scope > .menu, :scope > .popover');
       const open = toggle.getAttribute('aria-expanded') !== 'true';
       closeAll(toggle);
       toggle.setAttribute('aria-expanded', String(open));
-      if (pop) { pop.hidden = !open; const f = open && pop.querySelector('input[type="search"], .input'); if (f) f.focus(); }
+      if (pop) { pop.hidden = !open; const f = open && pop.querySelector('input[type="search"]'); if (f) f.focus(); }
       return;
     }
 
@@ -157,88 +190,100 @@
     if (option && !option.closest('.multi')) {
       const sel = option.closest('.select');
       sel.querySelectorAll('.option').forEach((o) => o.setAttribute('aria-selected', String(o === option)));
-      const v = sel.querySelector('.select-trigger .value');
-      v.textContent = option.dataset.label || option.querySelector('.option-text')?.textContent || option.textContent.trim();
+      const v = sel.querySelector('.select-trigger > .value');
+      v.textContent = option.dataset.label;
       v.classList.remove('placeholder');
       closeAll();
       return;
     }
+    const clear = t.closest('[data-clear]');
+    if (clear) { const sel = clear.closest('.select'); sel.querySelectorAll('input[type="checkbox"]').forEach((c) => { c.checked = false; }); updateMulti(sel); return; }
 
-    if (!t.closest('.menu, .popover') || t.closest('[data-toggle-close]')) closeAll();
-    if (t.closest('.menu-item') && !t.closest('.preview-switcher')) closeAll();
+    if (!t.closest('.menu, .popover') || t.closest('[data-toggle-close]') || t.closest('.menu .item')) closeAll();
 
-    // A toast button inside a clickable row acts on its own, without opening the row.
+    // A toast button inside an opener acts on its own.
     const toaster = t.closest('[data-toast]:not([data-close])');
     if (toaster) {
-      toast(toaster.dataset.toast, { undo: toaster.dataset.undo === 'true', kind: toaster.dataset.kind || 'success' });
+      toast(toaster.dataset.toast, { undo: toaster.dataset.undo === 'true', kind: toaster.dataset.kind });
       if (toaster.parentElement.closest('[data-open]')) return;
     }
 
     const opener = t.closest('[data-open]');
-    if (opener) { const el = document.getElementById(opener.dataset.open); if (el) { el.hidden = false; const f = el.querySelector('[autofocus], .input, .btn'); if (f) f.focus(); } return; }
+    if (opener) { openOverlay(document.getElementById(opener.dataset.open)); return; }
     const closer = t.closest('[data-close]');
-    if (closer || t.classList.contains('scrim') || t.classList.contains('drawer-scrim')) {
-      const el = (closer || t).closest('.scrim, .drawer-scrim');
+    if (closer || t.classList.contains('scrim')) {
+      const el = (closer || t).closest('.scrim');
       if (el) el.hidden = true;
-      if (closer && closer.dataset.toast) toast(closer.dataset.toast, { undo: closer.dataset.undo === 'true', kind: closer.dataset.kind || 'success' });
+      if (closer && closer.dataset.toast) toast(closer.dataset.toast, { undo: closer.dataset.undo === 'true', kind: closer.dataset.kind });
       return;
     }
 
-
     const tab = t.closest('[data-tabs] .tab');
     if (tab) {
-      const group = tab.closest('[data-tabs]');
-      group.querySelectorAll('.tab').forEach((x) => { x.classList.toggle('active', x === tab); x.setAttribute('aria-selected', String(x === tab)); });
-      const scope = document.querySelector(group.dataset.tabs) || document;
-      scope.querySelectorAll('[data-panel]').forEach((p) => { p.hidden = p.dataset.panel !== tab.dataset.tab; });
+      e.preventDefault();
+      const groupEl = tab.closest('[data-tabs]');
+      groupEl.querySelectorAll('.tab').forEach((x) => { x.classList.toggle('current', x === tab); x.setAttribute('aria-selected', String(x === tab)); x.removeAttribute('aria-current'); });
+      const scope = document.querySelector(groupEl.dataset.tabs) || document;
+      scope.querySelectorAll(':scope > [data-panel]').forEach((p) => { p.hidden = p.dataset.panel !== tab.dataset.tab; });
     }
 
-    const ft = t.closest('[data-filters-toggle]');
-    if (ft) {
-      const side = ft.parentElement.querySelector('.sidebar.filters');
-      const open = !side.classList.contains('open');
-      side.classList.toggle('open', open);
-      ft.setAttribute('aria-expanded', String(open));
+    const viewBtn = t.closest('[data-view] .btn');
+    if (viewBtn) {
+      const groupEl = viewBtn.closest('[data-view]');
+      groupEl.querySelectorAll('.btn').forEach((b) => b.setAttribute('aria-pressed', String(b === viewBtn)));
+      const scope = document.querySelector(groupEl.dataset.view) || document;
+      scope.querySelectorAll(':scope > [data-view-panel]').forEach((p) => { p.hidden = p.dataset.viewPanel !== viewBtn.dataset.value; });
+    } else {
+      const pressed = t.closest('.btn-group .btn[aria-pressed]');
+      if (pressed) pressed.parentElement.querySelectorAll('.btn').forEach((b) => b.setAttribute('aria-pressed', String(b === pressed)));
     }
 
     const sw = t.closest('.switch');
     if (sw) sw.setAttribute('aria-checked', String(sw.getAttribute('aria-checked') !== 'true'));
 
-    const sideBtn = t.closest('.side-nav button[data-target]');
-    if (sideBtn) {
-      sideBtn.parentElement.querySelectorAll('button').forEach((b) => b.classList.toggle('active', b === sideBtn));
-      document.getElementById(sideBtn.dataset.target)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const navTarget = t.closest('[data-target]');
+    if (navTarget) {
+      e.preventDefault();
+      navTarget.parentElement.querySelectorAll('[data-target]').forEach((b) => (b === navTarget ? b.setAttribute('aria-current', 'true') : b.removeAttribute('aria-current')));
+      document.getElementById(navTarget.dataset.target)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     const sortable = t.closest('th.sortable');
     if (sortable) {
       const next = sortable.getAttribute('aria-sort') === 'ascending' ? 'descending' : 'ascending';
-      sortable.closest('tr').querySelectorAll('th.sortable').forEach((h) => { h.removeAttribute('aria-sort'); const i = h.querySelector('use'); if (i) i.setAttribute('href', '#i-chevrons-up-down'); });
+      sortable.closest('tr').querySelectorAll('th.sortable').forEach((h) => { h.removeAttribute('aria-sort'); const u = h.querySelector('use'); if (u) u.setAttribute('href', '#i-chevrons-up-down'); });
       sortable.setAttribute('aria-sort', next);
-      const icon = sortable.querySelector('use');
-      if (icon) icon.setAttribute('href', next === 'ascending' ? '#i-chevron-down' : '#i-chevron-down');
+      const u = sortable.querySelector('use');
+      if (u) u.setAttribute('href', next === 'ascending' ? '#i-chevron-up' : '#i-chevron-down');
     }
 
-    const disc = t.closest('[data-reveal]');
-    if (disc) {
-      const el = document.getElementById(disc.dataset.reveal);
-      if (el) { el.hidden = !el.hidden; disc.setAttribute('aria-expanded', String(!el.hidden)); const l = disc.querySelector('.reveal-label'); if (l) l.textContent = el.hidden ? 'Show detail' : 'Hide detail'; const u = disc.querySelector('use'); if (u) u.setAttribute('href', el.hidden ? '#i-chevron-right' : '#i-chevron-down'); }
+    const reveal = t.closest('[data-reveal]');
+    if (reveal) {
+      const el = document.getElementById(reveal.dataset.reveal);
+      if (el) {
+        el.hidden = !el.hidden;
+        reveal.setAttribute('aria-expanded', String(!el.hidden));
+        const l = reveal.querySelector('[data-reveal-label]'); if (l) l.textContent = l.textContent.replace(/^(Show|Hide)/, el.hidden ? 'Show' : 'Hide');
+        const u = reveal.querySelector('use'); if (u) u.setAttribute('href', el.hidden ? '#i-chevron-right' : '#i-chevron-down');
+      }
+    }
+
+    const ft = t.closest('[data-filters-toggle]');
+    if (ft) {
+      const side = ft.parentElement.querySelector('.filters');
+      const open = !side.classList.contains('open');
+      side.classList.toggle('open', open);
+      ft.setAttribute('aria-expanded', String(open));
     }
   });
 
   document.addEventListener('change', (e) => {
     const multi = e.target.closest('.select.multi');
     if (multi) updateMulti(multi);
-    const table = e.target.closest('[data-selectable]');
-    if (table) {
-      const boxes = [...table.querySelectorAll('tbody .row-check, .row .row-check')];
-      if (e.target.classList.contains('all-check')) boxes.forEach((b) => { b.checked = e.target.checked; });
-      const n = boxes.filter((b) => b.checked).length;
-      boxes.forEach((b) => b.closest('tr, .row')?.classList.toggle('selected', b.checked));
-      const all = table.querySelector('.all-check');
-      if (all) { all.checked = n === boxes.length; all.indeterminate = n > 0 && n < boxes.length; }
-      const bar = document.querySelector(table.dataset.selectable);
-      if (bar) { bar.hidden = n === 0; const c = bar.querySelector('.selected-count'); if (c) c.textContent = `${n} selected`; }
+    const box = e.target.closest('[data-selectable]');
+    if (box) {
+      if (e.target.hasAttribute('data-all-check')) box.querySelectorAll('[data-row-check]').forEach((b) => { b.checked = e.target.checked; });
+      syncSelection(box);
     }
   });
 
@@ -246,14 +291,19 @@
     const f = e.target.closest('.popover-search input');
     if (f) {
       const q = f.value.toLowerCase();
-      f.closest('.popover').querySelectorAll('.option, label.check').forEach((o) => { o.hidden = q && !o.textContent.toLowerCase().includes(q); });
+      f.closest('.popover').querySelectorAll('.option').forEach((o) => { o.hidden = q && !o.textContent.toLowerCase().includes(q); });
     }
   });
 
   document.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+      const cmd = document.querySelector('.command-scrim');
+      if (cmd) { e.preventDefault(); openOverlay(cmd); }
+      return;
+    }
     if (e.key !== 'Escape') return;
     closeAll();
-    document.querySelectorAll('.scrim:not([hidden]), .drawer-scrim:not([hidden])').forEach((s) => { s.hidden = true; });
+    document.querySelectorAll('.scrim:not([hidden])').forEach((s) => { s.hidden = true; });
   });
 
   document.querySelectorAll('.select.multi').forEach(updateMulti);

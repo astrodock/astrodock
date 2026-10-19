@@ -2,16 +2,38 @@
 
 How every app on an Astrodock platform is built and how it looks: the frame, the page types, how people move around, what every state looks like, how the words read, and the parts pages are made of. An agent building an app follows this file; a person who knows one app finds the next one works the same way.
 
-**Status: preview for review.** What exists: the stylesheet (`kit.css`) and the preview pages (`preview/`, open `preview/index.html` in a browser). Not built yet: the React components named below (`@astrodock/ui/react`) and the starter app's move onto them. Those follow once the look is approved.
+**Status: preview for review.** What exists: the stylesheet, the rules (this file), the markup reference, the preview pages and the checker. Not built yet: the React components named below (`@astrodock/ui/react`) and the starter app's move onto them.
 
 | File | What it is |
 |---|---|
-| `kit.css` | Every style. Tokens on `:root`, a dark theme, all components and layouts |
-| `preview/index.html` | Overview, with links to every preview page |
-| `preview/foundations.html` | Color, type, space, shape, icons, motion, theming |
-| `preview/components.html` | Every component with its states, and when to use it |
-| `preview/page-*.html` | One page per page type, built only from the kit |
-| `preview/mobile.html` | The page types at phone width |
+| `README.md` | The rules: principles, structure, navigation, page types, states, interaction, writing |
+| `REFERENCE.md` | Copy-ready markup for tokens, shells, the page header and every component. Generated; do not edit |
+| `kit.css` | Every style, in layers: tokens, base, primitives, components, layout |
+| `preview/catalog.js` | The one source for every component's examples: the components page and REFERENCE.md are built from it |
+| `preview/index.html` | Open in a browser: overview and links to every preview page |
+| `preview/page-*.html` | One page per page type, built only from kit classes |
+| `scripts/check.js` | Fails on raw values in kit.css, classes the kit does not define, inline styles, native selects |
+| `scripts/build-reference.js` | Rebuilds REFERENCE.md |
+
+**Building an app with it (agents):** read `REFERENCE.md` for markup and this file for rules. Start every screen from a page type, copy the markup for its parts, and keep app CSS to tokens and app-specific layout.
+
+**Changing the kit:** change `kit.css` (tokens first), add or change the example in `preview/catalog.js`, then run `node scripts/check.js && node scripts/build-reference.js`. A new component goes into the catalog before any app uses it.
+
+---
+
+## How it builds on itself
+
+| Layer | What | Rule |
+|---|---|---|
+| 1. Tokens | Every color, size, radius, weight, shadow, layer and duration | The only place values appear. Apps change tokens, never rules |
+| 2. Base | Element defaults, focus ring, icons, checkboxes and radios | One checkbox and one radio look everywhere |
+| 3. Primitives | Control (button, input, select trigger), item (menu row, option, nav row), surface (card, list, table, stat), avatar, count, text roles | Components are built from these; a menu option and a nav row are the same item |
+| 4. Components | Buttons, fields, select, menus, lists, tables, toolbar, modals, toasts... | Built only from primitives and tokens |
+| 5. Layout and page types | Shells, page, page header, columns, split view | Every screen is one page type |
+
+Shape rules: `--radius-xs` (4px) for marks (checkbox, citation, kbd), `--radius-sm` (6px) for controls, items and small avatars, `--radius-md` (8px) for surfaces: cards, popovers, menus, modals, toasts, larger avatars. Avatars and identity tiles are rounded squares, never circles. Only things that move along a track are round: switches, radios, progress, spinners.
+
+Weights: 400 text, 500 navigation and meta, 600 headings, buttons and labels, 700 display numbers. Chrome text (buttons, tabs, menus, nav) is 13px; content (inputs, options, body) is 14px.
 
 ---
 
@@ -66,7 +88,8 @@ Rules:
 | `Card`, `List`, `Row`, `Table`, `BulkBar`, `Pagination` | Showing records |
 | `FilterSidebar`, `FilterGroup` | Filters, synced to the URL |
 | `KeyValue`, `Stat`, `Status`, `Label`, `Avatar`, `Progress`, `Timeline` | Showing values |
-| `Modal`, `ConfirmDialog`, `Drawer` | Overlays with focus handling and Escape |
+| `Toolbar`, `Summary`, `Queue`, `Thread`, `CommandMenu` | Collections, queues, discussion, Cmd+K |
+| `Modal`, `Confirm`, `Drawer` | Overlays with focus handling and Escape |
 | `Toast` (`toast()`), `Notice`, `EmptyState`, `Skeleton`, `Spinner`, `Tooltip` | Feedback |
 | `BarChart`, `LineChart` | Charts following the chart rules |
 | `useUnsavedChanges`, `useUrlState` | Guarding forms; keeping tab, filters and sort in the URL |
@@ -112,8 +135,9 @@ Every screen is one of these. Each has a preview page.
 ### 1. Collection page (`preview/page-list.html`)
 A set of records to find, scan and act on.
 - **Header:** back button if not a section root; title; meta line (counts, scope); actions: the primary "Add …" last, rare actions in a More menu.
-- **Body:** filter sidebar on the left (search, checkbox groups with counts, selects for long lists, sort), results on the right.
-- **Results:** a list when people scan by name; a table when they compare values. Show the count ("2 of 6 companies"). Load more at the end; no numbered pages.
+- **Summary links** under the tabs: up to four counts ("Changed this week", "With failures"), each opening that filtered view.
+- **Body:** filter sidebar on the left (checkbox groups with counts, selects for long lists); results on the right under a toolbar (search, sort, list or cards, the count).
+- **Results:** a list when people scan by name, with an avatar, labels, aligned value cells, status and a More button; group headings when the list has natural parts. A table when they compare many values. Load more at the end; no numbered pages.
 - **Selection:** checkboxes on rows bring up the bulk bar above the results: the count, then what can be done to all of them.
 - **Empty:** "Nothing yet" (what goes here, how to start) differs from "No matches" (clear the filters).
 
@@ -163,8 +187,10 @@ Only when decisions must happen in order (setting up a domain, an import with ma
 ### 8. System pages (`preview/page-states.html`)
 Signing in, no access, not found, something went wrong, first use, page loading, saving failed. Each: what happened in plain words, whether anything was lost, one way forward. Not-found and errors keep the shell so people can carry on.
 
-### Sidebar shell and split view (`preview/page-sidebar.html`)
-A split view (list on the left, the selected item on the right) is for working through a queue: reviewing, approving, triaging. The list keeps its place; acting on an item moves to the next. J and K move down and up.
+### Sidebar shell and queue (`preview/page-sidebar.html`)
+**Sidebar shell:** a white column with the app switcher (app avatar, name, organization) at the top, a search button that opens the command menu (Cmd+K), grouped sections with icons and counts, then settings, help and the person at the bottom.
+
+**Queue (split view):** for working through items: reviewing, approving, triaging. The queue on the left has a title with its count, search, and tabs for its views; each item shows an avatar, title, time, one line of context and its labels, with a dot when new. The open item on the right has its own bar (position "1 of 8", previous and next, then its actions) and its detail and discussion below. Acting on an item opens the next. J and K move, A approves, S sends back.
 
 ---
 
@@ -197,6 +223,9 @@ When to use each, and when not. `preview/components.html` shows them.
 | List | Records people scan by name | Comparing values (table) |
 | Table | Comparing values across rows; sortable headers; numbers right-aligned | Two-column data (key-value) |
 | Bulk bar | Acting on selected rows | |
+| Summary links | Counts above a collection, each opening a filtered view | Pills that filter in place |
+| Toolbar | Search, sort, view toggle and the count above a collection | Filters (they stay in the sidebar) |
+| Comments | A record's discussion and history in one thread, composer last | |
 | Key-value | A record's fields; "Not found" or "None" rather than blank | |
 | Stat tile | The few numbers that matter, linking to the list behind them | Every number available |
 | Status | Done, Running, Queued, Needs setup, Failed: icon, word and color | Decoration |
@@ -206,17 +235,18 @@ When to use each, and when not. `preview/components.html` shows them.
 | Tabs | Views of one record | Steps; filters |
 | Side list | Sections of a long page or settings groups | |
 | Filter sidebar | Filtering a collection: search, checkbox groups with counts, selects | Pills or chips |
-| Modal | Short blocking tasks: up to five fields, a confirmation, a choice | Long forms; reading |
-| Confirm dialog | Actions that cannot be undone; names what will be lost; Cancel is focused | Reversible actions (toast with Undo instead) |
+| Modal | Short blocking tasks: up to five fields, a choice. Title and description, body, actions on the right; no gray footer band | Long forms; reading |
+| Confirmation | Actions that cannot be undone: an icon tile, the question, what will be lost, Cancel focused | Reversible actions (toast with Undo instead) |
+| Command menu | Finding any record or action by typing (Cmd+K) | Replacing a page's own search |
 | Drawer | A record's detail beside the list it came from | Editing large records (page) |
-| Toast | Confirming an action that worked; Undo. Bottom center, six seconds | Errors people must act on; anything to read later |
+| Toast | Confirming an action that worked; Undo. Bottom right, a light card with an icon tile, a title and an optional line, six seconds | Errors people must act on; anything to read later |
 | Notice | A situation that persists: setup missing, read-only, a run stopped. Shaded, icon, bold first line. No colored side bar | Confirmations |
 | Empty state | Nothing yet (what goes here, how to start) or no matches (clear filters) | |
 | Skeleton | Content loading, in the shape of what is coming | A blank page or a centered spinner |
 | Spinner | A button working; a status that is running | Page loads |
 | Progress | Long work with a known size; words beside it say what is happening | |
 | Tooltip | An icon button's name, a full date, why a button is disabled | Anything needed to do the work |
-| Avatar | People: initials on a neutral circle | |
+| Avatar | People, companies and things: a rounded square with initials or an icon; accent for the app or "us" | Circles |
 | Citation | Linking a claim to its source (`[F123]` and similar) | |
 
 ---
