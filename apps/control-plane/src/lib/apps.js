@@ -3,6 +3,7 @@
 const { eq, asc } = require('drizzle-orm');
 const { db, schema } = require('../db');
 const config = require('../config');
+const { appUrl } = require('./env-compute');
 
 async function getAppBySlug(slug) {
   const rows = await db.select().from(schema.apps).where(eq(schema.apps.slug, slug)).limit(1);
@@ -21,11 +22,15 @@ function serializeApp(app) {
     name: app.name,
     description: app.description,
     subdomain: app.subdomain,
+    // The address people open it at. Empty until the platform has a domain.
+    url: config.isConfigured() ? appUrl(app) : '',
     port: app.port,
     runtime: { type: app.runtimeType, buildCommand: app.buildCommand, dockerfile: app.dockerfile, spa: app.spa !== false },
     source: { branch: app.branch, repoPath: app.repoPath, githubRepo: app.githubRepo },
     auth: {
       mode: app.authMode,
+      // Where /launch sends someone after signing them in from a trusted launcher.
+      loginPath: app.authLoginPath || '/api/login',
       // Where this app sends its users to sign in. Read from config so it follows
       // the auth host rather than whichever host the dashboard happens to be on —
       // the docs used to build this from window.location, which meant they told

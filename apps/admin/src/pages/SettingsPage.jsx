@@ -128,6 +128,7 @@ const SITE_KEYS = ['routing.apex_app', 'routing.apex_www', 'routing.redirects'];
 const LOG_KEYS = ['logging.page_view_ip', 'logging.auth_log_retention_days',
   'logging.page_view_retention_days', 'logging.app_access_logs', 'updates.check'];
 const GOOGLE_KEYS = ['google.client_id', 'google.client_secret', 'google.allowed_domains'];
+const LAUNCH_KEYS = ['launch.issuer', 'launch.origin', 'launch.secret'];
 const REGISTRY_KEYS = ['registry.user', 'registry.token'];
 const AI_KEYS = ['ai.anthropic_key', 'ai.model'];
 
@@ -315,6 +316,31 @@ export default function SettingsPage() {
           <div className="ctl" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
             <code>https://admin.{baseDomain || 'example.com'}/admin/google/callback</code>
             <code>https://auth.{baseDomain || 'example.com'}/login/google/callback</code>
+          </div>
+        </div>
+      </SettingsGroup>
+
+      <SettingsGroup
+        title="Sign in from another system"
+        description="Lets one system you already use, such as a company portal, open your apps for its own signed-in people. It signs a short-lived pass; this server checks it, creates the person as an end user if they are new, gives them that app, and signs them in without showing this sign-in page. Only trust a system whose own sign-in you trust. Leaving any field blank turns this off."
+        keys={LAUNCH_KEYS}
+        settings={settings}
+        onSave={api.updateSettings}
+        onSaved={load}
+      >
+        <div className="field">
+          <div className="lab">
+            <b>Where passes go</b>
+            <span className="desc">
+              The other system posts a form field named <b>token</b> to this address, from the
+              launcher address above. The pass is an HS256 JWT with <b>aud</b> set to
+              {' '}<code>astrodock-launch</code>, <b>iss</b> set to the launcher name, and <b>email</b>,
+              {' '}<b>name</b>, <b>app</b> (the app's slug), <b>jti</b>, and an <b>exp</b> no more than
+              five minutes after <b>iat</b>.
+            </span>
+          </div>
+          <div className="ctl" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
+            <code>https://auth.{baseDomain || 'example.com'}/launch</code>
           </div>
         </div>
       </SettingsGroup>

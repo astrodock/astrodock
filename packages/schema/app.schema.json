@@ -98,6 +98,12 @@
             "platform",
             "public"
           ]
+        },
+        "loginPath": {
+          "type": "string",
+          "pattern": "^/(?!/)[A-Za-z0-9._~/-]*$",
+          "maxLength": 200,
+          "description": "Where the app's own sign-in starts. A trusted launcher's sign-in ends here. Defaults to /api/login."
         }
       }
     },

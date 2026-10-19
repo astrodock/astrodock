@@ -34,6 +34,7 @@ function structuralFromManifest(m) {
     branch: m.source?.branch || 'main',
     repoPath: m.source?.repoPath || '',
     authMode: m.auth?.mode || 'platform',
+    authLoginPath: m.auth?.loginPath || '/api/login',
     databaseMode: m.database?.mode || 'none',
     storageMode: m.storage?.mode || 'none'
   };

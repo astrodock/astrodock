@@ -18,10 +18,13 @@ const app = express();
 // Trust one proxy (Caddy) so req.ip + rate limiting work.
 app.set('trust proxy', 1);
 
-app.use(cors({
+const corsMiddleware = cors({
   origin: (origin, cb) => (config.isAllowedOrigin(origin) ? cb(null, true) : cb(new Error('Not allowed by CORS'))),
   credentials: true
-}));
+});
+// POST /launch is a top-level form post from a trusted launcher's origin, which
+// is not one of ours, so CORS would refuse it. It checks Origin itself.
+app.use((req, res, next) => (req.path === '/launch' ? next() : corsMiddleware(req, res, next)));
 app.use(cookieParser());
 
 // Security headers.
@@ -87,6 +90,8 @@ app.use('/setup', require('./src/routes/setup'));
 // Hosted login: the platform collects credentials on its own origin, so apps
 // never see them. /verify stays for existing apps and non-browser clients.
 app.use('/', require('./src/routes/oauth'));
+// Signing in from a trusted launcher (lib/launch.js).
+app.use('/', require('./src/routes/launch'));
 
 // Invite redemption. Public by necessity — whoever follows the link has no
 // credential yet, which is the whole point of the link.

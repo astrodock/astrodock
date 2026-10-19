@@ -284,7 +284,7 @@ test('every control-plane path is proxied, in BOTH routing modes', () => {
 
     config.applyRuntimeDomain({ baseDomain: 'apps.example.com' });
     const configured = generateCaddyfile([]);
-    ['/setup/*', '/admin/*', '/whoami', '/authorize', '/token', '/login*', '/verify', '/health']
+    ['/setup/*', '/admin/*', '/whoami', '/authorize', '/token', '/login*', '/launch', '/verify', '/health']
       .forEach((p) => assert.ok(configured.includes(`handle ${p}`), `configured mode must proxy ${p}`));
   } finally {
     config.applyRuntimeDomain({ baseDomain: saved });

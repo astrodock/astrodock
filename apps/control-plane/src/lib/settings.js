@@ -23,6 +23,7 @@
 const { eq } = require('drizzle-orm');
 const { db, schema } = require('../db');
 const config = require('../config');
+const { encryptSecret, decryptSecret } = require('./crypto');
 
 // The registry is the allowlist of editable keys. `default` is a thunk so it
 // reflects the current env/config at read time.
@@ -50,6 +51,23 @@ const REGISTRY = {
   'google.allowed_domains': {
     label: 'Google domains allowed', type: 'string',
     description: 'Comma-separated. Blank allows any Google account; otherwise only these domains may sign in, checked against the verified token rather than anything the browser sends.',
+    default: () => ''
+  },
+  // Signing in from another system. See routes/launch.js. Blank issuer or secret
+  // turns POST /launch off.
+  'launch.issuer': {
+    label: 'Launcher name', type: 'string',
+    description: 'The name the other system puts in each pass it signs (its "iss"), for example seniorverse-os. Blank turns signing in from another system off.',
+    default: () => ''
+  },
+  'launch.origin': {
+    label: 'Launcher address', type: 'string',
+    description: 'The web address people open apps from, for example https://os.example.com. A pass posted from any other page is refused, so a pass cannot be used to sign someone into another person\'s account from elsewhere.',
+    default: () => ''
+  },
+  'launch.secret': {
+    label: 'Shared secret', type: 'string', secret: true, encrypted: true, minLength: 32,
+    description: 'At least 32 characters, held by both systems and used to sign and check passes. Generate it with: openssl rand -hex 32',
     default: () => ''
   },
   // Feedback triage by model. Blank turns it off everywhere regardless of what
@@ -188,6 +206,9 @@ function coerce(key, value) {
   if (def.type === 'enum' && !def.values.includes(value)) {
     throw new Error(`${key} must be one of: ${def.values.join(', ')}`);
   }
+  if (def.minLength && value != null && value !== '' && String(value).length < def.minLength) {
+    throw new Error(`${def.label} must be at least ${def.minLength} characters`);
+  }
   if (def.type === 'app') {
     const v = String(value || '').trim();
     if (v && !/^[a-z0-9]([a-z0-9-]{0,38}[a-z0-9])?$/.test(v)) throw new Error(`${key} must be an app slug`);
@@ -205,6 +226,12 @@ async function getSetting(key, fallback) {
   return d === undefined ? fallback : d;
 }
 
+// A setting stored with `encrypted: true`, decrypted for use.
+async function getSecretSetting(key, fallback = '') {
+  const v = await getSetting(key, fallback);
+  return v ? decryptSecret(v) : v;
+}
+
 // What a masked secret looks like on the way out, and what is refused on the
 // way in: saving the settings form unchanged must not overwrite a real secret
 // with six bullet characters.
@@ -214,7 +241,9 @@ async function setSetting(key, value, actor) {
   if (!REGISTRY[key]) throw new Error(`unknown setting: ${key}`);
   if (REGISTRY[key].secret && value === SECRET_MASK) return undefined;
   const v = coerce(key, value);
-  const row = { key, value: v, updatedBy: actor || '', updatedAt: new Date() };
+  // Encrypted at rest. Readers call getSecretSetting(), which decrypts.
+  const stored = REGISTRY[key].encrypted && v ? encryptSecret(v) : v;
+  const row = { key, value: stored, updatedBy: actor || '', updatedAt: new Date() };
   await db.insert(schema.platformSettings).values(row)
     .onConflictDoUpdate({ target: schema.platformSettings.key, set: row });
   cache = null; // invalidate this process immediately
@@ -438,7 +467,7 @@ async function readiness() {
 }
 
 module.exports = {
-  getSetting, setSetting, effective, diagnostics, readiness, exposureCheck, REGISTRY, SECRET_MASK,
+  getSetting, getSecretSetting, setSetting, effective, diagnostics, readiness, exposureCheck, REGISTRY, SECRET_MASK,
   setBootstrap, applyBootstrapSettings, BOOTSTRAP_REGISTRY,
   isSetupDeferred, setSetupDeferred
 };

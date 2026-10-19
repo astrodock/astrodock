@@ -70,6 +70,8 @@ const apps = pgTable('apps', {
 
   // resource modes
   authMode: text('auth_mode').notNull().default('platform'),       // platform | public
+  // Where the app's own sign-in starts; /launch sends people here.
+  authLoginPath: text('auth_login_path').notNull().default('/api/login'),
   databaseMode: text('database_mode').notNull().default('none'),   // internal | external | none
   storageMode: text('storage_mode').notNull().default('none'),     // internal | external | none
 
@@ -256,6 +258,14 @@ const authorizationCodes = pgTable('authorization_codes', {
   usedAt: timestamp('used_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 }, (t) => ({ codeUniq: uniqueIndex('authorization_codes_hash_uniq').on(t.codeHash) }));
+
+// Single-use record of each launch pass redeemed at POST /launch.
+const launchPasses = pgTable('launch_passes', {
+  jtiHash: text('jti_hash').primaryKey(),
+  issuer: text('issuer').notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  usedAt: timestamp('used_at', { withTimezone: true }).notNull().defaultNow()
+}, (t) => ({ expiresIdx: index('launch_passes_expires_idx').on(t.expiresAt) }));
 
 const appRedirectUris = pgTable('app_redirect_uris', {
   id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
@@ -515,4 +525,4 @@ const appCounters = pgTable('app_counters', {
   n: integer('n').notNull().default(0)
 });
 
-module.exports = { users, userInvites, emailChanges, webauthnCredentials, recoveryCodes, sessions, authorizationCodes, appRedirectUris, apps, appEnvVars, deployments, authLogs, apiTokens, appHealth, pages, pageFiles, pageData, events, platformSettings, notificationRules, notificationDeliveries, pageViews, backups, customDomains, feedback, feedbackMessages, workItems, workItemRelations, feedbackWorkItems, appCounters };
+module.exports = { users, userInvites, emailChanges, webauthnCredentials, recoveryCodes, sessions, authorizationCodes, launchPasses, appRedirectUris, apps, appEnvVars, deployments, authLogs, apiTokens, appHealth, pages, pageFiles, pageData, events, platformSettings, notificationRules, notificationDeliveries, pageViews, backups, customDomains, feedback, feedbackMessages, workItems, workItemRelations, feedbackWorkItems, appCounters };

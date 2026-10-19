@@ -30,6 +30,13 @@ test('accepts a valid internal-everything manifest', () => {
   assert.strictEqual(r.valid, true, JSON.stringify(r.errors));
 });
 
+test('auth.loginPath accepts a path and refuses anything that could leave the app', () => {
+  assert.strictEqual(validate({ ...valid, auth: { mode: 'platform', loginPath: '/auth/start' } }).valid, true);
+  for (const bad of ['api/login', '//evil.example.com', 'https://evil.example.com', '/a b']) {
+    assert.strictEqual(validate({ ...valid, auth: { mode: 'platform', loginPath: bad } }).valid, false, bad);
+  }
+});
+
 test('accepts the docker sample with declared env', () => {
   const r = validate({
     schemaVersion: '1', slug: 'py-tool', name: 'Python Tool', subdomain: 'pytool',

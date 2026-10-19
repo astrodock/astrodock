@@ -152,7 +152,10 @@ router.post('/', requirePermission('apps:write'), async (req, res) => {
     slug: b.slug, name: b.name, subdomain: b.subdomain, description: b.description || '',
     source: { branch: b.branch || 'main', repoPath: b.repoPath || '' },
     runtime: { type: b.runtimeType || b.runtime?.type || 'node', spa: b.spa !== false },
-    auth: { mode: b.authMode || b.auth?.mode || 'platform' },
+    auth: {
+      mode: b.authMode || b.auth?.mode || 'platform',
+      ...((b.authLoginPath || b.auth?.loginPath) ? { loginPath: b.authLoginPath || b.auth.loginPath } : {})
+    },
     database: { mode: b.databaseMode || b.database?.mode || 'none' },
     storage: { mode: b.storageMode || b.storage?.mode || 'none' },
     env: []
@@ -177,6 +180,8 @@ const PATCH_VALIDATORS = {
   dockerfile: (v) => /^[A-Za-z0-9._/-]+$/.test(v) && !v.includes('..') && v.length <= 200,
   runtimeType: (v) => v === 'node' || v === 'docker',
   authMode: (v) => v === 'platform' || v === 'public',
+  // Appended to the app's own origin in a redirect, so it must stay a path.
+  authLoginPath: (v) => /^\/[A-Za-z0-9._~/-]*$/.test(v) && !v.startsWith('//') && v.length <= 200,
   databaseMode: (v) => ['internal', 'external', 'none'].includes(v),
   storageMode: (v) => ['internal', 'external', 'none'].includes(v),
   buildCommand: (v) => typeof v === 'string' && v.length <= 500,
@@ -195,7 +200,7 @@ router.patch('/:slug', requirePermission('apps:write'), async (req, res) => {
   const update = { updatedAt: new Date() };
   const map = {
     name: 'name', description: 'description',
-    authMode: 'authMode', databaseMode: 'databaseMode', storageMode: 'storageMode',
+    authMode: 'authMode', authLoginPath: 'authLoginPath', databaseMode: 'databaseMode', storageMode: 'storageMode',
     runtimeType: 'runtimeType', buildCommand: 'buildCommand', dockerfile: 'dockerfile', spa: 'spa',
     branch: 'branch', repoPath: 'repoPath', subdomain: 'subdomain',
     brandColor: 'brandColor', logoUrl: 'logoUrl', allowGoogleSignup: 'allowGoogleSignup'
