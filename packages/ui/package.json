@@ -1,0 +1,14 @@
+{
+  "name": "@astrodock/ui",
+  "version": "0.0.27",
+  "description": "The Astrodock app design system: one stylesheet and the rules for how apps are built.",
+  "license": "MIT",
+  "style": "kit.css",
+  "exports": {
+    "./kit.css": "./kit.css"
+  },
+  "files": [
+    "kit.css",
+    "README.md"
+  ]
+}

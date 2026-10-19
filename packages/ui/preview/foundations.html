@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Foundations · Astrodock app design system</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../kit.css">
+<link rel="stylesheet" href="preview.css">
+</head>
+<body>
+<main class="page">
+  <a class="back" href="index.html"><svg class="icon"><use href="#i-arrow-left"/></svg>Overview</a>
+  <div class="page-head"><div class="page-head-main"><h1 class="t-title">Foundations</h1><p class="page-desc">Tokens are the only thing an app changes to look like its own brand. Rules use tokens, never raw values. Switch the theme at the bottom left: every swatch below is the live token.</p></div></div>
+
+  <div class="with-sidebar narrow-side">
+    <nav class="sidebar side-nav" aria-label="On this page">
+      <button type="button" class="active" data-target="f-color">Color</button>
+      <button type="button" data-target="f-type">Type</button>
+      <button type="button" data-target="f-space">Space and layout</button>
+      <button type="button" data-target="f-shape">Shape and depth</button>
+      <button type="button" data-target="f-icons">Icons</button>
+      <button type="button" data-target="f-motion">Motion</button>
+      <button type="button" data-target="f-theme">Theming an app</button>
+    </nav>
+    <div>
+      <section class="catalog-section" id="f-color">
+        <h2>Color</h2>
+        <p class="lede">Neutrals carry almost everything. One accent marks what can be clicked and what is selected. Success, warning and danger mean exactly that and appear with an icon and a word, never as decoration. Chart series have their own colors and never stand in for status.</p>
+        <div class="t-label mb-2">Surfaces</div>
+        <div class="swatches mb-4">
+          <div class="swatch"><div class="swatch-chip" style="background: var(--bg-page)"></div><div class="swatch-body"><b>Page</b><code>--bg-page</code></div></div>
+          <div class="swatch"><div class="swatch-chip" style="background: var(--bg-surface)"></div><div class="swatch-body"><b>Surface</b><code>--bg-surface</code></div></div>
+          <div class="swatch"><div class="swatch-chip" style="background: var(--bg-raised)"></div><div class="swatch-body"><b>Raised</b><code>--bg-raised</code></div></div>
+          <div class="swatch"><div class="swatch-chip" style="background: var(--bg-sunken)"></div><div class="swatch-body"><b>Sunken</b><code>--bg-sunken</code></div></div>
+          <div class="swatch"><div class="swatch-chip" style="background: var(--bg-hover)"></div><div class="swatch-body"><b>Hover</b><code>--bg-hover</code></div></div>
+          <div class="swatch"><div class="swatch-chip" style="background: var(--bg-selected)"></div><div class="swatch-body"><b>Selected</b><code>--bg-selected</code></div></div>
+          <div class="swatch"><div class="swatch-chip" style="background: var(--bg-inverse)"></div><div class="swatch-body"><b>Inverse</b><code>--bg-inverse</code></div></div>
+        </div>
+        <div class="t-label mb-2">Text and lines</div>
+        <div class="swatches mb-4">
+          <div class="swatch"><div class="swatch-chip" style="background: var(--ink)"></div><div class="swatch-body"><b>Ink</b><code>--ink</code> · titles, values</div></div>
+          <div class="swatch"><div class="swatch-chip" style="background: var(--ink-2)"></div><div class="swatch-body"><b>Ink 2</b><code>--ink-2</code> · body in dense UI</div></div>
+          <div class="swatch"><div class="swatch-chip" style="background: var(--ink-3)"></div><div class="swatch-body"><b>Ink 3</b><code>--ink-3</code> · meta, hints</div></div>
+          <div class="swatch"><div class="swatch-chip" style="background: var(--ink-4)"></div><div class="swatch-body"><b>Ink 4</b><code>--ink-4</code> · placeholders only</div></div>
+          <div class="swatch"><div class="swatch-chip" style="background: var(--line)"></div><div class="swatch-body"><b>Line</b><code>--line</code> · hairlines</div></div>
+          <div class="swatch"><div class="swatch-chip" style="background: var(--line-strong)"></div><div class="swatch-body"><b>Line strong</b><code>--line-strong</code> · inputs</div></div>
+        </div>
+        <div class="t-label mb-2">Accent and meaning</div>
+        <div class="swatches mb-4">
+          <div class="swatch"><div class="swatch-chip" style="background: var(--accent)"></div><div class="swatch-body"><b>Accent</b><code>--accent</code> · primary buttons, focus, active</div></div>
+          <div class="swatch"><div class="swatch-chip" style="background: var(--accent-soft)"></div><div class="swatch-body"><b>Accent soft</b><code>--accent-soft</code> · citations, selected</div></div>
+          <div class="swatch"><div class="swatch-chip" style="background: var(--success)"></div><div class="swatch-body"><b>Success</b><code>--success</code></div></div>
+          <div class="swatch"><div class="swatch-chip" style="background: var(--warning)"></div><div class="swatch-body"><b>Warning</b><code>--warning</code></div></div>
+          <div class="swatch"><div class="swatch-chip" style="background: var(--danger)"></div><div class="swatch-body"><b>Danger</b><code>--danger</code></div></div>
+        </div>
+        <div class="t-label mb-2">Chart series, in this order</div>
+        <div class="swatches">
+          <div class="swatch"><div class="swatch-chip" style="background: var(--series-1)"></div><div class="swatch-body"><b>Series 1</b><code>--series-1</code></div></div>
+          <div class="swatch"><div class="swatch-chip" style="background: var(--series-2)"></div><div class="swatch-body"><b>Series 2</b><code>--series-2</code></div></div>
+          <div class="swatch"><div class="swatch-chip" style="background: var(--series-3)"></div><div class="swatch-body"><b>Series 3</b><code>--series-3</code></div></div>
+          <div class="swatch"><div class="swatch-chip" style="background: var(--series-4)"></div><div class="swatch-body"><b>Series 4</b><code>--series-4</code></div></div>
+          <div class="swatch"><div class="swatch-chip" style="background: var(--series-5)"></div><div class="swatch-body"><b>Series 5</b><code>--series-5</code></div></div>
+          <div class="swatch"><div class="swatch-chip" style="background: var(--series-other)"></div><div class="swatch-body"><b>Other</b><code>--series-other</code> · everything past 5</div></div>
+        </div>
+      </section>
+
+      <section class="catalog-section" id="f-type">
+        <h2>Type</h2>
+        <p class="lede">One plain sans-serif (Public Sans, falling back to the system font) and a mono for ids and data. Hierarchy comes from size and weight, not color. Body text is 14px in working screens; long reading text uses the prose style.</p>
+        <div class="card"><div class="card-body">
+          <div class="specimen"><div class="specimen-label"><div class="t-subheading">Display</div><p>30 / 700. Overview headings only.</p></div><div class="specimen-demo"><div class="t-display">Seniorverse Day</div></div></div>
+          <div class="specimen"><div class="specimen-label"><div class="t-subheading">Title</div><p>24 / 650. One per page.</p></div><div class="specimen-demo"><div class="t-title">StoriiCare</div></div></div>
+          <div class="specimen"><div class="specimen-label"><div class="t-subheading">Heading</div><p>16 / 600. Sections of a page.</p></div><div class="specimen-demo"><div class="t-heading">Recent changes</div></div></div>
+          <div class="specimen"><div class="specimen-label"><div class="t-subheading">Subheading</div><p>14 / 600. Cards, groups, row titles.</p></div><div class="specimen-demo"><div class="t-subheading">At a glance</div></div></div>
+          <div class="specimen"><div class="specimen-label"><div class="t-subheading">Body</div><p>14 / 400, 1.5 line height.</p></div><div class="specimen-demo"><div class="t-body">The deep dive reads the whole site, including help docs, then writes the profile from the facts it finds.</div></div></div>
+          <div class="specimen"><div class="specimen-label"><div class="t-subheading">Small</div><p>13 / 400. Meta lines, table cells, hints.</p></div><div class="specimen-demo"><div class="t-small muted">Last collected 2 h ago · 412 items</div></div></div>
+          <div class="specimen"><div class="specimen-label"><div class="t-subheading">Label</div><p>12 / 650 uppercase. Group names, table headers.</p></div><div class="specimen-demo"><div class="t-label">Study level</div></div></div>
+          <div class="specimen"><div class="specimen-label"><div class="t-subheading">Mono</div><p>For ids, code, JSON.</p></div><div class="specimen-demo"><span class="mono">job #4182 · intel.apps.example.com</span></div></div>
+          <div class="specimen"><div class="specimen-label"><div class="t-subheading">Prose</div><p>For reading: profiles, help, AI answers. 1.65 line height, 72 characters wide.</p></div><div class="specimen-demo"><div class="prose"><p>StoriiCare sells care management software to adult day centers, home care agencies and care homes. <button class="cite" type="button">F112</button></p><ul><li>Pricing is published per participant per month.</li><li>Billing exports cover private pay and Medicaid waiver.</li></ul></div></div></div>
+        </div></div>
+      </section>
+
+      <section class="catalog-section" id="f-space">
+        <h2>Space and layout</h2>
+        <p class="lede">A 4px scale. Related things sit 8px apart, groups 16 to 24px, sections 32px. Pages have three widths: narrow (760px) for forms and reading, standard (1200px) for most pages, wide (1520px) for big tables and boards.</p>
+        <div class="card"><div class="card-body">
+          <div class="space-row"><code>--space-1</code><span class="bar" style="width: 4px"></span>4px · icon to text</div>
+          <div class="space-row"><code>--space-2</code><span class="bar" style="width: 8px"></span>8px · between buttons, related items</div>
+          <div class="space-row"><code>--space-3</code><span class="bar" style="width: 12px"></span>12px · inside compact groups</div>
+          <div class="space-row"><code>--space-4</code><span class="bar" style="width: 16px"></span>16px · between fields and cards</div>
+          <div class="space-row"><code>--space-5</code><span class="bar" style="width: 20px"></span>20px · card padding</div>
+          <div class="space-row"><code>--space-6</code><span class="bar" style="width: 24px"></span>24px · between columns</div>
+          <div class="space-row"><code>--space-8</code><span class="bar" style="width: 32px"></span>32px · between sections</div>
+          <div class="space-row"><code>--space-12</code><span class="bar" style="width: 48px"></span>48px · empty states</div>
+          <hr>
+          <dl class="kv">
+            <dt>Shell bar</dt><dd>52px tall, sticky</dd>
+            <dt>Page gutter</dt><dd>28px; 16px on a phone</dd>
+            <dt>Filter sidebar</dt><dd>220px, sticky under the shell; stacks above the content under 860px</dd>
+            <dt>Breakpoints</dt><dd>1024px (side columns stack), 860px (sidebars stack), 640px (phone: shell sections move into a menu, grids go to one column, controls grow to 40px)</dd>
+          </dl>
+        </div></div>
+      </section>
+
+      <section class="catalog-section" id="f-shape">
+        <h2>Shape and depth</h2>
+        <p class="lede">Corners are 6px on controls, 8px on cards and 12px on dialogs. Depth has three steps: card (resting on the page), raised (hovered or floating) and pop (menus, dialogs, toasts).</p>
+        <div class="grid-3">
+          <div class="card"><div class="card-body"><div class="t-subheading">Card</div><p class="t-small muted mb-0"><code>--shadow-card</code>, <code>--radius-md</code></p></div></div>
+          <div class="card" style="box-shadow: var(--shadow-raised)"><div class="card-body"><div class="t-subheading">Raised</div><p class="t-small muted mb-0"><code>--shadow-raised</code></p></div></div>
+          <div class="card" style="box-shadow: var(--shadow-pop); border-radius: var(--radius-lg)"><div class="card-body"><div class="t-subheading">Pop</div><p class="t-small muted mb-0"><code>--shadow-pop</code>, <code>--radius-lg</code></p></div></div>
+        </div>
+      </section>
+
+      <section class="catalog-section" id="f-icons">
+        <h2>Icons</h2>
+        <p class="lede">Lucide, 16px, 1.8 stroke, the color of the text beside them. An icon sits next to a word; icon-only buttons are kept to universal ones (close, more, refresh, menu) and always carry a label for screen readers. No emoji.</p>
+        <div class="icon-grid">
+          <div class="icon-cell"><svg class="icon"><use href="#i-plus"/></svg>plus · add</div>
+          <div class="icon-cell"><svg class="icon"><use href="#i-pencil"/></svg>pencil · edit</div>
+          <div class="icon-cell"><svg class="icon"><use href="#i-trash"/></svg>trash · delete</div>
+          <div class="icon-cell"><svg class="icon"><use href="#i-search"/></svg>search</div>
+          <div class="icon-cell"><svg class="icon"><use href="#i-filter"/></svg>filter</div>
+          <div class="icon-cell"><svg class="icon"><use href="#i-arrow-left"/></svg>arrow-left · back</div>
+          <div class="icon-cell"><svg class="icon"><use href="#i-more"/></svg>more · menu</div>
+          <div class="icon-cell"><svg class="icon"><use href="#i-refresh"/></svg>refresh · again</div>
+          <div class="icon-cell"><svg class="icon"><use href="#i-play"/></svg>play · start</div>
+          <div class="icon-cell"><svg class="icon"><use href="#i-external"/></svg>external · new tab</div>
+          <div class="icon-cell"><svg class="icon"><use href="#i-check-circle"/></svg>done</div>
+          <div class="icon-cell"><svg class="icon"><use href="#i-loader"/></svg>running</div>
+          <div class="icon-cell"><svg class="icon"><use href="#i-clock"/></svg>queued</div>
+          <div class="icon-cell"><svg class="icon"><use href="#i-alert-triangle"/></svg>warning, failed</div>
+          <div class="icon-cell"><svg class="icon"><use href="#i-info"/></svg>information</div>
+          <div class="icon-cell"><svg class="icon"><use href="#i-upload"/></svg>upload</div>
+          <div class="icon-cell"><svg class="icon"><use href="#i-download"/></svg>download</div>
+          <div class="icon-cell"><svg class="icon"><use href="#i-copy"/></svg>copy</div>
+          <div class="icon-cell"><svg class="icon"><use href="#i-settings"/></svg>settings</div>
+          <div class="icon-cell"><svg class="icon"><use href="#i-log-out"/></svg>sign out</div>
+        </div>
+      </section>
+
+      <section class="catalog-section" id="f-motion">
+        <h2>Motion</h2>
+        <p class="lede">Motion confirms that something happened: a menu opens, a dialog arrives, a toast appears. 120ms for hover and small changes, 220ms for things entering. No motion that delays reading, nothing that loops except progress. Reduced-motion settings turn it all off.</p>
+      </section>
+
+      <section class="catalog-section" id="f-theme">
+        <h2>Theming an app</h2>
+        <p class="lede">An app loads <span class="mono">kit.css</span>, then its own short file that sets tokens. That file is the only place brand values live.</p>
+        <pre class="code-block">/* app/src/theme.css */
+:root {
+  --accent: #0f6fde;
+  --accent-hover: #0b5bb8;
+  --accent-ink: #0a4f9e;
+  --accent-soft: #e8f1fc;
+}
+:root[data-theme="dark"] {
+  --accent: #5ea2f0;
+  --accent-ink: #9cc6f7;
+  --accent-soft: #14253b;
+}</pre>
+        <p class="t-small muted mt-2">Set <span class="mono">data-theme</span> on <span class="mono">&lt;html&gt;</span> to <span class="mono">light</span>, <span class="mono">dark</span> or <span class="mono">auto</span> (follows the device). Dark values are chosen, never an automatic invert.</p>
+      </section>
+    </div>
+  </div>
+</main>
+<script src="preview.js"></script>
+</body>
+</html>

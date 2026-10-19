@@ -1,0 +1,337 @@
+# Astrodock app design system
+
+How every app on an Astrodock platform is built and how it looks: the frame, the page types, how people move around, what every state looks like, how the words read, and the parts pages are made of. An agent building an app follows this file; a person who knows one app finds the next one works the same way.
+
+**Status: preview for review.** What exists: the stylesheet (`kit.css`) and the preview pages (`preview/`, open `preview/index.html` in a browser). Not built yet: the React components named below (`@astrodock/ui/react`) and the starter app's move onto them. Those follow once the look is approved.
+
+| File | What it is |
+|---|---|
+| `kit.css` | Every style. Tokens on `:root`, a dark theme, all components and layouts |
+| `preview/index.html` | Overview, with links to every preview page |
+| `preview/foundations.html` | Color, type, space, shape, icons, motion, theming |
+| `preview/components.html` | Every component with its states, and when to use it |
+| `preview/page-*.html` | One page per page type, built only from the kit |
+| `preview/mobile.html` | The page types at phone width |
+
+---
+
+## Principles
+
+1. **Content leads.** Chrome is one compact bar. The page title, what matters and the main action are visible without scrolling.
+2. **One way to do each thing.** One select, one modal, one way to filter, one place for page actions. A screen never invents its own control.
+3. **You always know where you are and how to get back.** Every page below a section's first level has a back button naming its parent. The URL holds the tab, filters and sort, so back, reload and a shared link all land in the same place.
+4. **Actions are buttons; navigation is links.** A button does something. A link goes somewhere and opens in a new tab when asked.
+5. **Shading, not lines.** Surfaces separate by background and elevation. Borders are kept for inputs, where they show what can be typed in.
+6. **Color means something.** The accent marks what can be clicked or is selected. Green, amber and red mean success, attention and danger, always with an icon and a word.
+7. **Every state is designed.** Loading, nothing yet, no matches, error, no access, and working in the background each have a set look and set words.
+8. **Nothing is lost by accident.** Unsaved changes are guarded. Deletes can be undone, or are confirmed when they cannot. Long work runs in the background and shows progress.
+
+---
+
+## Building an app
+
+An Astrodock app is `app/` (Vite and React) plus `server/` (Express, routes under `/api`). See `examples/starter-app/AGENTS.md` for the platform contract. The frontend is laid out like this:
+
+```
+app/src/
+  main.tsx            imports @astrodock/ui/kit.css, then theme.css; mounts <App/>
+  theme.css           the app's token overrides (brand only); may be empty
+  App.tsx             <AppShell> with the sections, and the routes
+  lib/api.ts          fetch wrapper (401 sends to sign-in) and a useLoad hook
+  lib/format.ts       dates, numbers, money, plurals (rules under Writing)
+  screens/            one file per page; each starts from a page type below
+  components/         app-specific pieces built from kit components
+```
+
+Rules:
+- Load `kit.css` once, first. App CSS may set tokens and lay out app-specific pieces; it never restyles a kit component.
+- Every page uses one of the page types below, unchanged in anatomy.
+- Every control comes from the kit. If something is missing, add it to the kit, not to the app.
+- Load the font with `<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">`, or leave it out and the system font is used.
+- Set `data-theme` on `<html>`: `light`, `dark`, or `auto` (follows the device). Default `auto`.
+
+### React components (planned: `@astrodock/ui/react`)
+
+| Component | Covers |
+|---|---|
+| `AppShell` | Top-bar shell, or the sidebar shell with `variant="sidebar"`; account menu; phone menu |
+| `Page`, `PageHeader`, `BackButton` | Page width, back button, title row, meta line, actions |
+| `Tabs` | Tabs synced to `?tab=` |
+| `Button`, `IconButton`, `ButtonGroup` | Kinds, sizes, working state |
+| `Menu`, `MenuItem` | Actions menus, the account menu |
+| `Field`, `Input`, `Textarea`, `InputAffix` | Labels, hints, errors |
+| `Select`, `MultiSelect` | Listbox with hints, search, groups; never a native select |
+| `Checkbox`, `Radio`, `ChoiceCard`, `Switch` | Choice controls |
+| `FileDrop` | Upload with progress |
+| `Card`, `List`, `Row`, `Table`, `BulkBar`, `Pagination` | Showing records |
+| `FilterSidebar`, `FilterGroup` | Filters, synced to the URL |
+| `KeyValue`, `Stat`, `Status`, `Label`, `Avatar`, `Progress`, `Timeline` | Showing values |
+| `Modal`, `ConfirmDialog`, `Drawer` | Overlays with focus handling and Escape |
+| `Toast` (`toast()`), `Notice`, `EmptyState`, `Skeleton`, `Spinner`, `Tooltip` | Feedback |
+| `BarChart`, `LineChart` | Charts following the chart rules |
+| `useUnsavedChanges`, `useUrlState` | Guarding forms; keeping tab, filters and sort in the URL |
+
+---
+
+## The shell
+
+**Top-bar shell (default).** One 52px bar: the app mark and name (links home), up to six sections, then help and the account menu on the right. The account menu shows who is signed in, links out (for example back to the company OS) and Sign out. On a phone the sections move behind a menu button.
+
+**Sidebar shell.** For apps with more than six sections, or sections that fall into groups. A left column with the app name, grouped sections with optional counts, settings and the person at the bottom. Stacks above the content on a phone.
+
+Nothing else is permanent chrome: no footer, no second bar, no banner unless something needs setup (then a notice in the page that is affected).
+
+---
+
+## Navigation and URLs
+
+The hierarchy is **section → collection → record → tab**. URLs follow it:
+
+```
+/projects                     section root (collection)
+/projects/12                  record
+/projects/12?tab=compare      a tab of the record
+/projects/12?tab=find&fit=3   tab plus its filters
+/companies/7                  a record reached from several places
+```
+
+- **Back button** on every page below a section root, top left, naming the parent ("← Seniorverse Day"). It goes to the parent, not to browser history, and restores the parent's filters from the URL. A record reachable from several places names its main parent.
+- **No breadcrumbs.** The back button and the shell's active section say where you are. If a hierarchy needs breadcrumbs, it is too deep.
+- **Tabs** are part of the URL (`?tab=`). The first tab is the default and has no parameter.
+- **Filters, sort and search** are in the URL. Paging is not.
+- **Links are real links** (`<a href>`): middle-click and Cmd-click open a new tab. Rows that open a record are links.
+- **After create**, go to the new record. **After delete**, go to the parent with a toast.
+- **Opening another app** (for example the company OS) opens a new tab.
+
+---
+
+## Page types
+
+Every screen is one of these. Each has a preview page.
+
+### 1. Collection page (`preview/page-list.html`)
+A set of records to find, scan and act on.
+- **Header:** back button if not a section root; title; meta line (counts, scope); actions: the primary "Add …" last, rare actions in a More menu.
+- **Body:** filter sidebar on the left (search, checkbox groups with counts, selects for long lists, sort), results on the right.
+- **Results:** a list when people scan by name; a table when they compare values. Show the count ("2 of 6 companies"). Load more at the end; no numbered pages.
+- **Selection:** checkboxes on rows bring up the bulk bar above the results: the count, then what can be done to all of them.
+- **Empty:** "Nothing yet" (what goes here, how to start) differs from "No matches" (clear the filters).
+
+### 2. Record page (`preview/page-record.html`)
+One thing in detail.
+- **Header:** back button naming the parent; title with a label for its type or level; meta line (key facts, freshness with the full time on hover, background work in progress); actions (main action primary, others plain, rare and destructive in More).
+- **Tabs** under the header when the record has several views. Counts on tabs that hold lists.
+- **First tab:** summary first (at a glance, key points), then detail on demand: each section shows its lead and a "Show detail" button. A side list of sections when the page is long.
+- **Side column** (`.with-aside`) for related context that is not the main content (details, people, links). Moves below on narrow screens.
+
+### 3. Create and edit (`preview/page-form.html`)
+- **Five fields or fewer:** a modal. **More:** a page, narrow width, fields grouped under headings, one column (two short related fields may share a row).
+- **Validation:** check a field when it is left, and everything on save. On a failed save, a notice at the top lists what needs fixing with links to the fields, and each field shows its own error.
+- **Save:** a save bar at the bottom of long forms; the card footer on short ones. Primary button names the result ("Create project", "Save changes").
+- **Leaving with changes** asks first ("Discard your changes?"), via `useUnsavedChanges`.
+- **After save:** go to the record, toast "Saved".
+- **Inline edit** only for a single obvious value (a name), never a group of fields.
+
+### 4. Settings (`preview/page-settings.html`)
+- A section root (no back button). Groups listed on the left; each group is a card.
+- Each card saves on its own (Save in its footer). Switches are the exception: they apply at once with a toast, and never sit in a card with a Save button.
+- Connected services show their status, not their keys.
+- **Danger zone** last: red title, each action explained, confirmation for anything that cannot be undone. Typing the name to confirm is kept for deleting large amounts of data.
+
+### 5. Dashboard (`preview/page-dashboard.html`)
+- Up to four stat tiles, each linking to the list behind it, each with one line of context.
+- A chart only when the trend matters; one chart per question.
+- "Needs attention" lists what someone should act on (failures, setup missing, items to review), each row linking to where it is fixed.
+- "Running now" with progress when the app does background work.
+- No vanity numbers. If a number does not lead to an action, leave it off.
+
+### 6. Background work (`preview/page-activity.html`)
+For apps that run jobs (crawls, imports, AI work, sends).
+- **Now:** each worker pool, what each worker is doing in words ("Page 7 of 20: storiicare.com/pricing"), how long it has run; what is waiting and how long the oldest has waited; recent failures with Retry and Retry all.
+- **History:** a table with filters (status, type, record, search), newest first, with the total.
+- **Detail** in a drawer: timings, attempts, input, result, the full error, the AI calls or requests it made with their cost, Retry or Cancel.
+- **Usage and cost** when the work costs money: today, 7 and 30 days; per day by kind; breakdowns by purpose and record. Label estimates as estimates.
+- Every record page that has work running says so in its meta line.
+
+### 7. Step by step (`preview/page-wizard.html`)
+Only when decisions must happen in order (setting up a domain, an import with mapping).
+- Steps shown at the top; one decision per step; Back and Next in the footer; Next disabled with the reason shown until the step is done.
+- Progress is saved: leaving and coming back resumes.
+- A review step before anything is committed.
+- Not for ordinary forms. If the steps do not depend on each other, it is a form.
+
+### 8. System pages (`preview/page-states.html`)
+Signing in, no access, not found, something went wrong, first use, page loading, saving failed. Each: what happened in plain words, whether anything was lost, one way forward. Not-found and errors keep the shell so people can carry on.
+
+### Sidebar shell and split view (`preview/page-sidebar.html`)
+A split view (list on the left, the selected item on the right) is for working through a queue: reviewing, approving, triaging. The list keeps its place; acting on an item moves to the next. J and K move down and up.
+
+---
+
+## Components
+
+When to use each, and when not. `preview/components.html` shows them.
+
+| Component | Use for | Not for |
+|---|---|---|
+| Button, primary | The main action of a page, card or dialog. One in view | Navigation; secondary actions |
+| Button, default | Other actions | |
+| Button, quiet | Cancel; small actions inside rows | The main action |
+| Button, danger | Deleting and removing | Anything reversible without consequence |
+| Icon button | Close, more, refresh, menu: universal actions, always with an accessible name | Anything that needs a word to be understood |
+| Toggle group | Switching views of the same data | Filters (use the sidebar) |
+| Menu | Rare actions, a row's third action onward, destructive actions away from the main one | Hiding the main action; navigation between sections |
+| Text field | Short text | Choices from a known list |
+| Textarea | Long text; grows to a limit then scrolls | |
+| Prefix and suffix | Units ($, per month, participants) | Instructions |
+| Select | One choice from about 4 to 10; options may carry a hint line | 2 or 3 choices that should be visible (radios) |
+| Searchable select | Long lists: companies, people | |
+| Multi-select | Several choices from a long list; shows two names then a count | Short lists (checkboxes in place) |
+| Checkbox | Independent yes/no; filters | Settings that apply at once (switch) |
+| Radio | One of 2 to 5, all visible | |
+| Choice card | A choice with consequences people should read | Simple choices |
+| Switch | A setting that applies when flipped, with a toast | Anything inside a form with Save |
+| Date and time | The browser's own pickers, styled as fields | |
+| File drop | Uploads: says accepted types and size; progress per file | |
+| Card | One topic on a page, with its own actions | Nesting cards; decorating text |
+| List | Records people scan by name | Comparing values (table) |
+| Table | Comparing values across rows; sortable headers; numbers right-aligned | Two-column data (key-value) |
+| Bulk bar | Acting on selected rows | |
+| Key-value | A record's fields; "Not found" or "None" rather than blank | |
+| Stat tile | The few numbers that matter, linking to the list behind them | Every number available |
+| Status | Done, Running, Queued, Needs setup, Failed: icon, word and color | Decoration |
+| Label | Describing a record (level, role, draft) in neutral gray | Filters; buttons |
+| Timeline | History, newest first, grouped by year; dates only as precise as known | |
+| Show detail | Summary first, detail on demand | Hiding required information |
+| Tabs | Views of one record | Steps; filters |
+| Side list | Sections of a long page or settings groups | |
+| Filter sidebar | Filtering a collection: search, checkbox groups with counts, selects | Pills or chips |
+| Modal | Short blocking tasks: up to five fields, a confirmation, a choice | Long forms; reading |
+| Confirm dialog | Actions that cannot be undone; names what will be lost; Cancel is focused | Reversible actions (toast with Undo instead) |
+| Drawer | A record's detail beside the list it came from | Editing large records (page) |
+| Toast | Confirming an action that worked; Undo. Bottom center, six seconds | Errors people must act on; anything to read later |
+| Notice | A situation that persists: setup missing, read-only, a run stopped. Shaded, icon, bold first line. No colored side bar | Confirmations |
+| Empty state | Nothing yet (what goes here, how to start) or no matches (clear filters) | |
+| Skeleton | Content loading, in the shape of what is coming | A blank page or a centered spinner |
+| Spinner | A button working; a status that is running | Page loads |
+| Progress | Long work with a known size; words beside it say what is happening | |
+| Tooltip | An icon button's name, a full date, why a button is disabled | Anything needed to do the work |
+| Avatar | People: initials on a neutral circle | |
+| Citation | Linking a claim to its source (`[F123]` and similar) | |
+
+---
+
+## States
+
+| State | What it shows | Words |
+|---|---|---|
+| Loading a page | Shell and header at once; skeletons where content goes; after 10 s, "Still loading" | |
+| Loading an action | The button keeps its label, adds a spinner, is disabled | |
+| Nothing yet | Empty state with what will be here and the first step | "No competitors yet. Add the ones you know, or run a survey." |
+| No matches | Empty state with the filters named and a Clear button | "No jobs match these filters." |
+| Error loading | Inside the shell: what failed, nothing lost, Try again, a reference to send | "This page could not load." |
+| Error saving | In place by the Save button; what was typed is kept | "Not saved: the connection dropped. Your changes are still here." |
+| Field error | Under the field, saying how to fix it | "Enter a full address, like storiicare.com" |
+| No access | Who is signed in, who can grant access, a way out | |
+| Needs setup | A notice where the missing piece matters, saying what to set | |
+| Working in the background | Status "Running" with words on what is happening; the page polls while it runs | "Page 7 of 20: storiicare.com/pricing" |
+| Read-only | A notice saying why and who can change it | |
+
+---
+
+## Interaction rules
+
+**Saving and deleting**
+- Save is explicit (a button), except switches, which apply at once.
+- Reversible removals (remove from a project, dismiss, archive) happen at once with an Undo toast. No confirmation.
+- Irreversible deletes ask first, name what goes and what stays, and use a red button named for the action ("Delete project"). Cancel has focus.
+- Optimistic updates for small changes (marking reviewed, starring); roll back with an error toast on failure.
+
+**Background work**
+- Anything that can take more than a few seconds runs in the background. The button that starts it returns at once with a toast ("Survey started; it runs in the background").
+- Pages showing running work poll every 3 to 6 seconds while something runs, and stop when nothing does.
+- Progress is described in words, not only a bar.
+- Failures are listed where people look (the record's meta line, Activity, the dashboard), each with Retry.
+
+**Time, numbers, money**
+- Relative times under two weeks ("2 h ago", "3 d ago"), dates after ("Oct 19" this year, "Oct 19, 2025" before), the full date and time on hover.
+- Times in the person's time zone; "Today (UTC)" when a figure is grouped by UTC day.
+- Numbers with thousands separators and tabular figures in tables. Money as "$4.18"; under a cent as "<$0.01"; estimates labeled "estimated".
+- Dates known only to the month or year show only that ("Mar 2021", "2021").
+
+**Keyboard and focus**
+- Everything works with the keyboard. Focus is always visible.
+- Escape closes the topmost menu, popover, modal or drawer. Enter submits a form; Cmd+Enter submits a long text box.
+- `/` focuses the page's search when it has one. J and K move through a split view's list.
+- A modal or drawer takes focus when it opens and returns it when it closes.
+
+**Feedback timing**
+- Under 100 ms: no indicator. Up to 1 s: the button's spinner. Longer: background work with progress.
+
+---
+
+## Writing
+
+- Plain words, short sentences, sentence case everywhere ("Add competitor", not "Add Competitor").
+- Buttons are a verb and what it acts on: "Run survey", "Delete project", "Upgrade to full study". Never "Submit", "OK", "Click here", "Yes".
+- Titles name the thing ("StoriiCare"), not the screen ("Company detail").
+- Errors say what happened and what to do, without blame or codes: "The server did not answer. Nothing you entered was lost. Try again in a moment."
+- Empty states say what will be here and how to start.
+- Labels are nouns; hints are one sentence; no instructions in placeholders.
+- No exclamation marks, emoji, jokes or "Oops". No em-dashes. American English.
+- Numbers as digits ("3 competitors"); "1 company", "2 companies".
+- Say what the app does, not how it works inside, unless people need it to decide.
+
+---
+
+## Accessibility
+
+- Text contrast at least 4.5:1, including small gray text. Tokens meet it in both themes.
+- Color is never the only signal: status has an icon and a word; selected items also change weight or have a check.
+- Every input has a visible label. Icon buttons have an accessible name.
+- Real elements: `<button>` for actions, `<a href>` for navigation, `<input>` with `<label>`. Never a click handler on a `<div>`.
+- Dialogs use `role="dialog"` (or `alertdialog` for confirmations), trap focus and return it.
+- Touch targets at least 40px on a phone (the kit raises control height under 640px).
+- Reduced-motion settings turn off animation.
+
+---
+
+## Theming and dark mode
+
+An app's `theme.css` overrides tokens only:
+
+```css
+:root { --accent: #0f6fde; --accent-hover: #0b5bb8; --accent-ink: #0a4f9e; --accent-soft: #e8f1fc; }
+:root[data-theme="dark"] { --accent: #5ea2f0; --accent-ink: #9cc6f7; --accent-soft: #14253b; }
+```
+
+- The default tokens are the Seniorverse theme: purple accent, cool slate neutrals.
+- Dark mode is its own set of values for the same tokens, chosen by hand, never inverted. An app that changes the accent sets both.
+- Do not override neutrals or meaning colors per app.
+
+---
+
+## Charts
+
+- Bars for amounts over time; lines for trends; a stat tile when one number says it.
+- Series colors in fixed order (`--series-1` to `--series-5`, then `--series-other`), and a series keeps its color when filters change.
+- A legend whenever there are two series or more; a tooltip on each bar or point; one y-axis only.
+- Status colors are never series colors. A failure series uses `--danger` with its own label.
+- Thin bars with 4px rounded tops, 2px gaps between stacked parts, a quiet grid.
+
+---
+
+## Checklist for a new screen
+
+- [ ] It is one of the page types, with that type's anatomy.
+- [ ] Back button (if below a section root) names the parent and goes there.
+- [ ] Tab, filters, sort and search are in the URL.
+- [ ] One primary action in view, named with a verb and object.
+- [ ] Loading, nothing yet, no matches, error and no access are all handled.
+- [ ] Destructive actions are undoable or confirmed.
+- [ ] Forms validate on leave and on save, guard unsaved changes, and go to the record after save.
+- [ ] Background work shows progress in words and polls only while running.
+- [ ] Works at 390px wide.
+- [ ] Keyboard only: every action reachable, focus visible, Escape closes overlays.
+- [ ] Words follow the writing rules.
+- [ ] No styles that restyle kit components; only tokens in `theme.css`.

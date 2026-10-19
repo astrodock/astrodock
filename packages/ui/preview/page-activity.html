@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Activity · Competitor Intel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../kit.css">
+<link rel="stylesheet" href="preview.css">
+</head>
+<body>
+<header class="shell-bar">
+  <button class="btn btn-quiet btn-icon shell-menu-btn" type="button" aria-label="Open menu"><svg class="icon"><use href="#i-menu"/></svg></button>
+  <a class="shell-app" href="page-dashboard.html"><span class="shell-mark"><svg class="icon icon-sm"><use href="#i-radar"/></svg></span>Competitor Intel</a>
+  <nav class="shell-nav" aria-label="Sections">
+    <a href="page-dashboard.html">Home</a>
+    <a href="page-list.html">Projects</a>
+    <a href="page-activity.html" aria-current="page">Activity</a>
+    <a href="page-settings.html">Settings</a>
+  </nav>
+  <div class="shell-end"><span class="avatar" aria-label="Sam Lee">SL</span></div>
+</header>
+
+<main class="page page-wide">
+  <div class="page-head">
+    <div class="page-head-main"><h1 class="t-title">Activity</h1><div class="page-meta"><span>Background work in two lanes</span><span class="status"><span class="spinner" style="width: 13px; height: 13px"></span>5 running</span><span><b>214</b> waiting</span></div></div>
+  </div>
+
+  <div class="tabs" role="tablist" data-tabs="#act-panels">
+    <button class="tab active" role="tab" aria-selected="true" type="button" data-tab="now">Now</button>
+    <button class="tab" role="tab" aria-selected="false" type="button" data-tab="history">History<span class="count">2,318</span></button>
+    <button class="tab" role="tab" aria-selected="false" type="button" data-tab="cost">Usage and cost</button>
+  </div>
+
+  <div id="act-panels">
+    <div data-panel="now">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-head"><div><h2 class="card-title">Collecting</h2><div class="card-sub">2 of 3 workers busy · 4 waiting</div></div></div>
+          <div class="card-body flush">
+            <div class="row"><span class="spinner" style="color: var(--accent)"></span><div class="row-main"><div class="row-title">Crawl pages · <a href="page-record.html">StoriiCare</a></div><div class="row-sub">Page 7 of 20: storiicare.com/pricing</div></div><span class="row-meta num">1 min 12 s</span></div>
+            <div class="row"><span class="spinner" style="color: var(--accent)"></span><div class="row-main"><div class="row-title">Read archived copies · <a href="page-record.html">Collabrios</a></div><div class="row-sub">Archived copy 3 of 10: collabrios.com/pricing (2021-04)</div></div><span class="row-meta num">48 s</span></div>
+            <div class="row"><span class="faint t-small">1 worker idle</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div><h2 class="card-title">Reading and writing</h2><div class="card-sub">3 of 4 workers busy · 210 waiting · oldest 6 min</div></div></div>
+          <div class="card-body flush">
+            <div class="row"><span class="spinner" style="color: var(--accent)"></span><div class="row-main"><div class="row-title">Read an item · <a href="page-record.html">StoriiCare</a></div><div class="row-sub">Pulling facts (part 2 of 3)</div></div><span class="row-meta num">22 s</span></div>
+            <div class="row"><span class="spinner" style="color: var(--accent)"></span><div class="row-main"><div class="row-title">Date facts · <a href="page-record.html">Seniorverse</a></div><div class="row-sub">Dating 12 facts: press release, Oct 2026</div></div><span class="row-meta num">9 s</span></div>
+            <div class="row"><span class="spinner" style="color: var(--accent)"></span><div class="row-main"><div class="row-title">Write the profile · <a href="page-record.html">Collabrios</a></div><div class="row-sub">Writing Pricing (3 of 9)</div></div><span class="row-meta num">2 min 4 s</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-head"><h2 class="t-heading">Failed in the last 7 days</h2><button class="btn btn-sm" type="button" data-toast="3 failed jobs queued again"><svg class="icon icon-sm"><use href="#i-refresh"/></svg>Retry all</button></div>
+        <div class="list">
+          <div class="row clickable" data-open="job-drawer"><svg class="icon" style="color: var(--danger)"><use href="#i-alert-triangle"/></svg><div class="row-main"><div class="row-title">Write the profile · StoriiCare</div><div class="row-sub">The reply was cut off at the token limit</div></div><span class="row-meta">1:58 PM</span><button class="btn btn-sm" type="button" data-toast="Queued again">Retry</button></div>
+          <div class="row clickable" data-open="job-drawer"><svg class="icon" style="color: var(--danger)"><use href="#i-alert-triangle"/></svg><div class="row-main"><div class="row-title">Collect news · Collabrios</div><div class="row-sub">Search rate limit reached</div></div><span class="row-meta">Yesterday</span><button class="btn btn-sm" type="button" data-toast="Queued again">Retry</button></div>
+        </div>
+      </div>
+    </div>
+
+    <div data-panel="history" hidden>
+      <div class="with-sidebar">
+        <button class="btn filters-toggle" type="button" data-filters-toggle aria-expanded="false"><svg class="icon"><use href="#i-filter"/></svg>Filters<span class="muted">· 1 set</span></button>
+      <aside class="sidebar filters" aria-label="Filters">
+          <div class="input-wrap"><svg class="icon"><use href="#i-search"/></svg><input class="input" type="search" placeholder="Search errors and progress" aria-label="Search jobs"></div>
+          <div class="filter-group"><span class="t-label">Status</span><label class="check"><input type="checkbox"> Running <span class="count">5</span></label><label class="check"><input type="checkbox"> Waiting <span class="count">214</span></label><label class="check"><input type="checkbox" checked> Failed <span class="count">3</span></label><label class="check"><input type="checkbox"> Done <span class="count">2,096</span></label></div>
+          <div class="filter-group"><span class="t-label">Lane</span><label class="check"><input type="checkbox"> Collecting</label><label class="check"><input type="checkbox"> Reading and writing</label></div>
+        </aside>
+        <div>
+          <div class="cluster mb-2"><span class="t-small muted">3 jobs match</span><span class="spacer"></span><button class="btn btn-sm" type="button" data-toast="3 failed jobs queued again">Retry the 3 that match</button></div>
+          <div class="table-box"><table class="table">
+            <thead><tr><th>Job</th><th>For</th><th>Status</th><th>Detail</th><th class="num">AI calls</th><th class="num">Took</th><th>When</th></tr></thead>
+            <tbody>
+              <tr class="clickable" data-open="job-drawer"><td class="primary">Write the profile<div class="t-xs faint">#4176 · Reading and writing</div></td><td>StoriiCare</td><td><span class="status danger"><svg class="icon icon-sm"><use href="#i-alert-triangle"/></svg>Failed</span></td><td class="muted">The reply was cut off at the token limit</td><td class="num">4</td><td class="num">2 min 4 s</td><td class="muted nowrap">1:58 PM</td></tr>
+              <tr class="clickable" data-open="job-drawer"><td class="primary">Collect news<div class="t-xs faint">#4090 · Collecting</div></td><td>Collabrios</td><td><span class="status danger"><svg class="icon icon-sm"><use href="#i-alert-triangle"/></svg>Failed</span></td><td class="muted">Search rate limit reached</td><td class="num"></td><td class="num">3 s</td><td class="muted nowrap">Yesterday</td></tr>
+            </tbody>
+          </table></div>
+        </div>
+      </div>
+    </div>
+
+    <div data-panel="cost" hidden>
+      <div class="stat-grid">
+        <div class="stat"><div class="stat-label">Today</div><div class="stat-value">$4.18</div><div class="stat-sub">AI $3.93 · Search $0.25</div></div>
+        <div class="stat"><div class="stat-label">Last 7 days</div><div class="stat-value">$22.75</div><div class="stat-sub">AI $21.40 · Search $1.35</div></div>
+        <div class="stat"><div class="stat-label">Last 30 days</div><div class="stat-value">$61.40</div><div class="stat-sub">AI $58.20 · Search $3.20</div></div>
+      </div>
+      <div class="notice mt-4"><svg class="icon"><use href="#i-info"/></svg><div class="notice-body">Costs are estimates at list prices. The provider's bill is the actual cost.</div></div>
+    </div>
+  </div>
+</main>
+
+<div class="drawer-scrim" id="job-drawer" hidden>
+  <aside class="drawer" role="dialog" aria-modal="true" aria-labelledby="jd-t">
+    <div class="drawer-head"><div><div class="t-label mb-2">Job #4176</div><div class="modal-title" id="jd-t">Write the profile</div><div class="modal-desc">StoriiCare · Reading and writing lane</div></div><button class="btn btn-icon btn-quiet btn-sm" type="button" data-close aria-label="Close"><svg class="icon"><use href="#i-x"/></svg></button></div>
+    <div class="drawer-body stack">
+      <div class="notice danger"><svg class="icon"><use href="#i-alert-triangle"/></svg><div class="notice-body"><div class="notice-title">Failed after 3 attempts</div>The reply was cut off at the token limit.</div></div>
+      <dl class="kv"><dt>Queued</dt><dd>Oct 19, 2026, 1:55 PM</dd><dt>Started</dt><dd>1:56 PM · waited 1 min</dd><dt>Took</dt><dd>2 min 4 s</dd><dt>AI calls</dt><dd>4 · $0.61 estimated</dd></dl>
+      <div><div class="t-label mb-2">AI calls</div>
+        <div class="table-box" style="box-shadow: none; background: var(--bg-sunken)"><table class="table table-compact"><thead><tr><th>Purpose</th><th class="num">In</th><th class="num">Out</th><th class="num">Cost</th></tr></thead><tbody><tr><td>Profile: Overview</td><td class="num">18.2k</td><td class="num">1.1k</td><td class="num">$0.09</td></tr><tr><td>Profile: Pricing</td><td class="num">9.4k</td><td class="num">32.0k</td><td class="num">$0.68</td></tr></tbody></table></div>
+      </div>
+      <div><div class="t-label mb-2">Input</div><pre class="code-block">{ "companyId": 2, "force": false }</pre></div>
+    </div>
+    <div class="drawer-foot"><button class="btn" type="button" data-close>Close</button><button class="btn btn-primary" type="button" data-close data-toast="Queued again">Retry</button></div>
+  </aside>
+</div>
+<script src="preview.js"></script>
+</body>
+</html>

@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inbox · Assessment Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../kit.css">
+<link rel="stylesheet" href="preview.css">
+</head>
+<body>
+<div class="shell-sidebar-layout">
+  <nav class="shell-sidebar" aria-label="Sections">
+    <a class="shell-app" href="page-sidebar.html"><span class="shell-mark"><svg class="icon icon-sm"><use href="#i-clipboard"/></svg></span>Assessment Builder</a>
+    <div class="shell-sidebar-group">
+      <a class="nav-item" href="page-sidebar.html"><svg class="icon"><use href="#i-layout-grid"/></svg>Home</a>
+      <a class="nav-item active" aria-current="page" href="page-sidebar.html"><svg class="icon"><use href="#i-inbox"/></svg>To review<span class="count">8</span></a>
+    </div>
+    <div class="shell-sidebar-group"><span class="t-label">Build</span>
+      <a class="nav-item" href="page-sidebar.html"><svg class="icon"><use href="#i-clipboard"/></svg>Assessments</a>
+      <a class="nav-item" href="page-sidebar.html"><svg class="icon"><use href="#i-file"/></svg>Question bank</a>
+      <a class="nav-item" href="page-sidebar.html"><svg class="icon"><use href="#i-folder"/></svg>Templates</a>
+    </div>
+    <div class="shell-sidebar-group"><span class="t-label">Results</span>
+      <a class="nav-item" href="page-sidebar.html"><svg class="icon"><use href="#i-users"/></svg>Participants</a>
+      <a class="nav-item" href="page-sidebar.html"><svg class="icon"><use href="#i-bar-chart"/></svg>Reports</a>
+      <a class="nav-item" href="page-sidebar.html"><svg class="icon"><use href="#i-download"/></svg>Exports</a>
+    </div>
+    <div class="shell-sidebar-foot shell-sidebar-group">
+      <a class="nav-item" href="page-settings.html"><svg class="icon"><use href="#i-settings"/></svg>Settings</a>
+      <a class="nav-item" href="page-sidebar.html"><span class="avatar avatar-sm">SL</span>Sam Lee</a>
+    </div>
+  </nav>
+
+  <div class="split">
+    <div class="split-list" aria-label="To review">
+      <div style="padding: var(--space-4) var(--space-4) var(--space-3)">
+        <div class="cluster mb-2"><h1 class="t-heading">To review</h1><span class="spacer"></span><span class="t-small muted">8</span></div>
+        <div class="input-wrap"><svg class="icon"><use href="#i-search"/></svg><input class="input input-sm" type="search" placeholder="Search" aria-label="Search submissions"></div>
+      </div>
+      <a class="row selected" href="page-sidebar.html"><div class="row-main"><div class="row-title">6-month assessment</div><div class="row-sub">Participant 1042 · Maple Center</div></div><span class="row-meta">2 h</span></a>
+      <a class="row" href="page-sidebar.html"><div class="row-main"><div class="row-title">Fall risk screen</div><div class="row-sub">Participant 0988 · Maple Center</div></div><span class="row-meta">5 h</span></a>
+      <a class="row" href="page-sidebar.html"><div class="row-main"><div class="row-title">Intake</div><div class="row-sub">Participant 1101 · Oak Center</div></div><span class="row-meta">Yesterday</span></a>
+      <a class="row" href="page-sidebar.html"><div class="row-main"><div class="row-title">6-month assessment</div><div class="row-sub">Participant 0871 · Oak Center</div></div><span class="row-meta">Oct 16</span></a>
+    </div>
+    <div class="split-detail">
+      <div class="page-head">
+        <div class="page-head-main"><div class="page-title-row"><h2 class="t-title">6-month assessment</h2><span class="label">Submitted</span></div><div class="page-meta"><span>Participant 1042</span><span>Maple Center</span><span>Submitted 2 h ago by a nurse</span></div></div>
+        <div class="actions"><button class="btn" type="button">Send back</button><button class="btn btn-primary" type="button" data-toast="Approved; next item opened">Approve</button></div>
+      </div>
+      <div class="card"><div class="card-body"><dl class="kv"><dt>Mobility</dt><dd>[Answer]</dd><dt>Cognition</dt><dd>[Answer]</dd><dt>Nutrition</dt><dd>[Answer]</dd><dt>Notes</dt><dd class="empty-value">None</dd></dl></div></div>
+      <p class="t-small muted mt-4">Approve moves to the next item in the list. <kbd>J</kbd> and <kbd>K</kbd> move down and up.</p>
+    </div>
+  </div>
+</div>
+<script src="preview.js"></script>
+</body>
+</html>

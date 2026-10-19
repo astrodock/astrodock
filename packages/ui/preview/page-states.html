@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign-in, errors, loading · Astrodock app design system</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../kit.css">
+<link rel="stylesheet" href="preview.css">
+<style>
+  .frame { border-radius: var(--radius-lg); overflow: hidden; background: var(--bg-page); box-shadow: var(--shadow-raised); }
+  .frame .shell-bar { position: static; }
+  .frame-label { margin: var(--space-8) 0 var(--space-3); }
+  .center-box { min-height: 420px; display: grid; place-items: center; padding: var(--space-8) var(--space-4); }
+</style>
+</head>
+<body>
+<main class="page">
+  <a class="back" href="index.html"><svg class="icon"><use href="#i-arrow-left"/></svg>Overview</a>
+  <div class="page-head"><div class="page-head-main"><h1 class="t-title">Sign-in, errors, loading</h1><p class="page-desc">The pages nobody designs until they are needed. Each says what happened in plain words and offers one way forward. Never a stack trace, an error code alone, or a blank page.</p></div></div>
+
+  <div class="frame-label"><div class="t-subheading">Signing in</div><p class="t-small muted mb-0">Opened from the company OS, people arrive signed in and never see this. Opened directly, the app sends them to Astrodock's sign-in and back. The only screen the app itself shows is the moment in between.</p></div>
+  <div class="frame"><div class="center-box"><div style="text-align: center"><span class="shell-mark" style="width: 44px; height: 44px; border-radius: 12px; margin: 0 auto var(--space-4)"><svg class="icon icon-lg"><use href="#i-radar"/></svg></span><div class="t-heading mb-2">Competitor Intel</div><div class="status muted"><span class="spinner" style="width: 14px; height: 14px"></span>Signing you in</div></div></div></div>
+
+  <div class="frame-label"><div class="t-subheading">No access</div><p class="t-small muted mb-0">Signed in, but not given this app. Say who can grant it.</p></div>
+  <div class="frame"><div class="center-box"><div class="empty" style="padding: 0"><div class="empty-icon"><svg class="icon icon-lg"><use href="#i-lock"/></svg></div><div class="t-heading">You don't have access to Competitor Intel</div><p>You're signed in as sam@example.com. An administrator can give you access in Astrodock.</p><div class="actions"><button class="btn" type="button">Sign in as someone else</button><a class="btn btn-primary" href="#">Back to the company OS</a></div></div></div></div>
+
+  <div class="frame-label"><div class="t-subheading">Not found</div><p class="t-small muted mb-0">Inside the shell, so people can carry on. Name what was looked for when the app knows.</p></div>
+  <div class="frame">
+    <header class="shell-bar"><span class="shell-app"><span class="shell-mark"><svg class="icon icon-sm"><use href="#i-radar"/></svg></span>Competitor Intel</span><nav class="shell-nav"><a href="#">Home</a><a href="#" aria-current="page">Projects</a><a href="#">Activity</a></nav></header>
+    <div class="center-box"><div class="empty" style="padding: 0"><div class="empty-icon"><svg class="icon icon-lg"><use href="#i-file-question"/></svg></div><div class="t-heading">This company isn't here</div><p>It may have been removed, or the link may be wrong.</p><div class="actions"><a class="btn btn-primary" href="page-list.html">Go to projects</a></div></div></div>
+  </div>
+
+  <div class="frame-label"><div class="t-subheading">Something went wrong</div><p class="t-small muted mb-0">What failed, that nothing was lost (when true), what to do. A reference people can send, not the error itself.</p></div>
+  <div class="frame">
+    <header class="shell-bar"><span class="shell-app"><span class="shell-mark"><svg class="icon icon-sm"><use href="#i-radar"/></svg></span>Competitor Intel</span><nav class="shell-nav"><a href="#">Home</a><a href="#" aria-current="page">Projects</a><a href="#">Activity</a></nav></header>
+    <div class="center-box"><div class="empty" style="padding: 0"><div class="empty-icon" style="color: var(--danger); background: var(--danger-soft)"><svg class="icon icon-lg"><use href="#i-alert-triangle"/></svg></div><div class="t-heading">This page could not load</div><p>The server did not answer. Nothing you entered was lost. Try again in a moment; if it keeps happening, send this reference: <span class="mono">req 7f3a-19c2</span></p><div class="actions"><button class="btn" type="button" data-toast="Reference copied"><svg class="icon"><use href="#i-copy"/></svg>Copy reference</button><button class="btn btn-primary" type="button"><svg class="icon"><use href="#i-refresh"/></svg>Try again</button></div></div></div>
+  </div>
+
+  <div class="frame-label"><div class="t-subheading">First use</div><p class="t-small muted mb-0">An empty app explains itself in one sentence and offers the first step. No tour.</p></div>
+  <div class="frame">
+    <header class="shell-bar"><span class="shell-app"><span class="shell-mark"><svg class="icon icon-sm"><use href="#i-radar"/></svg></span>Competitor Intel</span><nav class="shell-nav"><a href="#" aria-current="page">Home</a><a href="#">Projects</a><a href="#">Activity</a></nav></header>
+    <div class="center-box"><div class="empty" style="padding: 0"><div class="empty-icon"><svg class="icon icon-lg"><use href="#i-radar"/></svg></div><div class="t-heading">Start with a project</div><p>A project is one market. Describe it, add the competitors you know, and the app finds the rest and studies them.</p><div class="actions"><a class="btn btn-primary btn-lg" href="page-form.html"><svg class="icon"><use href="#i-plus"/></svg>New project</a></div></div></div>
+  </div>
+
+  <div class="frame-label"><div class="t-subheading">Page loading</div><p class="t-small muted mb-0">The shell and page header appear at once; content arrives into skeletons shaped like it. After 10 seconds, say it is still working.</p></div>
+  <div class="frame">
+    <header class="shell-bar"><span class="shell-app"><span class="shell-mark"><svg class="icon icon-sm"><use href="#i-radar"/></svg></span>Competitor Intel</span><nav class="shell-nav"><a href="#">Home</a><a href="#" aria-current="page">Projects</a><a href="#">Activity</a></nav></header>
+    <div class="page" style="padding-bottom: var(--space-8)">
+      <div class="skeleton" style="width: 120px; height: 14px; margin-bottom: 14px"></div>
+      <div class="skeleton" style="width: 280px; height: 26px; margin-bottom: 10px"></div>
+      <div class="skeleton" style="width: 420px; height: 12px; margin-bottom: 26px"></div>
+      <div class="list">
+        <div class="row"><div class="row-main"><div class="skeleton skeleton-line" style="width: 30%"></div><div class="skeleton skeleton-line" style="width: 60%"></div></div></div>
+        <div class="row"><div class="row-main"><div class="skeleton skeleton-line" style="width: 24%"></div><div class="skeleton skeleton-line" style="width: 52%"></div></div></div>
+        <div class="row"><div class="row-main"><div class="skeleton skeleton-line" style="width: 34%"></div><div class="skeleton skeleton-line" style="width: 48%"></div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="frame-label"><div class="t-subheading">Offline or saving failed</div><p class="t-small muted mb-0">Keep what was typed. Say it plainly in the page, beside the Save button.</p></div>
+  <div class="frame"><div class="page" style="padding-bottom: var(--space-6)"><div class="save-bar" style="position: static; margin: 0"><span class="status danger"><svg class="icon icon-sm"><use href="#i-alert-triangle"/></svg>Not saved: the connection dropped. Your changes are still here.</span><div class="actions"><button class="btn btn-primary" type="button"><svg class="icon"><use href="#i-refresh"/></svg>Try saving again</button></div></div></div></div>
+</main>
+<script src="preview.js"></script>
+</body>
+</html>

@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Astrodock app design system</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../kit.css">
+<link rel="stylesheet" href="preview.css">
+</head>
+<body>
+<main class="page">
+  <div class="t-label mb-2">Astrodock · packages/ui · preview for review</div>
+  <h1 class="t-display" style="margin-bottom: 10px">How Astrodock apps are built</h1>
+  <p class="page-desc" style="font-size: var(--text-lg); max-width: 64ch">One design system for every app on the platform: the stylesheet, the parts of an app, the page types, how people move between pages, what every state looks like, and how the words read. An agent building an app follows it; a person using two apps finds them work the same way.</p>
+
+  <div class="section">
+    <div class="section-head"><h2 class="t-heading">The model</h2></div>
+    <div class="grid-3">
+      <div class="card"><div class="card-body">
+        <div class="t-label mb-2">1 · Shell</div>
+        <div class="t-subheading mb-2">Every app has the same frame</div>
+        <p class="t-small muted">A top bar with the app's name, up to six sections and the person's menu. Apps with more sections use the sidebar shell. Nothing else is permanent chrome.</p>
+      </div></div>
+      <div class="card"><div class="card-body">
+        <div class="t-label mb-2">2 · Pages</div>
+        <div class="t-subheading mb-2">Every screen is one of eight page types</div>
+        <p class="t-small muted">Collection, record, create and edit, settings, dashboard, background work, step by step, and system pages (sign-in, errors). Each has a fixed anatomy, so new screens are assembled, not designed.</p>
+      </div></div>
+      <div class="card"><div class="card-body">
+        <div class="t-label mb-2">3 · Parts</div>
+        <div class="t-subheading mb-2">Pages are made of kit components</div>
+        <p class="t-small muted">Buttons, fields, selects, tables, filters, modals, drawers, menus, toasts and the rest. One way to do each thing; no screen invents its own control.</p>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-head"><h2 class="t-heading">Principles</h2></div>
+    <div class="grid-2">
+      <div class="card"><div class="card-body stack-sm">
+        <div><b>Content leads.</b> <span class="muted">Chrome is one compact bar. The page title, what matters and the main action are visible without scrolling.</span></div>
+        <div><b>One way to do each thing.</b> <span class="muted">One select, one modal, one way to filter, one place for actions. Consistency beats cleverness.</span></div>
+        <div><b>You always know where you are and how to get back.</b> <span class="muted">Every page below a section has a back button naming its parent, and the URL holds the tab and filters.</span></div>
+        <div><b>Actions are buttons; navigation is links.</b> <span class="muted">A button does something. A link goes somewhere and opens in a new tab when asked.</span></div>
+      </div></div>
+      <div class="card"><div class="card-body stack-sm">
+        <div><b>Shading, not lines.</b> <span class="muted">Surfaces separate by background and elevation. Borders are kept for inputs.</span></div>
+        <div><b>Color means something.</b> <span class="muted">The accent marks what can be clicked or is selected. Green, amber and red mean success, attention and danger, always with an icon and a word.</span></div>
+        <div><b>Every state is designed.</b> <span class="muted">Loading, empty, no results, error, no access and working-in-the-background each have a set look and words.</span></div>
+        <div><b>Nothing is lost by accident.</b> <span class="muted">Unsaved changes are guarded, deletes can be undone or are confirmed, and long work runs in the background with progress.</span></div>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-head"><h2 class="t-heading">Preview pages</h2><span class="t-small muted">The switcher at the bottom left moves between them and sets light or dark.</span></div>
+    <div class="grid-3">
+      <a class="card card-link" href="foundations.html"><div class="card-body"><div class="t-subheading mb-2">Foundations</div><p class="t-small muted">Color tokens in both themes, type, spacing, shape, elevation, icons, motion.</p></div></a>
+      <a class="card card-link" href="components.html"><div class="card-body"><div class="t-subheading mb-2">Components</div><p class="t-small muted">Every part, its states, and when to use it and when not to.</p></div></a>
+      <a class="card card-link" href="page-list.html"><div class="card-body"><div class="t-subheading mb-2">Collection page</div><p class="t-small muted">A list of records with filters on the left, search, sorting, selection and bulk actions.</p></div></a>
+      <a class="card card-link" href="page-record.html"><div class="card-body"><div class="t-subheading mb-2">Record page</div><p class="t-small muted">One thing in detail: back button, header, tabs, summary first, detail on demand.</p></div></a>
+      <a class="card card-link" href="page-form.html"><div class="card-body"><div class="t-subheading mb-2">Create and edit</div><p class="t-small muted">Long forms as a page with grouped fields, validation and a save bar. Short ones in a modal.</p></div></a>
+      <a class="card card-link" href="page-settings.html"><div class="card-body"><div class="t-subheading mb-2">Settings</div><p class="t-small muted">Groups in a side list, each saved on its own, with the danger zone last.</p></div></a>
+      <a class="card card-link" href="page-dashboard.html"><div class="card-body"><div class="t-subheading mb-2">Dashboard</div><p class="t-small muted">Numbers that link to the lists behind them, a chart, and what needs attention.</p></div></a>
+      <a class="card card-link" href="page-activity.html"><div class="card-body"><div class="t-subheading mb-2">Background work</div><p class="t-small muted">What is running now, what is waiting, history with filters, and detail in a drawer.</p></div></a>
+      <a class="card card-link" href="page-wizard.html"><div class="card-body"><div class="t-subheading mb-2">Step by step</div><p class="t-small muted">A setup that needs decisions in order, with a summary before anything is committed.</p></div></a>
+      <a class="card card-link" href="page-sidebar.html"><div class="card-body"><div class="t-subheading mb-2">Sidebar shell and split view</div><p class="t-small muted">For apps with many sections, and for working through a queue item by item.</p></div></a>
+      <a class="card card-link" href="page-states.html"><div class="card-body"><div class="t-subheading mb-2">Sign-in, errors, loading</div><p class="t-small muted">Signing in, no access, not found, something broke, first use, and pages loading.</p></div></a>
+      <a class="card card-link" href="mobile.html"><div class="card-body"><div class="t-subheading mb-2">On a phone</div><p class="t-small muted">The same pages at phone width: what stacks, what hides, what moves.</p></div></a>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="notice"><svg class="icon"><use href="#i-info"/></svg><div class="notice-body"><div class="notice-title">What exists today</div>The stylesheet (<span class="mono">packages/ui/kit.css</span>), these preview pages and the written system (<span class="mono">packages/ui/README.md</span>). The React components the README lists are the next step, after this look is approved; the sample screens use Competitor Intel's content.</div></div>
+  </div>
+</main>
+<script src="preview.js"></script>
+</body>
+</html>
