@@ -19,6 +19,7 @@ The rules live in README.md; this file is the markup. The live versions are in `
 - A list or table inside a card is flat (`.flush`, or `.card-body.flush-x` for rows).
 - Active state: an underline for horizontal navigation (`.tab`, shell sections), the selected fill for vertical (`.item` with `aria-current`).
 - Toasts confirm and offer Undo; errors people must act on go in the page.
+- Charts are HTML and CSS (SVG only for lines), with a tooltip on every column, a table view, and series colors in fixed order.
 
 ## Tokens
 
@@ -152,6 +153,7 @@ The rules live in README.md; this file is the markup. The live versions are in `
   --topbar-h: 52px;
   --frame-gap: 8px;
   --aside-w: 288px;
+  --toc-w: 200px;
   --filters-w: 208px;
   --queue-w: 360px;
   --drawer-w: 520px;
@@ -752,25 +754,100 @@ A record's discussion and history in one thread; the composer last.
 
 ### Charts
 
-Bars for amounts over time, lines for trends, a stat when one number says it. Series colors in fixed order; a legend for two or more; one axis.
+A chart answers one question. Its head says the answer (the total and the change); the plot shows the shape. Every chart has a tooltip on each column, a table view, and a legend when it has two series or more.
 
-- **Not for:** Status (status colors are never series).
+- **Use for:** Bars for amounts per day or week; lines for trends and rates; a sparkline inside a stat; a bar list for a ranked breakdown.
+- **Not for:** Pies, donuts, 3D, two y-axes, or status (status colors are never series colors).
 
-**Bars.**
+**Bars over time.** Stacked when the parts add up to a total. Hover or tab to a column.
 
 ```html
-<div class="stack-sm">
-<div class="chart-legend"><span><i class="chart-key" style="--key: var(--series-1)"></i>Collected</span><span><i class="chart-key" style="--key: var(--series-2)"></i>Read</span></div>
-<svg class="chart" viewBox="0 0 560 140" role="img" aria-label="Items collected and read per day">
-  <line class="chart-grid" x1="32" x2="552" y1="112" y2="112"/><line class="chart-grid" x1="32" x2="552" y1="62" y2="62"/><line class="chart-grid" x1="32" x2="552" y1="12" y2="12"/>
-  <text class="chart-axis" x="26" y="115" text-anchor="end">0</text><text class="chart-axis" x="26" y="65" text-anchor="end">250</text><text class="chart-axis" x="26" y="15" text-anchor="end">500</text>
-  <path d="M60 112 V74 Q60 70 64 70 H76 Q80 70 80 74 V112 Z" fill="var(--series-1)"/><path d="M82 112 V88 Q82 84 86 84 H98 Q102 84 102 88 V112 Z" fill="var(--series-2)"/>
-  <path d="M160 112 V40 Q160 36 164 36 H176 Q180 36 180 40 V112 Z" fill="var(--series-1)"/><path d="M182 112 V58 Q182 54 186 54 H198 Q202 54 202 58 V112 Z" fill="var(--series-2)"/>
-  <path d="M260 112 V84 Q260 80 264 80 H276 Q280 80 280 84 V112 Z" fill="var(--series-1)"/><path d="M282 112 V76 Q282 72 286 72 H298 Q302 72 302 76 V112 Z" fill="var(--series-2)"/>
-  <path d="M360 112 V56 Q360 52 364 52 H376 Q380 52 380 56 V112 Z" fill="var(--series-1)"/><path d="M382 112 V66 Q382 62 386 62 H398 Q402 62 402 66 V112 Z" fill="var(--series-2)"/>
-  <path d="M460 112 V92 Q460 88 464 88 H476 Q480 88 480 92 V112 Z" fill="var(--series-1)"/><path d="M482 112 V86 Q482 82 486 82 H498 Q502 82 502 86 V112 Z" fill="var(--series-2)"/>
-  <text class="chart-axis" x="81" y="132" text-anchor="middle">Oct 15</text><text class="chart-axis" x="181" y="132" text-anchor="middle">Oct 16</text><text class="chart-axis" x="281" y="132" text-anchor="middle">Oct 17</text><text class="chart-axis" x="381" y="132" text-anchor="middle">Oct 18</text><text class="chart-axis" x="481" y="132" text-anchor="middle">Oct 19</text>
-</svg>
+<div class="chart-block">
+  <div class="chart-head">
+    <div class="chart-heading"><span class="chart-title">Work finished</span><span class="chart-value">3,035<span class="chart-change"><svg class="icon" aria-hidden="true"><use href="#i-trending-up"/></svg>12% on last week</span></span></div>
+    <div class="actions">
+      <div class="btn-group btn-group-sm" role="group" aria-label="Period"><button class="btn" type="button" aria-pressed="true">7 days</button><button class="btn" type="button" aria-pressed="false">30 days</button><button class="btn" type="button" aria-pressed="false">90 days</button></div>
+      <div class="btn-group btn-group-sm" role="group" aria-label="Show as" data-view="#chart-work"><button class="btn btn-icon" type="button" aria-pressed="true" data-value="chart" aria-label="Chart"><svg class="icon" aria-hidden="true"><use href="#i-bar-chart"/></svg></button><button class="btn btn-icon" type="button" aria-pressed="false" data-value="table" aria-label="Table"><svg class="icon" aria-hidden="true"><use href="#i-table"/></svg></button></div>
+    </div>
+  </div>
+  <div class="chart-legend"><span><i class="chart-key" style="--c: var(--series-1)"></i>Collected</span><span><i class="chart-key" style="--c: var(--series-2)"></i>Read</span></div>
+  <div id="chart-work">
+    <div data-view-panel="chart">
+<div class="chart-plot" role="group" aria-label="Items collected and read per day, last 7 days">
+  <div class="chart-y" aria-hidden="true"><span style="--at: 0%">0</span><span style="--at: 33.33%">200</span><span style="--at: 66.67%">400</span><span style="--at: 100%">600</span></div>
+  <div class="chart-area">
+    <span class="chart-gridline" style="--at: 33.33%"></span><span class="chart-gridline" style="--at: 66.67%"></span><span class="chart-gridline" style="--at: 100%"></span>
+    <div class="chart-col" tabindex="0" aria-label="Mon, Oct 13: Collected 212, Read 148"><div class="chart-bar" style="--v: 60%"><span style="--n: 212; --c: var(--series-1)"></span><span style="--n: 148; --c: var(--series-2)"></span></div><div class="chart-tip" aria-hidden="true"><div class="chart-tip-title">Mon, Oct 13</div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-1)"></i>Collected<b>212</b></div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-2)"></i>Read<b>148</b></div><div class="chart-tip-row total">Total<b>360</b></div></div></div>
+    <div class="chart-col" tabindex="0" aria-label="Tue, Oct 14: Collected 318, Read 260"><div class="chart-bar" style="--v: 96.33%"><span style="--n: 318; --c: var(--series-1)"></span><span style="--n: 260; --c: var(--series-2)"></span></div><div class="chart-tip" aria-hidden="true"><div class="chart-tip-title">Tue, Oct 14</div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-1)"></i>Collected<b>318</b></div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-2)"></i>Read<b>260</b></div><div class="chart-tip-row total">Total<b>578</b></div></div></div>
+    <div class="chart-col" tabindex="0" aria-label="Wed, Oct 15: Collected 146, Read 170"><div class="chart-bar" style="--v: 52.67%"><span style="--n: 146; --c: var(--series-1)"></span><span style="--n: 170; --c: var(--series-2)"></span></div><div class="chart-tip" aria-hidden="true"><div class="chart-tip-title">Wed, Oct 15</div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-1)"></i>Collected<b>146</b></div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-2)"></i>Read<b>170</b></div><div class="chart-tip-row total">Total<b>316</b></div></div></div>
+    <div class="chart-col" tabindex="0" aria-label="Thu, Oct 16: Collected 262, Read 208"><div class="chart-bar" style="--v: 78.33%"><span style="--n: 262; --c: var(--series-1)"></span><span style="--n: 208; --c: var(--series-2)"></span></div><div class="chart-tip" aria-hidden="true"><div class="chart-tip-title">Thu, Oct 16</div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-1)"></i>Collected<b>262</b></div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-2)"></i>Read<b>208</b></div><div class="chart-tip-row total">Total<b>470</b></div></div></div>
+    <div class="chart-col" tabindex="0" aria-label="Fri, Oct 17: Collected 96, Read 120"><div class="chart-bar" style="--v: 36%"><span style="--n: 96; --c: var(--series-1)"></span><span style="--n: 120; --c: var(--series-2)"></span></div><div class="chart-tip" aria-hidden="true"><div class="chart-tip-title">Fri, Oct 17</div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-1)"></i>Collected<b>96</b></div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-2)"></i>Read<b>120</b></div><div class="chart-tip-row total">Total<b>216</b></div></div></div>
+    <div class="chart-col" tabindex="0" aria-label="Sat, Oct 18: Collected 301, Read 244"><div class="chart-bar" style="--v: 90.83%"><span style="--n: 301; --c: var(--series-1)"></span><span style="--n: 244; --c: var(--series-2)"></span></div><div class="chart-tip" aria-hidden="true"><div class="chart-tip-title">Sat, Oct 18</div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-1)"></i>Collected<b>301</b></div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-2)"></i>Read<b>244</b></div><div class="chart-tip-row total">Total<b>545</b></div></div></div>
+    <div class="chart-col" tabindex="0" aria-label="Sun, Oct 19: Collected 152, Read 98"><div class="chart-bar" style="--v: 41.67%"><span style="--n: 152; --c: var(--series-1)"></span><span style="--n: 98; --c: var(--series-2)"></span></div><div class="chart-tip" aria-hidden="true"><div class="chart-tip-title">Sun, Oct 19</div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-1)"></i>Collected<b>152</b></div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-2)"></i>Read<b>98</b></div><div class="chart-tip-row total">Total<b>250</b></div></div></div>
+  </div>
+  <div class="chart-x" aria-hidden="true"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
+</div>
+    </div>
+    <div data-view-panel="table" hidden><div class="table-box flush"><table class="table table-compact"><thead><tr><th>Day</th><th class="num">Collected</th><th class="num">Read</th></tr></thead><tbody><tr><td>Mon, Oct 13</td><td class="num">212</td><td class="num">148</td></tr><tr><td>Tue, Oct 14</td><td class="num">318</td><td class="num">260</td></tr><tr><td>Wed, Oct 15</td><td class="num">146</td><td class="num">170</td></tr><tr><td>Thu, Oct 16</td><td class="num">262</td><td class="num">208</td></tr><tr><td>Fri, Oct 17</td><td class="num">96</td><td class="num">120</td></tr><tr><td>Sat, Oct 18</td><td class="num">301</td><td class="num">244</td></tr><tr><td>Sun, Oct 19</td><td class="num">152</td><td class="num">98</td></tr></tbody></table></div></div>
+  </div>
+</div>
+```
+
+**Lines for trends.** Up to five series in fixed order. A single series gets a soft fill.
+
+```html
+<div class="chart-block">
+  <div class="chart-head">
+    <div class="chart-heading"><span class="chart-title">AI and search cost</span><span class="chart-value">$63.90<span class="chart-change"><svg class="icon" aria-hidden="true"><use href="#i-trending-down"/></svg>8% on last week</span></span></div>
+    <div class="actions">
+      <div class="btn-group btn-group-sm" role="group" aria-label="Period"><button class="btn" type="button" aria-pressed="true">7 days</button><button class="btn" type="button" aria-pressed="false">30 days</button><button class="btn" type="button" aria-pressed="false">90 days</button></div>
+      <div class="btn-group btn-group-sm" role="group" aria-label="Show as" data-view="#chart-cost"><button class="btn btn-icon" type="button" aria-pressed="true" data-value="chart" aria-label="Chart"><svg class="icon" aria-hidden="true"><use href="#i-bar-chart"/></svg></button><button class="btn btn-icon" type="button" aria-pressed="false" data-value="table" aria-label="Table"><svg class="icon" aria-hidden="true"><use href="#i-table"/></svg></button></div>
+    </div>
+  </div>
+  <div class="chart-legend"><span><i class="chart-key line" style="--c: var(--series-1)"></i>Opus 5.5</span><span><i class="chart-key line" style="--c: var(--series-2)"></i>Haiku 4.5</span><span><i class="chart-key line" style="--c: var(--series-3)"></i>Search</span></div>
+  <div id="chart-cost">
+    <div data-view-panel="chart">
+<div class="chart-plot" role="group" aria-label="AI and search cost per day by model, last 7 days">
+  <div class="chart-y" aria-hidden="true"><span style="--at: 0%">$0</span><span style="--at: 33.33%">$4</span><span style="--at: 66.67%">$8</span><span style="--at: 100%">$12</span></div>
+  <div class="chart-area lines">
+    <span class="chart-gridline" style="--at: 33.33%"></span><span class="chart-gridline" style="--at: 66.67%"></span><span class="chart-gridline" style="--at: 100%"></span>
+    <svg class="chart-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path class="chart-line" d="M7.14 65.83 L21.43 43.33 L35.71 73.33 L50 21.67 L64.29 53.33 L78.57 6.67 L92.86 34.17" style="--c: var(--series-1)"/><path class="chart-line" d="M7.14 90 L21.43 86.67 L35.71 92.5 L50 82.5 L64.29 88.33 L78.57 78.33 L92.86 85" style="--c: var(--series-2)"/><path class="chart-line" d="M7.14 97.5 L21.43 96.67 L35.71 98.33 L50 95 L64.29 97.5 L78.57 94.17 L92.86 96.67" style="--c: var(--series-3)"/></svg>
+    <div class="chart-col" tabindex="0" aria-label="Mon, Oct 13: Opus 5.5 $4.10, Haiku 4.5 $1.20, Search $0.30"><span class="chart-point" style="--v: 34.17%; --c: var(--series-1)"></span><span class="chart-point" style="--v: 10%; --c: var(--series-2)"></span><span class="chart-point" style="--v: 2.5%; --c: var(--series-3)"></span><div class="chart-tip" aria-hidden="true"><div class="chart-tip-title">Mon, Oct 13</div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-1)"></i>Opus 5.5<b>$4.10</b></div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-2)"></i>Haiku 4.5<b>$1.20</b></div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-3)"></i>Search<b>$0.30</b></div><div class="chart-tip-row total">Total<b>$5.60</b></div></div></div>
+    <div class="chart-col" tabindex="0" aria-label="Tue, Oct 14: Opus 5.5 $6.80, Haiku 4.5 $1.60, Search $0.40"><span class="chart-point" style="--v: 56.67%; --c: var(--series-1)"></span><span class="chart-point" style="--v: 13.33%; --c: var(--series-2)"></span><span class="chart-point" style="--v: 3.33%; --c: var(--series-3)"></span><div class="chart-tip" aria-hidden="true"><div class="chart-tip-title">Tue, Oct 14</div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-1)"></i>Opus 5.5<b>$6.80</b></div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-2)"></i>Haiku 4.5<b>$1.60</b></div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-3)"></i>Search<b>$0.40</b></div><div class="chart-tip-row total">Total<b>$8.80</b></div></div></div>
+    <div class="chart-col" tabindex="0" aria-label="Wed, Oct 15: Opus 5.5 $3.20, Haiku 4.5 $0.90, Search $0.20"><span class="chart-point" style="--v: 26.67%; --c: var(--series-1)"></span><span class="chart-point" style="--v: 7.5%; --c: var(--series-2)"></span><span class="chart-point" style="--v: 1.67%; --c: var(--series-3)"></span><div class="chart-tip" aria-hidden="true"><div class="chart-tip-title">Wed, Oct 15</div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-1)"></i>Opus 5.5<b>$3.20</b></div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-2)"></i>Haiku 4.5<b>$0.90</b></div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-3)"></i>Search<b>$0.20</b></div><div class="chart-tip-row total">Total<b>$4.30</b></div></div></div>
+    <div class="chart-col" tabindex="0" aria-label="Thu, Oct 16: Opus 5.5 $9.40, Haiku 4.5 $2.10, Search $0.60"><span class="chart-point" style="--v: 78.33%; --c: var(--series-1)"></span><span class="chart-point" style="--v: 17.5%; --c: var(--series-2)"></span><span class="chart-point" style="--v: 5%; --c: var(--series-3)"></span><div class="chart-tip" aria-hidden="true"><div class="chart-tip-title">Thu, Oct 16</div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-1)"></i>Opus 5.5<b>$9.40</b></div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-2)"></i>Haiku 4.5<b>$2.10</b></div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-3)"></i>Search<b>$0.60</b></div><div class="chart-tip-row total">Total<b>$12.10</b></div></div></div>
+    <div class="chart-col" tabindex="0" aria-label="Fri, Oct 17: Opus 5.5 $5.60, Haiku 4.5 $1.40, Search $0.30"><span class="chart-point" style="--v: 46.67%; --c: var(--series-1)"></span><span class="chart-point" style="--v: 11.67%; --c: var(--series-2)"></span><span class="chart-point" style="--v: 2.5%; --c: var(--series-3)"></span><div class="chart-tip" aria-hidden="true"><div class="chart-tip-title">Fri, Oct 17</div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-1)"></i>Opus 5.5<b>$5.60</b></div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-2)"></i>Haiku 4.5<b>$1.40</b></div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-3)"></i>Search<b>$0.30</b></div><div class="chart-tip-row total">Total<b>$7.30</b></div></div></div>
+    <div class="chart-col" tabindex="0" aria-label="Sat, Oct 18: Opus 5.5 $11.20, Haiku 4.5 $2.60, Search $0.70"><span class="chart-point" style="--v: 93.33%; --c: var(--series-1)"></span><span class="chart-point" style="--v: 21.67%; --c: var(--series-2)"></span><span class="chart-point" style="--v: 5.83%; --c: var(--series-3)"></span><div class="chart-tip" aria-hidden="true"><div class="chart-tip-title">Sat, Oct 18</div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-1)"></i>Opus 5.5<b>$11.20</b></div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-2)"></i>Haiku 4.5<b>$2.60</b></div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-3)"></i>Search<b>$0.70</b></div><div class="chart-tip-row total">Total<b>$14.50</b></div></div></div>
+    <div class="chart-col" tabindex="0" aria-label="Sun, Oct 19: Opus 5.5 $7.90, Haiku 4.5 $1.80, Search $0.40"><span class="chart-point" style="--v: 65.83%; --c: var(--series-1)"></span><span class="chart-point" style="--v: 15%; --c: var(--series-2)"></span><span class="chart-point" style="--v: 3.33%; --c: var(--series-3)"></span><div class="chart-tip" aria-hidden="true"><div class="chart-tip-title">Sun, Oct 19</div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-1)"></i>Opus 5.5<b>$7.90</b></div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-2)"></i>Haiku 4.5<b>$1.80</b></div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-3)"></i>Search<b>$0.40</b></div><div class="chart-tip-row total">Total<b>$10.10</b></div></div></div>
+  </div>
+  <div class="chart-x" aria-hidden="true"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
+</div>
+    </div>
+    <div data-view-panel="table" hidden><div class="table-box flush"><table class="table table-compact"><thead><tr><th>Day</th><th class="num">Opus 5.5</th><th class="num">Haiku 4.5</th><th class="num">Search</th></tr></thead><tbody><tr><td>Mon, Oct 13</td><td class="num">$4.10</td><td class="num">$1.20</td><td class="num">$0.30</td></tr><tr><td>Tue, Oct 14</td><td class="num">$6.80</td><td class="num">$1.60</td><td class="num">$0.40</td></tr><tr><td>Wed, Oct 15</td><td class="num">$3.20</td><td class="num">$0.90</td><td class="num">$0.20</td></tr><tr><td>Thu, Oct 16</td><td class="num">$9.40</td><td class="num">$2.10</td><td class="num">$0.60</td></tr><tr><td>Fri, Oct 17</td><td class="num">$5.60</td><td class="num">$1.40</td><td class="num">$0.30</td></tr><tr><td>Sat, Oct 18</td><td class="num">$11.20</td><td class="num">$2.60</td><td class="num">$0.70</td></tr><tr><td>Sun, Oct 19</td><td class="num">$7.90</td><td class="num">$1.80</td><td class="num">$0.40</td></tr></tbody></table></div></div>
+  </div>
+</div>
+```
+
+**Stats with a trend.** A sparkline shows direction only; the number is the point.
+
+```html
+<div class="stat-grid">
+  <a class="stat" href="#"><div class="stat-label">AI calls today</div><div class="stat-value">1,284</div><div class="stat-sub"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-trending-up"/></svg>18% on yesterday</div><svg class="sparkline" viewBox="0 0 100 32" preserveAspectRatio="none" aria-hidden="true" style="--c: var(--series-1)"><path class="chart-fill" d="M0 13.42 L16.67 10.7 L33.33 14.78 L50 9.12 L66.67 9.8 L83.33 7.3 L100 2.91 V32 H0 Z"/><path d="M0 13.42 L16.67 10.7 L33.33 14.78 L50 9.12 L66.67 9.8 L83.33 7.3 L100 2.91"/></svg></a>
+  <a class="stat" href="#"><div class="stat-label">Spent this month</div><div class="stat-value">$61.40</div><div class="stat-sub">AI $58.20 · Search $3.20</div><svg class="sparkline" viewBox="0 0 100 32" preserveAspectRatio="none" aria-hidden="true" style="--c: var(--series-2)"><path class="chart-fill" d="M0 26.28 L16.67 22.94 L33.33 20.55 L50 17.22 L66.67 12.92 L83.33 7.2 L100 2.91 V32 H0 Z"/><path d="M0 26.28 L16.67 22.94 L33.33 20.55 L50 17.22 L66.67 12.92 L83.33 7.2 L100 2.91"/></svg></a>
+  <a class="stat" href="#"><div class="stat-label">Jobs failed</div><div class="stat-value">3</div><div class="stat-sub">Last 7 days</div><svg class="sparkline" viewBox="0 0 100 32" preserveAspectRatio="none" aria-hidden="true" style="--c: var(--series-3)"><path class="chart-fill" d="M0 22.3 L16.67 32 L33.33 12.61 L50 32 L66.67 32 L83.33 22.3 L100 2.91 V32 H0 Z"/><path d="M0 22.3 L16.67 32 L33.33 12.61 L50 32 L66.67 32 L83.33 22.3 L100 2.91"/></svg></a>
+</div>
+```
+
+**Breakdown.** Ranked largest first, with the amount and its share.
+
+```html
+<div class="bar-list">
+  <div class="bar-list-head"><span>Purpose</span><span>Cost this month</span></div>
+  <div class="bar-list-row" style="--v: 100%"><span>Writing profiles</span><span class="num">$31.20</span><span class="num">53%</span></div>
+  <div class="bar-list-row" style="--v: 46.79%"><span>Reading items</span><span class="num">$14.60</span><span class="num">25%</span></div>
+  <div class="bar-list-row" style="--v: 19.55%"><span>Dating facts</span><span class="num">$6.10</span><span class="num">10%</span></div>
+  <div class="bar-list-row" style="--v: 13.78%"><span>Surveys</span><span class="num">$4.30</span><span class="num">7%</span></div>
+  <div class="bar-list-row" style="--v: 10.26%"><span>Search</span><span class="num">$3.20</span><span class="num">5%</span></div>
 </div>
 ```
 
@@ -990,7 +1067,7 @@ Every screen is one of these; open the preview file for the full markup.
 | Record | `preview/page-record.html` | Back, header with avatar and labels, tabs, nav list of sections, summary cards first, sections with Show detail |
 | Create and edit | `preview/page-form.html` | Narrow page, error summary notice, fieldsets, save bar |
 | Settings | `preview/page-settings.html` | Section root, nav list of groups, one card per group with its own Save, danger zone last |
-| Dashboard | `preview/page-dashboard.html` | Stat links, chart card, project cards, needs attention, running now |
+| Dashboard | `preview/page-dashboard.html` | Stats with sparklines, a chart with its head, project cards, needs attention, running now |
 | Background work | `preview/page-activity.html` | Tabs Now, History, Usage and cost; lanes with running work; failures with Retry; drawer detail |
 | Step by step | `preview/page-wizard.html` | Steps, one card per step, Back and Next in the card foot |
 | Sidebar shell and queue | `preview/page-sidebar.html` | Sidebar shell; queue on the left, detail with its own bar on the right; command menu |

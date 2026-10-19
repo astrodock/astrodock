@@ -13,47 +13,1093 @@
 <div class="app" data-docs>
   <nav class="sidebar-nav" aria-label="Design system">
     <div class="switcher"><span class="avatar avatar-sm avatar-accent"><svg class="icon" aria-hidden="true"><use href="#i-layout-grid"/></svg></span><span class="switcher-name">Astrodock UI</span></div>
-    <div class="nav-list"><a class="item" href="index.html"><svg class="icon" aria-hidden="true"><use href="#i-layout-grid"/></svg>Overview</a><a class="item" href="foundations.html"><svg class="icon" aria-hidden="true"><use href="#i-eye"/></svg>Foundations</a><a class="item" href="components.html" aria-current="page"><svg class="icon" aria-hidden="true"><use href="#i-list"/></svg>Components</a><div class="nav-list" id="catalog-nav"></div><div class="nav-label">Page types</div><a class="item" href="page-list.html">Collection</a><a class="item" href="page-record.html">Record</a><a class="item" href="page-form.html">Create</a><a class="item" href="page-settings.html">Settings</a><a class="item" href="page-dashboard.html">Dashboard</a><a class="item" href="page-activity.html">Background work</a><a class="item" href="page-wizard.html">Step by step</a><a class="item" href="page-sidebar.html">Queue</a><a class="item" href="page-states.html">Sign-in and errors</a><a class="item" href="mobile.html">On a phone</a></div>
+    <div class="nav-list"><a class="item" href="index.html"><svg class="icon" aria-hidden="true"><use href="#i-layout-grid"/></svg>Overview</a><a class="item" href="foundations.html"><svg class="icon" aria-hidden="true"><use href="#i-eye"/></svg>Foundations</a><a class="item" href="components.html" aria-current="page"><svg class="icon" aria-hidden="true"><use href="#i-list"/></svg>Components</a><div class="nav-label">Page types</div><a class="item" href="page-list.html">Collection</a><a class="item" href="page-record.html">Record</a><a class="item" href="page-form.html">Create</a><a class="item" href="page-settings.html">Settings</a><a class="item" href="page-dashboard.html">Dashboard</a><a class="item" href="page-activity.html">Background work</a><a class="item" href="page-wizard.html">Step by step</a><a class="item" href="page-sidebar.html">Queue</a><a class="item" href="page-states.html">Sign-in and errors</a><a class="item" href="mobile.html">On a phone</a></div>
     <div class="sidebar-foot"><div class="btn-group btn-group-sm" role="group" aria-label="Theme"><button class="btn" type="button" data-theme-set="light"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-sun"/></svg>Light</button><button class="btn" type="button" data-theme-set="dark"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-moon"/></svg>Dark</button></div></div>
   </nav>
   <div class="panel">
     <div class="mobile-bar"><button class="btn btn-icon btn-quiet menu-btn" type="button" aria-label="Open navigation"><svg class="icon" aria-hidden="true"><use href="#i-menu"/></svg></button>Astrodock UI</div>
-    <main class="page">
+    <main class="page page-wide">
       <header class="page-header"><div class="page-head"><div class="page-head-main"><div class="page-head-text"><div class="page-title-row"><h1 class="t-title">Components</h1></div><p class="page-desc">Every part, its examples and when to use it. Show markup reveals the canonical markup; REFERENCE.md is built from the same catalog.</p></div></div></div></header>
-      <div class="sections" id="catalog"></div>
+      <div class="with-toc">
+        <div class="sections">
+        <section class="section" id="buttons">
+          <div class="section-head"><h2 class="t-heading">Buttons</h2></div>
+          <p class="section-lead">A verb and what it acts on. One primary button in view: the thing most people came to do. Everything else is a plain button; quiet buttons for cancel and for actions inside rows.</p>
+          <div class="catalog-use"><span><b>Use for</b> Doing something.</span><span><b>Not for</b> Going somewhere (a link). Filtering (the Filter button).</span></div>
+          <div class="specimen">
+            <div class="specimen-head"><span class="medium">Kinds</span><span class="t-small muted">Primary, default, quiet, danger.</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-1" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><div class="actions">
+  <button class="btn btn-primary" type="button"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>Add competitor</button>
+  <button class="btn" type="button"><svg class="icon" aria-hidden="true"><use href="#i-refresh"/></svg>Update profile</button>
+  <button class="btn btn-quiet" type="button">Cancel</button>
+  <button class="btn btn-danger" type="button">Delete</button>
+  <button class="btn btn-danger-solid" type="button">Delete project</button>
+</div></div>
+            <div class="specimen-code" id="code-1" hidden><pre class="code-block">&lt;div class="actions"&gt;
+  &lt;button class="btn btn-primary" type="button"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-plus"/&gt;&lt;/svg&gt;Add competitor&lt;/button&gt;
+  &lt;button class="btn" type="button"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-refresh"/&gt;&lt;/svg&gt;Update profile&lt;/button&gt;
+  &lt;button class="btn btn-quiet" type="button"&gt;Cancel&lt;/button&gt;
+  &lt;button class="btn btn-danger" type="button"&gt;Delete&lt;/button&gt;
+  &lt;button class="btn btn-danger-solid" type="button"&gt;Delete project&lt;/button&gt;
+&lt;/div&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-1" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div><div class="specimen">
+            <div class="specimen-head"><span class="medium">Sizes</span><span class="t-small muted">Small in rows and toolbars; large only for sign-in and first-step calls to action.</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-2" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><div class="actions">
+  <button class="btn btn-primary btn-lg" type="button">New project</button>
+  <button class="btn btn-primary" type="button">Save changes</button>
+  <button class="btn btn-sm" type="button">Retry</button>
+</div></div>
+            <div class="specimen-code" id="code-2" hidden><pre class="code-block">&lt;div class="actions"&gt;
+  &lt;button class="btn btn-primary btn-lg" type="button"&gt;New project&lt;/button&gt;
+  &lt;button class="btn btn-primary" type="button"&gt;Save changes&lt;/button&gt;
+  &lt;button class="btn btn-sm" type="button"&gt;Retry&lt;/button&gt;
+&lt;/div&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-2" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div><div class="specimen">
+            <div class="specimen-head"><span class="medium">Working and disabled</span><span class="t-small muted">Working keeps the label and adds a spinner. Disabled says why.</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-3" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><div class="actions">
+  <button class="btn btn-primary" type="button" disabled><span class="spinner"></span>Saving</button>
+  <span class="has-tip"><button class="btn" type="button" disabled>Compare pricing</button><span class="tooltip" role="tooltip">Study two companies first</span></span>
+</div></div>
+            <div class="specimen-code" id="code-3" hidden><pre class="code-block">&lt;div class="actions"&gt;
+  &lt;button class="btn btn-primary" type="button" disabled&gt;&lt;span class="spinner"&gt;&lt;/span&gt;Saving&lt;/button&gt;
+  &lt;span class="has-tip"&gt;&lt;button class="btn" type="button" disabled&gt;Compare pricing&lt;/button&gt;&lt;span class="tooltip" role="tooltip"&gt;Study two companies first&lt;/span&gt;&lt;/span&gt;
+&lt;/div&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-3" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div><div class="specimen">
+            <div class="specimen-head"><span class="medium">Icon buttons and shortcuts</span><span class="t-small muted">Icon-only for universal actions, always named for screen readers.</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-4" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><div class="actions">
+  <button class="btn btn-icon" type="button" aria-label="Refresh"><svg class="icon" aria-hidden="true"><use href="#i-refresh"/></svg></button>
+  <button class="btn btn-icon btn-quiet" type="button" aria-label="More actions"><svg class="icon" aria-hidden="true"><use href="#i-more"/></svg></button>
+  <button class="btn" type="button"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg>Search<kbd>⌘K</kbd></button>
+</div></div>
+            <div class="specimen-code" id="code-4" hidden><pre class="code-block">&lt;div class="actions"&gt;
+  &lt;button class="btn btn-icon" type="button" aria-label="Refresh"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-refresh"/&gt;&lt;/svg&gt;&lt;/button&gt;
+  &lt;button class="btn btn-icon btn-quiet" type="button" aria-label="More actions"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-more"/&gt;&lt;/svg&gt;&lt;/button&gt;
+  &lt;button class="btn" type="button"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-search"/&gt;&lt;/svg&gt;Search&lt;kbd&gt;⌘K&lt;/kbd&gt;&lt;/button&gt;
+&lt;/div&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-4" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div><div class="specimen">
+            <div class="specimen-head"><span class="medium">Segmented</span><span class="t-small muted">Switching between views of the same data.</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-5" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><div class="btn-group" role="group" aria-label="Measure">
+  <button class="btn btn-sm" type="button" aria-pressed="true">Cost</button>
+  <button class="btn btn-sm" type="button" aria-pressed="false">Tokens</button>
+  <button class="btn btn-sm" type="button" aria-pressed="false">Calls</button>
+</div></div>
+            <div class="specimen-code" id="code-5" hidden><pre class="code-block">&lt;div class="btn-group" role="group" aria-label="Measure"&gt;
+  &lt;button class="btn btn-sm" type="button" aria-pressed="true"&gt;Cost&lt;/button&gt;
+  &lt;button class="btn btn-sm" type="button" aria-pressed="false"&gt;Tokens&lt;/button&gt;
+  &lt;button class="btn btn-sm" type="button" aria-pressed="false"&gt;Calls&lt;/button&gt;
+&lt;/div&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-5" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div>
+        </section>
+        <section class="section" id="menus">
+          <div class="section-head"><h2 class="t-heading">Menus</h2></div>
+          <p class="section-lead">Actions needed now and then sit behind a More button. Destructive items come last, after a line.</p>
+          <div class="catalog-use"><span><b>Use for</b> Rare actions; the account menu.</span><span><b>Not for</b> Hiding the main action.</span></div>
+          <div class="specimen">
+            <div class="specimen-head"><span class="medium">Actions menu</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-6" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><div class="menu-wrap">
+  <button class="btn" type="button" data-toggle aria-haspopup="menu" aria-expanded="false">More<svg class="icon" aria-hidden="true"><use href="#i-chevron-down"/></svg></button>
+  <div class="menu menu-start" role="menu" hidden>
+    <button class="item" role="menuitem" type="button"><svg class="icon" aria-hidden="true"><use href="#i-pencil"/></svg>Rename</button>
+    <button class="item" role="menuitem" type="button"><svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg>Duplicate<kbd class="shortcut">D</kbd></button>
+    <button class="item" role="menuitem" type="button"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Export as CSV</button>
+    <div class="menu-sep"></div>
+    <button class="item danger" role="menuitem" type="button"><svg class="icon" aria-hidden="true"><use href="#i-trash"/></svg>Delete</button>
+  </div>
+</div></div>
+            <div class="specimen-code" id="code-6" hidden><pre class="code-block">&lt;div class="menu-wrap"&gt;
+  &lt;button class="btn" type="button" data-toggle aria-haspopup="menu" aria-expanded="false"&gt;More&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-chevron-down"/&gt;&lt;/svg&gt;&lt;/button&gt;
+  &lt;div class="menu menu-start" role="menu" hidden&gt;
+    &lt;button class="item" role="menuitem" type="button"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-pencil"/&gt;&lt;/svg&gt;Rename&lt;/button&gt;
+    &lt;button class="item" role="menuitem" type="button"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-copy"/&gt;&lt;/svg&gt;Duplicate&lt;kbd class="shortcut"&gt;D&lt;/kbd&gt;&lt;/button&gt;
+    &lt;button class="item" role="menuitem" type="button"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-download"/&gt;&lt;/svg&gt;Export as CSV&lt;/button&gt;
+    &lt;div class="menu-sep"&gt;&lt;/div&gt;
+    &lt;button class="item danger" role="menuitem" type="button"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-trash"/&gt;&lt;/svg&gt;Delete&lt;/button&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-6" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div>
+        </section>
+        <section class="section" id="text-fields">
+          <div class="section-head"><h2 class="t-heading">Text fields</h2></div>
+          <p class="section-lead">A label above every field. A hint below says what is expected; an error replaces it and says how to fix it. Placeholders show an example, never instructions.</p>
+          <div class="catalog-use"><span><b>Use for</b> Short text, numbers, dates, long text.</span><span><b>Not for</b> Choosing from a known list.</span></div>
+          <div class="specimen">
+            <div class="specimen-head"><span class="medium">With a hint</span><span class="t-small muted">Optional fields are marked; required ones are not.</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-7" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><div class="field">
+  <label class="field-label" for="ex-site">Website<span class="optional">Optional</span></label>
+  <input class="input" id="ex-site" placeholder="storiicare.com">
+  <div class="field-hint">Its whole site is read, including help and docs subdomains.</div>
+</div></div>
+            <div class="specimen-code" id="code-7" hidden><pre class="code-block">&lt;div class="field"&gt;
+  &lt;label class="field-label" for="ex-site"&gt;Website&lt;span class="optional"&gt;Optional&lt;/span&gt;&lt;/label&gt;
+  &lt;input class="input" id="ex-site" placeholder="storiicare.com"&gt;
+  &lt;div class="field-hint"&gt;Its whole site is read, including help and docs subdomains.&lt;/div&gt;
+&lt;/div&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-7" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div><div class="specimen">
+            <div class="specimen-head"><span class="medium">With an error</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-8" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><div class="field">
+  <label class="field-label" for="ex-site2">Website</label>
+  <input class="input" id="ex-site2" value="storiicare" aria-invalid="true" aria-describedby="ex-site2-e">
+  <div class="field-error" id="ex-site2-e"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-alert-circle"/></svg>Enter a full address, like storiicare.com</div>
+</div></div>
+            <div class="specimen-code" id="code-8" hidden><pre class="code-block">&lt;div class="field"&gt;
+  &lt;label class="field-label" for="ex-site2"&gt;Website&lt;/label&gt;
+  &lt;input class="input" id="ex-site2" value="storiicare" aria-invalid="true" aria-describedby="ex-site2-e"&gt;
+  &lt;div class="field-error" id="ex-site2-e"&gt;&lt;svg class="icon icon-sm" aria-hidden="true"&gt;&lt;use href="#i-alert-circle"/&gt;&lt;/svg&gt;Enter a full address, like storiicare.com&lt;/div&gt;
+&lt;/div&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-8" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div><div class="specimen">
+            <div class="specimen-head"><span class="medium">Search, prefix and suffix</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-9" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><div class="stack">
+  <div class="input-wrap"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><input class="input" type="search" placeholder="Search companies" aria-label="Search companies"><kbd>/</kbd></div>
+  <div class="input-affix"><span class="affix">$</span><input class="input num" value="750" aria-label="Monthly fee"><span class="affix">per center / month</span></div>
+</div></div>
+            <div class="specimen-code" id="code-9" hidden><pre class="code-block">&lt;div class="stack"&gt;
+  &lt;div class="input-wrap"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-search"/&gt;&lt;/svg&gt;&lt;input class="input" type="search" placeholder="Search companies" aria-label="Search companies"&gt;&lt;kbd&gt;/&lt;/kbd&gt;&lt;/div&gt;
+  &lt;div class="input-affix"&gt;&lt;span class="affix"&gt;$&lt;/span&gt;&lt;input class="input num" value="750" aria-label="Monthly fee"&gt;&lt;span class="affix"&gt;per center / month&lt;/span&gt;&lt;/div&gt;
+&lt;/div&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-9" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div><div class="specimen">
+            <div class="specimen-head"><span class="medium">Long text, disabled, read-only</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-10" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><div class="stack">
+  <div class="field"><label class="field-label" for="ex-market">The market</label><textarea class="input" id="ex-market">Software for adult day centers in the US: attendance, care plans, billing, family communication.</textarea></div>
+  <div class="form-row">
+    <div class="field"><label class="field-label" for="ex-plan">Plan</label><input class="input" id="ex-plan" value="Set by your administrator" disabled></div>
+    <div class="field"><label class="field-label" for="ex-url">App address</label><input class="input mono" id="ex-url" value="intel.apps.example.com" readonly></div>
+  </div>
+</div></div>
+            <div class="specimen-code" id="code-10" hidden><pre class="code-block">&lt;div class="stack"&gt;
+  &lt;div class="field"&gt;&lt;label class="field-label" for="ex-market"&gt;The market&lt;/label&gt;&lt;textarea class="input" id="ex-market"&gt;Software for adult day centers in the US: attendance, care plans, billing, family communication.&lt;/textarea&gt;&lt;/div&gt;
+  &lt;div class="form-row"&gt;
+    &lt;div class="field"&gt;&lt;label class="field-label" for="ex-plan"&gt;Plan&lt;/label&gt;&lt;input class="input" id="ex-plan" value="Set by your administrator" disabled&gt;&lt;/div&gt;
+    &lt;div class="field"&gt;&lt;label class="field-label" for="ex-url"&gt;App address&lt;/label&gt;&lt;input class="input mono" id="ex-url" value="intel.apps.example.com" readonly&gt;&lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-10" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div>
+        </section>
+        <section class="section" id="select">
+          <div class="section-head"><h2 class="t-heading">Select and multi-select</h2></div>
+          <p class="section-lead">A button that opens a list. Never the browser's own select. Options can say what they mean; long lists get a search box.</p>
+          <div class="catalog-use"><span><b>Use for</b> One choice from four or more; several from a long list.</span><span><b>Not for</b> Two or three choices that should be visible (radios).</span></div>
+          <div class="specimen">
+            <div class="specimen-head"><span class="medium">Select</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-11" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><div class="field">
+  <span class="field-label" id="ex-study-l">Study</span>
+  <div class="select">
+    <button class="select-trigger" type="button" data-toggle aria-haspopup="listbox" aria-expanded="false" aria-labelledby="ex-study-l"><span class="value">Light profile</span><svg class="icon" aria-hidden="true"><use href="#i-chevrons-up-down"/></svg></button>
+    <div class="popover" hidden><div class="listbox" role="listbox" aria-labelledby="ex-study-l">
+      <div class="item option" role="option" aria-selected="true" data-label="Light profile"><svg class="icon check-mark" aria-hidden="true"><use href="#i-check"/></svg><span class="option-text">Light profile<span class="option-hint">Key pages only, read once</span></span></div>
+      <div class="item option" role="option" aria-selected="false" data-label="Full study"><svg class="icon check-mark" aria-hidden="true"><use href="#i-check"/></svg><span class="option-text">Full study<span class="option-hint">Whole site, news and history, re-checked</span></span></div>
+      <div class="item option" role="option" aria-selected="false" data-label="Not now"><svg class="icon check-mark" aria-hidden="true"><use href="#i-check"/></svg><span class="option-text">Not now<span class="option-hint">Add it without collecting</span></span></div>
+    </div></div>
+  </div>
+</div></div>
+            <div class="specimen-code" id="code-11" hidden><pre class="code-block">&lt;div class="field"&gt;
+  &lt;span class="field-label" id="ex-study-l"&gt;Study&lt;/span&gt;
+  &lt;div class="select"&gt;
+    &lt;button class="select-trigger" type="button" data-toggle aria-haspopup="listbox" aria-expanded="false" aria-labelledby="ex-study-l"&gt;&lt;span class="value"&gt;Light profile&lt;/span&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-chevrons-up-down"/&gt;&lt;/svg&gt;&lt;/button&gt;
+    &lt;div class="popover" hidden&gt;&lt;div class="listbox" role="listbox" aria-labelledby="ex-study-l"&gt;
+      &lt;div class="item option" role="option" aria-selected="true" data-label="Light profile"&gt;&lt;svg class="icon check-mark" aria-hidden="true"&gt;&lt;use href="#i-check"/&gt;&lt;/svg&gt;&lt;span class="option-text"&gt;Light profile&lt;span class="option-hint"&gt;Key pages only, read once&lt;/span&gt;&lt;/span&gt;&lt;/div&gt;
+      &lt;div class="item option" role="option" aria-selected="false" data-label="Full study"&gt;&lt;svg class="icon check-mark" aria-hidden="true"&gt;&lt;use href="#i-check"/&gt;&lt;/svg&gt;&lt;span class="option-text"&gt;Full study&lt;span class="option-hint"&gt;Whole site, news and history, re-checked&lt;/span&gt;&lt;/span&gt;&lt;/div&gt;
+      &lt;div class="item option" role="option" aria-selected="false" data-label="Not now"&gt;&lt;svg class="icon check-mark" aria-hidden="true"&gt;&lt;use href="#i-check"/&gt;&lt;/svg&gt;&lt;span class="option-text"&gt;Not now&lt;span class="option-hint"&gt;Add it without collecting&lt;/span&gt;&lt;/span&gt;&lt;/div&gt;
+    &lt;/div&gt;&lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-11" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div><div class="specimen">
+            <div class="specimen-head"><span class="medium">Multi-select with search</span><span class="t-small muted">Shows two names, then a count.</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-12" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><div class="field">
+  <span class="field-label" id="ex-types-l">Event types</span>
+  <div class="select multi">
+    <button class="select-trigger" type="button" data-toggle aria-haspopup="listbox" aria-expanded="false" aria-labelledby="ex-types-l"><span class="value" data-placeholder="All types">All types</span><svg class="icon" aria-hidden="true"><use href="#i-chevrons-up-down"/></svg></button>
+    <div class="popover" hidden>
+      <div class="popover-search"><div class="input-wrap"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><input class="input input-sm" type="search" placeholder="Search" aria-label="Search types"></div></div>
+      <div class="listbox" role="listbox" aria-multiselectable="true" aria-labelledby="ex-types-l">
+        <label class="item option option-check" data-label="Funding"><input type="checkbox" checked>Funding<span class="count">4</span></label>
+        <label class="item option option-check" data-label="Product launch"><input type="checkbox" checked>Product launch<span class="count">11</span></label>
+        <label class="item option option-check" data-label="Leadership"><input type="checkbox">Leadership<span class="count">6</span></label>
+        <label class="item option option-check" data-label="Partnership"><input type="checkbox">Partnership<span class="count">5</span></label>
+      </div>
+      <div class="popover-foot"><button class="btn btn-sm btn-quiet" type="button" data-clear>Clear</button><button class="btn btn-sm" type="button" data-toggle-close>Done</button></div>
+    </div>
+  </div>
+</div></div>
+            <div class="specimen-code" id="code-12" hidden><pre class="code-block">&lt;div class="field"&gt;
+  &lt;span class="field-label" id="ex-types-l"&gt;Event types&lt;/span&gt;
+  &lt;div class="select multi"&gt;
+    &lt;button class="select-trigger" type="button" data-toggle aria-haspopup="listbox" aria-expanded="false" aria-labelledby="ex-types-l"&gt;&lt;span class="value" data-placeholder="All types"&gt;All types&lt;/span&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-chevrons-up-down"/&gt;&lt;/svg&gt;&lt;/button&gt;
+    &lt;div class="popover" hidden&gt;
+      &lt;div class="popover-search"&gt;&lt;div class="input-wrap"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-search"/&gt;&lt;/svg&gt;&lt;input class="input input-sm" type="search" placeholder="Search" aria-label="Search types"&gt;&lt;/div&gt;&lt;/div&gt;
+      &lt;div class="listbox" role="listbox" aria-multiselectable="true" aria-labelledby="ex-types-l"&gt;
+        &lt;label class="item option option-check" data-label="Funding"&gt;&lt;input type="checkbox" checked&gt;Funding&lt;span class="count"&gt;4&lt;/span&gt;&lt;/label&gt;
+        &lt;label class="item option option-check" data-label="Product launch"&gt;&lt;input type="checkbox" checked&gt;Product launch&lt;span class="count"&gt;11&lt;/span&gt;&lt;/label&gt;
+        &lt;label class="item option option-check" data-label="Leadership"&gt;&lt;input type="checkbox"&gt;Leadership&lt;span class="count"&gt;6&lt;/span&gt;&lt;/label&gt;
+        &lt;label class="item option option-check" data-label="Partnership"&gt;&lt;input type="checkbox"&gt;Partnership&lt;span class="count"&gt;5&lt;/span&gt;&lt;/label&gt;
+      &lt;/div&gt;
+      &lt;div class="popover-foot"&gt;&lt;button class="btn btn-sm btn-quiet" type="button" data-clear&gt;Clear&lt;/button&gt;&lt;button class="btn btn-sm" type="button" data-toggle-close&gt;Done&lt;/button&gt;&lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-12" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div>
+        </section>
+        <section class="section" id="choices">
+          <div class="section-head"><h2 class="t-heading">Checkboxes, radios, choice cards, switches</h2></div>
+          <p class="section-lead">One checkbox and one radio, everywhere. Choice cards when each option needs a sentence. Switches only for settings that apply the moment they are flipped.</p>
+          <div class="catalog-use"><span><b>Not for</b> A switch inside a form with Save (use a checkbox).</span></div>
+          <div class="specimen">
+            <div class="specimen-head"><span class="medium">Checkboxes and radios</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-13" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><div class="grid-2">
+  <fieldset class="check-list"><legend class="t-label mb-2">Show</legend>
+    <label class="check"><input type="checkbox" checked>Important only</label>
+    <label class="check"><input type="checkbox">Where companies differ</label>
+    <label class="check"><input type="checkbox" disabled>Where we lack it</label>
+  </fieldset>
+  <fieldset class="check-list"><legend class="t-label mb-2">Repeat the survey</legend>
+    <label class="check"><input type="radio" name="ex-rp" checked>Every month</label>
+    <label class="check"><input type="radio" name="ex-rp">Every 3 months</label>
+    <label class="check"><input type="radio" name="ex-rp">Only when asked</label>
+  </fieldset>
+</div></div>
+            <div class="specimen-code" id="code-13" hidden><pre class="code-block">&lt;div class="grid-2"&gt;
+  &lt;fieldset class="check-list"&gt;&lt;legend class="t-label mb-2"&gt;Show&lt;/legend&gt;
+    &lt;label class="check"&gt;&lt;input type="checkbox" checked&gt;Important only&lt;/label&gt;
+    &lt;label class="check"&gt;&lt;input type="checkbox"&gt;Where companies differ&lt;/label&gt;
+    &lt;label class="check"&gt;&lt;input type="checkbox" disabled&gt;Where we lack it&lt;/label&gt;
+  &lt;/fieldset&gt;
+  &lt;fieldset class="check-list"&gt;&lt;legend class="t-label mb-2"&gt;Repeat the survey&lt;/legend&gt;
+    &lt;label class="check"&gt;&lt;input type="radio" name="ex-rp" checked&gt;Every month&lt;/label&gt;
+    &lt;label class="check"&gt;&lt;input type="radio" name="ex-rp"&gt;Every 3 months&lt;/label&gt;
+    &lt;label class="check"&gt;&lt;input type="radio" name="ex-rp"&gt;Only when asked&lt;/label&gt;
+  &lt;/fieldset&gt;
+&lt;/div&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-13" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div><div class="specimen">
+            <div class="specimen-head"><span class="medium">Choice cards</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-14" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><div class="grid-2">
+  <label class="choice-card"><input type="radio" name="ex-lvl" checked><span><span class="medium">Light profile</span><span class="check-desc">Key pages only: home, pricing, product, about. Read once.</span></span></label>
+  <label class="choice-card"><input type="radio" name="ex-lvl"><span><span class="medium">Full study</span><span class="check-desc">Whole site and help docs, news, history. Re-checked weekly.</span></span></label>
+</div></div>
+            <div class="specimen-code" id="code-14" hidden><pre class="code-block">&lt;div class="grid-2"&gt;
+  &lt;label class="choice-card"&gt;&lt;input type="radio" name="ex-lvl" checked&gt;&lt;span&gt;&lt;span class="medium"&gt;Light profile&lt;/span&gt;&lt;span class="check-desc"&gt;Key pages only: home, pricing, product, about. Read once.&lt;/span&gt;&lt;/span&gt;&lt;/label&gt;
+  &lt;label class="choice-card"&gt;&lt;input type="radio" name="ex-lvl"&gt;&lt;span&gt;&lt;span class="medium"&gt;Full study&lt;/span&gt;&lt;span class="check-desc"&gt;Whole site and help docs, news, history. Re-checked weekly.&lt;/span&gt;&lt;/span&gt;&lt;/label&gt;
+&lt;/div&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-14" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div><div class="specimen">
+            <div class="specimen-head"><span class="medium">Switch</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-15" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><div class="stack-sm">
+  <button class="switch" type="button" role="switch" aria-checked="true" data-toast="Weekly digest on"><span class="switch-track"></span>Email me the weekly digest</button>
+  <button class="switch" type="button" role="switch" aria-checked="false" data-toast="Change alerts on"><span class="switch-track"></span>Email me notable changes</button>
+</div></div>
+            <div class="specimen-code" id="code-15" hidden><pre class="code-block">&lt;div class="stack-sm"&gt;
+  &lt;button class="switch" type="button" role="switch" aria-checked="true" data-toast="Weekly digest on"&gt;&lt;span class="switch-track"&gt;&lt;/span&gt;Email me the weekly digest&lt;/button&gt;
+  &lt;button class="switch" type="button" role="switch" aria-checked="false" data-toast="Change alerts on"&gt;&lt;span class="switch-track"&gt;&lt;/span&gt;Email me notable changes&lt;/button&gt;
+&lt;/div&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-15" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div>
+        </section>
+        <section class="section" id="forms">
+          <div class="section-head"><h2 class="t-heading">Forms</h2></div>
+          <p class="section-lead">Each group of fields gets a short title and a sentence on the left, the fields on the right, hairlines between groups. On a phone the intro sits above. Long forms end with the save bar; short ones go in a modal.</p>
+          <div class="catalog-use"><span><b>Use for</b> Every form with more than five fields.</span></div>
+          <div class="specimen">
+            <div class="specimen-head"><span class="medium">Form</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-16" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><form class="form">
+  <div class="fieldset">
+    <div class="fieldset-intro"><div class="fieldset-title">The market</div><div class="fieldset-desc">What the survey and comparisons work from.</div></div>
+    <div class="fieldset-body">
+      <div class="field"><label class="field-label" for="ex-pn">Project name</label><input class="input" id="ex-pn" value="Seniorverse Day"></div>
+      <div class="form-row">
+        <div class="field"><label class="field-label" for="ex-pp">Compare prices at</label><div class="input-affix"><input class="input num" id="ex-pp" value="50"><span class="affix">participants</span></div></div>
+        <div class="field"><label class="field-label" for="ex-dd">Digest every</label><div class="input-affix"><input class="input num" id="ex-dd" value="7"><span class="affix">days</span></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="fieldset">
+    <div class="fieldset-intro"><div class="fieldset-title">Surveys</div><div class="fieldset-desc">Repeat surveys list only companies not found before.</div></div>
+    <div class="fieldset-body"><div class="check-list"><label class="check"><input type="radio" name="ex-fr" checked>Every month</label><label class="check"><input type="radio" name="ex-fr">Only when asked</label></div></div>
+  </div>
+</form></div>
+            <div class="specimen-code" id="code-16" hidden><pre class="code-block">&lt;form class="form"&gt;
+  &lt;div class="fieldset"&gt;
+    &lt;div class="fieldset-intro"&gt;&lt;div class="fieldset-title"&gt;The market&lt;/div&gt;&lt;div class="fieldset-desc"&gt;What the survey and comparisons work from.&lt;/div&gt;&lt;/div&gt;
+    &lt;div class="fieldset-body"&gt;
+      &lt;div class="field"&gt;&lt;label class="field-label" for="ex-pn"&gt;Project name&lt;/label&gt;&lt;input class="input" id="ex-pn" value="Seniorverse Day"&gt;&lt;/div&gt;
+      &lt;div class="form-row"&gt;
+        &lt;div class="field"&gt;&lt;label class="field-label" for="ex-pp"&gt;Compare prices at&lt;/label&gt;&lt;div class="input-affix"&gt;&lt;input class="input num" id="ex-pp" value="50"&gt;&lt;span class="affix"&gt;participants&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;
+        &lt;div class="field"&gt;&lt;label class="field-label" for="ex-dd"&gt;Digest every&lt;/label&gt;&lt;div class="input-affix"&gt;&lt;input class="input num" id="ex-dd" value="7"&gt;&lt;span class="affix"&gt;days&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div class="fieldset"&gt;
+    &lt;div class="fieldset-intro"&gt;&lt;div class="fieldset-title"&gt;Surveys&lt;/div&gt;&lt;div class="fieldset-desc"&gt;Repeat surveys list only companies not found before.&lt;/div&gt;&lt;/div&gt;
+    &lt;div class="fieldset-body"&gt;&lt;div class="check-list"&gt;&lt;label class="check"&gt;&lt;input type="radio" name="ex-fr" checked&gt;Every month&lt;/label&gt;&lt;label class="check"&gt;&lt;input type="radio" name="ex-fr"&gt;Only when asked&lt;/label&gt;&lt;/div&gt;&lt;/div&gt;
+  &lt;/div&gt;
+&lt;/form&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-16" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div><div class="specimen">
+            <div class="specimen-head"><span class="medium">Save bar</span><span class="t-small muted">Appears when something changed; stays at the bottom of the window.</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-17" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><div class="save-bar"><span>Unsaved changes</span><div class="actions"><button class="btn btn-quiet" type="button">Discard</button><button class="btn btn-primary" type="button" data-toast="Saved">Save changes</button></div></div></div>
+            <div class="specimen-code" id="code-17" hidden><pre class="code-block">&lt;div class="save-bar"&gt;&lt;span&gt;Unsaved changes&lt;/span&gt;&lt;div class="actions"&gt;&lt;button class="btn btn-quiet" type="button"&gt;Discard&lt;/button&gt;&lt;button class="btn btn-primary" type="button" data-toast="Saved"&gt;Save changes&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-17" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div>
+        </section>
+        <section class="section" id="file-upload">
+          <div class="section-head"><h2 class="t-heading">File upload</h2></div>
+          <p class="section-lead">A drop area that is also a button; it says what is accepted. Each file shows progress, then a row with remove.</p>
+          
+          <div class="specimen">
+            <div class="specimen-head"><span class="medium">Drop area</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-18" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><div class="stack">
+  <button class="dropzone" type="button"><svg class="icon icon-lg" aria-hidden="true"><use href="#i-upload"/></svg><span class="medium">Drop files, or choose files</span><span>PDF, Word or CSV, up to 25 MB</span></button>
+  <div class="file-list">
+    <div class="file-row"><svg class="icon" aria-hidden="true"><use href="#i-file"/></svg><div class="progress-item w-full"><div class="progress-head"><span>G2 reviews.csv</span><span>64%</span></div><div class="progress" style="--value: 64%"><span></span></div></div></div>
+    <div class="file-row"><svg class="icon" aria-hidden="true"><use href="#i-file"/></svg><span class="truncate">Sales call notes.pdf</span><span class="spacer"></span><span class="muted">1.2 MB</span><button class="btn btn-sm btn-quiet btn-icon" type="button" aria-label="Remove file"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+  </div>
+</div></div>
+            <div class="specimen-code" id="code-18" hidden><pre class="code-block">&lt;div class="stack"&gt;
+  &lt;button class="dropzone" type="button"&gt;&lt;svg class="icon icon-lg" aria-hidden="true"&gt;&lt;use href="#i-upload"/&gt;&lt;/svg&gt;&lt;span class="medium"&gt;Drop files, or choose files&lt;/span&gt;&lt;span&gt;PDF, Word or CSV, up to 25 MB&lt;/span&gt;&lt;/button&gt;
+  &lt;div class="file-list"&gt;
+    &lt;div class="file-row"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-file"/&gt;&lt;/svg&gt;&lt;div class="progress-item w-full"&gt;&lt;div class="progress-head"&gt;&lt;span&gt;G2 reviews.csv&lt;/span&gt;&lt;span&gt;64%&lt;/span&gt;&lt;/div&gt;&lt;div class="progress" style="--value: 64%"&gt;&lt;span&gt;&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;
+    &lt;div class="file-row"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-file"/&gt;&lt;/svg&gt;&lt;span class="truncate"&gt;Sales call notes.pdf&lt;/span&gt;&lt;span class="spacer"&gt;&lt;/span&gt;&lt;span class="muted"&gt;1.2 MB&lt;/span&gt;&lt;button class="btn btn-sm btn-quiet btn-icon" type="button" aria-label="Remove file"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-x"/&gt;&lt;/svg&gt;&lt;/button&gt;&lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-18" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div>
+        </section>
+        <section class="section" id="avatars">
+          <div class="section-head"><h2 class="t-heading">Avatars</h2></div>
+          <p class="section-lead">People, companies and things are rounded squares: initials or an icon. Neutral by default; the accent for the app itself or "us".</p>
+          <div class="catalog-use"><span><b>Use for</b> Leading a row, a comment, the switcher, an empty state.</span><span><b>Not for</b> Circles. Decoration.</span></div>
+          <div class="specimen">
+            <div class="specimen-head"><span class="medium">Sizes and kinds</span><span class="t-small muted">20 and 24 inline, 32 in lists, 40 in record headers, 48 in empty states.</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-19" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><div class="cluster">
+  <span class="avatar avatar-xs">SL</span><span class="avatar avatar-sm">SL</span><span class="avatar">SC</span><span class="avatar avatar-lg">SC</span><span class="avatar avatar-xl"><svg class="icon" aria-hidden="true"><use href="#i-radar"/></svg></span>
+  <span class="avatar avatar-accent">SV</span><span class="avatar avatar-soft"><svg class="icon" aria-hidden="true"><use href="#i-inbox"/></svg></span><span class="avatar avatar-danger"><svg class="icon" aria-hidden="true"><use href="#i-trash"/></svg></span>
+</div></div>
+            <div class="specimen-code" id="code-19" hidden><pre class="code-block">&lt;div class="cluster"&gt;
+  &lt;span class="avatar avatar-xs"&gt;SL&lt;/span&gt;&lt;span class="avatar avatar-sm"&gt;SL&lt;/span&gt;&lt;span class="avatar"&gt;SC&lt;/span&gt;&lt;span class="avatar avatar-lg"&gt;SC&lt;/span&gt;&lt;span class="avatar avatar-xl"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-radar"/&gt;&lt;/svg&gt;&lt;/span&gt;
+  &lt;span class="avatar avatar-accent"&gt;SV&lt;/span&gt;&lt;span class="avatar avatar-soft"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-inbox"/&gt;&lt;/svg&gt;&lt;/span&gt;&lt;span class="avatar avatar-danger"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-trash"/&gt;&lt;/svg&gt;&lt;/span&gt;
+&lt;/div&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-19" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div>
+        </section>
+        <section class="section" id="lists">
+          <div class="section-head"><h2 class="t-heading">Lists</h2></div>
+          <p class="section-lead">The main way to show records. Columns are set once on the list; the header names them once. Rows are separated by hairlines, open on click, and show their checkbox and actions on hover. Group labels split a list into parts.</p>
+          <div class="catalog-use"><span><b>Use for</b> Collections people scan and open.</span><span><b>Not for</b> Repeating labels in every row. Boxes around each row.</span></div>
+          <div class="specimen">
+            <div class="specimen-head"><span class="medium">List with columns, groups and selection</span><span class="t-small muted">Select rows to bring up the bulk bar.</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-20" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><div class="list" data-selectable style="--cols: minmax(0, 1fr) 72px 104px 120px 32px">
+  <div class="list-header"><span>Company</span><span class="num">Facts</span><span>Last change</span><span>Status</span><span></span></div>
+  <div class="row-group">Us</div>
+  <div class="row">
+    <div class="row-lead"><span class="row-pick"><input type="checkbox" data-row-check aria-label="Select Seniorverse"><span class="avatar avatar-accent">SV</span></span><div class="row-main"><a class="row-title row-link" href="#">Seniorverse</a><span class="row-sub">seniorverse.com</span></div></div>
+    <span class="row-cell num">1,015</span><span class="row-cell">Oct 18</span><span class="row-cell"><span class="status running"><span class="spinner"></span>Collecting</span></span>
+    <div class="row-end row-hover"><button class="btn btn-sm btn-quiet btn-icon" type="button" aria-label="Actions for Seniorverse"><svg class="icon" aria-hidden="true"><use href="#i-more"/></svg></button></div>
+  </div>
+  <div class="row-group">Competitors<span class="count">2</span></div>
+  <div class="row">
+    <div class="row-lead"><span class="row-pick"><input type="checkbox" data-row-check aria-label="Select StoriiCare"><span class="avatar">SC</span></span><div class="row-main"><span class="row-title"><a class="row-link" href="#">StoriiCare</a><span class="label">Full study</span></span><span class="row-sub">storiicare.com</span></div></div>
+    <span class="row-cell num">1,842</span><span class="row-cell">Oct 17</span><span class="row-cell"><span class="status success"><span class="status-dot"></span>Up to date</span></span>
+    <div class="row-end row-hover"><button class="btn btn-sm btn-quiet btn-icon" type="button" aria-label="Actions for StoriiCare"><svg class="icon" aria-hidden="true"><use href="#i-more"/></svg></button></div>
+  </div>
+  <div class="row">
+    <div class="row-lead"><span class="row-pick"><input type="checkbox" data-row-check aria-label="Select Collabrios"><span class="avatar">CB</span></span><div class="row-main"><span class="row-title"><a class="row-link" href="#">Collabrios</a><span class="label">Light profile</span></span><span class="row-sub">collabrios.com</span></div></div>
+    <span class="row-cell num">214</span><span class="row-cell">Oct 12</span><span class="row-cell"><span class="status danger"><span class="status-dot"></span>1 failed</span></span>
+    <div class="row-end row-hover"><button class="btn btn-sm btn-quiet btn-icon" type="button" aria-label="Actions for Collabrios"><svg class="icon" aria-hidden="true"><use href="#i-more"/></svg></button></div>
+  </div>
+  <div class="bulk-bar" data-bulk hidden><span data-selected-count>0 selected</span><button class="btn btn-sm" type="button"><svg class="icon" aria-hidden="true"><use href="#i-refresh"/></svg>Collect again</button><button class="btn btn-sm" type="button"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg>Remove</button></div>
+</div></div>
+            <div class="specimen-code" id="code-20" hidden><pre class="code-block">&lt;div class="list" data-selectable style="--cols: minmax(0, 1fr) 72px 104px 120px 32px"&gt;
+  &lt;div class="list-header"&gt;&lt;span&gt;Company&lt;/span&gt;&lt;span class="num"&gt;Facts&lt;/span&gt;&lt;span&gt;Last change&lt;/span&gt;&lt;span&gt;Status&lt;/span&gt;&lt;span&gt;&lt;/span&gt;&lt;/div&gt;
+  &lt;div class="row-group"&gt;Us&lt;/div&gt;
+  &lt;div class="row"&gt;
+    &lt;div class="row-lead"&gt;&lt;span class="row-pick"&gt;&lt;input type="checkbox" data-row-check aria-label="Select Seniorverse"&gt;&lt;span class="avatar avatar-accent"&gt;SV&lt;/span&gt;&lt;/span&gt;&lt;div class="row-main"&gt;&lt;a class="row-title row-link" href="#"&gt;Seniorverse&lt;/a&gt;&lt;span class="row-sub"&gt;seniorverse.com&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;
+    &lt;span class="row-cell num"&gt;1,015&lt;/span&gt;&lt;span class="row-cell"&gt;Oct 18&lt;/span&gt;&lt;span class="row-cell"&gt;&lt;span class="status running"&gt;&lt;span class="spinner"&gt;&lt;/span&gt;Collecting&lt;/span&gt;&lt;/span&gt;
+    &lt;div class="row-end row-hover"&gt;&lt;button class="btn btn-sm btn-quiet btn-icon" type="button" aria-label="Actions for Seniorverse"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-more"/&gt;&lt;/svg&gt;&lt;/button&gt;&lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div class="row-group"&gt;Competitors&lt;span class="count"&gt;2&lt;/span&gt;&lt;/div&gt;
+  &lt;div class="row"&gt;
+    &lt;div class="row-lead"&gt;&lt;span class="row-pick"&gt;&lt;input type="checkbox" data-row-check aria-label="Select StoriiCare"&gt;&lt;span class="avatar"&gt;SC&lt;/span&gt;&lt;/span&gt;&lt;div class="row-main"&gt;&lt;span class="row-title"&gt;&lt;a class="row-link" href="#"&gt;StoriiCare&lt;/a&gt;&lt;span class="label"&gt;Full study&lt;/span&gt;&lt;/span&gt;&lt;span class="row-sub"&gt;storiicare.com&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;
+    &lt;span class="row-cell num"&gt;1,842&lt;/span&gt;&lt;span class="row-cell"&gt;Oct 17&lt;/span&gt;&lt;span class="row-cell"&gt;&lt;span class="status success"&gt;&lt;span class="status-dot"&gt;&lt;/span&gt;Up to date&lt;/span&gt;&lt;/span&gt;
+    &lt;div class="row-end row-hover"&gt;&lt;button class="btn btn-sm btn-quiet btn-icon" type="button" aria-label="Actions for StoriiCare"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-more"/&gt;&lt;/svg&gt;&lt;/button&gt;&lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div class="row"&gt;
+    &lt;div class="row-lead"&gt;&lt;span class="row-pick"&gt;&lt;input type="checkbox" data-row-check aria-label="Select Collabrios"&gt;&lt;span class="avatar"&gt;CB&lt;/span&gt;&lt;/span&gt;&lt;div class="row-main"&gt;&lt;span class="row-title"&gt;&lt;a class="row-link" href="#"&gt;Collabrios&lt;/a&gt;&lt;span class="label"&gt;Light profile&lt;/span&gt;&lt;/span&gt;&lt;span class="row-sub"&gt;collabrios.com&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;
+    &lt;span class="row-cell num"&gt;214&lt;/span&gt;&lt;span class="row-cell"&gt;Oct 12&lt;/span&gt;&lt;span class="row-cell"&gt;&lt;span class="status danger"&gt;&lt;span class="status-dot"&gt;&lt;/span&gt;1 failed&lt;/span&gt;&lt;/span&gt;
+    &lt;div class="row-end row-hover"&gt;&lt;button class="btn btn-sm btn-quiet btn-icon" type="button" aria-label="Actions for Collabrios"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-more"/&gt;&lt;/svg&gt;&lt;/button&gt;&lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div class="bulk-bar" data-bulk hidden&gt;&lt;span data-selected-count&gt;0 selected&lt;/span&gt;&lt;button class="btn btn-sm" type="button"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-refresh"/&gt;&lt;/svg&gt;Collect again&lt;/button&gt;&lt;button class="btn btn-sm" type="button"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-x"/&gt;&lt;/svg&gt;Remove&lt;/button&gt;&lt;/div&gt;
+&lt;/div&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-20" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div>
+        </section>
+        <section class="section" id="view-bar">
+          <div class="section-head"><h2 class="t-heading">View bar and filters</h2></div>
+          <p class="section-lead">Above a collection: saved views on the left, then Filter, search, sort and layout on the right. Filters open from the Filter button; a badge shows how many are set. Pages with heavy filtering may use the filter sidebar instead.</p>
+          <div class="catalog-use"><span><b>Use for</b> The top of every collection.</span><span><b>Not for</b> Rows of filter pills.</span></div>
+          <div class="specimen">
+            <div class="specimen-head"><span class="medium">View bar</span><span class="t-small muted">Open Filter to see the panel.</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-21" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><div class="view-bar">
+  <div class="views" role="tablist" aria-label="Views">
+    <button class="view" type="button" aria-current="true">All<span class="count">6</span></button>
+    <button class="view" type="button">Changed this week<span class="count">2</span></button>
+    <button class="view" type="button">Needs attention<span class="count">1</span></button>
+  </div>
+  <span class="spacer"></span>
+  <div class="menu-wrap">
+    <button class="btn btn-sm" type="button" data-toggle aria-haspopup="dialog" aria-expanded="false"><svg class="icon" aria-hidden="true"><use href="#i-filter"/></svg>Filter<span class="filter-badge">1</span></button>
+    <div class="popover popover-wide menu-start" role="dialog" aria-label="Filters" hidden>
+      <div class="popover-section"><span class="t-label">Study</span>
+        <label class="item option option-check"><input type="checkbox" checked>Full study<span class="count">3</span></label>
+        <label class="item option option-check"><input type="checkbox">Light profile<span class="count">2</span></label>
+        <label class="item option option-check"><input type="checkbox">Not studied<span class="count">1</span></label>
+      </div>
+      <div class="popover-section"><span class="t-label">Status</span>
+        <label class="item option option-check"><input type="checkbox">Collecting<span class="count">1</span></label>
+        <label class="item option option-check"><input type="checkbox">Has failures<span class="count">1</span></label>
+      </div>
+      <div class="popover-foot"><button class="btn btn-sm btn-quiet" type="button">Clear all</button><button class="btn btn-sm" type="button" data-toggle-close>Done</button></div>
+    </div>
+  </div>
+  <div class="input-wrap"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><input class="input input-sm" type="search" placeholder="Search" aria-label="Search companies"></div>
+  <div class="btn-group btn-group-sm" role="group" aria-label="Layout"><button class="btn btn-icon" type="button" aria-pressed="true" aria-label="List"><svg class="icon" aria-hidden="true"><use href="#i-list"/></svg></button><button class="btn btn-icon" type="button" aria-pressed="false" aria-label="Cards"><svg class="icon" aria-hidden="true"><use href="#i-layout-grid"/></svg></button></div>
+</div></div>
+            <div class="specimen-code" id="code-21" hidden><pre class="code-block">&lt;div class="view-bar"&gt;
+  &lt;div class="views" role="tablist" aria-label="Views"&gt;
+    &lt;button class="view" type="button" aria-current="true"&gt;All&lt;span class="count"&gt;6&lt;/span&gt;&lt;/button&gt;
+    &lt;button class="view" type="button"&gt;Changed this week&lt;span class="count"&gt;2&lt;/span&gt;&lt;/button&gt;
+    &lt;button class="view" type="button"&gt;Needs attention&lt;span class="count"&gt;1&lt;/span&gt;&lt;/button&gt;
+  &lt;/div&gt;
+  &lt;span class="spacer"&gt;&lt;/span&gt;
+  &lt;div class="menu-wrap"&gt;
+    &lt;button class="btn btn-sm" type="button" data-toggle aria-haspopup="dialog" aria-expanded="false"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-filter"/&gt;&lt;/svg&gt;Filter&lt;span class="filter-badge"&gt;1&lt;/span&gt;&lt;/button&gt;
+    &lt;div class="popover popover-wide menu-start" role="dialog" aria-label="Filters" hidden&gt;
+      &lt;div class="popover-section"&gt;&lt;span class="t-label"&gt;Study&lt;/span&gt;
+        &lt;label class="item option option-check"&gt;&lt;input type="checkbox" checked&gt;Full study&lt;span class="count"&gt;3&lt;/span&gt;&lt;/label&gt;
+        &lt;label class="item option option-check"&gt;&lt;input type="checkbox"&gt;Light profile&lt;span class="count"&gt;2&lt;/span&gt;&lt;/label&gt;
+        &lt;label class="item option option-check"&gt;&lt;input type="checkbox"&gt;Not studied&lt;span class="count"&gt;1&lt;/span&gt;&lt;/label&gt;
+      &lt;/div&gt;
+      &lt;div class="popover-section"&gt;&lt;span class="t-label"&gt;Status&lt;/span&gt;
+        &lt;label class="item option option-check"&gt;&lt;input type="checkbox"&gt;Collecting&lt;span class="count"&gt;1&lt;/span&gt;&lt;/label&gt;
+        &lt;label class="item option option-check"&gt;&lt;input type="checkbox"&gt;Has failures&lt;span class="count"&gt;1&lt;/span&gt;&lt;/label&gt;
+      &lt;/div&gt;
+      &lt;div class="popover-foot"&gt;&lt;button class="btn btn-sm btn-quiet" type="button"&gt;Clear all&lt;/button&gt;&lt;button class="btn btn-sm" type="button" data-toggle-close&gt;Done&lt;/button&gt;&lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div class="input-wrap"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-search"/&gt;&lt;/svg&gt;&lt;input class="input input-sm" type="search" placeholder="Search" aria-label="Search companies"&gt;&lt;/div&gt;
+  &lt;div class="btn-group btn-group-sm" role="group" aria-label="Layout"&gt;&lt;button class="btn btn-icon" type="button" aria-pressed="true" aria-label="List"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-list"/&gt;&lt;/svg&gt;&lt;/button&gt;&lt;button class="btn btn-icon" type="button" aria-pressed="false" aria-label="Cards"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-layout-grid"/&gt;&lt;/svg&gt;&lt;/button&gt;&lt;/div&gt;
+&lt;/div&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-21" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div><div class="specimen">
+            <div class="specimen-head"><span class="medium">Filter sidebar</span><span class="t-small muted">Only for pages people filter constantly (logs, history).</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-22" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><aside class="filters" aria-label="Filters">
+  <div class="filters-head"><span class="t-subheading">Filters</span><button class="btn btn-sm btn-quiet" type="button">Clear</button></div>
+  <fieldset class="filter-group"><legend class="t-label">Status</legend>
+    <label class="check"><input type="checkbox">Running<span class="count">7</span></label>
+    <label class="check"><input type="checkbox" checked>Failed<span class="count">3</span></label>
+    <label class="check"><input type="checkbox">Done<span class="count">2,308</span></label>
+  </fieldset>
+</aside></div>
+            <div class="specimen-code" id="code-22" hidden><pre class="code-block">&lt;aside class="filters" aria-label="Filters"&gt;
+  &lt;div class="filters-head"&gt;&lt;span class="t-subheading"&gt;Filters&lt;/span&gt;&lt;button class="btn btn-sm btn-quiet" type="button"&gt;Clear&lt;/button&gt;&lt;/div&gt;
+  &lt;fieldset class="filter-group"&gt;&lt;legend class="t-label"&gt;Status&lt;/legend&gt;
+    &lt;label class="check"&gt;&lt;input type="checkbox"&gt;Running&lt;span class="count"&gt;7&lt;/span&gt;&lt;/label&gt;
+    &lt;label class="check"&gt;&lt;input type="checkbox" checked&gt;Failed&lt;span class="count"&gt;3&lt;/span&gt;&lt;/label&gt;
+    &lt;label class="check"&gt;&lt;input type="checkbox"&gt;Done&lt;span class="count"&gt;2,308&lt;/span&gt;&lt;/label&gt;
+  &lt;/fieldset&gt;
+&lt;/aside&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-22" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div>
+        </section>
+        <section class="section" id="tables">
+          <div class="section-head"><h2 class="t-heading">Tables</h2></div>
+          <p class="section-lead">For comparing many values across rows. Headers sort when clicked; numbers align right; the foot gives the total and loads more.</p>
+          <div class="catalog-use"><span><b>Use for</b> Logs, history, numbers.</span><span><b>Not for</b> Records people browse by name (a list).</span></div>
+          <div class="specimen">
+            <div class="specimen-head"><span class="medium">Table</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-23" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><div class="table-box flush">
+  <table class="table">
+    <thead><tr><th class="sortable" aria-sort="descending">When<svg class="icon" aria-hidden="true"><use href="#i-chevron-down"/></svg></th><th class="sortable">Job<svg class="icon" aria-hidden="true"><use href="#i-chevrons-up-down"/></svg></th><th>For</th><th>Status</th><th class="num">AI calls</th><th class="num">Cost</th><th class="actions-col"><span class="sr-only">Actions</span></th></tr></thead>
+    <tbody>
+      <tr class="group"><td colspan="7">Today</td></tr>
+      <tr class="clickable"><td class="num">2:14 PM</td><td class="primary">Read an item<span class="cell-sub">#4182</span></td><td>StoriiCare</td><td><span class="status success"><span class="status-dot"></span>Done</span></td><td class="num">2</td><td class="num">$0.04</td><td class="actions-col"><button class="btn btn-sm btn-quiet btn-icon" type="button" aria-label="Actions"><svg class="icon" aria-hidden="true"><use href="#i-more"/></svg></button></td></tr>
+      <tr class="clickable"><td class="num">1:58 PM</td><td class="primary">Write the profile<span class="cell-sub">#4176</span></td><td>StoriiCare</td><td><span class="status danger"><span class="status-dot"></span>Failed</span></td><td class="num">4</td><td class="num">$0.61</td><td class="actions-col"><button class="btn btn-sm" type="button" data-toast="Queued again">Retry</button></td></tr>
+    </tbody>
+  </table>
+  <div class="table-foot"><span>2 of 2,318 jobs</span><button class="btn btn-sm" type="button">Load more</button></div>
+</div></div>
+            <div class="specimen-code" id="code-23" hidden><pre class="code-block">&lt;div class="table-box flush"&gt;
+  &lt;table class="table"&gt;
+    &lt;thead&gt;&lt;tr&gt;&lt;th class="sortable" aria-sort="descending"&gt;When&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-chevron-down"/&gt;&lt;/svg&gt;&lt;/th&gt;&lt;th class="sortable"&gt;Job&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-chevrons-up-down"/&gt;&lt;/svg&gt;&lt;/th&gt;&lt;th&gt;For&lt;/th&gt;&lt;th&gt;Status&lt;/th&gt;&lt;th class="num"&gt;AI calls&lt;/th&gt;&lt;th class="num"&gt;Cost&lt;/th&gt;&lt;th class="actions-col"&gt;&lt;span class="sr-only"&gt;Actions&lt;/span&gt;&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;
+    &lt;tbody&gt;
+      &lt;tr class="group"&gt;&lt;td colspan="7"&gt;Today&lt;/td&gt;&lt;/tr&gt;
+      &lt;tr class="clickable"&gt;&lt;td class="num"&gt;2:14 PM&lt;/td&gt;&lt;td class="primary"&gt;Read an item&lt;span class="cell-sub"&gt;#4182&lt;/span&gt;&lt;/td&gt;&lt;td&gt;StoriiCare&lt;/td&gt;&lt;td&gt;&lt;span class="status success"&gt;&lt;span class="status-dot"&gt;&lt;/span&gt;Done&lt;/span&gt;&lt;/td&gt;&lt;td class="num"&gt;2&lt;/td&gt;&lt;td class="num"&gt;$0.04&lt;/td&gt;&lt;td class="actions-col"&gt;&lt;button class="btn btn-sm btn-quiet btn-icon" type="button" aria-label="Actions"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-more"/&gt;&lt;/svg&gt;&lt;/button&gt;&lt;/td&gt;&lt;/tr&gt;
+      &lt;tr class="clickable"&gt;&lt;td class="num"&gt;1:58 PM&lt;/td&gt;&lt;td class="primary"&gt;Write the profile&lt;span class="cell-sub"&gt;#4176&lt;/span&gt;&lt;/td&gt;&lt;td&gt;StoriiCare&lt;/td&gt;&lt;td&gt;&lt;span class="status danger"&gt;&lt;span class="status-dot"&gt;&lt;/span&gt;Failed&lt;/span&gt;&lt;/td&gt;&lt;td class="num"&gt;4&lt;/td&gt;&lt;td class="num"&gt;$0.61&lt;/td&gt;&lt;td class="actions-col"&gt;&lt;button class="btn btn-sm" type="button" data-toast="Queued again"&gt;Retry&lt;/button&gt;&lt;/td&gt;&lt;/tr&gt;
+    &lt;/tbody&gt;
+  &lt;/table&gt;
+  &lt;div class="table-foot"&gt;&lt;span&gt;2 of 2,318 jobs&lt;/span&gt;&lt;button class="btn btn-sm" type="button"&gt;Load more&lt;/button&gt;&lt;/div&gt;
+&lt;/div&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-23" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div>
+        </section>
+        <section class="section" id="sections">
+          <div class="section-head"><h2 class="t-heading">Sections and properties</h2></div>
+          <p class="section-lead">Inside a page, content is sections, not cards: a title, a line of meta or an action, then the content, with hairlines between. A record's fields sit in a properties list in the side column.</p>
+          <div class="catalog-use"><span><b>Use for</b> Record pages, settings, dashboards.</span><span><b>Not for</b> Cards around every group.</span></div>
+          <div class="specimen">
+            <div class="specimen-head"><span class="medium">Sections</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-24" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><div class="sections">
+  <section class="section">
+    <div class="section-head"><h2 class="section-title">Summary</h2><span class="section-meta">Written 2 h ago</span></div>
+    <p class="section-lead">StoriiCare sells care management and EHR software to adult day centers, home care agencies and care homes. <button class="cite" type="button">12</button></p>
+  </section>
+  <section class="section">
+    <div class="section-head"><h2 class="section-title">Pricing</h2><div class="actions"><span class="section-meta">14 facts</span><button class="btn btn-sm" type="button"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>Mark reviewed</button></div></div>
+    <p class="section-lead">Published pricing is per participant per month, with a minimum per center. <button class="cite" type="button">301</button></p>
+  </section>
+</div></div>
+            <div class="specimen-code" id="code-24" hidden><pre class="code-block">&lt;div class="sections"&gt;
+  &lt;section class="section"&gt;
+    &lt;div class="section-head"&gt;&lt;h2 class="section-title"&gt;Summary&lt;/h2&gt;&lt;span class="section-meta"&gt;Written 2 h ago&lt;/span&gt;&lt;/div&gt;
+    &lt;p class="section-lead"&gt;StoriiCare sells care management and EHR software to adult day centers, home care agencies and care homes. &lt;button class="cite" type="button"&gt;12&lt;/button&gt;&lt;/p&gt;
+  &lt;/section&gt;
+  &lt;section class="section"&gt;
+    &lt;div class="section-head"&gt;&lt;h2 class="section-title"&gt;Pricing&lt;/h2&gt;&lt;div class="actions"&gt;&lt;span class="section-meta"&gt;14 facts&lt;/span&gt;&lt;button class="btn btn-sm" type="button"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-check"/&gt;&lt;/svg&gt;Mark reviewed&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;
+    &lt;p class="section-lead"&gt;Published pricing is per participant per month, with a minimum per center. &lt;button class="cite" type="button"&gt;301&lt;/button&gt;&lt;/p&gt;
+  &lt;/section&gt;
+&lt;/div&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-24" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div><div class="specimen">
+            <div class="specimen-head"><span class="medium">Properties</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-25" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><dl class="properties">
+  <dt>Website</dt><dd><a class="link" href="#">storiicare.com</a></dd>
+  <dt>Study</dt><dd><span class="label">Full study</span></dd>
+  <dt>Status</dt><dd><span class="status success"><span class="status-dot"></span>Up to date</span></dd>
+  <dt>Founded</dt><dd>[From the profile]</dd>
+  <dt>Team size</dt><dd class="faint">Not found</dd>
+</dl></div>
+            <div class="specimen-code" id="code-25" hidden><pre class="code-block">&lt;dl class="properties"&gt;
+  &lt;dt&gt;Website&lt;/dt&gt;&lt;dd&gt;&lt;a class="link" href="#"&gt;storiicare.com&lt;/a&gt;&lt;/dd&gt;
+  &lt;dt&gt;Study&lt;/dt&gt;&lt;dd&gt;&lt;span class="label"&gt;Full study&lt;/span&gt;&lt;/dd&gt;
+  &lt;dt&gt;Status&lt;/dt&gt;&lt;dd&gt;&lt;span class="status success"&gt;&lt;span class="status-dot"&gt;&lt;/span&gt;Up to date&lt;/span&gt;&lt;/dd&gt;
+  &lt;dt&gt;Founded&lt;/dt&gt;&lt;dd&gt;[From the profile]&lt;/dd&gt;
+  &lt;dt&gt;Team size&lt;/dt&gt;&lt;dd class="faint"&gt;Not found&lt;/dd&gt;
+&lt;/dl&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-25" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div>
+        </section>
+        <section class="section" id="values">
+          <div class="section-head"><h2 class="t-heading">Stats, labels, status</h2></div>
+          <p class="section-lead">Stats for the few numbers that matter, each linking to the list behind it. Labels describe a record in gray. Status is a dot and a word; color only for success, attention and failure.</p>
+          <div class="catalog-use"><span><b>Not for</b> Labels or status as buttons or filters.</span></div>
+          <div class="specimen">
+            <div class="specimen-head"><span class="medium">Stats</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-26" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><div class="stat-grid">
+  <a class="stat" href="#"><div class="stat-label">Spent this month</div><div class="stat-value">$61.40</div><div class="stat-sub">AI $58.20 · Search $3.20</div></a>
+  <a class="stat" href="#"><div class="stat-label">Candidates to review</div><div class="stat-value">12</div><div class="stat-sub up"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-arrow-up-right"/></svg>5 since the last survey</div></a>
+</div></div>
+            <div class="specimen-code" id="code-26" hidden><pre class="code-block">&lt;div class="stat-grid"&gt;
+  &lt;a class="stat" href="#"&gt;&lt;div class="stat-label"&gt;Spent this month&lt;/div&gt;&lt;div class="stat-value"&gt;$61.40&lt;/div&gt;&lt;div class="stat-sub"&gt;AI $58.20 · Search $3.20&lt;/div&gt;&lt;/a&gt;
+  &lt;a class="stat" href="#"&gt;&lt;div class="stat-label"&gt;Candidates to review&lt;/div&gt;&lt;div class="stat-value"&gt;12&lt;/div&gt;&lt;div class="stat-sub up"&gt;&lt;svg class="icon icon-sm" aria-hidden="true"&gt;&lt;use href="#i-arrow-up-right"/&gt;&lt;/svg&gt;5 since the last survey&lt;/div&gt;&lt;/a&gt;
+&lt;/div&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-26" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div><div class="specimen">
+            <div class="specimen-head"><span class="medium">Status and labels</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-27" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><div class="stack">
+  <div class="cluster"><span class="status success"><span class="status-dot"></span>Done</span><span class="status running"><span class="spinner"></span>Running</span><span class="status"><span class="status-dot"></span>Queued</span><span class="status warning"><span class="status-dot"></span>Needs setup</span><span class="status danger"><span class="status-dot"></span>Failed</span></div>
+  <div class="cluster"><span class="label">Full study</span><span class="label label-outline">Draft</span><span class="label label-accent">Us</span><span class="dot" aria-label="New"></span></div>
+</div></div>
+            <div class="specimen-code" id="code-27" hidden><pre class="code-block">&lt;div class="stack"&gt;
+  &lt;div class="cluster"&gt;&lt;span class="status success"&gt;&lt;span class="status-dot"&gt;&lt;/span&gt;Done&lt;/span&gt;&lt;span class="status running"&gt;&lt;span class="spinner"&gt;&lt;/span&gt;Running&lt;/span&gt;&lt;span class="status"&gt;&lt;span class="status-dot"&gt;&lt;/span&gt;Queued&lt;/span&gt;&lt;span class="status warning"&gt;&lt;span class="status-dot"&gt;&lt;/span&gt;Needs setup&lt;/span&gt;&lt;span class="status danger"&gt;&lt;span class="status-dot"&gt;&lt;/span&gt;Failed&lt;/span&gt;&lt;/div&gt;
+  &lt;div class="cluster"&gt;&lt;span class="label"&gt;Full study&lt;/span&gt;&lt;span class="label label-outline"&gt;Draft&lt;/span&gt;&lt;span class="label label-accent"&gt;Us&lt;/span&gt;&lt;span class="dot" aria-label="New"&gt;&lt;/span&gt;&lt;/div&gt;
+&lt;/div&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-27" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div>
+        </section>
+        <section class="section" id="progress">
+          <div class="section-head"><h2 class="t-heading">Progress and loading</h2></div>
+          <p class="section-lead">Long work shows progress in words. Pages load into skeletons shaped like what is coming.</p>
+          <div class="catalog-use"><span><b>Not for</b> A blank page or a centered spinner.</span></div>
+          <div class="specimen">
+            <div class="specimen-head"><span class="medium">Progress</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-28" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><div class="progress-item">
+  <div class="progress-head"><span class="medium">Crawling storiicare.com</span><span>132 of 412</span></div>
+  <div class="progress" style="--value: 32%"><span></span></div>
+  <div class="progress-note">Page 7 of 20: storiicare.com/pricing</div>
+</div></div>
+            <div class="specimen-code" id="code-28" hidden><pre class="code-block">&lt;div class="progress-item"&gt;
+  &lt;div class="progress-head"&gt;&lt;span class="medium"&gt;Crawling storiicare.com&lt;/span&gt;&lt;span&gt;132 of 412&lt;/span&gt;&lt;/div&gt;
+  &lt;div class="progress" style="--value: 32%"&gt;&lt;span&gt;&lt;/span&gt;&lt;/div&gt;
+  &lt;div class="progress-note"&gt;Page 7 of 20: storiicare.com/pricing&lt;/div&gt;
+&lt;/div&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-28" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div><div class="specimen">
+            <div class="specimen-head"><span class="medium">Skeleton</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-29" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><div class="row"><div class="row-lead"><span class="skeleton skeleton-avatar"></span><div class="row-main w-full"><span class="skeleton" style="--w: 30%"></span><span class="skeleton" style="--w: 55%"></span></div></div></div></div>
+            <div class="specimen-code" id="code-29" hidden><pre class="code-block">&lt;div class="row"&gt;&lt;div class="row-lead"&gt;&lt;span class="skeleton skeleton-avatar"&gt;&lt;/span&gt;&lt;div class="row-main w-full"&gt;&lt;span class="skeleton" style="--w: 30%"&gt;&lt;/span&gt;&lt;span class="skeleton" style="--w: 55%"&gt;&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-29" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div>
+        </section>
+        <section class="section" id="timeline">
+          <div class="section-head"><h2 class="t-heading">Timeline</h2></div>
+          <p class="section-lead">History newest first. The icon says where an entry came from; dates only as precise as they are known.</p>
+          <div class="catalog-use"><span><b>Use for</b> A record's history.</span><span><b>Not for</b> Logs (a table).</span></div>
+          <div class="specimen">
+            <div class="specimen-head"><span class="medium">Timeline</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-30" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><ol class="timeline">
+  <li class="timeline-item"><div class="timeline-mark"><span class="avatar avatar-sm"><svg class="icon" aria-hidden="true"><use href="#i-eye"/></svg></span><span class="timeline-stem"></span></div><div class="timeline-body"><span class="timeline-title">Pricing page lists a per-participant plan</span><span class="timeline-meta">Site change we saw</span></div><span class="timeline-date">Oct 17</span></li>
+  <li class="timeline-item"><div class="timeline-mark"><span class="avatar avatar-sm"><svg class="icon" aria-hidden="true"><use href="#i-newspaper"/></svg></span><span class="timeline-stem"></span></div><div class="timeline-body"><span class="timeline-title">Launched a billing module</span><span class="timeline-meta">Product launch · <button class="cite" type="button">3</button></span></div><span class="timeline-date">Mar 2026</span></li>
+  <li class="timeline-item"><div class="timeline-mark"><span class="avatar avatar-sm"><svg class="icon" aria-hidden="true"><use href="#i-archive"/></svg></span><span class="timeline-stem"></span></div><div class="timeline-body"><span class="timeline-title">Pro plan went from $149 to $199</span><span class="timeline-meta">From an archived copy</span></div><span class="timeline-date">2021</span></li>
+</ol></div>
+            <div class="specimen-code" id="code-30" hidden><pre class="code-block">&lt;ol class="timeline"&gt;
+  &lt;li class="timeline-item"&gt;&lt;div class="timeline-mark"&gt;&lt;span class="avatar avatar-sm"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-eye"/&gt;&lt;/svg&gt;&lt;/span&gt;&lt;span class="timeline-stem"&gt;&lt;/span&gt;&lt;/div&gt;&lt;div class="timeline-body"&gt;&lt;span class="timeline-title"&gt;Pricing page lists a per-participant plan&lt;/span&gt;&lt;span class="timeline-meta"&gt;Site change we saw&lt;/span&gt;&lt;/div&gt;&lt;span class="timeline-date"&gt;Oct 17&lt;/span&gt;&lt;/li&gt;
+  &lt;li class="timeline-item"&gt;&lt;div class="timeline-mark"&gt;&lt;span class="avatar avatar-sm"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-newspaper"/&gt;&lt;/svg&gt;&lt;/span&gt;&lt;span class="timeline-stem"&gt;&lt;/span&gt;&lt;/div&gt;&lt;div class="timeline-body"&gt;&lt;span class="timeline-title"&gt;Launched a billing module&lt;/span&gt;&lt;span class="timeline-meta"&gt;Product launch · &lt;button class="cite" type="button"&gt;3&lt;/button&gt;&lt;/span&gt;&lt;/div&gt;&lt;span class="timeline-date"&gt;Mar 2026&lt;/span&gt;&lt;/li&gt;
+  &lt;li class="timeline-item"&gt;&lt;div class="timeline-mark"&gt;&lt;span class="avatar avatar-sm"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-archive"/&gt;&lt;/svg&gt;&lt;/span&gt;&lt;span class="timeline-stem"&gt;&lt;/span&gt;&lt;/div&gt;&lt;div class="timeline-body"&gt;&lt;span class="timeline-title"&gt;Pro plan went from $149 to $199&lt;/span&gt;&lt;span class="timeline-meta"&gt;From an archived copy&lt;/span&gt;&lt;/div&gt;&lt;span class="timeline-date"&gt;2021&lt;/span&gt;&lt;/li&gt;
+&lt;/ol&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-30" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div>
+        </section>
+        <section class="section" id="text">
+          <div class="section-head"><h2 class="t-heading">Reading text, detail, citations</h2></div>
+          <p class="section-lead">Long text uses prose. A lead first; Show detail reveals the rest. Citations are small numbered marks that open their source.</p>
+          
+          <div class="specimen">
+            <div class="specimen-head"><span class="medium">Lead and detail</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-31" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><div class="stack-sm">
+  <p class="section-lead">Published pricing is per participant per month, with a minimum per center. <button class="cite" type="button">301</button></p>
+  <div><button class="btn btn-sm btn-quiet align-start" type="button" data-reveal="ex-pricing" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show detail</span></button></div>
+  <div class="reveal-body prose" id="ex-pricing" hidden><p>The full section, with its tables and citations.</p><ul><li>Plan A: per participant per month.</li><li>Setup fee waived on annual terms.</li></ul></div>
+</div></div>
+            <div class="specimen-code" id="code-31" hidden><pre class="code-block">&lt;div class="stack-sm"&gt;
+  &lt;p class="section-lead"&gt;Published pricing is per participant per month, with a minimum per center. &lt;button class="cite" type="button"&gt;301&lt;/button&gt;&lt;/p&gt;
+  &lt;div&gt;&lt;button class="btn btn-sm btn-quiet align-start" type="button" data-reveal="ex-pricing" aria-expanded="false"&gt;&lt;svg class="icon icon-sm" aria-hidden="true"&gt;&lt;use href="#i-chevron-right"/&gt;&lt;/svg&gt;&lt;span data-reveal-label&gt;Show detail&lt;/span&gt;&lt;/button&gt;&lt;/div&gt;
+  &lt;div class="reveal-body prose" id="ex-pricing" hidden&gt;&lt;p&gt;The full section, with its tables and citations.&lt;/p&gt;&lt;ul&gt;&lt;li&gt;Plan A: per participant per month.&lt;/li&gt;&lt;li&gt;Setup fee waived on annual terms.&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;
+&lt;/div&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-31" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div><div class="specimen">
+            <div class="specimen-head"><span class="medium">Disclosure</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-32" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><div><details class="disclosure"><summary><svg class="icon" aria-hidden="true"><use href="#i-chevron-right"/></svg>How are facts checked?</summary><div class="disclosure-body">Each fact keeps the exact words it rests on.</div></details><details class="disclosure"><summary><svg class="icon" aria-hidden="true"><use href="#i-chevron-right"/></svg>Why is a section a draft?</summary><div class="disclosure-body">Until someone marks it reviewed.</div></details></div></div>
+            <div class="specimen-code" id="code-32" hidden><pre class="code-block">&lt;div&gt;&lt;details class="disclosure"&gt;&lt;summary&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-chevron-right"/&gt;&lt;/svg&gt;How are facts checked?&lt;/summary&gt;&lt;div class="disclosure-body"&gt;Each fact keeps the exact words it rests on.&lt;/div&gt;&lt;/details&gt;&lt;details class="disclosure"&gt;&lt;summary&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-chevron-right"/&gt;&lt;/svg&gt;Why is a section a draft?&lt;/summary&gt;&lt;div class="disclosure-body"&gt;Until someone marks it reviewed.&lt;/div&gt;&lt;/details&gt;&lt;/div&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-32" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div><div class="specimen">
+            <div class="specimen-head"><span class="medium">Code</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-33" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><pre class="code-block">{ "companyId": 2, "force": false }</pre></div>
+            <div class="specimen-code" id="code-33" hidden><pre class="code-block">&lt;pre class="code-block"&gt;{ "companyId": 2, "force": false }&lt;/pre&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-33" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div>
+        </section>
+        <section class="section" id="comments">
+          <div class="section-head"><h2 class="t-heading">Comments</h2></div>
+          <p class="section-lead">A record's discussion and history in one thread; the composer last.</p>
+          
+          <div class="specimen">
+            <div class="specimen-head"><span class="medium">Thread</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-34" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><div class="thread">
+  <div class="comment event"><span class="avatar avatar-sm"><svg class="icon" aria-hidden="true"><use href="#i-activity"/></svg></span><div class="comment-body">Submitted by Jordan Moss · 2 h ago</div></div>
+  <div class="comment"><span class="avatar avatar-sm">SL</span><div><div class="comment-head"><b>Sam Lee</b><span>1 h ago</span></div><div class="comment-body">Mobility is lower than April. Can we confirm before approving?</div></div></div>
+  <div class="composer"><label class="sr-only" for="ex-reply">Reply</label><textarea id="ex-reply" placeholder="Reply…"></textarea><div class="composer-foot"><span>Mention with @</span><button class="btn btn-sm btn-primary" type="button" data-toast="Reply sent">Send</button></div></div>
+</div></div>
+            <div class="specimen-code" id="code-34" hidden><pre class="code-block">&lt;div class="thread"&gt;
+  &lt;div class="comment event"&gt;&lt;span class="avatar avatar-sm"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-activity"/&gt;&lt;/svg&gt;&lt;/span&gt;&lt;div class="comment-body"&gt;Submitted by Jordan Moss · 2 h ago&lt;/div&gt;&lt;/div&gt;
+  &lt;div class="comment"&gt;&lt;span class="avatar avatar-sm"&gt;SL&lt;/span&gt;&lt;div&gt;&lt;div class="comment-head"&gt;&lt;b&gt;Sam Lee&lt;/b&gt;&lt;span&gt;1 h ago&lt;/span&gt;&lt;/div&gt;&lt;div class="comment-body"&gt;Mobility is lower than April. Can we confirm before approving?&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;
+  &lt;div class="composer"&gt;&lt;label class="sr-only" for="ex-reply"&gt;Reply&lt;/label&gt;&lt;textarea id="ex-reply" placeholder="Reply…"&gt;&lt;/textarea&gt;&lt;div class="composer-foot"&gt;&lt;span&gt;Mention with @&lt;/span&gt;&lt;button class="btn btn-sm btn-primary" type="button" data-toast="Reply sent"&gt;Send&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;/div&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-34" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div>
+        </section>
+        <section class="section" id="charts">
+          <div class="section-head"><h2 class="t-heading">Charts</h2></div>
+          <p class="section-lead">A chart answers one question. Its head says the answer (the total and the change); the plot shows the shape. Every chart has a tooltip on each column, a table view, and a legend when it has two series or more.</p>
+          <div class="catalog-use"><span><b>Use for</b> Bars for amounts per day or week; lines for trends and rates; a sparkline inside a stat; a bar list for a ranked breakdown.</span><span><b>Not for</b> Pies, donuts, 3D, two y-axes, or status (status colors are never series colors).</span></div>
+          <div class="specimen">
+            <div class="specimen-head"><span class="medium">Bars over time</span><span class="t-small muted">Stacked when the parts add up to a total. Hover or tab to a column.</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-35" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><div class="chart-block">
+  <div class="chart-head">
+    <div class="chart-heading"><span class="chart-title">Work finished</span><span class="chart-value">3,035<span class="chart-change"><svg class="icon" aria-hidden="true"><use href="#i-trending-up"/></svg>12% on last week</span></span></div>
+    <div class="actions">
+      <div class="btn-group btn-group-sm" role="group" aria-label="Period"><button class="btn" type="button" aria-pressed="true">7 days</button><button class="btn" type="button" aria-pressed="false">30 days</button><button class="btn" type="button" aria-pressed="false">90 days</button></div>
+      <div class="btn-group btn-group-sm" role="group" aria-label="Show as" data-view="#chart-work"><button class="btn btn-icon" type="button" aria-pressed="true" data-value="chart" aria-label="Chart"><svg class="icon" aria-hidden="true"><use href="#i-bar-chart"/></svg></button><button class="btn btn-icon" type="button" aria-pressed="false" data-value="table" aria-label="Table"><svg class="icon" aria-hidden="true"><use href="#i-table"/></svg></button></div>
+    </div>
+  </div>
+  <div class="chart-legend"><span><i class="chart-key" style="--c: var(--series-1)"></i>Collected</span><span><i class="chart-key" style="--c: var(--series-2)"></i>Read</span></div>
+  <div id="chart-work">
+    <div data-view-panel="chart">
+<div class="chart-plot" role="group" aria-label="Items collected and read per day, last 7 days">
+  <div class="chart-y" aria-hidden="true"><span style="--at: 0%">0</span><span style="--at: 33.33%">200</span><span style="--at: 66.67%">400</span><span style="--at: 100%">600</span></div>
+  <div class="chart-area">
+    <span class="chart-gridline" style="--at: 33.33%"></span><span class="chart-gridline" style="--at: 66.67%"></span><span class="chart-gridline" style="--at: 100%"></span>
+    <div class="chart-col" tabindex="0" aria-label="Mon, Oct 13: Collected 212, Read 148"><div class="chart-bar" style="--v: 60%"><span style="--n: 212; --c: var(--series-1)"></span><span style="--n: 148; --c: var(--series-2)"></span></div><div class="chart-tip" aria-hidden="true"><div class="chart-tip-title">Mon, Oct 13</div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-1)"></i>Collected<b>212</b></div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-2)"></i>Read<b>148</b></div><div class="chart-tip-row total">Total<b>360</b></div></div></div>
+    <div class="chart-col" tabindex="0" aria-label="Tue, Oct 14: Collected 318, Read 260"><div class="chart-bar" style="--v: 96.33%"><span style="--n: 318; --c: var(--series-1)"></span><span style="--n: 260; --c: var(--series-2)"></span></div><div class="chart-tip" aria-hidden="true"><div class="chart-tip-title">Tue, Oct 14</div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-1)"></i>Collected<b>318</b></div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-2)"></i>Read<b>260</b></div><div class="chart-tip-row total">Total<b>578</b></div></div></div>
+    <div class="chart-col" tabindex="0" aria-label="Wed, Oct 15: Collected 146, Read 170"><div class="chart-bar" style="--v: 52.67%"><span style="--n: 146; --c: var(--series-1)"></span><span style="--n: 170; --c: var(--series-2)"></span></div><div class="chart-tip" aria-hidden="true"><div class="chart-tip-title">Wed, Oct 15</div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-1)"></i>Collected<b>146</b></div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-2)"></i>Read<b>170</b></div><div class="chart-tip-row total">Total<b>316</b></div></div></div>
+    <div class="chart-col" tabindex="0" aria-label="Thu, Oct 16: Collected 262, Read 208"><div class="chart-bar" style="--v: 78.33%"><span style="--n: 262; --c: var(--series-1)"></span><span style="--n: 208; --c: var(--series-2)"></span></div><div class="chart-tip" aria-hidden="true"><div class="chart-tip-title">Thu, Oct 16</div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-1)"></i>Collected<b>262</b></div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-2)"></i>Read<b>208</b></div><div class="chart-tip-row total">Total<b>470</b></div></div></div>
+    <div class="chart-col" tabindex="0" aria-label="Fri, Oct 17: Collected 96, Read 120"><div class="chart-bar" style="--v: 36%"><span style="--n: 96; --c: var(--series-1)"></span><span style="--n: 120; --c: var(--series-2)"></span></div><div class="chart-tip" aria-hidden="true"><div class="chart-tip-title">Fri, Oct 17</div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-1)"></i>Collected<b>96</b></div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-2)"></i>Read<b>120</b></div><div class="chart-tip-row total">Total<b>216</b></div></div></div>
+    <div class="chart-col" tabindex="0" aria-label="Sat, Oct 18: Collected 301, Read 244"><div class="chart-bar" style="--v: 90.83%"><span style="--n: 301; --c: var(--series-1)"></span><span style="--n: 244; --c: var(--series-2)"></span></div><div class="chart-tip" aria-hidden="true"><div class="chart-tip-title">Sat, Oct 18</div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-1)"></i>Collected<b>301</b></div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-2)"></i>Read<b>244</b></div><div class="chart-tip-row total">Total<b>545</b></div></div></div>
+    <div class="chart-col" tabindex="0" aria-label="Sun, Oct 19: Collected 152, Read 98"><div class="chart-bar" style="--v: 41.67%"><span style="--n: 152; --c: var(--series-1)"></span><span style="--n: 98; --c: var(--series-2)"></span></div><div class="chart-tip" aria-hidden="true"><div class="chart-tip-title">Sun, Oct 19</div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-1)"></i>Collected<b>152</b></div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-2)"></i>Read<b>98</b></div><div class="chart-tip-row total">Total<b>250</b></div></div></div>
+  </div>
+  <div class="chart-x" aria-hidden="true"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
+</div>
+    </div>
+    <div data-view-panel="table" hidden><div class="table-box flush"><table class="table table-compact"><thead><tr><th>Day</th><th class="num">Collected</th><th class="num">Read</th></tr></thead><tbody><tr><td>Mon, Oct 13</td><td class="num">212</td><td class="num">148</td></tr><tr><td>Tue, Oct 14</td><td class="num">318</td><td class="num">260</td></tr><tr><td>Wed, Oct 15</td><td class="num">146</td><td class="num">170</td></tr><tr><td>Thu, Oct 16</td><td class="num">262</td><td class="num">208</td></tr><tr><td>Fri, Oct 17</td><td class="num">96</td><td class="num">120</td></tr><tr><td>Sat, Oct 18</td><td class="num">301</td><td class="num">244</td></tr><tr><td>Sun, Oct 19</td><td class="num">152</td><td class="num">98</td></tr></tbody></table></div></div>
+  </div>
+</div></div>
+            <div class="specimen-code" id="code-35" hidden><pre class="code-block">&lt;div class="chart-block"&gt;
+  &lt;div class="chart-head"&gt;
+    &lt;div class="chart-heading"&gt;&lt;span class="chart-title"&gt;Work finished&lt;/span&gt;&lt;span class="chart-value"&gt;3,035&lt;span class="chart-change"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-trending-up"/&gt;&lt;/svg&gt;12% on last week&lt;/span&gt;&lt;/span&gt;&lt;/div&gt;
+    &lt;div class="actions"&gt;
+      &lt;div class="btn-group btn-group-sm" role="group" aria-label="Period"&gt;&lt;button class="btn" type="button" aria-pressed="true"&gt;7 days&lt;/button&gt;&lt;button class="btn" type="button" aria-pressed="false"&gt;30 days&lt;/button&gt;&lt;button class="btn" type="button" aria-pressed="false"&gt;90 days&lt;/button&gt;&lt;/div&gt;
+      &lt;div class="btn-group btn-group-sm" role="group" aria-label="Show as" data-view="#chart-work"&gt;&lt;button class="btn btn-icon" type="button" aria-pressed="true" data-value="chart" aria-label="Chart"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-bar-chart"/&gt;&lt;/svg&gt;&lt;/button&gt;&lt;button class="btn btn-icon" type="button" aria-pressed="false" data-value="table" aria-label="Table"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-table"/&gt;&lt;/svg&gt;&lt;/button&gt;&lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div class="chart-legend"&gt;&lt;span&gt;&lt;i class="chart-key" style="--c: var(--series-1)"&gt;&lt;/i&gt;Collected&lt;/span&gt;&lt;span&gt;&lt;i class="chart-key" style="--c: var(--series-2)"&gt;&lt;/i&gt;Read&lt;/span&gt;&lt;/div&gt;
+  &lt;div id="chart-work"&gt;
+    &lt;div data-view-panel="chart"&gt;
+&lt;div class="chart-plot" role="group" aria-label="Items collected and read per day, last 7 days"&gt;
+  &lt;div class="chart-y" aria-hidden="true"&gt;&lt;span style="--at: 0%"&gt;0&lt;/span&gt;&lt;span style="--at: 33.33%"&gt;200&lt;/span&gt;&lt;span style="--at: 66.67%"&gt;400&lt;/span&gt;&lt;span style="--at: 100%"&gt;600&lt;/span&gt;&lt;/div&gt;
+  &lt;div class="chart-area"&gt;
+    &lt;span class="chart-gridline" style="--at: 33.33%"&gt;&lt;/span&gt;&lt;span class="chart-gridline" style="--at: 66.67%"&gt;&lt;/span&gt;&lt;span class="chart-gridline" style="--at: 100%"&gt;&lt;/span&gt;
+    &lt;div class="chart-col" tabindex="0" aria-label="Mon, Oct 13: Collected 212, Read 148"&gt;&lt;div class="chart-bar" style="--v: 60%"&gt;&lt;span style="--n: 212; --c: var(--series-1)"&gt;&lt;/span&gt;&lt;span style="--n: 148; --c: var(--series-2)"&gt;&lt;/span&gt;&lt;/div&gt;&lt;div class="chart-tip" aria-hidden="true"&gt;&lt;div class="chart-tip-title"&gt;Mon, Oct 13&lt;/div&gt;&lt;div class="chart-tip-row"&gt;&lt;i class="chart-key" style="--c: var(--series-1)"&gt;&lt;/i&gt;Collected&lt;b&gt;212&lt;/b&gt;&lt;/div&gt;&lt;div class="chart-tip-row"&gt;&lt;i class="chart-key" style="--c: var(--series-2)"&gt;&lt;/i&gt;Read&lt;b&gt;148&lt;/b&gt;&lt;/div&gt;&lt;div class="chart-tip-row total"&gt;Total&lt;b&gt;360&lt;/b&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;
+    &lt;div class="chart-col" tabindex="0" aria-label="Tue, Oct 14: Collected 318, Read 260"&gt;&lt;div class="chart-bar" style="--v: 96.33%"&gt;&lt;span style="--n: 318; --c: var(--series-1)"&gt;&lt;/span&gt;&lt;span style="--n: 260; --c: var(--series-2)"&gt;&lt;/span&gt;&lt;/div&gt;&lt;div class="chart-tip" aria-hidden="true"&gt;&lt;div class="chart-tip-title"&gt;Tue, Oct 14&lt;/div&gt;&lt;div class="chart-tip-row"&gt;&lt;i class="chart-key" style="--c: var(--series-1)"&gt;&lt;/i&gt;Collected&lt;b&gt;318&lt;/b&gt;&lt;/div&gt;&lt;div class="chart-tip-row"&gt;&lt;i class="chart-key" style="--c: var(--series-2)"&gt;&lt;/i&gt;Read&lt;b&gt;260&lt;/b&gt;&lt;/div&gt;&lt;div class="chart-tip-row total"&gt;Total&lt;b&gt;578&lt;/b&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;
+    &lt;div class="chart-col" tabindex="0" aria-label="Wed, Oct 15: Collected 146, Read 170"&gt;&lt;div class="chart-bar" style="--v: 52.67%"&gt;&lt;span style="--n: 146; --c: var(--series-1)"&gt;&lt;/span&gt;&lt;span style="--n: 170; --c: var(--series-2)"&gt;&lt;/span&gt;&lt;/div&gt;&lt;div class="chart-tip" aria-hidden="true"&gt;&lt;div class="chart-tip-title"&gt;Wed, Oct 15&lt;/div&gt;&lt;div class="chart-tip-row"&gt;&lt;i class="chart-key" style="--c: var(--series-1)"&gt;&lt;/i&gt;Collected&lt;b&gt;146&lt;/b&gt;&lt;/div&gt;&lt;div class="chart-tip-row"&gt;&lt;i class="chart-key" style="--c: var(--series-2)"&gt;&lt;/i&gt;Read&lt;b&gt;170&lt;/b&gt;&lt;/div&gt;&lt;div class="chart-tip-row total"&gt;Total&lt;b&gt;316&lt;/b&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;
+    &lt;div class="chart-col" tabindex="0" aria-label="Thu, Oct 16: Collected 262, Read 208"&gt;&lt;div class="chart-bar" style="--v: 78.33%"&gt;&lt;span style="--n: 262; --c: var(--series-1)"&gt;&lt;/span&gt;&lt;span style="--n: 208; --c: var(--series-2)"&gt;&lt;/span&gt;&lt;/div&gt;&lt;div class="chart-tip" aria-hidden="true"&gt;&lt;div class="chart-tip-title"&gt;Thu, Oct 16&lt;/div&gt;&lt;div class="chart-tip-row"&gt;&lt;i class="chart-key" style="--c: var(--series-1)"&gt;&lt;/i&gt;Collected&lt;b&gt;262&lt;/b&gt;&lt;/div&gt;&lt;div class="chart-tip-row"&gt;&lt;i class="chart-key" style="--c: var(--series-2)"&gt;&lt;/i&gt;Read&lt;b&gt;208&lt;/b&gt;&lt;/div&gt;&lt;div class="chart-tip-row total"&gt;Total&lt;b&gt;470&lt;/b&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;
+    &lt;div class="chart-col" tabindex="0" aria-label="Fri, Oct 17: Collected 96, Read 120"&gt;&lt;div class="chart-bar" style="--v: 36%"&gt;&lt;span style="--n: 96; --c: var(--series-1)"&gt;&lt;/span&gt;&lt;span style="--n: 120; --c: var(--series-2)"&gt;&lt;/span&gt;&lt;/div&gt;&lt;div class="chart-tip" aria-hidden="true"&gt;&lt;div class="chart-tip-title"&gt;Fri, Oct 17&lt;/div&gt;&lt;div class="chart-tip-row"&gt;&lt;i class="chart-key" style="--c: var(--series-1)"&gt;&lt;/i&gt;Collected&lt;b&gt;96&lt;/b&gt;&lt;/div&gt;&lt;div class="chart-tip-row"&gt;&lt;i class="chart-key" style="--c: var(--series-2)"&gt;&lt;/i&gt;Read&lt;b&gt;120&lt;/b&gt;&lt;/div&gt;&lt;div class="chart-tip-row total"&gt;Total&lt;b&gt;216&lt;/b&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;
+    &lt;div class="chart-col" tabindex="0" aria-label="Sat, Oct 18: Collected 301, Read 244"&gt;&lt;div class="chart-bar" style="--v: 90.83%"&gt;&lt;span style="--n: 301; --c: var(--series-1)"&gt;&lt;/span&gt;&lt;span style="--n: 244; --c: var(--series-2)"&gt;&lt;/span&gt;&lt;/div&gt;&lt;div class="chart-tip" aria-hidden="true"&gt;&lt;div class="chart-tip-title"&gt;Sat, Oct 18&lt;/div&gt;&lt;div class="chart-tip-row"&gt;&lt;i class="chart-key" style="--c: var(--series-1)"&gt;&lt;/i&gt;Collected&lt;b&gt;301&lt;/b&gt;&lt;/div&gt;&lt;div class="chart-tip-row"&gt;&lt;i class="chart-key" style="--c: var(--series-2)"&gt;&lt;/i&gt;Read&lt;b&gt;244&lt;/b&gt;&lt;/div&gt;&lt;div class="chart-tip-row total"&gt;Total&lt;b&gt;545&lt;/b&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;
+    &lt;div class="chart-col" tabindex="0" aria-label="Sun, Oct 19: Collected 152, Read 98"&gt;&lt;div class="chart-bar" style="--v: 41.67%"&gt;&lt;span style="--n: 152; --c: var(--series-1)"&gt;&lt;/span&gt;&lt;span style="--n: 98; --c: var(--series-2)"&gt;&lt;/span&gt;&lt;/div&gt;&lt;div class="chart-tip" aria-hidden="true"&gt;&lt;div class="chart-tip-title"&gt;Sun, Oct 19&lt;/div&gt;&lt;div class="chart-tip-row"&gt;&lt;i class="chart-key" style="--c: var(--series-1)"&gt;&lt;/i&gt;Collected&lt;b&gt;152&lt;/b&gt;&lt;/div&gt;&lt;div class="chart-tip-row"&gt;&lt;i class="chart-key" style="--c: var(--series-2)"&gt;&lt;/i&gt;Read&lt;b&gt;98&lt;/b&gt;&lt;/div&gt;&lt;div class="chart-tip-row total"&gt;Total&lt;b&gt;250&lt;/b&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div class="chart-x" aria-hidden="true"&gt;&lt;span&gt;Mon&lt;/span&gt;&lt;span&gt;Tue&lt;/span&gt;&lt;span&gt;Wed&lt;/span&gt;&lt;span&gt;Thu&lt;/span&gt;&lt;span&gt;Fri&lt;/span&gt;&lt;span&gt;Sat&lt;/span&gt;&lt;span&gt;Sun&lt;/span&gt;&lt;/div&gt;
+&lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div data-view-panel="table" hidden&gt;&lt;div class="table-box flush"&gt;&lt;table class="table table-compact"&gt;&lt;thead&gt;&lt;tr&gt;&lt;th&gt;Day&lt;/th&gt;&lt;th class="num"&gt;Collected&lt;/th&gt;&lt;th class="num"&gt;Read&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td&gt;Mon, Oct 13&lt;/td&gt;&lt;td class="num"&gt;212&lt;/td&gt;&lt;td class="num"&gt;148&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;Tue, Oct 14&lt;/td&gt;&lt;td class="num"&gt;318&lt;/td&gt;&lt;td class="num"&gt;260&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;Wed, Oct 15&lt;/td&gt;&lt;td class="num"&gt;146&lt;/td&gt;&lt;td class="num"&gt;170&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;Thu, Oct 16&lt;/td&gt;&lt;td class="num"&gt;262&lt;/td&gt;&lt;td class="num"&gt;208&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;Fri, Oct 17&lt;/td&gt;&lt;td class="num"&gt;96&lt;/td&gt;&lt;td class="num"&gt;120&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;Sat, Oct 18&lt;/td&gt;&lt;td class="num"&gt;301&lt;/td&gt;&lt;td class="num"&gt;244&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;Sun, Oct 19&lt;/td&gt;&lt;td class="num"&gt;152&lt;/td&gt;&lt;td class="num"&gt;98&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;/div&gt;&lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-35" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div><div class="specimen">
+            <div class="specimen-head"><span class="medium">Lines for trends</span><span class="t-small muted">Up to five series in fixed order. A single series gets a soft fill.</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-36" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><div class="chart-block">
+  <div class="chart-head">
+    <div class="chart-heading"><span class="chart-title">AI and search cost</span><span class="chart-value">$63.90<span class="chart-change"><svg class="icon" aria-hidden="true"><use href="#i-trending-down"/></svg>8% on last week</span></span></div>
+    <div class="actions">
+      <div class="btn-group btn-group-sm" role="group" aria-label="Period"><button class="btn" type="button" aria-pressed="true">7 days</button><button class="btn" type="button" aria-pressed="false">30 days</button><button class="btn" type="button" aria-pressed="false">90 days</button></div>
+      <div class="btn-group btn-group-sm" role="group" aria-label="Show as" data-view="#chart-cost"><button class="btn btn-icon" type="button" aria-pressed="true" data-value="chart" aria-label="Chart"><svg class="icon" aria-hidden="true"><use href="#i-bar-chart"/></svg></button><button class="btn btn-icon" type="button" aria-pressed="false" data-value="table" aria-label="Table"><svg class="icon" aria-hidden="true"><use href="#i-table"/></svg></button></div>
+    </div>
+  </div>
+  <div class="chart-legend"><span><i class="chart-key line" style="--c: var(--series-1)"></i>Opus 5.5</span><span><i class="chart-key line" style="--c: var(--series-2)"></i>Haiku 4.5</span><span><i class="chart-key line" style="--c: var(--series-3)"></i>Search</span></div>
+  <div id="chart-cost">
+    <div data-view-panel="chart">
+<div class="chart-plot" role="group" aria-label="AI and search cost per day by model, last 7 days">
+  <div class="chart-y" aria-hidden="true"><span style="--at: 0%">$0</span><span style="--at: 33.33%">$4</span><span style="--at: 66.67%">$8</span><span style="--at: 100%">$12</span></div>
+  <div class="chart-area lines">
+    <span class="chart-gridline" style="--at: 33.33%"></span><span class="chart-gridline" style="--at: 66.67%"></span><span class="chart-gridline" style="--at: 100%"></span>
+    <svg class="chart-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path class="chart-line" d="M7.14 65.83 L21.43 43.33 L35.71 73.33 L50 21.67 L64.29 53.33 L78.57 6.67 L92.86 34.17" style="--c: var(--series-1)"/><path class="chart-line" d="M7.14 90 L21.43 86.67 L35.71 92.5 L50 82.5 L64.29 88.33 L78.57 78.33 L92.86 85" style="--c: var(--series-2)"/><path class="chart-line" d="M7.14 97.5 L21.43 96.67 L35.71 98.33 L50 95 L64.29 97.5 L78.57 94.17 L92.86 96.67" style="--c: var(--series-3)"/></svg>
+    <div class="chart-col" tabindex="0" aria-label="Mon, Oct 13: Opus 5.5 $4.10, Haiku 4.5 $1.20, Search $0.30"><span class="chart-point" style="--v: 34.17%; --c: var(--series-1)"></span><span class="chart-point" style="--v: 10%; --c: var(--series-2)"></span><span class="chart-point" style="--v: 2.5%; --c: var(--series-3)"></span><div class="chart-tip" aria-hidden="true"><div class="chart-tip-title">Mon, Oct 13</div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-1)"></i>Opus 5.5<b>$4.10</b></div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-2)"></i>Haiku 4.5<b>$1.20</b></div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-3)"></i>Search<b>$0.30</b></div><div class="chart-tip-row total">Total<b>$5.60</b></div></div></div>
+    <div class="chart-col" tabindex="0" aria-label="Tue, Oct 14: Opus 5.5 $6.80, Haiku 4.5 $1.60, Search $0.40"><span class="chart-point" style="--v: 56.67%; --c: var(--series-1)"></span><span class="chart-point" style="--v: 13.33%; --c: var(--series-2)"></span><span class="chart-point" style="--v: 3.33%; --c: var(--series-3)"></span><div class="chart-tip" aria-hidden="true"><div class="chart-tip-title">Tue, Oct 14</div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-1)"></i>Opus 5.5<b>$6.80</b></div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-2)"></i>Haiku 4.5<b>$1.60</b></div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-3)"></i>Search<b>$0.40</b></div><div class="chart-tip-row total">Total<b>$8.80</b></div></div></div>
+    <div class="chart-col" tabindex="0" aria-label="Wed, Oct 15: Opus 5.5 $3.20, Haiku 4.5 $0.90, Search $0.20"><span class="chart-point" style="--v: 26.67%; --c: var(--series-1)"></span><span class="chart-point" style="--v: 7.5%; --c: var(--series-2)"></span><span class="chart-point" style="--v: 1.67%; --c: var(--series-3)"></span><div class="chart-tip" aria-hidden="true"><div class="chart-tip-title">Wed, Oct 15</div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-1)"></i>Opus 5.5<b>$3.20</b></div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-2)"></i>Haiku 4.5<b>$0.90</b></div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-3)"></i>Search<b>$0.20</b></div><div class="chart-tip-row total">Total<b>$4.30</b></div></div></div>
+    <div class="chart-col" tabindex="0" aria-label="Thu, Oct 16: Opus 5.5 $9.40, Haiku 4.5 $2.10, Search $0.60"><span class="chart-point" style="--v: 78.33%; --c: var(--series-1)"></span><span class="chart-point" style="--v: 17.5%; --c: var(--series-2)"></span><span class="chart-point" style="--v: 5%; --c: var(--series-3)"></span><div class="chart-tip" aria-hidden="true"><div class="chart-tip-title">Thu, Oct 16</div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-1)"></i>Opus 5.5<b>$9.40</b></div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-2)"></i>Haiku 4.5<b>$2.10</b></div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-3)"></i>Search<b>$0.60</b></div><div class="chart-tip-row total">Total<b>$12.10</b></div></div></div>
+    <div class="chart-col" tabindex="0" aria-label="Fri, Oct 17: Opus 5.5 $5.60, Haiku 4.5 $1.40, Search $0.30"><span class="chart-point" style="--v: 46.67%; --c: var(--series-1)"></span><span class="chart-point" style="--v: 11.67%; --c: var(--series-2)"></span><span class="chart-point" style="--v: 2.5%; --c: var(--series-3)"></span><div class="chart-tip" aria-hidden="true"><div class="chart-tip-title">Fri, Oct 17</div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-1)"></i>Opus 5.5<b>$5.60</b></div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-2)"></i>Haiku 4.5<b>$1.40</b></div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-3)"></i>Search<b>$0.30</b></div><div class="chart-tip-row total">Total<b>$7.30</b></div></div></div>
+    <div class="chart-col" tabindex="0" aria-label="Sat, Oct 18: Opus 5.5 $11.20, Haiku 4.5 $2.60, Search $0.70"><span class="chart-point" style="--v: 93.33%; --c: var(--series-1)"></span><span class="chart-point" style="--v: 21.67%; --c: var(--series-2)"></span><span class="chart-point" style="--v: 5.83%; --c: var(--series-3)"></span><div class="chart-tip" aria-hidden="true"><div class="chart-tip-title">Sat, Oct 18</div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-1)"></i>Opus 5.5<b>$11.20</b></div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-2)"></i>Haiku 4.5<b>$2.60</b></div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-3)"></i>Search<b>$0.70</b></div><div class="chart-tip-row total">Total<b>$14.50</b></div></div></div>
+    <div class="chart-col" tabindex="0" aria-label="Sun, Oct 19: Opus 5.5 $7.90, Haiku 4.5 $1.80, Search $0.40"><span class="chart-point" style="--v: 65.83%; --c: var(--series-1)"></span><span class="chart-point" style="--v: 15%; --c: var(--series-2)"></span><span class="chart-point" style="--v: 3.33%; --c: var(--series-3)"></span><div class="chart-tip" aria-hidden="true"><div class="chart-tip-title">Sun, Oct 19</div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-1)"></i>Opus 5.5<b>$7.90</b></div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-2)"></i>Haiku 4.5<b>$1.80</b></div><div class="chart-tip-row"><i class="chart-key" style="--c: var(--series-3)"></i>Search<b>$0.40</b></div><div class="chart-tip-row total">Total<b>$10.10</b></div></div></div>
+  </div>
+  <div class="chart-x" aria-hidden="true"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
+</div>
+    </div>
+    <div data-view-panel="table" hidden><div class="table-box flush"><table class="table table-compact"><thead><tr><th>Day</th><th class="num">Opus 5.5</th><th class="num">Haiku 4.5</th><th class="num">Search</th></tr></thead><tbody><tr><td>Mon, Oct 13</td><td class="num">$4.10</td><td class="num">$1.20</td><td class="num">$0.30</td></tr><tr><td>Tue, Oct 14</td><td class="num">$6.80</td><td class="num">$1.60</td><td class="num">$0.40</td></tr><tr><td>Wed, Oct 15</td><td class="num">$3.20</td><td class="num">$0.90</td><td class="num">$0.20</td></tr><tr><td>Thu, Oct 16</td><td class="num">$9.40</td><td class="num">$2.10</td><td class="num">$0.60</td></tr><tr><td>Fri, Oct 17</td><td class="num">$5.60</td><td class="num">$1.40</td><td class="num">$0.30</td></tr><tr><td>Sat, Oct 18</td><td class="num">$11.20</td><td class="num">$2.60</td><td class="num">$0.70</td></tr><tr><td>Sun, Oct 19</td><td class="num">$7.90</td><td class="num">$1.80</td><td class="num">$0.40</td></tr></tbody></table></div></div>
+  </div>
+</div></div>
+            <div class="specimen-code" id="code-36" hidden><pre class="code-block">&lt;div class="chart-block"&gt;
+  &lt;div class="chart-head"&gt;
+    &lt;div class="chart-heading"&gt;&lt;span class="chart-title"&gt;AI and search cost&lt;/span&gt;&lt;span class="chart-value"&gt;$63.90&lt;span class="chart-change"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-trending-down"/&gt;&lt;/svg&gt;8% on last week&lt;/span&gt;&lt;/span&gt;&lt;/div&gt;
+    &lt;div class="actions"&gt;
+      &lt;div class="btn-group btn-group-sm" role="group" aria-label="Period"&gt;&lt;button class="btn" type="button" aria-pressed="true"&gt;7 days&lt;/button&gt;&lt;button class="btn" type="button" aria-pressed="false"&gt;30 days&lt;/button&gt;&lt;button class="btn" type="button" aria-pressed="false"&gt;90 days&lt;/button&gt;&lt;/div&gt;
+      &lt;div class="btn-group btn-group-sm" role="group" aria-label="Show as" data-view="#chart-cost"&gt;&lt;button class="btn btn-icon" type="button" aria-pressed="true" data-value="chart" aria-label="Chart"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-bar-chart"/&gt;&lt;/svg&gt;&lt;/button&gt;&lt;button class="btn btn-icon" type="button" aria-pressed="false" data-value="table" aria-label="Table"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-table"/&gt;&lt;/svg&gt;&lt;/button&gt;&lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div class="chart-legend"&gt;&lt;span&gt;&lt;i class="chart-key line" style="--c: var(--series-1)"&gt;&lt;/i&gt;Opus 5.5&lt;/span&gt;&lt;span&gt;&lt;i class="chart-key line" style="--c: var(--series-2)"&gt;&lt;/i&gt;Haiku 4.5&lt;/span&gt;&lt;span&gt;&lt;i class="chart-key line" style="--c: var(--series-3)"&gt;&lt;/i&gt;Search&lt;/span&gt;&lt;/div&gt;
+  &lt;div id="chart-cost"&gt;
+    &lt;div data-view-panel="chart"&gt;
+&lt;div class="chart-plot" role="group" aria-label="AI and search cost per day by model, last 7 days"&gt;
+  &lt;div class="chart-y" aria-hidden="true"&gt;&lt;span style="--at: 0%"&gt;$0&lt;/span&gt;&lt;span style="--at: 33.33%"&gt;$4&lt;/span&gt;&lt;span style="--at: 66.67%"&gt;$8&lt;/span&gt;&lt;span style="--at: 100%"&gt;$12&lt;/span&gt;&lt;/div&gt;
+  &lt;div class="chart-area lines"&gt;
+    &lt;span class="chart-gridline" style="--at: 33.33%"&gt;&lt;/span&gt;&lt;span class="chart-gridline" style="--at: 66.67%"&gt;&lt;/span&gt;&lt;span class="chart-gridline" style="--at: 100%"&gt;&lt;/span&gt;
+    &lt;svg class="chart-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"&gt;&lt;path class="chart-line" d="M7.14 65.83 L21.43 43.33 L35.71 73.33 L50 21.67 L64.29 53.33 L78.57 6.67 L92.86 34.17" style="--c: var(--series-1)"/&gt;&lt;path class="chart-line" d="M7.14 90 L21.43 86.67 L35.71 92.5 L50 82.5 L64.29 88.33 L78.57 78.33 L92.86 85" style="--c: var(--series-2)"/&gt;&lt;path class="chart-line" d="M7.14 97.5 L21.43 96.67 L35.71 98.33 L50 95 L64.29 97.5 L78.57 94.17 L92.86 96.67" style="--c: var(--series-3)"/&gt;&lt;/svg&gt;
+    &lt;div class="chart-col" tabindex="0" aria-label="Mon, Oct 13: Opus 5.5 $4.10, Haiku 4.5 $1.20, Search $0.30"&gt;&lt;span class="chart-point" style="--v: 34.17%; --c: var(--series-1)"&gt;&lt;/span&gt;&lt;span class="chart-point" style="--v: 10%; --c: var(--series-2)"&gt;&lt;/span&gt;&lt;span class="chart-point" style="--v: 2.5%; --c: var(--series-3)"&gt;&lt;/span&gt;&lt;div class="chart-tip" aria-hidden="true"&gt;&lt;div class="chart-tip-title"&gt;Mon, Oct 13&lt;/div&gt;&lt;div class="chart-tip-row"&gt;&lt;i class="chart-key" style="--c: var(--series-1)"&gt;&lt;/i&gt;Opus 5.5&lt;b&gt;$4.10&lt;/b&gt;&lt;/div&gt;&lt;div class="chart-tip-row"&gt;&lt;i class="chart-key" style="--c: var(--series-2)"&gt;&lt;/i&gt;Haiku 4.5&lt;b&gt;$1.20&lt;/b&gt;&lt;/div&gt;&lt;div class="chart-tip-row"&gt;&lt;i class="chart-key" style="--c: var(--series-3)"&gt;&lt;/i&gt;Search&lt;b&gt;$0.30&lt;/b&gt;&lt;/div&gt;&lt;div class="chart-tip-row total"&gt;Total&lt;b&gt;$5.60&lt;/b&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;
+    &lt;div class="chart-col" tabindex="0" aria-label="Tue, Oct 14: Opus 5.5 $6.80, Haiku 4.5 $1.60, Search $0.40"&gt;&lt;span class="chart-point" style="--v: 56.67%; --c: var(--series-1)"&gt;&lt;/span&gt;&lt;span class="chart-point" style="--v: 13.33%; --c: var(--series-2)"&gt;&lt;/span&gt;&lt;span class="chart-point" style="--v: 3.33%; --c: var(--series-3)"&gt;&lt;/span&gt;&lt;div class="chart-tip" aria-hidden="true"&gt;&lt;div class="chart-tip-title"&gt;Tue, Oct 14&lt;/div&gt;&lt;div class="chart-tip-row"&gt;&lt;i class="chart-key" style="--c: var(--series-1)"&gt;&lt;/i&gt;Opus 5.5&lt;b&gt;$6.80&lt;/b&gt;&lt;/div&gt;&lt;div class="chart-tip-row"&gt;&lt;i class="chart-key" style="--c: var(--series-2)"&gt;&lt;/i&gt;Haiku 4.5&lt;b&gt;$1.60&lt;/b&gt;&lt;/div&gt;&lt;div class="chart-tip-row"&gt;&lt;i class="chart-key" style="--c: var(--series-3)"&gt;&lt;/i&gt;Search&lt;b&gt;$0.40&lt;/b&gt;&lt;/div&gt;&lt;div class="chart-tip-row total"&gt;Total&lt;b&gt;$8.80&lt;/b&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;
+    &lt;div class="chart-col" tabindex="0" aria-label="Wed, Oct 15: Opus 5.5 $3.20, Haiku 4.5 $0.90, Search $0.20"&gt;&lt;span class="chart-point" style="--v: 26.67%; --c: var(--series-1)"&gt;&lt;/span&gt;&lt;span class="chart-point" style="--v: 7.5%; --c: var(--series-2)"&gt;&lt;/span&gt;&lt;span class="chart-point" style="--v: 1.67%; --c: var(--series-3)"&gt;&lt;/span&gt;&lt;div class="chart-tip" aria-hidden="true"&gt;&lt;div class="chart-tip-title"&gt;Wed, Oct 15&lt;/div&gt;&lt;div class="chart-tip-row"&gt;&lt;i class="chart-key" style="--c: var(--series-1)"&gt;&lt;/i&gt;Opus 5.5&lt;b&gt;$3.20&lt;/b&gt;&lt;/div&gt;&lt;div class="chart-tip-row"&gt;&lt;i class="chart-key" style="--c: var(--series-2)"&gt;&lt;/i&gt;Haiku 4.5&lt;b&gt;$0.90&lt;/b&gt;&lt;/div&gt;&lt;div class="chart-tip-row"&gt;&lt;i class="chart-key" style="--c: var(--series-3)"&gt;&lt;/i&gt;Search&lt;b&gt;$0.20&lt;/b&gt;&lt;/div&gt;&lt;div class="chart-tip-row total"&gt;Total&lt;b&gt;$4.30&lt;/b&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;
+    &lt;div class="chart-col" tabindex="0" aria-label="Thu, Oct 16: Opus 5.5 $9.40, Haiku 4.5 $2.10, Search $0.60"&gt;&lt;span class="chart-point" style="--v: 78.33%; --c: var(--series-1)"&gt;&lt;/span&gt;&lt;span class="chart-point" style="--v: 17.5%; --c: var(--series-2)"&gt;&lt;/span&gt;&lt;span class="chart-point" style="--v: 5%; --c: var(--series-3)"&gt;&lt;/span&gt;&lt;div class="chart-tip" aria-hidden="true"&gt;&lt;div class="chart-tip-title"&gt;Thu, Oct 16&lt;/div&gt;&lt;div class="chart-tip-row"&gt;&lt;i class="chart-key" style="--c: var(--series-1)"&gt;&lt;/i&gt;Opus 5.5&lt;b&gt;$9.40&lt;/b&gt;&lt;/div&gt;&lt;div class="chart-tip-row"&gt;&lt;i class="chart-key" style="--c: var(--series-2)"&gt;&lt;/i&gt;Haiku 4.5&lt;b&gt;$2.10&lt;/b&gt;&lt;/div&gt;&lt;div class="chart-tip-row"&gt;&lt;i class="chart-key" style="--c: var(--series-3)"&gt;&lt;/i&gt;Search&lt;b&gt;$0.60&lt;/b&gt;&lt;/div&gt;&lt;div class="chart-tip-row total"&gt;Total&lt;b&gt;$12.10&lt;/b&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;
+    &lt;div class="chart-col" tabindex="0" aria-label="Fri, Oct 17: Opus 5.5 $5.60, Haiku 4.5 $1.40, Search $0.30"&gt;&lt;span class="chart-point" style="--v: 46.67%; --c: var(--series-1)"&gt;&lt;/span&gt;&lt;span class="chart-point" style="--v: 11.67%; --c: var(--series-2)"&gt;&lt;/span&gt;&lt;span class="chart-point" style="--v: 2.5%; --c: var(--series-3)"&gt;&lt;/span&gt;&lt;div class="chart-tip" aria-hidden="true"&gt;&lt;div class="chart-tip-title"&gt;Fri, Oct 17&lt;/div&gt;&lt;div class="chart-tip-row"&gt;&lt;i class="chart-key" style="--c: var(--series-1)"&gt;&lt;/i&gt;Opus 5.5&lt;b&gt;$5.60&lt;/b&gt;&lt;/div&gt;&lt;div class="chart-tip-row"&gt;&lt;i class="chart-key" style="--c: var(--series-2)"&gt;&lt;/i&gt;Haiku 4.5&lt;b&gt;$1.40&lt;/b&gt;&lt;/div&gt;&lt;div class="chart-tip-row"&gt;&lt;i class="chart-key" style="--c: var(--series-3)"&gt;&lt;/i&gt;Search&lt;b&gt;$0.30&lt;/b&gt;&lt;/div&gt;&lt;div class="chart-tip-row total"&gt;Total&lt;b&gt;$7.30&lt;/b&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;
+    &lt;div class="chart-col" tabindex="0" aria-label="Sat, Oct 18: Opus 5.5 $11.20, Haiku 4.5 $2.60, Search $0.70"&gt;&lt;span class="chart-point" style="--v: 93.33%; --c: var(--series-1)"&gt;&lt;/span&gt;&lt;span class="chart-point" style="--v: 21.67%; --c: var(--series-2)"&gt;&lt;/span&gt;&lt;span class="chart-point" style="--v: 5.83%; --c: var(--series-3)"&gt;&lt;/span&gt;&lt;div class="chart-tip" aria-hidden="true"&gt;&lt;div class="chart-tip-title"&gt;Sat, Oct 18&lt;/div&gt;&lt;div class="chart-tip-row"&gt;&lt;i class="chart-key" style="--c: var(--series-1)"&gt;&lt;/i&gt;Opus 5.5&lt;b&gt;$11.20&lt;/b&gt;&lt;/div&gt;&lt;div class="chart-tip-row"&gt;&lt;i class="chart-key" style="--c: var(--series-2)"&gt;&lt;/i&gt;Haiku 4.5&lt;b&gt;$2.60&lt;/b&gt;&lt;/div&gt;&lt;div class="chart-tip-row"&gt;&lt;i class="chart-key" style="--c: var(--series-3)"&gt;&lt;/i&gt;Search&lt;b&gt;$0.70&lt;/b&gt;&lt;/div&gt;&lt;div class="chart-tip-row total"&gt;Total&lt;b&gt;$14.50&lt;/b&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;
+    &lt;div class="chart-col" tabindex="0" aria-label="Sun, Oct 19: Opus 5.5 $7.90, Haiku 4.5 $1.80, Search $0.40"&gt;&lt;span class="chart-point" style="--v: 65.83%; --c: var(--series-1)"&gt;&lt;/span&gt;&lt;span class="chart-point" style="--v: 15%; --c: var(--series-2)"&gt;&lt;/span&gt;&lt;span class="chart-point" style="--v: 3.33%; --c: var(--series-3)"&gt;&lt;/span&gt;&lt;div class="chart-tip" aria-hidden="true"&gt;&lt;div class="chart-tip-title"&gt;Sun, Oct 19&lt;/div&gt;&lt;div class="chart-tip-row"&gt;&lt;i class="chart-key" style="--c: var(--series-1)"&gt;&lt;/i&gt;Opus 5.5&lt;b&gt;$7.90&lt;/b&gt;&lt;/div&gt;&lt;div class="chart-tip-row"&gt;&lt;i class="chart-key" style="--c: var(--series-2)"&gt;&lt;/i&gt;Haiku 4.5&lt;b&gt;$1.80&lt;/b&gt;&lt;/div&gt;&lt;div class="chart-tip-row"&gt;&lt;i class="chart-key" style="--c: var(--series-3)"&gt;&lt;/i&gt;Search&lt;b&gt;$0.40&lt;/b&gt;&lt;/div&gt;&lt;div class="chart-tip-row total"&gt;Total&lt;b&gt;$10.10&lt;/b&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div class="chart-x" aria-hidden="true"&gt;&lt;span&gt;Mon&lt;/span&gt;&lt;span&gt;Tue&lt;/span&gt;&lt;span&gt;Wed&lt;/span&gt;&lt;span&gt;Thu&lt;/span&gt;&lt;span&gt;Fri&lt;/span&gt;&lt;span&gt;Sat&lt;/span&gt;&lt;span&gt;Sun&lt;/span&gt;&lt;/div&gt;
+&lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div data-view-panel="table" hidden&gt;&lt;div class="table-box flush"&gt;&lt;table class="table table-compact"&gt;&lt;thead&gt;&lt;tr&gt;&lt;th&gt;Day&lt;/th&gt;&lt;th class="num"&gt;Opus 5.5&lt;/th&gt;&lt;th class="num"&gt;Haiku 4.5&lt;/th&gt;&lt;th class="num"&gt;Search&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td&gt;Mon, Oct 13&lt;/td&gt;&lt;td class="num"&gt;$4.10&lt;/td&gt;&lt;td class="num"&gt;$1.20&lt;/td&gt;&lt;td class="num"&gt;$0.30&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;Tue, Oct 14&lt;/td&gt;&lt;td class="num"&gt;$6.80&lt;/td&gt;&lt;td class="num"&gt;$1.60&lt;/td&gt;&lt;td class="num"&gt;$0.40&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;Wed, Oct 15&lt;/td&gt;&lt;td class="num"&gt;$3.20&lt;/td&gt;&lt;td class="num"&gt;$0.90&lt;/td&gt;&lt;td class="num"&gt;$0.20&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;Thu, Oct 16&lt;/td&gt;&lt;td class="num"&gt;$9.40&lt;/td&gt;&lt;td class="num"&gt;$2.10&lt;/td&gt;&lt;td class="num"&gt;$0.60&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;Fri, Oct 17&lt;/td&gt;&lt;td class="num"&gt;$5.60&lt;/td&gt;&lt;td class="num"&gt;$1.40&lt;/td&gt;&lt;td class="num"&gt;$0.30&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;Sat, Oct 18&lt;/td&gt;&lt;td class="num"&gt;$11.20&lt;/td&gt;&lt;td class="num"&gt;$2.60&lt;/td&gt;&lt;td class="num"&gt;$0.70&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;Sun, Oct 19&lt;/td&gt;&lt;td class="num"&gt;$7.90&lt;/td&gt;&lt;td class="num"&gt;$1.80&lt;/td&gt;&lt;td class="num"&gt;$0.40&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;/div&gt;&lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-36" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div><div class="specimen">
+            <div class="specimen-head"><span class="medium">Stats with a trend</span><span class="t-small muted">A sparkline shows direction only; the number is the point.</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-37" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><div class="stat-grid">
+  <a class="stat" href="#"><div class="stat-label">AI calls today</div><div class="stat-value">1,284</div><div class="stat-sub"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-trending-up"/></svg>18% on yesterday</div><svg class="sparkline" viewBox="0 0 100 32" preserveAspectRatio="none" aria-hidden="true" style="--c: var(--series-1)"><path class="chart-fill" d="M0 13.42 L16.67 10.7 L33.33 14.78 L50 9.12 L66.67 9.8 L83.33 7.3 L100 2.91 V32 H0 Z"/><path d="M0 13.42 L16.67 10.7 L33.33 14.78 L50 9.12 L66.67 9.8 L83.33 7.3 L100 2.91"/></svg></a>
+  <a class="stat" href="#"><div class="stat-label">Spent this month</div><div class="stat-value">$61.40</div><div class="stat-sub">AI $58.20 · Search $3.20</div><svg class="sparkline" viewBox="0 0 100 32" preserveAspectRatio="none" aria-hidden="true" style="--c: var(--series-2)"><path class="chart-fill" d="M0 26.28 L16.67 22.94 L33.33 20.55 L50 17.22 L66.67 12.92 L83.33 7.2 L100 2.91 V32 H0 Z"/><path d="M0 26.28 L16.67 22.94 L33.33 20.55 L50 17.22 L66.67 12.92 L83.33 7.2 L100 2.91"/></svg></a>
+  <a class="stat" href="#"><div class="stat-label">Jobs failed</div><div class="stat-value">3</div><div class="stat-sub">Last 7 days</div><svg class="sparkline" viewBox="0 0 100 32" preserveAspectRatio="none" aria-hidden="true" style="--c: var(--series-3)"><path class="chart-fill" d="M0 22.3 L16.67 32 L33.33 12.61 L50 32 L66.67 32 L83.33 22.3 L100 2.91 V32 H0 Z"/><path d="M0 22.3 L16.67 32 L33.33 12.61 L50 32 L66.67 32 L83.33 22.3 L100 2.91"/></svg></a>
+</div></div>
+            <div class="specimen-code" id="code-37" hidden><pre class="code-block">&lt;div class="stat-grid"&gt;
+  &lt;a class="stat" href="#"&gt;&lt;div class="stat-label"&gt;AI calls today&lt;/div&gt;&lt;div class="stat-value"&gt;1,284&lt;/div&gt;&lt;div class="stat-sub"&gt;&lt;svg class="icon icon-sm" aria-hidden="true"&gt;&lt;use href="#i-trending-up"/&gt;&lt;/svg&gt;18% on yesterday&lt;/div&gt;&lt;svg class="sparkline" viewBox="0 0 100 32" preserveAspectRatio="none" aria-hidden="true" style="--c: var(--series-1)"&gt;&lt;path class="chart-fill" d="M0 13.42 L16.67 10.7 L33.33 14.78 L50 9.12 L66.67 9.8 L83.33 7.3 L100 2.91 V32 H0 Z"/&gt;&lt;path d="M0 13.42 L16.67 10.7 L33.33 14.78 L50 9.12 L66.67 9.8 L83.33 7.3 L100 2.91"/&gt;&lt;/svg&gt;&lt;/a&gt;
+  &lt;a class="stat" href="#"&gt;&lt;div class="stat-label"&gt;Spent this month&lt;/div&gt;&lt;div class="stat-value"&gt;$61.40&lt;/div&gt;&lt;div class="stat-sub"&gt;AI $58.20 · Search $3.20&lt;/div&gt;&lt;svg class="sparkline" viewBox="0 0 100 32" preserveAspectRatio="none" aria-hidden="true" style="--c: var(--series-2)"&gt;&lt;path class="chart-fill" d="M0 26.28 L16.67 22.94 L33.33 20.55 L50 17.22 L66.67 12.92 L83.33 7.2 L100 2.91 V32 H0 Z"/&gt;&lt;path d="M0 26.28 L16.67 22.94 L33.33 20.55 L50 17.22 L66.67 12.92 L83.33 7.2 L100 2.91"/&gt;&lt;/svg&gt;&lt;/a&gt;
+  &lt;a class="stat" href="#"&gt;&lt;div class="stat-label"&gt;Jobs failed&lt;/div&gt;&lt;div class="stat-value"&gt;3&lt;/div&gt;&lt;div class="stat-sub"&gt;Last 7 days&lt;/div&gt;&lt;svg class="sparkline" viewBox="0 0 100 32" preserveAspectRatio="none" aria-hidden="true" style="--c: var(--series-3)"&gt;&lt;path class="chart-fill" d="M0 22.3 L16.67 32 L33.33 12.61 L50 32 L66.67 32 L83.33 22.3 L100 2.91 V32 H0 Z"/&gt;&lt;path d="M0 22.3 L16.67 32 L33.33 12.61 L50 32 L66.67 32 L83.33 22.3 L100 2.91"/&gt;&lt;/svg&gt;&lt;/a&gt;
+&lt;/div&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-37" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div><div class="specimen">
+            <div class="specimen-head"><span class="medium">Breakdown</span><span class="t-small muted">Ranked largest first, with the amount and its share.</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-38" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><div class="bar-list">
+  <div class="bar-list-head"><span>Purpose</span><span>Cost this month</span></div>
+  <div class="bar-list-row" style="--v: 100%"><span>Writing profiles</span><span class="num">$31.20</span><span class="num">53%</span></div>
+  <div class="bar-list-row" style="--v: 46.79%"><span>Reading items</span><span class="num">$14.60</span><span class="num">25%</span></div>
+  <div class="bar-list-row" style="--v: 19.55%"><span>Dating facts</span><span class="num">$6.10</span><span class="num">10%</span></div>
+  <div class="bar-list-row" style="--v: 13.78%"><span>Surveys</span><span class="num">$4.30</span><span class="num">7%</span></div>
+  <div class="bar-list-row" style="--v: 10.26%"><span>Search</span><span class="num">$3.20</span><span class="num">5%</span></div>
+</div></div>
+            <div class="specimen-code" id="code-38" hidden><pre class="code-block">&lt;div class="bar-list"&gt;
+  &lt;div class="bar-list-head"&gt;&lt;span&gt;Purpose&lt;/span&gt;&lt;span&gt;Cost this month&lt;/span&gt;&lt;/div&gt;
+  &lt;div class="bar-list-row" style="--v: 100%"&gt;&lt;span&gt;Writing profiles&lt;/span&gt;&lt;span class="num"&gt;$31.20&lt;/span&gt;&lt;span class="num"&gt;53%&lt;/span&gt;&lt;/div&gt;
+  &lt;div class="bar-list-row" style="--v: 46.79%"&gt;&lt;span&gt;Reading items&lt;/span&gt;&lt;span class="num"&gt;$14.60&lt;/span&gt;&lt;span class="num"&gt;25%&lt;/span&gt;&lt;/div&gt;
+  &lt;div class="bar-list-row" style="--v: 19.55%"&gt;&lt;span&gt;Dating facts&lt;/span&gt;&lt;span class="num"&gt;$6.10&lt;/span&gt;&lt;span class="num"&gt;10%&lt;/span&gt;&lt;/div&gt;
+  &lt;div class="bar-list-row" style="--v: 13.78%"&gt;&lt;span&gt;Surveys&lt;/span&gt;&lt;span class="num"&gt;$4.30&lt;/span&gt;&lt;span class="num"&gt;7%&lt;/span&gt;&lt;/div&gt;
+  &lt;div class="bar-list-row" style="--v: 10.26%"&gt;&lt;span&gt;Search&lt;/span&gt;&lt;span class="num"&gt;$3.20&lt;/span&gt;&lt;span class="num"&gt;5%&lt;/span&gt;&lt;/div&gt;
+&lt;/div&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-38" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div>
+        </section>
+        <section class="section" id="page-header">
+          <div class="section-head"><h2 class="t-heading">Page header</h2></div>
+          <p class="section-lead">Back (below a section's first level), then the title row with its actions, then tabs when the record has views. The main action is last and primary; rare ones go in More.</p>
+          <div class="catalog-use"><span><b>Use for</b> The top of every page.</span><span><b>Not for</b> Breadcrumbs.</span></div>
+          <div class="specimen">
+            <div class="specimen-head"><span class="medium">Record header with tabs</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-39" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><header class="page-header">
+  <a class="back" href="#"><svg class="icon" aria-hidden="true"><use href="#i-chevron-left"/></svg>Seniorverse Day</a>
+  <div class="page-head">
+    <div class="page-head-main">
+      <span class="avatar avatar-lg">SC</span>
+      <div class="page-head-text">
+        <div class="page-title-row"><h1 class="t-title">StoriiCare</h1><span class="label">Full study</span></div>
+        <div class="page-meta"><a class="link" href="#">storiicare.com</a><span>Collected 2 h ago</span><span class="status running"><span class="spinner"></span>Reading 14 items</span></div>
+      </div>
+    </div>
+    <div class="actions"><button class="btn btn-icon" type="button" aria-label="More actions"><svg class="icon" aria-hidden="true"><use href="#i-more"/></svg></button><button class="btn" type="button">Update profile</button><button class="btn btn-primary" type="button">Collect again</button></div>
+  </div>
+  <nav class="tabs" aria-label="Views"><a class="tab" aria-current="page" href="#">Profile</a><a class="tab" href="#">Timeline<span class="count">38</span></a><a class="tab" href="#">Facts<span class="count">1,842</span></a><a class="tab" href="#">Sources</a></nav>
+</header></div>
+            <div class="specimen-code" id="code-39" hidden><pre class="code-block">&lt;header class="page-header"&gt;
+  &lt;a class="back" href="#"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-chevron-left"/&gt;&lt;/svg&gt;Seniorverse Day&lt;/a&gt;
+  &lt;div class="page-head"&gt;
+    &lt;div class="page-head-main"&gt;
+      &lt;span class="avatar avatar-lg"&gt;SC&lt;/span&gt;
+      &lt;div class="page-head-text"&gt;
+        &lt;div class="page-title-row"&gt;&lt;h1 class="t-title"&gt;StoriiCare&lt;/h1&gt;&lt;span class="label"&gt;Full study&lt;/span&gt;&lt;/div&gt;
+        &lt;div class="page-meta"&gt;&lt;a class="link" href="#"&gt;storiicare.com&lt;/a&gt;&lt;span&gt;Collected 2 h ago&lt;/span&gt;&lt;span class="status running"&gt;&lt;span class="spinner"&gt;&lt;/span&gt;Reading 14 items&lt;/span&gt;&lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class="actions"&gt;&lt;button class="btn btn-icon" type="button" aria-label="More actions"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-more"/&gt;&lt;/svg&gt;&lt;/button&gt;&lt;button class="btn" type="button"&gt;Update profile&lt;/button&gt;&lt;button class="btn btn-primary" type="button"&gt;Collect again&lt;/button&gt;&lt;/div&gt;
+  &lt;/div&gt;
+  &lt;nav class="tabs" aria-label="Views"&gt;&lt;a class="tab" aria-current="page" href="#"&gt;Profile&lt;/a&gt;&lt;a class="tab" href="#"&gt;Timeline&lt;span class="count"&gt;38&lt;/span&gt;&lt;/a&gt;&lt;a class="tab" href="#"&gt;Facts&lt;span class="count"&gt;1,842&lt;/span&gt;&lt;/a&gt;&lt;a class="tab" href="#"&gt;Sources&lt;/a&gt;&lt;/nav&gt;
+&lt;/header&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-39" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div>
+        </section>
+        <section class="section" id="nav-list">
+          <div class="section-head"><h2 class="t-heading">Navigation list</h2></div>
+          <p class="section-lead">The vertical list in the sidebar, in settings, and for a long page's sections. Current is a neutral fill; labels group it; counts on the right.</p>
+          
+          <div class="specimen">
+            <div class="specimen-head"><span class="medium">Navigation list</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-40" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><nav class="nav-list" aria-label="Sections">
+  <a class="item" href="#"><svg class="icon" aria-hidden="true"><use href="#i-layout-grid"/></svg>Home</a>
+  <a class="item" aria-current="page" href="#"><svg class="icon" aria-hidden="true"><use href="#i-inbox"/></svg>To review<span class="count">8</span></a>
+  <div class="nav-label">Projects</div>
+  <a class="item" href="#"><span class="avatar avatar-xs">SD</span>Seniorverse Day</a>
+  <a class="item" href="#"><span class="avatar avatar-xs">SH</span>Seniorverse Home Care</a>
+</nav></div>
+            <div class="specimen-code" id="code-40" hidden><pre class="code-block">&lt;nav class="nav-list" aria-label="Sections"&gt;
+  &lt;a class="item" href="#"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-layout-grid"/&gt;&lt;/svg&gt;Home&lt;/a&gt;
+  &lt;a class="item" aria-current="page" href="#"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-inbox"/&gt;&lt;/svg&gt;To review&lt;span class="count"&gt;8&lt;/span&gt;&lt;/a&gt;
+  &lt;div class="nav-label"&gt;Projects&lt;/div&gt;
+  &lt;a class="item" href="#"&gt;&lt;span class="avatar avatar-xs"&gt;SD&lt;/span&gt;Seniorverse Day&lt;/a&gt;
+  &lt;a class="item" href="#"&gt;&lt;span class="avatar avatar-xs"&gt;SH&lt;/span&gt;Seniorverse Home Care&lt;/a&gt;
+&lt;/nav&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-40" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div>
+        </section>
+        <section class="section" id="steps">
+          <div class="section-head"><h2 class="t-heading">Steps</h2></div>
+          <p class="section-lead">For decisions that must happen in order, with a review before anything is committed.</p>
+          <div class="catalog-use"><span><b>Not for</b> Ordinary forms.</span></div>
+          <div class="specimen">
+            <div class="specimen-head"><span class="medium">Steps</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-41" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><ol class="steps" aria-label="Steps"><li class="done"><span>Choose a domain</span></li><li aria-current="step"><span>Point its mail here</span></li><li><span>Test it</span></li><li><span>Review</span></li></ol></div>
+            <div class="specimen-code" id="code-41" hidden><pre class="code-block">&lt;ol class="steps" aria-label="Steps"&gt;&lt;li class="done"&gt;&lt;span&gt;Choose a domain&lt;/span&gt;&lt;/li&gt;&lt;li aria-current="step"&gt;&lt;span&gt;Point its mail here&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span&gt;Test it&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span&gt;Review&lt;/span&gt;&lt;/li&gt;&lt;/ol&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-41" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div>
+        </section>
+        <section class="section" id="modals">
+          <div class="section-head"><h2 class="t-heading">Modals and confirmations</h2></div>
+          <p class="section-lead">A modal is for a short task that blocks the page. Title and what it does, the fields, then actions on the right with the primary last. A confirmation is smaller: an icon, the question, what will be lost, two buttons. Escape and the backdrop close both.</p>
+          <div class="catalog-use"><span><b>Use for</b> Up to five fields; things that cannot be undone.</span><span><b>Not for</b> Long forms (a page). Reversible removals (Undo in a toast).</span></div>
+          <div class="specimen">
+            <div class="specimen-head"><span class="medium">Modal</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-42" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><button class="btn btn-primary" type="button" data-open="ex-modal"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>Add competitor</button>
+<div class="scrim" id="ex-modal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="ex-modal-t">
+    <div class="modal-head">
+      <div class="overlay-heading"><div class="overlay-title" id="ex-modal-t">Add a competitor</div><div class="overlay-desc">It is added to Seniorverse Day and studied right away.</div></div>
+      <button class="btn btn-icon btn-quiet btn-sm overlay-close" type="button" data-close aria-label="Close"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row"><div class="field"><label class="field-label" for="ex-m1">Name</label><input class="input" id="ex-m1" placeholder="StoriiCare"></div><div class="field"><label class="field-label" for="ex-m2">Website</label><input class="input" id="ex-m2" placeholder="storiicare.com"></div></div>
+      <div class="grid-2"><label class="choice-card"><input type="radio" name="ex-m-l" checked><span><span class="medium">Light profile</span><span class="check-desc">Key pages, read once</span></span></label><label class="choice-card"><input type="radio" name="ex-m-l"><span><span class="medium">Full study</span><span class="check-desc">Everything, re-checked</span></span></label></div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-quiet" type="button" data-close>Cancel</button><button class="btn btn-primary" type="button" data-close data-toast="StoriiCare added|Collecting has started">Add competitor</button></div>
+  </div>
+</div></div>
+            <div class="specimen-code" id="code-42" hidden><pre class="code-block">&lt;button class="btn btn-primary" type="button" data-open="ex-modal"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-plus"/&gt;&lt;/svg&gt;Add competitor&lt;/button&gt;
+&lt;div class="scrim" id="ex-modal" hidden&gt;
+  &lt;div class="modal" role="dialog" aria-modal="true" aria-labelledby="ex-modal-t"&gt;
+    &lt;div class="modal-head"&gt;
+      &lt;div class="overlay-heading"&gt;&lt;div class="overlay-title" id="ex-modal-t"&gt;Add a competitor&lt;/div&gt;&lt;div class="overlay-desc"&gt;It is added to Seniorverse Day and studied right away.&lt;/div&gt;&lt;/div&gt;
+      &lt;button class="btn btn-icon btn-quiet btn-sm overlay-close" type="button" data-close aria-label="Close"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-x"/&gt;&lt;/svg&gt;&lt;/button&gt;
+    &lt;/div&gt;
+    &lt;div class="modal-body"&gt;
+      &lt;div class="form-row"&gt;&lt;div class="field"&gt;&lt;label class="field-label" for="ex-m1"&gt;Name&lt;/label&gt;&lt;input class="input" id="ex-m1" placeholder="StoriiCare"&gt;&lt;/div&gt;&lt;div class="field"&gt;&lt;label class="field-label" for="ex-m2"&gt;Website&lt;/label&gt;&lt;input class="input" id="ex-m2" placeholder="storiicare.com"&gt;&lt;/div&gt;&lt;/div&gt;
+      &lt;div class="grid-2"&gt;&lt;label class="choice-card"&gt;&lt;input type="radio" name="ex-m-l" checked&gt;&lt;span&gt;&lt;span class="medium"&gt;Light profile&lt;/span&gt;&lt;span class="check-desc"&gt;Key pages, read once&lt;/span&gt;&lt;/span&gt;&lt;/label&gt;&lt;label class="choice-card"&gt;&lt;input type="radio" name="ex-m-l"&gt;&lt;span&gt;&lt;span class="medium"&gt;Full study&lt;/span&gt;&lt;span class="check-desc"&gt;Everything, re-checked&lt;/span&gt;&lt;/span&gt;&lt;/label&gt;&lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class="modal-foot"&gt;&lt;button class="btn btn-quiet" type="button" data-close&gt;Cancel&lt;/button&gt;&lt;button class="btn btn-primary" type="button" data-close data-toast="StoriiCare added|Collecting has started"&gt;Add competitor&lt;/button&gt;&lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-42" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div><div class="specimen">
+            <div class="specimen-head"><span class="medium">Confirmation</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-43" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><button class="btn btn-danger" type="button" data-open="ex-confirm">Delete project</button>
+<div class="scrim" id="ex-confirm" hidden>
+  <div class="modal modal-sm modal-confirm" role="alertdialog" aria-modal="true" aria-labelledby="ex-confirm-t" aria-describedby="ex-confirm-d">
+    <div class="modal-head">
+      <span class="avatar avatar-danger"><svg class="icon" aria-hidden="true"><use href="#i-trash"/></svg></span>
+      <div class="overlay-heading"><div class="overlay-title" id="ex-confirm-t">Delete Seniorverse Day?</div><div class="overlay-desc" id="ex-confirm-d">Its surveys, comparisons and digests are deleted. The companies and what was collected about them are kept.</div></div>
+    </div>
+    <div class="modal-foot"><button class="btn" type="button" data-close autofocus>Cancel</button><button class="btn btn-danger-solid" type="button" data-close data-toast="Seniorverse Day deleted">Delete project</button></div>
+  </div>
+</div></div>
+            <div class="specimen-code" id="code-43" hidden><pre class="code-block">&lt;button class="btn btn-danger" type="button" data-open="ex-confirm"&gt;Delete project&lt;/button&gt;
+&lt;div class="scrim" id="ex-confirm" hidden&gt;
+  &lt;div class="modal modal-sm modal-confirm" role="alertdialog" aria-modal="true" aria-labelledby="ex-confirm-t" aria-describedby="ex-confirm-d"&gt;
+    &lt;div class="modal-head"&gt;
+      &lt;span class="avatar avatar-danger"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-trash"/&gt;&lt;/svg&gt;&lt;/span&gt;
+      &lt;div class="overlay-heading"&gt;&lt;div class="overlay-title" id="ex-confirm-t"&gt;Delete Seniorverse Day?&lt;/div&gt;&lt;div class="overlay-desc" id="ex-confirm-d"&gt;Its surveys, comparisons and digests are deleted. The companies and what was collected about them are kept.&lt;/div&gt;&lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class="modal-foot"&gt;&lt;button class="btn" type="button" data-close autofocus&gt;Cancel&lt;/button&gt;&lt;button class="btn btn-danger-solid" type="button" data-close data-toast="Seniorverse Day deleted"&gt;Delete project&lt;/button&gt;&lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-43" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div>
+        </section>
+        <section class="section" id="drawer">
+          <div class="section-head"><h2 class="t-heading">Drawer</h2></div>
+          <p class="section-lead">A record's detail beside the list it came from, floating over the page.</p>
+          <div class="catalog-use"><span><b>Use for</b> Jobs, log entries, quick looks.</span><span><b>Not for</b> Editing a large record (its page).</span></div>
+          <div class="specimen">
+            <div class="specimen-head"><span class="medium">Drawer</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-44" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><button class="btn" type="button" data-open="ex-drawer">Open job #4176</button>
+<div class="scrim drawer-scrim" id="ex-drawer" hidden>
+  <aside class="drawer" role="dialog" aria-modal="true" aria-labelledby="ex-drawer-t">
+    <div class="drawer-head">
+      <div class="overlay-heading"><span class="t-label">Job #4176</span><div class="overlay-title" id="ex-drawer-t">Write the profile</div><span class="status danger"><span class="status-dot"></span>Failed after 3 attempts</span></div>
+      <button class="btn btn-icon btn-quiet btn-sm overlay-close" type="button" data-close aria-label="Close"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="drawer-body">
+      <div class="notice danger"><svg class="icon" aria-hidden="true"><use href="#i-alert-triangle"/></svg><div class="notice-body"><span class="notice-title">The reply was cut off at the token limit.</span><span>Retrying writes the section again from the same facts.</span></div></div>
+      <dl class="properties"><dt>For</dt><dd><span class="avatar avatar-xs">SC</span>StoriiCare</dd><dt>Started</dt><dd>Oct 19, 1:56 PM</dd><dt>Took</dt><dd>2 min 4 s</dd><dt>AI calls</dt><dd>4 · $0.61 estimated</dd></dl>
+      <div class="stack-sm"><span class="t-label">Input</span><pre class="code-block">{ "companyId": 2, "force": false }</pre></div>
+    </div>
+    <div class="drawer-foot"><button class="btn" type="button" data-close>Close</button><button class="btn btn-primary" type="button" data-close data-toast="Queued again">Retry</button></div>
+  </aside>
+</div></div>
+            <div class="specimen-code" id="code-44" hidden><pre class="code-block">&lt;button class="btn" type="button" data-open="ex-drawer"&gt;Open job #4176&lt;/button&gt;
+&lt;div class="scrim drawer-scrim" id="ex-drawer" hidden&gt;
+  &lt;aside class="drawer" role="dialog" aria-modal="true" aria-labelledby="ex-drawer-t"&gt;
+    &lt;div class="drawer-head"&gt;
+      &lt;div class="overlay-heading"&gt;&lt;span class="t-label"&gt;Job #4176&lt;/span&gt;&lt;div class="overlay-title" id="ex-drawer-t"&gt;Write the profile&lt;/div&gt;&lt;span class="status danger"&gt;&lt;span class="status-dot"&gt;&lt;/span&gt;Failed after 3 attempts&lt;/span&gt;&lt;/div&gt;
+      &lt;button class="btn btn-icon btn-quiet btn-sm overlay-close" type="button" data-close aria-label="Close"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-x"/&gt;&lt;/svg&gt;&lt;/button&gt;
+    &lt;/div&gt;
+    &lt;div class="drawer-body"&gt;
+      &lt;div class="notice danger"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-alert-triangle"/&gt;&lt;/svg&gt;&lt;div class="notice-body"&gt;&lt;span class="notice-title"&gt;The reply was cut off at the token limit.&lt;/span&gt;&lt;span&gt;Retrying writes the section again from the same facts.&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;
+      &lt;dl class="properties"&gt;&lt;dt&gt;For&lt;/dt&gt;&lt;dd&gt;&lt;span class="avatar avatar-xs"&gt;SC&lt;/span&gt;StoriiCare&lt;/dd&gt;&lt;dt&gt;Started&lt;/dt&gt;&lt;dd&gt;Oct 19, 1:56 PM&lt;/dd&gt;&lt;dt&gt;Took&lt;/dt&gt;&lt;dd&gt;2 min 4 s&lt;/dd&gt;&lt;dt&gt;AI calls&lt;/dt&gt;&lt;dd&gt;4 · $0.61 estimated&lt;/dd&gt;&lt;/dl&gt;
+      &lt;div class="stack-sm"&gt;&lt;span class="t-label"&gt;Input&lt;/span&gt;&lt;pre class="code-block"&gt;{ "companyId": 2, "force": false }&lt;/pre&gt;&lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class="drawer-foot"&gt;&lt;button class="btn" type="button" data-close&gt;Close&lt;/button&gt;&lt;button class="btn btn-primary" type="button" data-close data-toast="Queued again"&gt;Retry&lt;/button&gt;&lt;/div&gt;
+  &lt;/aside&gt;
+&lt;/div&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-44" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div>
+        </section>
+        <section class="section" id="command">
+          <div class="section-head"><h2 class="t-heading">Command menu</h2></div>
+          <p class="section-lead">Cmd+K anywhere: find a record or run an action by typing.</p>
+          <div class="catalog-use"><span><b>Not for</b> Replacing a page's own search.</span></div>
+          <div class="specimen">
+            <div class="specimen-head"><span class="medium">Command menu</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-45" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><button class="btn" type="button" data-open="ex-command"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg>Search<kbd>⌘K</kbd></button>
+<div class="scrim command-scrim" id="ex-command" hidden>
+  <div class="command" role="dialog" aria-modal="true" aria-label="Search">
+    <div class="command-input"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><input type="text" placeholder="Search or run a command" aria-label="Search" value="stor"></div>
+    <div class="command-list" role="listbox">
+      <div class="nav-label">Companies</div>
+      <a class="item" aria-current="true" href="#"><span class="avatar avatar-xs">SC</span>StoriiCare<span class="count">Seniorverse Day</span></a>
+      <div class="nav-label">Actions</div>
+      <button class="item" type="button"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>Add a competitor</button>
+      <button class="item" type="button"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg>Run a survey</button>
+    </div>
+    <div class="command-foot"><span><kbd>↑</kbd><kbd>↓</kbd>Move</span><span><kbd>↵</kbd>Open</span><span><kbd>esc</kbd>Close</span></div>
+  </div>
+</div></div>
+            <div class="specimen-code" id="code-45" hidden><pre class="code-block">&lt;button class="btn" type="button" data-open="ex-command"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-search"/&gt;&lt;/svg&gt;Search&lt;kbd&gt;⌘K&lt;/kbd&gt;&lt;/button&gt;
+&lt;div class="scrim command-scrim" id="ex-command" hidden&gt;
+  &lt;div class="command" role="dialog" aria-modal="true" aria-label="Search"&gt;
+    &lt;div class="command-input"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-search"/&gt;&lt;/svg&gt;&lt;input type="text" placeholder="Search or run a command" aria-label="Search" value="stor"&gt;&lt;/div&gt;
+    &lt;div class="command-list" role="listbox"&gt;
+      &lt;div class="nav-label"&gt;Companies&lt;/div&gt;
+      &lt;a class="item" aria-current="true" href="#"&gt;&lt;span class="avatar avatar-xs"&gt;SC&lt;/span&gt;StoriiCare&lt;span class="count"&gt;Seniorverse Day&lt;/span&gt;&lt;/a&gt;
+      &lt;div class="nav-label"&gt;Actions&lt;/div&gt;
+      &lt;button class="item" type="button"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-plus"/&gt;&lt;/svg&gt;Add a competitor&lt;/button&gt;
+      &lt;button class="item" type="button"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-search"/&gt;&lt;/svg&gt;Run a survey&lt;/button&gt;
+    &lt;/div&gt;
+    &lt;div class="command-foot"&gt;&lt;span&gt;&lt;kbd&gt;↑&lt;/kbd&gt;&lt;kbd&gt;↓&lt;/kbd&gt;Move&lt;/span&gt;&lt;span&gt;&lt;kbd&gt;↵&lt;/kbd&gt;Open&lt;/span&gt;&lt;span&gt;&lt;kbd&gt;esc&lt;/kbd&gt;Close&lt;/span&gt;&lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-45" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div>
+        </section>
+        <section class="section" id="toasts">
+          <div class="section-head"><h2 class="t-heading">Toasts</h2></div>
+          <p class="section-lead">A short line at the bottom right confirming what happened, with Undo when it can be undone. Six seconds. Errors people must act on stay in the page.</p>
+          <div class="catalog-use"><span><b>Use for</b> Confirmations; Undo.</span><span><b>Not for</b> Errors that block work.</span></div>
+          <div class="specimen">
+            <div class="specimen-head"><span class="medium">Try them</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-46" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><div class="actions">
+  <button class="btn" type="button" data-toast="Settings saved">Saved</button>
+  <button class="btn" type="button" data-toast="StoriiCare removed|Still in 2 other projects" data-undo="true">With Undo</button>
+  <button class="btn" type="button" data-toast="Could not save|The connection dropped; your changes are kept" data-kind="danger">Error</button>
+</div></div>
+            <div class="specimen-code" id="code-46" hidden><pre class="code-block">&lt;div class="actions"&gt;
+  &lt;button class="btn" type="button" data-toast="Settings saved"&gt;Saved&lt;/button&gt;
+  &lt;button class="btn" type="button" data-toast="StoriiCare removed|Still in 2 other projects" data-undo="true"&gt;With Undo&lt;/button&gt;
+  &lt;button class="btn" type="button" data-toast="Could not save|The connection dropped; your changes are kept" data-kind="danger"&gt;Error&lt;/button&gt;
+&lt;/div&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-46" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div><div class="specimen">
+            <div class="specimen-head"><span class="medium">Markup</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-47" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><div class="toast" role="status"><svg class="icon" aria-hidden="true"><use href="#i-check-circle"/></svg><div class="toast-body"><div class="toast-title">StoriiCare removed</div><div class="toast-text">Still in 2 other projects</div></div><button class="btn btn-sm" type="button">Undo</button><button class="btn btn-icon btn-quiet btn-sm" type="button" aria-label="Dismiss"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button></div></div>
+            <div class="specimen-code" id="code-47" hidden><pre class="code-block">&lt;div class="toast" role="status"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-check-circle"/&gt;&lt;/svg&gt;&lt;div class="toast-body"&gt;&lt;div class="toast-title"&gt;StoriiCare removed&lt;/div&gt;&lt;div class="toast-text"&gt;Still in 2 other projects&lt;/div&gt;&lt;/div&gt;&lt;button class="btn btn-sm" type="button"&gt;Undo&lt;/button&gt;&lt;button class="btn btn-icon btn-quiet btn-sm" type="button" aria-label="Dismiss"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-x"/&gt;&lt;/svg&gt;&lt;/button&gt;&lt;/div&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-47" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div>
+        </section>
+        <section class="section" id="notices">
+          <div class="section-head"><h2 class="t-heading">Notices</h2></div>
+          <p class="section-lead">A notice stays in the page while a situation lasts. Neutral for information, tinted for attention and failure. No colored side bar.</p>
+          <div class="catalog-use"><span><b>Not for</b> Confirmations (a toast).</span></div>
+          <div class="specimen">
+            <div class="specimen-head"><span class="medium">Kinds</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-48" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><div class="stack">
+  <div class="notice"><svg class="icon" aria-hidden="true"><use href="#i-info"/></svg><div class="notice-body"><span class="notice-title">This is a light profile.</span><span>Only the key pages were read.</span><div class="actions"><button class="btn btn-sm" type="button">Upgrade to full study</button></div></div></div>
+  <div class="notice warning"><svg class="icon" aria-hidden="true"><use href="#i-alert-triangle"/></svg><div class="notice-body"><span class="notice-title">Inbound email is not set up.</span><span>Mailing lists are not collected.</span></div></div>
+  <div class="notice danger"><svg class="icon" aria-hidden="true"><use href="#i-alert-triangle"/></svg><div class="notice-body"><span class="notice-title">The last survey stopped.</span><span>The search provider refused the key.</span></div></div>
+</div></div>
+            <div class="specimen-code" id="code-48" hidden><pre class="code-block">&lt;div class="stack"&gt;
+  &lt;div class="notice"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-info"/&gt;&lt;/svg&gt;&lt;div class="notice-body"&gt;&lt;span class="notice-title"&gt;This is a light profile.&lt;/span&gt;&lt;span&gt;Only the key pages were read.&lt;/span&gt;&lt;div class="actions"&gt;&lt;button class="btn btn-sm" type="button"&gt;Upgrade to full study&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;
+  &lt;div class="notice warning"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-alert-triangle"/&gt;&lt;/svg&gt;&lt;div class="notice-body"&gt;&lt;span class="notice-title"&gt;Inbound email is not set up.&lt;/span&gt;&lt;span&gt;Mailing lists are not collected.&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;
+  &lt;div class="notice danger"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-alert-triangle"/&gt;&lt;/svg&gt;&lt;div class="notice-body"&gt;&lt;span class="notice-title"&gt;The last survey stopped.&lt;/span&gt;&lt;span&gt;The search provider refused the key.&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;/div&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-48" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div>
+        </section>
+        <section class="section" id="empty">
+          <div class="section-head"><h2 class="t-heading">Empty states</h2></div>
+          <p class="section-lead">Nothing yet: what will be here and the first step. No matches: say so, and offer to clear filters.</p>
+          
+          <div class="specimen">
+            <div class="specimen-head"><span class="medium">Nothing yet</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-49" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><div class="empty"><span class="avatar avatar-xl"><svg class="icon" aria-hidden="true"><use href="#i-radar"/></svg></span><div class="empty-title">No competitors yet</div><p class="empty-text">Add the ones you know, or run a survey to find more.</p><div class="actions actions-center"><button class="btn" type="button">Run a survey</button><button class="btn btn-primary" type="button"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>Add competitor</button></div></div></div>
+            <div class="specimen-code" id="code-49" hidden><pre class="code-block">&lt;div class="empty"&gt;&lt;span class="avatar avatar-xl"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-radar"/&gt;&lt;/svg&gt;&lt;/span&gt;&lt;div class="empty-title"&gt;No competitors yet&lt;/div&gt;&lt;p class="empty-text"&gt;Add the ones you know, or run a survey to find more.&lt;/p&gt;&lt;div class="actions actions-center"&gt;&lt;button class="btn" type="button"&gt;Run a survey&lt;/button&gt;&lt;button class="btn btn-primary" type="button"&gt;&lt;svg class="icon" aria-hidden="true"&gt;&lt;use href="#i-plus"/&gt;&lt;/svg&gt;Add competitor&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-49" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div><div class="specimen">
+            <div class="specimen-head"><span class="medium">No matches</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-50" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><div class="empty empty-sm"><div class="empty-title">No jobs match</div><p class="empty-text">Nothing failed in the last 7 days.</p><button class="btn btn-sm" type="button">Clear filters</button></div></div>
+            <div class="specimen-code" id="code-50" hidden><pre class="code-block">&lt;div class="empty empty-sm"&gt;&lt;div class="empty-title"&gt;No jobs match&lt;/div&gt;&lt;p class="empty-text"&gt;Nothing failed in the last 7 days.&lt;/p&gt;&lt;button class="btn btn-sm" type="button"&gt;Clear filters&lt;/button&gt;&lt;/div&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-50" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+          </div>
+        </section>
+        </div>
+        <nav class="toc" aria-label="On this page"><div class="nav-label">Actions</div><a href="#buttons">Buttons</a><a href="#menus">Menus</a><div class="nav-label">Input</div><a href="#text-fields">Text fields</a><a href="#select">Select and multi-select</a><a href="#choices">Checkboxes, radios, choice cards, switches</a><a href="#forms">Forms</a><a href="#file-upload">File upload</a><div class="nav-label">Showing records</div><a href="#avatars">Avatars</a><a href="#lists">Lists</a><a href="#view-bar">View bar and filters</a><a href="#tables">Tables</a><a href="#sections">Sections and properties</a><a href="#values">Stats, labels, status</a><a href="#progress">Progress and loading</a><a href="#timeline">Timeline</a><a href="#text">Reading text, detail, citations</a><a href="#comments">Comments</a><a href="#charts">Charts</a><div class="nav-label">Moving around</div><a href="#page-header">Page header</a><a href="#nav-list">Navigation list</a><a href="#steps">Steps</a><div class="nav-label">Feedback and overlays</div><a href="#modals">Modals and confirmations</a><a href="#drawer">Drawer</a><a href="#command">Command menu</a><a href="#toasts">Toasts</a><a href="#notices">Notices</a><a href="#empty">Empty states</a></nav>
+      </div>
     </main>
   </div>
 </div>
-<script src="catalog.js"></script>
-<script>
-  (function () {
-    const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    const nav = document.getElementById('catalog-nav');
-    let navHtml = '', html = '', n = 0;
-    for (const g of window.KIT_CATALOG) {
-      navHtml += `<div class="nav-label">${g.group}</div>`;
-      for (const c of g.components) {
-        navHtml += `<a class="item" href="#${c.id}" data-target="${c.id}">${c.title}</a>`;
-        html += `<section class="section" id="${c.id}">
-          <div class="section-head"><h2 class="t-heading">${c.title}</h2></div>
-          <p class="section-lead">${c.lede}</p>
-          ${c.use || c.notFor ? `<div class="catalog-use">${c.use ? `<span><b>Use for</b> ${c.use}</span>` : ''}${c.notFor ? `<span><b>Not for</b> ${c.notFor}</span>` : ''}</div>` : ''}
-          ${c.examples.map((ex) => { n += 1; return `<div class="specimen">
-            <div class="specimen-head"><span class="medium">${ex.title}</span>${ex.desc ? `<span class="t-small muted">${ex.desc}</span>` : ''}<span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-${n}" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
-            <div class="specimen-demo">${ex.html}</div>
-            <div class="specimen-code" id="code-${n}" hidden><pre class="code-block">${esc(ex.html)}</pre><button class="btn btn-sm" type="button" data-copy="code-${n}" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
-          </div>`; }).join('')}
-        </section>`;
-      }
-    }
-    nav.innerHTML = navHtml;
-    document.getElementById('catalog').innerHTML = html;
-    document.addEventListener('click', (e) => {
-      const b = e.target.closest('[data-copy]');
-      if (b) navigator.clipboard?.writeText(document.querySelector(`#${b.dataset.copy} .code-block`).textContent);
-    });
-  })();
-</script>
 <script src="preview.js"></script>
 </body>
 </html>

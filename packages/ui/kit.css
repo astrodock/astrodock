@@ -157,6 +157,7 @@
   --topbar-h: 52px;
   --frame-gap: 8px;
   --aside-w: 288px;
+  --toc-w: 200px;
   --filters-w: 208px;
   --queue-w: 360px;
   --drawer-w: 520px;
@@ -217,11 +218,11 @@
   --danger-soft: #2c1414;
   --danger-ink: #fbb4b4;
   --on-danger: #1c0505;
-  --series-1: #5b9cec;
-  --series-2: #f2895c;
-  --series-3: #3ccf98;
-  --series-4: #a585f8;
-  --series-5: #e6bb3c;
+  --series-1: #4788d6;
+  --series-2: #c45f32;
+  --series-3: #07ac7a;
+  --series-4: #9a7aec;
+  --series-5: #b69004;
   --shadow-control: 0 0 0 0 transparent;
   --shadow-panel: 0 0 0 1px rgba(255, 255, 255, 0.06);
   --shadow-raised: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 6px 16px -4px rgba(0, 0, 0, 0.5);
@@ -239,7 +240,7 @@
     --accent: #9b72f2; --accent-hover: #ab88f5; --accent-ink: #c1a7f9; --accent-soft: #241b38; --on-accent: #0c0614;
     --success: #4ade80; --success-soft: #0f2418; --success-ink: #a7f3c4; --warning: #f2a93b; --warning-soft: #2a1d0b; --warning-ink: #f8d49a;
     --danger: #f87171; --danger-hover: #fa8f8f; --danger-soft: #2c1414; --danger-ink: #fbb4b4; --on-danger: #1c0505;
-    --series-1: #5b9cec; --series-2: #f2895c; --series-3: #3ccf98; --series-4: #a585f8; --series-5: #e6bb3c;
+    --series-1: #4788d6; --series-2: #c45f32; --series-3: #07ac7a; --series-4: #9a7aec; --series-5: #b69004;
     --shadow-control: 0 0 0 0 transparent;
     --shadow-panel: 0 0 0 1px rgba(255, 255, 255, 0.06);
     --shadow-raised: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 6px 16px -4px rgba(0, 0, 0, 0.5);
@@ -308,6 +309,10 @@ input[type="checkbox"]:checked::before, input[type="radio"]:checked::before { tr
 input[type="checkbox"]:focus-visible { box-shadow: var(--focus-ring); border-radius: var(--radius-xs); }
 input[type="radio"]:focus-visible { box-shadow: var(--focus-ring); border-radius: var(--radius-full); }
 input[type="checkbox"]:disabled, input[type="radio"]:disabled { opacity: .5; cursor: not-allowed; }
+
+/* Jumping to a section leaves room above it, and glides unless motion is reduced. */
+[id] { scroll-margin-top: var(--space-6); }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
 
 /* ================================================================ 3. primitives */
 
@@ -826,13 +831,80 @@ a.stat:hover { box-shadow: var(--shadow-raised); }
 .command-foot { display: flex; gap: var(--space-4); padding: var(--space-2) var(--space-4); font-size: var(--text-xs); color: var(--ink-3); box-shadow: inset 0 var(--line-width) 0 var(--line); }
 .command-foot > span { display: inline-flex; align-items: center; gap: var(--space-1); }
 
-/* ---- Charts */
-.chart-legend { display: flex; gap: var(--space-4); flex-wrap: wrap; font-size: var(--text-xs); color: var(--ink-3); }
-.chart-key { display: inline-block; width: 8px; height: 8px; border-radius: var(--radius-full); margin-right: var(--space-2); background: var(--key); }
-.chart { width: 100%; height: auto; }
-.chart-grid { stroke: var(--line); stroke-width: 1; }
-.chart-axis { font-size: var(--text-2xs); fill: var(--ink-4); font-family: var(--font-sans); }
+/* ---- Charts
+   Drawn in HTML and CSS so text stays sharp at any width; SVG only for the lines.
+   Values arrive as custom properties: --v is a share of the axis (0% to 100%),
+   --n is a raw amount that splits a stacked bar, --c is the series color. */
+.chart-block { display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; }
+.chart-head { display: flex; align-items: flex-start; gap: var(--space-4); flex-wrap: wrap; }
+.chart-head > .actions { margin-left: auto; }
+.chart-heading { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+.chart-title { font-size: var(--text-sm); font-weight: var(--weight-medium); color: var(--ink-3); }
+.chart-value { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--space-2); font-size: var(--text-2xl); font-weight: var(--weight-semibold); letter-spacing: var(--tracking-tight); line-height: var(--leading-tight); font-variant-numeric: tabular-nums; color: var(--ink); }
+.chart-change { display: inline-flex; align-items: center; gap: 2px; font-size: var(--text-sm); font-weight: var(--weight-medium); letter-spacing: normal; color: var(--ink-3); }
+.chart-change > .icon { width: var(--icon-sm); height: var(--icon-sm); }
+.chart-legend { display: flex; gap: var(--space-2) var(--space-4); flex-wrap: wrap; font-size: var(--text-xs); color: var(--ink-3); }
+.chart-legend > span { display: inline-flex; align-items: center; gap: var(--space-2); }
+.chart-key { flex: none; width: 8px; height: 8px; border-radius: var(--radius-full); background: var(--c, var(--series-1)); }
+.chart-key.line { width: 12px; height: var(--rule-width); }
 
+/* The plot: y labels, the drawing area, x labels. */
+.chart-plot { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: var(--chart-h, 200px) auto; column-gap: var(--space-3); font-size: var(--text-2xs); color: var(--ink-4); font-variant-numeric: tabular-nums; }
+.chart-plot.short { --chart-h: 140px; }
+.chart-y { position: relative; min-width: var(--space-6); }
+.chart-y > span { position: absolute; right: 0; bottom: var(--at); transform: translateY(50%); line-height: 1; white-space: nowrap; }
+.chart-area { position: relative; display: flex; box-shadow: inset 0 calc(var(--line-width) * -1) 0 var(--line-strong); }
+.chart-gridline { position: absolute; left: 0; right: 0; bottom: var(--at); height: var(--line-width); background: var(--line); pointer-events: none; }
+.chart-x { grid-column: 2; display: flex; padding-top: var(--space-2); }
+.chart-x > span { flex: 1; min-width: 0; text-align: center; white-space: nowrap; }
+
+/* One column per x value. It holds the marks and the tooltip, and is the hover target. */
+.chart-col { position: relative; flex: 1; min-width: 0; display: flex; justify-content: center; align-items: flex-end; outline: none; }
+.chart-col::before { content: ''; position: absolute; inset: 0 1px; border-radius: var(--radius-xs) var(--radius-xs) 0 0; background: var(--bg-hover); opacity: 0; transition: opacity var(--fast); }
+.chart-col:hover::before, .chart-col:focus-visible::before { opacity: 1; }
+.chart-col:focus-visible { box-shadow: var(--focus-ring); border-radius: var(--radius-xs); }
+.chart-bar { position: relative; display: flex; flex-direction: column-reverse; gap: var(--rule-width); width: min(var(--bar-w, 24px), 64%); height: var(--v); }
+.chart-bar > span { flex: var(--n, 1) 1 0; min-height: var(--rule-width); background: var(--c, var(--series-1)); }
+.chart-bar > span:last-child { border-radius: var(--radius-xs) var(--radius-xs) 0 0; }
+
+/* Lines: an SVG stretched over the area; points and the crosshair sit in the columns. */
+.chart-lines { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.chart-line { fill: none; stroke: var(--c, var(--series-1)); stroke-width: var(--rule-width); stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.chart-fill { fill: var(--c, var(--series-1)); opacity: 0.08; }
+.chart-area.lines .chart-col::before { inset: 0 auto 0 50%; width: var(--line-width); border-radius: 0; background: var(--line-strong); }
+.chart-point { position: absolute; left: 50%; bottom: var(--v); width: 8px; height: 8px; border-radius: var(--radius-full); background: var(--c, var(--series-1)); box-shadow: 0 0 0 var(--rule-width) var(--bg-page); transform: translate(-50%, 50%); opacity: 0; transition: opacity var(--fast); }
+.chart-col:hover > .chart-point, .chart-col:focus-visible > .chart-point { opacity: 1; }
+
+/* Tooltip: beside the column, flipped for the last columns so it stays inside. */
+.chart-tip { position: absolute; z-index: var(--z-pop); top: 0; left: calc(100% + var(--space-1)); min-width: 160px; display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); background: var(--bg-raised); box-shadow: var(--shadow-pop); font-size: var(--text-xs); color: var(--ink-2); white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity var(--fast); }
+.chart-col:nth-last-child(-n+3) > .chart-tip { left: auto; right: calc(100% + var(--space-1)); }
+.chart-col:hover > .chart-tip, .chart-col:focus-visible > .chart-tip { opacity: 1; }
+.chart-tip-title { font-weight: var(--weight-medium); color: var(--ink); }
+.chart-tip-row { display: flex; align-items: center; gap: var(--space-2); }
+.chart-tip-row > b { margin-left: auto; padding-left: var(--space-4); font-weight: var(--weight-medium); color: var(--ink); font-variant-numeric: tabular-nums; }
+.chart-tip-row.total { padding-top: var(--space-1); box-shadow: inset 0 var(--line-width) 0 var(--line); }
+
+/* Sparkline: a trend inside a stat, no axes. */
+.sparkline { display: block; width: 100%; height: var(--space-8); margin-top: var(--space-3); overflow: visible; }
+.sparkline > path { fill: none; stroke: var(--c, var(--series-1)); stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.sparkline > path.chart-fill { fill: var(--c, var(--series-1)); stroke: none; opacity: 0.08; }
+
+/* Bar list: a ranked breakdown. The bar sits behind the label. */
+.bar-list { display: flex; flex-direction: column; gap: 2px; }
+.bar-list-head { display: flex; justify-content: space-between; padding: 0 var(--space-2) var(--space-1); font-size: var(--text-xs); color: var(--ink-3); }
+.bar-list-row { position: relative; display: flex; align-items: center; gap: var(--space-3); height: var(--item-h); padding: 0 var(--space-2); font-size: var(--text-sm); color: var(--ink); }
+.bar-list-row::before { content: ''; position: absolute; inset: 0 auto 0 0; width: var(--v); border-radius: var(--radius-inner); background: var(--bg-sunken); }
+.bar-list-row > * { position: relative; }
+.bar-list-row > .num { margin-left: auto; color: var(--ink-2); }
+.bar-list-row > .num + .num { margin-left: 0; width: 48px; text-align: right; color: var(--ink-4); }
+
+/* ---- On this page: an index of a long page's sections, beside it. */
+.with-toc { display: grid; grid-template-columns: minmax(0, 1fr) var(--toc-w); gap: var(--space-12); align-items: start; }
+.toc { position: sticky; top: var(--space-6); max-height: calc(100vh - var(--space-12)); overflow-y: auto; display: flex; flex-direction: column; gap: 1px; padding: var(--space-1) 0; font-size: var(--text-sm); }
+.toc > .nav-label { padding-left: var(--space-3); }
+.toc > a { display: block; padding: var(--space-1) var(--space-3); border-radius: var(--radius-sm); color: var(--ink-3); line-height: var(--leading); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.toc > a:hover { color: var(--ink); background: var(--bg-hover); }
+.toc > a[aria-current="true"] { color: var(--ink); font-weight: var(--weight-medium); }
 /* ================================================================ 5. layout */
 
 /* App frame: the sidebar sits on the gray frame; the page sits on one white panel. */
@@ -941,8 +1013,9 @@ a.stat:hover { box-shadow: var(--shadow-raised); }
 
 /* ================================================================ 7. responsive */
 @media (max-width: 1100px) {
-  .with-aside { grid-template-columns: minmax(0, 1fr); }
+  .with-aside, .with-toc { grid-template-columns: minmax(0, 1fr); }
   .aside { position: static; }
+  .toc { display: none; }
   .hide-md { display: none; }
 }
 @media (max-width: 900px) {

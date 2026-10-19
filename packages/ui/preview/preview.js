@@ -12,7 +12,8 @@
 //   data-selectable        a list or table whose [data-row-check] boxes drive
 //                          the [data-bulk] bar just before it
 //   data-reveal="id"       shows and hides detail
-//   data-target="id"       a nav item that scrolls to a section
+//   .toc                   an "On this page" list; marks the section in view
+//   data-copy="id"         copies the text of the code block inside #id
 //   data-filters-toggle    shows the filter sidebar on a phone
 //   ⌘K / Ctrl+K           opens the command menu when the page has one
 
@@ -74,6 +75,9 @@
     'grip': '<circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/>',
     'mail': '<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
     'undo': '<path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/>',
+    table: '<path d="M12 3v18"/><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/>',
+    'trending-up': '<path d="M16 7h6v6"/><path d="m22 7-8.5 8.5-5-5L2 17"/>',
+    'trending-down': '<path d="M16 17h6v-6"/><path d="m22 17-8.5-8.5-5 5L2 7"/>',
     list: '<line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/>',
     send: '<path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/>',
     'message': '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>',
@@ -244,12 +248,8 @@
     const sw = t.closest('.switch');
     if (sw) sw.setAttribute('aria-checked', String(sw.getAttribute('aria-checked') !== 'true'));
 
-    const navTarget = t.closest('[data-target]');
-    if (navTarget) {
-      e.preventDefault();
-      navTarget.parentElement.querySelectorAll('[data-target]').forEach((b) => (b === navTarget ? b.setAttribute('aria-current', 'true') : b.removeAttribute('aria-current')));
-      document.getElementById(navTarget.dataset.target)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    const copy = t.closest('[data-copy]');
+    if (copy) navigator.clipboard?.writeText(document.querySelector(`#${copy.dataset.copy} .code-block`).textContent);
 
     const sortable = t.closest('th.sortable');
     if (sortable) {
@@ -314,6 +314,25 @@
     if (e.key !== 'Escape') return;
     closeAll();
     document.querySelectorAll('.scrim:not([hidden])').forEach((s) => { s.hidden = true; });
+  });
+
+  // On this page: the current section is the last one whose top has passed
+  // near the top of the window. Only aria-current changes, so nothing moves.
+  document.querySelectorAll('.toc').forEach((toc) => {
+    const links = [...toc.querySelectorAll('a[href^="#"]')];
+    const targets = links.map((a) => document.getElementById(a.hash.slice(1)));
+    let queued = false;
+    const mark = () => {
+      queued = false;
+      let i = 0;
+      targets.forEach((el, j) => { if (el && el.getBoundingClientRect().top < 120) i = j; });
+      if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) i = targets.length - 1;
+      links.forEach((a, j) => (j === i ? a.setAttribute('aria-current', 'true') : a.removeAttribute('aria-current')));
+      const a = links[i];
+      if (a.offsetTop < toc.scrollTop || a.offsetTop + a.offsetHeight > toc.scrollTop + toc.clientHeight) toc.scrollTop = a.offsetTop - toc.clientHeight / 2;
+    };
+    window.addEventListener('scroll', () => { if (!queued) { queued = true; requestAnimationFrame(mark); } }, { passive: true });
+    mark();
   });
 
   document.querySelectorAll('.select.multi').forEach(updateMulti);

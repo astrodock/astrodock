@@ -54,6 +54,7 @@ The rules live in README.md; this file is the markup. The live versions are in \
 - A list or table inside a card is flat (\`.flush\`, or \`.card-body.flush-x\` for rows).
 - Active state: an underline for horizontal navigation (\`.tab\`, shell sections), the selected fill for vertical (\`.item\` with \`aria-current\`).
 - Toasts confirm and offer Undo; errors people must act on go in the page.
+- Charts are HTML and CSS (SVG only for lines), with a tooltip on every column, a table view, and series colors in fixed order.
 
 ## Tokens
 
@@ -94,7 +95,7 @@ Every screen is one of these; open the preview file for the full markup.
 | Record | \`preview/page-record.html\` | Back, header with avatar and labels, tabs, nav list of sections, summary cards first, sections with Show detail |
 | Create and edit | \`preview/page-form.html\` | Narrow page, error summary notice, fieldsets, save bar |
 | Settings | \`preview/page-settings.html\` | Section root, nav list of groups, one card per group with its own Save, danger zone last |
-| Dashboard | \`preview/page-dashboard.html\` | Stat links, chart card, project cards, needs attention, running now |
+| Dashboard | \`preview/page-dashboard.html\` | Stats with sparklines, a chart with its head, project cards, needs attention, running now |
 | Background work | \`preview/page-activity.html\` | Tabs Now, History, Usage and cost; lanes with running work; failures with Retry; drawer detail |
 | Step by step | \`preview/page-wizard.html\` | Steps, one card per step, Back and Next in the card foot |
 | Sidebar shell and queue | \`preview/page-sidebar.html\` | Sidebar shell; queue on the left, detail with its own bar on the right; command menu |

@@ -437,25 +437,100 @@ ${opt('Not now', 'Add it without collecting')}
     ],
   });
 
+  // ---- Chart markup. These build the same markup an app's chart component
+  // renders; the examples below show the result. Exposed as KIT_CHARTS so the
+  // preview pages draw their charts with the same code.
+  const num = (n, money) => (money ? '$' + n.toFixed(2) : n.toLocaleString('en-US'));
+  const tick = (n, money) => (money ? '$' + n : n.toLocaleString('en-US'));
+  const at = (v, max) => `${+((v / max) * 100).toFixed(2)}%`;
+  const key = (i, line) => `<i class="chart-key${line ? ' line' : ''}" style="--c: var(--series-${i + 1})"></i>`;
+  const legend = (series, line) => `<div class="chart-legend">${series.map((n, i) => `<span>${key(i, line)}${n}</span>`).join('')}</div>`;
+  const tip = (c, series, money) => {
+    const rows = series.map((n, i) => `<div class="chart-tip-row">${key(i)}${n}<b>${num(c.v[i], money)}</b></div>`).join('');
+    const total = series.length > 1 ? `<div class="chart-tip-row total">Total<b>${num(c.v.reduce((a, b) => a + b, 0), money)}</b></div>` : '';
+    return `<div class="chart-tip" aria-hidden="true"><div class="chart-tip-title">${c.full || c.x}</div>${rows}${total}</div>`;
+  };
+  const colLabel = (c, series, money) => `${c.full || c.x}: ${series.map((n, i) => `${n} ${num(c.v[i], money)}`).join(', ')}`;
+  const frame = ({ label, max, ticks, money, short, cols, lines }, inner) => `<div class="chart-plot${short ? ' short' : ''}" role="group" aria-label="${label}">
+  <div class="chart-y" aria-hidden="true">${ticks.map((t) => `<span style="--at: ${at(t, max)}">${tick(t, money)}</span>`).join('')}</div>
+  <div class="chart-area${lines ? ' lines' : ''}">
+    ${ticks.filter((t) => t > 0).map((t) => `<span class="chart-gridline" style="--at: ${at(t, max)}"></span>`).join('')}
+${inner}
+  </div>
+  <div class="chart-x" aria-hidden="true">${cols.map((c) => `<span>${c.tick === false ? '' : c.x}</span>`).join('')}</div>
+</div>`;
+  const barChart = (o) => frame(o, o.cols.map((c) => {
+    const total = c.v.reduce((a, b) => a + b, 0);
+    const segs = c.v.map((v, i) => (v ? `<span style="--n: ${v}; --c: var(--series-${i + 1})"></span>` : '')).join('');
+    return `    <div class="chart-col" tabindex="0" aria-label="${colLabel(c, o.series, o.money)}"><div class="chart-bar" style="--v: ${at(total, o.max)}">${segs}</div>${tip(c, o.series, o.money)}</div>`;
+  }).join('\n'));
+  const linePath = (vals, max) => vals.map((v, j) => `${j ? 'L' : 'M'}${+(((j + 0.5) / vals.length) * 100).toFixed(2)} ${+(100 - (v / max) * 100).toFixed(2)}`).join(' ');
+  const lineChart = (o) => {
+    const paths = o.series.map((n, i) => {
+      const d = linePath(o.cols.map((c) => c.v[i]), o.max);
+      const fill = o.series.length === 1 ? `<path class="chart-fill" d="${d} V100 H${+((0.5 / o.cols.length) * 100).toFixed(2)} Z" style="--c: var(--series-${i + 1})"/>` : '';
+      return `${fill}<path class="chart-line" d="${d}" style="--c: var(--series-${i + 1})"/>`;
+    }).join('');
+    const cols = o.cols.map((c) => `    <div class="chart-col" tabindex="0" aria-label="${colLabel(c, o.series, o.money)}">${c.v.map((v, i) => `<span class="chart-point" style="--v: ${at(v, o.max)}; --c: var(--series-${i + 1})"></span>`).join('')}${tip(c, o.series, o.money)}</div>`).join('\n');
+    return frame({ ...o, lines: true }, `    <svg class="chart-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${paths}</svg>\n${cols}`);
+  };
+  const sparkline = (vals, color = 1) => {
+    const max = Math.max(...vals) * 1.1;
+    const d = vals.map((v, j) => `${j ? 'L' : 'M'}${+((j / (vals.length - 1)) * 100).toFixed(2)} ${+(32 - (v / max) * 32).toFixed(2)}`).join(' ');
+    return `<svg class="sparkline" viewBox="0 0 100 32" preserveAspectRatio="none" aria-hidden="true" style="--c: var(--series-${color})"><path class="chart-fill" d="${d} V32 H0 Z"/><path d="${d}"/></svg>`;
+  };
+  const barList = (rows, { head, money } = {}) => {
+    const max = Math.max(...rows.map((r) => r[1]));
+    const total = rows.reduce((a, r) => a + r[1], 0);
+    return `<div class="bar-list">
+  ${head ? `<div class="bar-list-head"><span>${head[0]}</span><span>${head[1]}</span></div>` : ''}
+${rows.map(([n, v]) => `  <div class="bar-list-row" style="--v: ${at(v, max)}"><span>${n}</span><span class="num">${num(v, money)}</span><span class="num">${Math.round((v / total) * 100)}%</span></div>`).join('\n')}
+</div>`;
+  };
+  const chartTable = (o) => `<div class="table-box flush"><table class="table table-compact"><thead><tr><th>${o.xName || 'Day'}</th>${o.series.map((n) => `<th class="num">${n}</th>`).join('')}</tr></thead><tbody>${o.cols.map((c) => `<tr><td>${c.full || c.x}</td>${c.v.map((v) => `<td class="num">${num(v, o.money)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+  const chartBlock = (id, o, { title, value, change, down } = {}) => `<div class="chart-block">
+  <div class="chart-head">
+    <div class="chart-heading"><span class="chart-title">${title}</span><span class="chart-value">${value}${change ? `<span class="chart-change">${ic(down ? 'trending-down' : 'trending-up')}${change}</span>` : ''}</span></div>
+    <div class="actions">
+      <div class="btn-group btn-group-sm" role="group" aria-label="Period">${(o.periods || ['7 days', '30 days', '90 days']).map((p, i) => `<button class="btn" type="button" aria-pressed="${i === 0}">${p}</button>`).join('')}</div>
+      <div class="btn-group btn-group-sm" role="group" aria-label="Show as" data-view="#${id}"><button class="btn btn-icon" type="button" aria-pressed="true" data-value="chart" aria-label="Chart">${ic('bar-chart')}</button><button class="btn btn-icon" type="button" aria-pressed="false" data-value="table" aria-label="Table">${ic('table')}</button></div>
+    </div>
+  </div>
+  ${o.series.length > 1 ? legend(o.series, o.lines) : ''}
+  <div id="${id}">
+    <div data-view-panel="chart">
+${(o.lines ? lineChart : barChart)(o)}
+    </div>
+    <div data-view-panel="table" hidden>${chartTable(o)}</div>
+  </div>
+</div>`;
+  window.KIT_CHARTS = { barChart, lineChart, sparkline, barList, chartBlock, legend };
+
+  const week = [['Mon', 'Mon, Oct 13', [212, 148]], ['Tue', 'Tue, Oct 14', [318, 260]], ['Wed', 'Wed, Oct 15', [146, 170]], ['Thu', 'Thu, Oct 16', [262, 208]], ['Fri', 'Fri, Oct 17', [96, 120]], ['Sat', 'Sat, Oct 18', [301, 244]], ['Sun', 'Sun, Oct 19', [152, 98]]]
+    .map(([x, full, v]) => ({ x, full, v }));
+  const cost = [[4.1, 1.2, 0.3], [6.8, 1.6, 0.4], [3.2, 0.9, 0.2], [9.4, 2.1, 0.6], [5.6, 1.4, 0.3], [11.2, 2.6, 0.7], [7.9, 1.8, 0.4]]
+    .map((v, i) => ({ x: week[i].x, full: week[i].full, v }));
+
   g.components.push({
     id: 'charts', title: 'Charts',
-    lede: 'Bars for amounts over time, lines for trends, a stat when one number says it. Series colors in fixed order; a legend for two or more; one axis.',
-    use: '', notFor: 'Status (status colors are never series).',
+    lede: 'A chart answers one question. Its head says the answer (the total and the change); the plot shows the shape. Every chart has a tooltip on each column, a table view, and a legend when it has two series or more.',
+    use: 'Bars for amounts per day or week; lines for trends and rates; a sparkline inside a stat; a bar list for a ranked breakdown.',
+    notFor: 'Pies, donuts, 3D, two y-axes, or status (status colors are never series colors).',
     examples: [
-      { title: 'Bars', desc: '',
-        html: `<div class="stack-sm">
-<div class="chart-legend"><span><i class="chart-key" style="--key: var(--series-1)"></i>Collected</span><span><i class="chart-key" style="--key: var(--series-2)"></i>Read</span></div>
-<svg class="chart" viewBox="0 0 560 140" role="img" aria-label="Items collected and read per day">
-  <line class="chart-grid" x1="32" x2="552" y1="112" y2="112"/><line class="chart-grid" x1="32" x2="552" y1="62" y2="62"/><line class="chart-grid" x1="32" x2="552" y1="12" y2="12"/>
-  <text class="chart-axis" x="26" y="115" text-anchor="end">0</text><text class="chart-axis" x="26" y="65" text-anchor="end">250</text><text class="chart-axis" x="26" y="15" text-anchor="end">500</text>
-  <path d="M60 112 V74 Q60 70 64 70 H76 Q80 70 80 74 V112 Z" fill="var(--series-1)"/><path d="M82 112 V88 Q82 84 86 84 H98 Q102 84 102 88 V112 Z" fill="var(--series-2)"/>
-  <path d="M160 112 V40 Q160 36 164 36 H176 Q180 36 180 40 V112 Z" fill="var(--series-1)"/><path d="M182 112 V58 Q182 54 186 54 H198 Q202 54 202 58 V112 Z" fill="var(--series-2)"/>
-  <path d="M260 112 V84 Q260 80 264 80 H276 Q280 80 280 84 V112 Z" fill="var(--series-1)"/><path d="M282 112 V76 Q282 72 286 72 H298 Q302 72 302 76 V112 Z" fill="var(--series-2)"/>
-  <path d="M360 112 V56 Q360 52 364 52 H376 Q380 52 380 56 V112 Z" fill="var(--series-1)"/><path d="M382 112 V66 Q382 62 386 62 H398 Q402 62 402 66 V112 Z" fill="var(--series-2)"/>
-  <path d="M460 112 V92 Q460 88 464 88 H476 Q480 88 480 92 V112 Z" fill="var(--series-1)"/><path d="M482 112 V86 Q482 82 486 82 H498 Q502 82 502 86 V112 Z" fill="var(--series-2)"/>
-  <text class="chart-axis" x="81" y="132" text-anchor="middle">Oct 15</text><text class="chart-axis" x="181" y="132" text-anchor="middle">Oct 16</text><text class="chart-axis" x="281" y="132" text-anchor="middle">Oct 17</text><text class="chart-axis" x="381" y="132" text-anchor="middle">Oct 18</text><text class="chart-axis" x="481" y="132" text-anchor="middle">Oct 19</text>
-</svg>
+      { title: 'Bars over time', desc: 'Stacked when the parts add up to a total. Hover or tab to a column.',
+        html: chartBlock('chart-work', { label: 'Items collected and read per day, last 7 days', series: ['Collected', 'Read'], cols: week, max: 600, ticks: [0, 200, 400, 600] },
+          { title: 'Work finished', value: '3,035', change: '12% on last week' }) },
+      { title: 'Lines for trends', desc: 'Up to five series in fixed order. A single series gets a soft fill.',
+        html: chartBlock('chart-cost', { label: 'AI and search cost per day by model, last 7 days', series: ['Opus 5.5', 'Haiku 4.5', 'Search'], cols: cost, max: 12, ticks: [0, 4, 8, 12], money: true, lines: true },
+          { title: 'AI and search cost', value: '$63.90', change: '8% on last week', down: true }) },
+      { title: 'Stats with a trend', desc: 'A sparkline shows direction only; the number is the point.',
+        html: `<div class="stat-grid">
+  <a class="stat" href="#"><div class="stat-label">AI calls today</div><div class="stat-value">1,284</div><div class="stat-sub">${ic('trending-up', 'icon icon-sm')}18% on yesterday</div>${sparkline([820, 940, 760, 1010, 980, 1090, 1284])}</a>
+  <a class="stat" href="#"><div class="stat-label">Spent this month</div><div class="stat-value">$61.40</div><div class="stat-sub">AI $58.20 · Search $3.20</div>${sparkline([12, 19, 24, 31, 40, 52, 61], 2)}</a>
+  <a class="stat" href="#"><div class="stat-label">Jobs failed</div><div class="stat-value">3</div><div class="stat-sub">Last 7 days</div>${sparkline([1, 0, 2, 0, 0, 1, 3], 3)}</a>
 </div>` },
+      { title: 'Breakdown', desc: 'Ranked largest first, with the amount and its share.',
+        html: barList([['Writing profiles', 31.2], ['Reading items', 14.6], ['Dating facts', 6.1], ['Surveys', 4.3], ['Search', 3.2]], { head: ['Purpose', 'Cost this month'], money: true }) },
     ],
   });
 

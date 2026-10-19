@@ -14,10 +14,12 @@ How every app on an Astrodock platform is built and how it looks: the frame, the
 | `preview/page-*.html` | One page per page type, built only from kit classes |
 | `scripts/check.js` | Fails on raw values in kit.css, classes the kit does not define, inline styles, native selects |
 | `scripts/build-reference.js` | Rebuilds REFERENCE.md |
+| `scripts/build-preview.py` | Writes the preview pages (`python3 scripts/build-preview.py`, Python 3.12 or later). Edit it, not the generated HTML |
+| `scripts/shoot.js` | Screenshots of the preview pages for checking a change (needs playwright-core) |
 
 **Building an app with it (agents):** read `REFERENCE.md` for markup and this file for rules. Start every screen from a page type, copy the markup for its parts, and keep app CSS to tokens and app-specific layout.
 
-**Changing the kit:** change `kit.css` (tokens first), add or change the example in `preview/catalog.js`, then run `node scripts/check.js && node scripts/build-reference.js`. A new component goes into the catalog before any app uses it.
+**Changing the kit:** change `kit.css` (tokens first), add or change the example in `preview/catalog.js`, then run `python3 scripts/build-preview.py && node scripts/check.js && node scripts/build-reference.js`. A new component goes into the catalog before any app uses it.
 
 ---
 
@@ -235,13 +237,16 @@ When to use each, and when not. `preview/components.html` shows them.
 | Filter button | Filters in a panel, a badge for how many are set | |
 | Comments | A record's discussion and history in one thread, composer last | |
 | Key-value | A record's fields; "Not found" or "None" rather than blank | |
-| Stat tile | The few numbers that matter, linking to the list behind them | Every number available |
+| Stat tile | The few numbers that matter, linking to the list behind them; a sparkline for direction | Every number available |
+| Chart | One question per chart: the head gives the answer, the plot the shape. Bars for amounts, lines for trends | Pies, donuts, 3D, two y-axes |
+| Bar list | A ranked breakdown with amount and share | Changes over time (chart) |
 | Status | Done, Running, Queued, Needs setup, Failed: a dot (a spinner while running) and a word | Decoration |
 | Label | Describing a record (level, role, draft) in neutral gray | Filters; buttons |
 | Timeline | History, newest first, grouped by year; dates only as precise as known | |
 | Show detail | Summary first, detail on demand | Hiding required information |
 | Tabs | Views of one record | Steps; filters |
-| Side list | Sections of a long page or settings groups | |
+| Side list | Settings groups, a record's sections | |
+| On this page | An index beside a long page that marks the section in view; hidden under 1100px | Short pages |
 | Filter sidebar | Pages filtered constantly (history, logs) | Ordinary collections (use the Filter button) |
 | Modal | Short blocking tasks: up to five fields, a choice. Title and one line, the fields, actions on the right | Long forms; reading |
 | Confirmation | Actions that cannot be undone: a small icon, the question, what will be lost, Cancel focused | Reversible actions (toast with Undo instead) |
@@ -351,11 +356,17 @@ An app's `theme.css` overrides tokens only:
 
 ## Charts
 
-- Bars for amounts over time; lines for trends; a stat tile when one number says it.
-- Series colors in fixed order (`--series-1` to `--series-5`, then `--series-other`), and a series keeps its color when filters change.
-- A legend whenever there are two series or more; a tooltip on each bar or point; one y-axis only.
-- Status colors are never series colors. A failure series uses `--danger` with its own label.
-- Thin bars with 4px rounded tops, 2px gaps between stacked parts, a quiet grid.
+A chart answers one question. Copy the markup from REFERENCE.md (Charts); the catalog's helpers in `preview/catalog.js` show how it is computed.
+
+- **Form.** Bars for amounts per day or week (stacked when the parts add to a total). Lines for trends and rates. A stat with a sparkline when one number says it. A bar list for a ranked breakdown. No pies, donuts or 3D.
+- **Head.** The title, the headline number and its change in words ("12% on last week"), the period switch and the chart or table switch. The change is gray: up is not always good.
+- **Series.** `--series-1` to `--series-5` in that order, then `--series-other`; fold anything past five into Other. A series keeps its color when filters change. Status colors are never series colors.
+- **Marks.** Bars at most 24px wide with rounded tops; 2px gaps between stacked parts; 2px lines; points appear on hover with a ring.
+- **Axes.** One y-axis, at most four gridlines, round tick values starting at 0. Label every other day when there are more than ten.
+- **Reading values.** Every column has a tooltip (hover or tab): the full date, each series with its value, and the total. A table view for every chart. A legend whenever there are two series or more.
+- **Text** uses the ink colors, never the series color.
+- **Drawing.** HTML and CSS, so labels stay sharp at any width; SVG only for lines. Values arrive as custom properties (`--v` share of the axis, `--n` part of a stack, `--c` series color).
+- The series colors pass a color-blindness separation check in both themes; the dark theme has its own steps. Green and yellow are below 3:1 contrast on white, so every chart keeps its tooltips and table view.
 
 ---
 
