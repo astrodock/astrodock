@@ -164,6 +164,7 @@
   --modal-sm: 420px;
   --modal-md: 520px;
   --modal-lg: 720px;
+  --modal-xl: 1280px;
   --toast-w: 360px;
   --page-narrow: 880px;     /* the one limited width; every other page fills the panel */
   --gutter: 40px;
@@ -744,6 +745,29 @@ a.stat:hover { box-shadow: var(--shadow-raised); }
 .cite:hover { background: var(--accent-soft); color: var(--accent-ink); }
 .code-block { font-family: var(--font-mono); font-size: var(--text-xs); line-height: var(--leading); background: var(--bg-subtle); color: var(--ink-2); border-radius: var(--radius-sm); box-shadow: inset 0 0 0 var(--line-width) var(--line); padding: var(--space-3) var(--space-4); white-space: pre-wrap; word-break: break-word; max-height: 360px; overflow: auto; margin: 0; }
 
+/* ---- Screenshots: pictures of screens and pages. Shading, not borders; a caption under each. */
+.shot { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; padding: 0; border: 0; background: none; text-align: left; color: inherit; font: inherit; cursor: zoom-in; }
+.shot-frame { display: block; overflow: hidden; border-radius: var(--radius-sm); background: var(--bg-sunken); box-shadow: var(--shadow-panel); aspect-ratio: var(--ratio, 16 / 10); }
+.shot-frame > img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top center; }
+.shot:hover .shot-frame { box-shadow: var(--shadow-raised); }
+.shot:focus-visible { outline: none; }
+.shot:focus-visible .shot-frame { box-shadow: var(--focus-ring); }
+.shot.is-hidden .shot-frame { opacity: 0.4; }
+.shot-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.shot-cap { font-size: var(--text-sm); font-weight: var(--weight-medium); color: var(--ink); line-height: var(--leading-tight); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.shot-sub { font-size: var(--text-xs); color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.shot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--shot-min, 200px), 1fr)); gap: var(--space-5) var(--space-4); }
+.shot-strip { display: grid; grid-auto-flow: column; grid-auto-columns: var(--shot-w, 168px); gap: var(--space-4); overflow-x: auto; padding-bottom: var(--space-2); }
+/* A page on desktop and phone, side by side. */
+.shot-pair { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 1fr); gap: var(--space-4); align-items: start; }
+/* The viewer: one picture large, its details beside it. */
+.modal-xl { width: min(var(--modal-xl), 100%); }
+.viewer { display: grid; grid-template-columns: minmax(0, 1fr) var(--aside-w); gap: var(--space-6); align-items: start; }
+.viewer-img { overflow: auto; max-height: calc(100vh - 220px); border-radius: var(--radius-sm); background: var(--bg-sunken); box-shadow: var(--shadow-panel); }
+.viewer-img > img { display: block; width: 100%; height: auto; }
+/* Words copied from their own material, set apart by size, not a box. */
+.quote-lg { font-size: var(--text-xl); font-weight: var(--weight-semibold); letter-spacing: var(--tracking-tight); line-height: var(--leading-tight); color: var(--ink); }
+
 /* ---- Comments and activity */
 .thread { display: flex; flex-direction: column; gap: var(--space-5); }
 .comment { display: grid; grid-template-columns: var(--avatar-sm) minmax(0, 1fr); gap: var(--space-3); }
@@ -1039,6 +1063,7 @@ a.stat:hover { box-shadow: var(--shadow-raised); }
   .queue { position: static; height: auto; max-height: 60vh; }
   .detail-bar { top: 0; border-radius: 0; }
   .fieldset { grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
+  .viewer { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 640px) {
   :root { --gutter: 16px; --ctl-md: 36px; --item-h: 36px; }

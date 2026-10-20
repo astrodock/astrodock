@@ -365,6 +365,27 @@ ${opt('Not now', 'Add it without collecting')}
   });
 
   g.components.push({
+    id: 'screenshots', title: 'Screenshots',
+    lede: 'Pictures of screens and pages: a shaded frame, cropped from the top, with a caption and where it came from. Selecting one opens the viewer: the picture large, its details beside it.',
+    use: 'Website and product screenshots, uploaded pictures.', notFor: 'Decoration; icons and logos.',
+    examples: [
+      { title: 'Grid', desc: 'Captions name what it shows, then where and when.',
+        html: `<div class="shot-grid">
+  <button class="shot" type="button"><span class="shot-frame"></span><span class="shot-text"><span class="shot-cap">Attendance</span><span class="shot-sub">help.storiicare.com · Oct 12</span></span></button>
+  <button class="shot" type="button"><span class="shot-frame"></span><span class="shot-text"><span class="shot-cap">Billing and claims</span><span class="shot-sub">App Store · Sep 30</span></span></button>
+  <button class="shot" type="button"><span class="shot-frame"></span><span class="shot-text"><span class="shot-cap">Care plans and notes</span><span class="shot-sub">Added by Paul · Oct 2</span></span></button>
+</div>` },
+      { title: 'A page on desktop and phone', desc: 'The frame takes the picture\'s own shape through --ratio.',
+        html: `<div class="shot-pair">
+  <button class="shot" type="button"><span class="shot-frame"></span><span class="shot-text"><span class="shot-cap">Home page</span><span class="shot-sub">Desktop · Oct 12</span></span></button>
+  <button class="shot" type="button"><span class="shot-frame" style="--ratio: 390 / 844"></span><span class="shot-text"><span class="shot-cap">Phone</span></span></button>
+</div>` },
+      { title: 'Their words', desc: 'A headline copied word for word, set apart by size.',
+        html: `<div class="stack-sm"><p class="quote-lg">“Adult day software that families love”</p><p class="muted">Attendance, billing and care plans in one place.</p></div>` },
+    ],
+  });
+
+  g.components.push({
     id: 'values', title: 'Stats, labels, status',
     lede: 'Stats for the few numbers that matter, each linking to the list behind it. Labels describe a record in gray. Status is a dot and a word; color only for success, attention and failure.',
     use: '', notFor: 'Labels or status as buttons or filters.',

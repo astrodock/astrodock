@@ -160,6 +160,7 @@ The rules live in README.md; this file is the markup. The live versions are in `
   --modal-sm: 420px;
   --modal-md: 520px;
   --modal-lg: 720px;
+  --modal-xl: 1280px;
   --toast-w: 360px;
   --page-narrow: 880px;     /* the one limited width; every other page fills the panel */
   --gutter: 40px;
@@ -659,6 +660,38 @@ Inside a page, content is sections, not cards: a title, a line of meta or an act
   <dt>Who it is for</dt><dd>Adult day centers, home care agencies and care homes in the UK and US.<button class="cite" type="button">2</button></dd>
   <dt>Team size</dt><dd class="faint">Not found</dd>
 </dl>
+```
+
+### Screenshots
+
+Pictures of screens and pages: a shaded frame, cropped from the top, with a caption and where it came from. Selecting one opens the viewer: the picture large, its details beside it.
+
+- **Use for:** Website and product screenshots, uploaded pictures.
+- **Not for:** Decoration; icons and logos.
+
+**Grid.** Captions name what it shows, then where and when.
+
+```html
+<div class="shot-grid">
+  <button class="shot" type="button"><span class="shot-frame"></span><span class="shot-text"><span class="shot-cap">Attendance</span><span class="shot-sub">help.storiicare.com · Oct 12</span></span></button>
+  <button class="shot" type="button"><span class="shot-frame"></span><span class="shot-text"><span class="shot-cap">Billing and claims</span><span class="shot-sub">App Store · Sep 30</span></span></button>
+  <button class="shot" type="button"><span class="shot-frame"></span><span class="shot-text"><span class="shot-cap">Care plans and notes</span><span class="shot-sub">Added by Paul · Oct 2</span></span></button>
+</div>
+```
+
+**A page on desktop and phone.** The frame takes the picture's own shape through --ratio.
+
+```html
+<div class="shot-pair">
+  <button class="shot" type="button"><span class="shot-frame"></span><span class="shot-text"><span class="shot-cap">Home page</span><span class="shot-sub">Desktop · Oct 12</span></span></button>
+  <button class="shot" type="button"><span class="shot-frame" style="--ratio: 390 / 844"></span><span class="shot-text"><span class="shot-cap">Phone</span></span></button>
+</div>
+```
+
+**Their words.** A headline copied word for word, set apart by size.
+
+```html
+<div class="stack-sm"><p class="quote-lg">“Adult day software that families love”</p><p class="muted">Attendance, billing and care plans in one place.</p></div>
 ```
 
 ### Stats, labels, status

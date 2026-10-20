@@ -251,6 +251,8 @@ When to use each, and when not. `preview/components.html` shows them.
 | Status | Done, Running, Queued, Needs setup, Failed: a dot (a spinner while running) and a word | Decoration |
 | Label | Describing a record (level, role, draft) in neutral gray | Filters; buttons |
 | Timeline | History, newest first, grouped by year; dates only as precise as known | |
+| Screenshots | Pictures of screens and pages: `.shot` (frame and caption) in a `.shot-grid`, `.shot-strip` or `.shot-pair`; the viewer is a `.modal-xl` holding `.viewer` | Icons and logos; pictures as decoration |
+| Their words | A headline or claim copied word for word: `.quote-lg` | Paraphrase in quote marks |
 | Show detail | Summary first, detail on demand | Hiding required information |
 | Tabs | Views of one record | Steps; filters |
 | Account menu | Who is signed in, Your account (on the sign-in host), theme, help, sign out; at the sidebar foot | App settings |
