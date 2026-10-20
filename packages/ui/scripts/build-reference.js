@@ -99,7 +99,8 @@ Every screen is one of these; open the preview file for the full markup.
 | Background work | \`preview/page-activity.html\` | Tabs Now, History, Usage and cost; lanes with running work; failures with Retry; drawer detail |
 | Step by step | \`preview/page-wizard.html\` | Steps, one card per step, Back and Next in the card foot |
 | Sidebar shell and queue | \`preview/page-sidebar.html\` | Sidebar shell; queue on the left, detail with its own bar on the right; command menu |
-| System | \`preview/page-states.html\` | Signing in, no access, not found, error, first use, loading, saving failed |
+| Sign-in and account | \`preview/page-signin.html\` | Hosted by the platform, never built by an app; the app's part is the handoff, account menu, no access and session ended |
+| System states | \`preview/page-states.html\` | Not found, error, updating, offline, read-only, conflict, partly done, slowed down, unsaved changes, first use, loading |
 `;
 
 fs.writeFileSync(path.join(root, 'REFERENCE.md'), md);

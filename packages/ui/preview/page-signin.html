@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign-in and account · Astrodock UI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../kit.css">
+<link rel="stylesheet" href="preview.css">
+</head>
+<body>
+<div class="app" data-docs>
+  <nav class="sidebar-nav" aria-label="Design system">
+    <div class="switcher"><span class="avatar avatar-sm avatar-accent"><svg class="icon" aria-hidden="true"><use href="#i-layout-grid"/></svg></span><span class="switcher-name">Astrodock UI</span></div>
+    <div class="nav-list"><a class="item" href="index.html"><svg class="icon" aria-hidden="true"><use href="#i-layout-grid"/></svg>Overview</a><a class="item" href="foundations.html"><svg class="icon" aria-hidden="true"><use href="#i-eye"/></svg>Foundations</a><a class="item" href="components.html"><svg class="icon" aria-hidden="true"><use href="#i-list"/></svg>Components</a><div class="nav-label">Page types</div><a class="item" href="page-list.html">Collection</a><a class="item" href="page-record.html">Record</a><a class="item" href="page-form.html">Create</a><a class="item" href="page-settings.html">Settings</a><a class="item" href="page-dashboard.html">Dashboard</a><a class="item" href="page-activity.html">Background work</a><a class="item" href="page-wizard.html">Step by step</a><a class="item" href="page-sidebar.html">Queue</a><a class="item" href="page-signin.html" aria-current="page">Sign-in and account</a><a class="item" href="page-states.html">System states</a><a class="item" href="mobile.html">On a phone</a></div>
+    <div class="sidebar-foot"><div class="btn-group btn-group-sm" role="group" aria-label="Theme"><button class="btn" type="button" data-theme-set="light"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-sun"/></svg>Light</button><button class="btn" type="button" data-theme-set="dark"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-moon"/></svg>Dark</button></div></div>
+  </nav>
+  <div class="panel">
+    <div class="mobile-bar"><button class="btn btn-icon btn-quiet menu-btn" type="button" aria-label="Open navigation"><svg class="icon" aria-hidden="true"><use href="#i-menu"/></svg></button>Astrodock UI</div>
+    <main class="page">
+      <header class="page-header"><div class="page-head"><div class="page-head-main"><div class="page-head-text"><div class="page-title-row"><h1 class="t-title">Sign-in and account</h1></div><p class="page-desc">Apps never build a sign-in page. Astrodock hosts it on the sign-in host, so an app never sees a password; these are the platform's pages, rendered from its code. The app's part is the handoff, the account menu and the session ending.</p></div></div></div></header>
+      <div class="sections">
+        <section class="section"><div class="section-head"><h2 class="section-title">Signing in</h2><span class="section-meta">One page; the code step appears only for accounts with two-step sign-in.</span></div>
+          <div class="grid-2">
+            <div class="stack-sm"><div class="section-head"><h3 class="t-heading">Sign in</h3><span class="section-meta">Password, passkey or Google.</span></div><div class="frame"><iframe class="hosted" src="hosted/sign-in.html" title="Sign in" style="--h: 620px"></iframe></div></div>
+            <div class="stack-sm"><div class="section-head"><h3 class="t-heading">Details wrong</h3><span class="section-meta">The error sits above the fields; what was typed stays.</span></div><div class="frame"><iframe class="hosted" src="hosted/sign-in-error.html" title="Details wrong" style="--h: 620px"></iframe></div></div>
+            <div class="stack-sm"><div class="section-head"><h3 class="t-heading">Authenticator code</h3><span class="section-meta">After the password, never instead of it.</span></div><div class="frame"><iframe class="hosted" src="hosted/sign-in-code.html" title="Authenticator code" style="--h: 520px"></iframe></div></div>
+            <div class="stack-sm"><div class="section-head"><h3 class="t-heading">Recovery code</h3><span class="section-meta">For a lost phone. Each code works once.</span></div><div class="frame"><iframe class="hosted" src="hosted/sign-in-recovery.html" title="Recovery code" style="--h: 520px"></iframe></div></div>
+            <div class="stack-sm"><div class="section-head"><h3 class="t-heading">With the app's color and a session</h3><span class="section-meta">An app may set its accent and logo; nothing else changes.</span></div><div class="frame"><iframe class="hosted" src="hosted/sign-in-brand.html" title="With the app's color and a session" style="--h: 620px"></iframe></div></div>
+            <div class="stack-sm"><div class="section-head"><h3 class="t-heading">Joining from an invite</h3><span class="section-meta">Who invited them, which address, then Google or a password.</span></div><div class="frame"><iframe class="hosted" src="hosted/join.html" title="Joining from an invite" style="--h: 620px"></iframe></div></div>
+          </div>
+        </section>
+        <section class="section"><div class="section-head"><h2 class="section-title">When sign-in cannot go on</h2><span class="section-meta">What happened, and the one next step when there is one.</span></div>
+          <div class="grid-2">
+            <div class="stack-sm"><div class="section-head"><h3 class="t-heading">No access</h3><span class="section-meta">Who can grant it, and a way to try another account.</span></div><div class="frame"><iframe class="hosted" src="hosted/no-access.html" title="No access" style="--h: 460px"></iframe></div></div>
+            <div class="stack-sm"><div class="section-head"><h3 class="t-heading">A link that cannot be used</h3><span class="section-meta">Invites and confirmation links.</span></div><div class="frame"><iframe class="hosted" src="hosted/link-used.html" title="A link that cannot be used" style="--h: 460px"></iframe></div></div>
+          </div>
+        </section>
+        <section class="section" id="account"><div class="section-head"><h2 class="section-title">Account and signing out</h2><span class="section-meta">The account page is linked from every app's account menu.</span></div>
+          <div class="grid-2">
+            <div class="stack-sm"><div class="section-head"><h3 class="t-heading">Your account</h3><span class="section-meta">Signed in, it also changes the address and Google.</span></div><div class="frame"><iframe class="hosted" src="hosted/account.html" title="Your account" style="--h: 760px"></iframe></div></div>
+            <div class="stack-sm"><div class="section-head"><h3 class="t-heading">Signed out</h3><span class="section-meta">Apps ask again from here on.</span></div><div class="frame"><iframe class="hosted" src="hosted/signed-out.html" title="Signed out" style="--h: 460px"></iframe></div></div>
+          </div>
+        </section>
+        <section class="section"><div class="section-head"><h2 class="section-title">In the app</h2><span class="section-meta">The handoff, the account menu, and the session ending.</span></div>
+          <div class="grid-2">
+            <div class="stack-sm"><div class="section-head"><h3 class="t-heading">Coming back from sign-in</h3><span class="section-meta">The app's name and a spinner while it starts the session.</span></div><div class="frame"><div class="center"><div class="empty"><span class="avatar avatar-xl avatar-accent"><svg class="icon" aria-hidden="true"><use href="#i-radar"/></svg></span><div class="empty-title">Competitor Intel</div><span class="status running"><span class="spinner"></span>Signing you in</span></div></div></div></div>
+            <div class="stack-sm"><div class="section-head"><h3 class="t-heading">Account menu</h3><span class="section-meta">At the foot of the sidebar.</span></div><div class="frame demo-foot"><div class="menu-wrap w-full">
+        <button class="item" type="button" data-toggle aria-haspopup="menu" aria-expanded="true"><span class="avatar avatar-xs">SL</span>Sam Lee<svg class="icon icon-sm end" aria-hidden="true"><use href="#i-chevrons-up-down"/></svg></button>
+        <div class="menu menu-start menu-up" role="menu">
+          <div class="menu-head"><span class="avatar avatar-sm">SL</span><span class="menu-head-text"><span class="medium">Sam Lee</span><span>sam@example.com</span></span></div>
+          <a class="item" role="menuitem" href="page-signin.html#account"><svg class="icon" aria-hidden="true"><use href="#i-user"/></svg>Your account<svg class="icon icon-sm end" aria-hidden="true"><use href="#i-external"/></svg></a>
+          <div class="menu-sep"></div>
+          <div class="menu-head"><span class="t-label">Theme</span></div>
+          <div role="group" aria-label="Theme"><button class="item option option-check" type="button" role="menuitemradio" aria-checked="false" data-theme-set="light"><svg class="icon check-mark" aria-hidden="true"><use href="#i-check"/></svg><span class="option-text">Light</span></button><button class="item option option-check" type="button" role="menuitemradio" aria-checked="false" data-theme-set="dark"><svg class="icon check-mark" aria-hidden="true"><use href="#i-check"/></svg><span class="option-text">Dark</span></button><button class="item option option-check" type="button" role="menuitemradio" aria-checked="false" data-theme-set="auto"><svg class="icon check-mark" aria-hidden="true"><use href="#i-check"/></svg><span class="option-text">Match this device</span></button></div>
+          <div class="menu-sep"></div>
+          <button class="item" role="menuitem" type="button" ><svg class="icon" aria-hidden="true"><use href="#i-help-circle"/></svg>Help</button>
+          <button class="item" role="menuitem" type="button" ><svg class="icon" aria-hidden="true"><use href="#i-log-out"/></svg>Sign out</button>
+        </div>
+      </div></div></div>
+            <div class="stack-sm"><div class="section-head"><h3 class="t-heading">Session ended</h3><span class="section-meta">Sign-in opens in a new window, so nothing typed is lost.</span></div><div class="frame"><div class="center"><div class="modal modal-sm modal-confirm" role="alertdialog" aria-labelledby="sd-key" aria-describedby="sd-key-d"><div class="modal-head"><span class="avatar"><svg class="icon" aria-hidden="true"><use href="#i-key"/></svg></span><div class="overlay-heading"><div class="overlay-title" id="sd-key">Sign in again to keep working</div><div class="overlay-desc" id="sd-key-d">Your session ended after 12 hours. What you typed stays on this page; sign in and then save.</div></div></div><div class="modal-foot"><button class="btn btn-primary" type="button">Sign in again</button></div></div></div></div></div>
+            <div class="stack-sm"><div class="section-head"><h3 class="t-heading">No access to this app</h3><span class="section-meta">Signed in, but not given this app.</span></div><div class="frame"><div class="center"><div class="empty"><span class="avatar avatar-xl"><svg class="icon" aria-hidden="true"><use href="#i-lock"/></svg></span><div class="empty-title">You don't have access</div><p class="empty-text">You're signed in as sam@example.com. Whoever manages Competitor Intel can give you access.</p><div class="actions actions-center"><button class="btn" type="button">Use another account</button></div></div></div></div></div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="preview.js"></script>
+</body>
+</html>

@@ -78,6 +78,10 @@
     table: '<path d="M12 3v18"/><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/>',
     'trending-up': '<path d="M16 7h6v6"/><path d="m22 7-8.5 8.5-5-5L2 17"/>',
     'trending-down': '<path d="M16 17h6v-6"/><path d="m22 17-8.5-8.5-5 5L2 7"/>',
+    'wifi-off': '<path d="M12 20h.01"/><path d="M8.5 16.43a5 5 0 0 1 7 0"/><path d="M5 12.86a10 10 0 0 1 5.17-2.69"/><path d="M19 12.86a10 10 0 0 0-2.01-1.43"/><path d="M2 8.82a15 15 0 0 1 4.18-2.65"/><path d="M22 8.82a15 15 0 0 0-11.29-3.76"/><path d="m2 2 20 20"/>',
+    monitor: '<rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/>',
+    key: '<path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4"/><path d="m21 2-9.6 9.6"/><circle cx="7.5" cy="15.5" r="5.5"/>',
+    'git-compare': '<circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><path d="M11 18H8a2 2 0 0 1-2-2V9"/>',
     list: '<line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/>',
     send: '<path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/>',
     'message': '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>',
@@ -96,15 +100,19 @@
   const root = document.documentElement;
   const saved = (() => { try { return localStorage.getItem('kit-theme'); } catch { return null; } })();
   if (saved) root.dataset.theme = saved;
-  const markTheme = () => document.querySelectorAll('[data-theme-set]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.themeSet === (root.dataset.theme || 'light'))));
-  const setTheme = (t) => { root.dataset.theme = t; markTheme(); try { localStorage.setItem('kit-theme', t); } catch { /* private window */ } };
+  const markTheme = () => document.querySelectorAll('[data-theme-set]').forEach((b) => b.setAttribute(b.getAttribute('role') === 'menuitemradio' ? 'aria-checked' : 'aria-pressed', String(b.dataset.themeSet === (root.dataset.theme || 'light'))));
+  // Frames showing the platform's hosted pages take the theme by message.
+  const effective = () => (root.dataset.theme === 'auto' ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : root.dataset.theme || 'light');
+  const tellFrames = () => document.querySelectorAll('iframe.hosted').forEach((f) => f.contentWindow?.postMessage({ kitTheme: effective() }, '*'));
+  document.querySelectorAll('iframe.hosted').forEach((f) => f.addEventListener('load', tellFrames));
+  const setTheme = (t) => { root.dataset.theme = t; markTheme(); tellFrames(); try { localStorage.setItem('kit-theme', t); } catch { /* private window */ } };
 
   // ---------------------------------------------------------------- preview switcher
   const PAGES = [
     ['index.html', 'Overview'], ['foundations.html', 'Foundations'], ['components.html', 'Components'],
     ['page-list.html', 'Collection page'], ['page-record.html', 'Record page'], ['page-form.html', 'Create and edit'],
     ['page-settings.html', 'Settings'], ['page-dashboard.html', 'Dashboard'], ['page-activity.html', 'Background work'],
-    ['page-wizard.html', 'Step by step'], ['page-sidebar.html', 'Queue'], ['page-states.html', 'Sign-in, errors, loading'],
+    ['page-wizard.html', 'Step by step'], ['page-sidebar.html', 'Queue'], ['page-signin.html', 'Sign-in and account'], ['page-states.html', 'System states'],
     ['mobile.html', 'On a phone'],
   ];
   window.KIT_PAGES = PAGES;

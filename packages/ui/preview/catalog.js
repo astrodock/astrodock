@@ -577,6 +577,32 @@ ${(o.lines ? lineChart : barChart)(o)}
   });
 
   g.components.push({
+    id: 'account-menu', title: 'Account menu',
+    lede: 'The person, at the foot of the sidebar. It says who is signed in, links to their account on the sign-in host, sets the theme, and signs out. Signing out of the app sends people to the platform sign-out so the next app asks again.',
+    use: 'Every app, in the sidebar foot.', notFor: 'App settings (Settings, above it).',
+    examples: [
+      { title: 'Open', desc: 'The theme choice is a set of radio items; the current one has a check.',
+        html: `<div class="menu-wrap">
+  <button class="item" type="button" data-toggle aria-haspopup="menu" aria-expanded="false"><span class="avatar avatar-xs">SL</span>Sam Lee${ic('chevrons-up-down', 'icon icon-sm end')}</button>
+  <div class="menu menu-start" role="menu" hidden>
+    <div class="menu-head"><span class="avatar avatar-sm">SL</span><span class="menu-head-text"><span class="medium">Sam Lee</span><span>sam@example.com</span></span></div>
+    <a class="item" role="menuitem" href="#">${ic('user')}Your account${ic('external', 'icon icon-sm end')}</a>
+    <div class="menu-sep"></div>
+    <div class="menu-head"><span class="t-label">Theme</span></div>
+    <div role="group" aria-label="Theme">
+      <button class="item option option-check" type="button" role="menuitemradio" aria-checked="false" data-theme-set="light">${ic('check', 'icon check-mark')}<span class="option-text">Light</span></button>
+      <button class="item option option-check" type="button" role="menuitemradio" aria-checked="false" data-theme-set="dark">${ic('check', 'icon check-mark')}<span class="option-text">Dark</span></button>
+      <button class="item option option-check" type="button" role="menuitemradio" aria-checked="false" data-theme-set="auto">${ic('check', 'icon check-mark')}<span class="option-text">Match this device</span></button>
+    </div>
+    <div class="menu-sep"></div>
+    <button class="item" type="button" role="menuitem">${ic('help-circle')}Help</button>
+    <button class="item" type="button" role="menuitem">${ic('log-out')}Sign out</button>
+  </div>
+</div>` },
+    ],
+  });
+
+  g.components.push({
     id: 'steps', title: 'Steps',
     lede: 'For decisions that must happen in order, with a review before anything is committed.',
     use: '', notFor: 'Ordinary forms.',
@@ -617,6 +643,28 @@ ${(o.lines ? lineChart : barChart)(o)}
       <div class="overlay-heading"><div class="overlay-title" id="ex-confirm-t">Delete Seniorverse Day?</div><div class="overlay-desc" id="ex-confirm-d">Its surveys, comparisons and digests are deleted. The companies and what was collected about them are kept.</div></div>
     </div>
     <div class="modal-foot"><button class="btn" type="button" data-close autofocus>Cancel</button><button class="btn btn-danger-solid" type="button" data-close data-toast="Seniorverse Day deleted">Delete project</button></div>
+  </div>
+</div>` },
+      { title: 'Session ended', desc: 'Signing in again opens in a new window, so nothing typed here is lost.',
+        html: `<button class="btn" type="button" data-open="ex-session">Show session ended</button>
+<div class="scrim" id="ex-session" hidden>
+  <div class="modal modal-sm modal-confirm" role="alertdialog" aria-modal="true" aria-labelledby="ex-session-t" aria-describedby="ex-session-d">
+    <div class="modal-head">
+      <span class="avatar">${ic('key')}</span>
+      <div class="overlay-heading"><div class="overlay-title" id="ex-session-t">Sign in again to keep working</div><div class="overlay-desc" id="ex-session-d">Your session ended after 12 hours. What you typed stays on this page; sign in and then save.</div></div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-primary" type="button" data-close autofocus>Sign in again</button></div>
+  </div>
+</div>` },
+      { title: 'Leaving with unsaved changes', desc: 'Only when something was changed. Keep editing has focus.',
+        html: `<button class="btn" type="button" data-open="ex-leave">Show leave without saving</button>
+<div class="scrim" id="ex-leave" hidden>
+  <div class="modal modal-sm modal-confirm" role="alertdialog" aria-modal="true" aria-labelledby="ex-leave-t" aria-describedby="ex-leave-d">
+    <div class="modal-head">
+      <span class="avatar avatar-warning">${ic('alert-triangle')}</span>
+      <div class="overlay-heading"><div class="overlay-title" id="ex-leave-t">Leave without saving?</div><div class="overlay-desc" id="ex-leave-d">Your changes to the project description and 2 settings are lost.</div></div>
+    </div>
+    <div class="modal-foot"><button class="btn" type="button" data-close autofocus>Keep editing</button><button class="btn btn-danger-solid" type="button" data-close>Discard changes</button></div>
   </div>
 </div>` },
     ],
@@ -695,6 +743,14 @@ ${(o.lines ? lineChart : barChart)(o)}
   <div class="notice">${ic('info')}<div class="notice-body"><span class="notice-title">This is a light profile.</span><span>Only the key pages were read.</span><div class="actions"><button class="btn btn-sm" type="button">Upgrade to full study</button></div></div></div>
   <div class="notice warning">${ic('alert-triangle')}<div class="notice-body"><span class="notice-title">Inbound email is not set up.</span><span>Mailing lists are not collected.</span></div></div>
   <div class="notice danger">${ic('alert-triangle')}<div class="notice-body"><span class="notice-title">The last survey stopped.</span><span>The search provider refused the key.</span></div></div>
+</div>` },
+      { title: 'States that last', desc: 'At the top of the page they affect, above the header when they affect the whole app.',
+        html: `<div class="stack">
+  <div class="notice warning">${ic('wifi-off')}<div class="notice-body"><span class="notice-title">You are offline.</span><span>Changes are kept on this page and saved when the connection is back.</span></div></div>
+  <div class="notice">${ic('lock')}<div class="notice-body"><span class="notice-title">You can view this project.</span><span>Only its owners can change it. Sam Lee can give you edit access.</span></div></div>
+  <div class="notice warning">${ic('git-compare')}<div class="notice-body"><span class="notice-title">Ann Ruiz changed this project 2 min ago.</span><span>Saving now replaces their changes to the description.</span><div class="actions"><button class="btn btn-sm" type="button">Load their version</button><button class="btn btn-sm btn-quiet" type="button">Save mine anyway</button></div></div></div>
+  <div class="notice danger">${ic('alert-triangle')}<div class="notice-body"><span class="notice-title">2 of 14 could not be archived.</span><span>CareWatch and Turning Point Systems are still collecting. The other 12 were archived.</span><div class="actions"><button class="btn btn-sm" type="button">${ic('refresh')}Try those 2 again</button></div></div></div>
+  <div class="notice warning">${ic('clock')}<div class="notice-body"><span class="notice-title">Too many searches at once.</span><span>The search provider asked us to slow down. Surveys continue on their own in about a minute.</span></div></div>
 </div>` },
     ],
   });

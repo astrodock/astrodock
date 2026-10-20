@@ -202,9 +202,13 @@ The sidebar sits on the gray frame; the page sits on one white panel. Every app 
       <div class="menu-wrap w-full">
         <button class="item" type="button" data-toggle aria-haspopup="menu" aria-expanded="false"><span class="avatar avatar-xs">SL</span>Sam Lee<svg class="icon icon-sm end" aria-hidden="true"><use href="#i-chevrons-up-down"/></svg></button>
         <div class="menu menu-start menu-up" role="menu" hidden>
-          <div class="menu-head"><span class="t-small muted">sam@example.com</span></div>
-          <button class="item" role="menuitem" type="button" ><svg class="icon" aria-hidden="true"><use href="#i-help-circle"/></svg>Help</button>
+          <div class="menu-head"><span class="avatar avatar-sm">SL</span><span class="menu-head-text"><span class="medium">Sam Lee</span><span>sam@example.com</span></span></div>
+          <a class="item" role="menuitem" href="page-signin.html#account"><svg class="icon" aria-hidden="true"><use href="#i-user"/></svg>Your account<svg class="icon icon-sm end" aria-hidden="true"><use href="#i-external"/></svg></a>
           <div class="menu-sep"></div>
+          <div class="menu-head"><span class="t-label">Theme</span></div>
+          <div role="group" aria-label="Theme"><button class="item option option-check" type="button" role="menuitemradio" aria-checked="false" data-theme-set="light"><svg class="icon check-mark" aria-hidden="true"><use href="#i-check"/></svg><span class="option-text">Light</span></button><button class="item option option-check" type="button" role="menuitemradio" aria-checked="false" data-theme-set="dark"><svg class="icon check-mark" aria-hidden="true"><use href="#i-check"/></svg><span class="option-text">Dark</span></button><button class="item option option-check" type="button" role="menuitemradio" aria-checked="false" data-theme-set="auto"><svg class="icon check-mark" aria-hidden="true"><use href="#i-check"/></svg><span class="option-text">Match this device</span></button></div>
+          <div class="menu-sep"></div>
+          <button class="item" role="menuitem" type="button" ><svg class="icon" aria-hidden="true"><use href="#i-help-circle"/></svg>Help</button>
           <button class="item" role="menuitem" type="button" ><svg class="icon" aria-hidden="true"><use href="#i-log-out"/></svg>Sign out</button>
         </div>
       </div>
@@ -893,6 +897,35 @@ The vertical list in the sidebar, in settings, and for a long page's sections. C
 </nav>
 ```
 
+### Account menu
+
+The person, at the foot of the sidebar. It says who is signed in, links to their account on the sign-in host, sets the theme, and signs out. Signing out of the app sends people to the platform sign-out so the next app asks again.
+
+- **Use for:** Every app, in the sidebar foot.
+- **Not for:** App settings (Settings, above it).
+
+**Open.** The theme choice is a set of radio items; the current one has a check.
+
+```html
+<div class="menu-wrap">
+  <button class="item" type="button" data-toggle aria-haspopup="menu" aria-expanded="false"><span class="avatar avatar-xs">SL</span>Sam Lee<svg class="icon icon-sm end" aria-hidden="true"><use href="#i-chevrons-up-down"/></svg></button>
+  <div class="menu menu-start" role="menu" hidden>
+    <div class="menu-head"><span class="avatar avatar-sm">SL</span><span class="menu-head-text"><span class="medium">Sam Lee</span><span>sam@example.com</span></span></div>
+    <a class="item" role="menuitem" href="#"><svg class="icon" aria-hidden="true"><use href="#i-user"/></svg>Your account<svg class="icon icon-sm end" aria-hidden="true"><use href="#i-external"/></svg></a>
+    <div class="menu-sep"></div>
+    <div class="menu-head"><span class="t-label">Theme</span></div>
+    <div role="group" aria-label="Theme">
+      <button class="item option option-check" type="button" role="menuitemradio" aria-checked="false" data-theme-set="light"><svg class="icon check-mark" aria-hidden="true"><use href="#i-check"/></svg><span class="option-text">Light</span></button>
+      <button class="item option option-check" type="button" role="menuitemradio" aria-checked="false" data-theme-set="dark"><svg class="icon check-mark" aria-hidden="true"><use href="#i-check"/></svg><span class="option-text">Dark</span></button>
+      <button class="item option option-check" type="button" role="menuitemradio" aria-checked="false" data-theme-set="auto"><svg class="icon check-mark" aria-hidden="true"><use href="#i-check"/></svg><span class="option-text">Match this device</span></button>
+    </div>
+    <div class="menu-sep"></div>
+    <button class="item" type="button" role="menuitem"><svg class="icon" aria-hidden="true"><use href="#i-help-circle"/></svg>Help</button>
+    <button class="item" type="button" role="menuitem"><svg class="icon" aria-hidden="true"><use href="#i-log-out"/></svg>Sign out</button>
+  </div>
+</div>
+```
+
 ### Steps
 
 For decisions that must happen in order, with a review before anything is committed.
@@ -944,6 +977,36 @@ A modal is for a short task that blocks the page. Title and what it does, the fi
       <div class="overlay-heading"><div class="overlay-title" id="ex-confirm-t">Delete Seniorverse Day?</div><div class="overlay-desc" id="ex-confirm-d">Its surveys, comparisons and digests are deleted. The companies and what was collected about them are kept.</div></div>
     </div>
     <div class="modal-foot"><button class="btn" type="button" data-close autofocus>Cancel</button><button class="btn btn-danger-solid" type="button" data-close data-toast="Seniorverse Day deleted">Delete project</button></div>
+  </div>
+</div>
+```
+
+**Session ended.** Signing in again opens in a new window, so nothing typed here is lost.
+
+```html
+<button class="btn" type="button" data-open="ex-session">Show session ended</button>
+<div class="scrim" id="ex-session" hidden>
+  <div class="modal modal-sm modal-confirm" role="alertdialog" aria-modal="true" aria-labelledby="ex-session-t" aria-describedby="ex-session-d">
+    <div class="modal-head">
+      <span class="avatar"><svg class="icon" aria-hidden="true"><use href="#i-key"/></svg></span>
+      <div class="overlay-heading"><div class="overlay-title" id="ex-session-t">Sign in again to keep working</div><div class="overlay-desc" id="ex-session-d">Your session ended after 12 hours. What you typed stays on this page; sign in and then save.</div></div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-primary" type="button" data-close autofocus>Sign in again</button></div>
+  </div>
+</div>
+```
+
+**Leaving with unsaved changes.** Only when something was changed. Keep editing has focus.
+
+```html
+<button class="btn" type="button" data-open="ex-leave">Show leave without saving</button>
+<div class="scrim" id="ex-leave" hidden>
+  <div class="modal modal-sm modal-confirm" role="alertdialog" aria-modal="true" aria-labelledby="ex-leave-t" aria-describedby="ex-leave-d">
+    <div class="modal-head">
+      <span class="avatar avatar-warning"><svg class="icon" aria-hidden="true"><use href="#i-alert-triangle"/></svg></span>
+      <div class="overlay-heading"><div class="overlay-title" id="ex-leave-t">Leave without saving?</div><div class="overlay-desc" id="ex-leave-d">Your changes to the project description and 2 settings are lost.</div></div>
+    </div>
+    <div class="modal-foot"><button class="btn" type="button" data-close autofocus>Keep editing</button><button class="btn btn-danger-solid" type="button" data-close>Discard changes</button></div>
   </div>
 </div>
 ```
@@ -1039,6 +1102,18 @@ A notice stays in the page while a situation lasts. Neutral for information, tin
 </div>
 ```
 
+**States that last.** At the top of the page they affect, above the header when they affect the whole app.
+
+```html
+<div class="stack">
+  <div class="notice warning"><svg class="icon" aria-hidden="true"><use href="#i-wifi-off"/></svg><div class="notice-body"><span class="notice-title">You are offline.</span><span>Changes are kept on this page and saved when the connection is back.</span></div></div>
+  <div class="notice"><svg class="icon" aria-hidden="true"><use href="#i-lock"/></svg><div class="notice-body"><span class="notice-title">You can view this project.</span><span>Only its owners can change it. Sam Lee can give you edit access.</span></div></div>
+  <div class="notice warning"><svg class="icon" aria-hidden="true"><use href="#i-git-compare"/></svg><div class="notice-body"><span class="notice-title">Ann Ruiz changed this project 2 min ago.</span><span>Saving now replaces their changes to the description.</span><div class="actions"><button class="btn btn-sm" type="button">Load their version</button><button class="btn btn-sm btn-quiet" type="button">Save mine anyway</button></div></div></div>
+  <div class="notice danger"><svg class="icon" aria-hidden="true"><use href="#i-alert-triangle"/></svg><div class="notice-body"><span class="notice-title">2 of 14 could not be archived.</span><span>CareWatch and Turning Point Systems are still collecting. The other 12 were archived.</span><div class="actions"><button class="btn btn-sm" type="button"><svg class="icon" aria-hidden="true"><use href="#i-refresh"/></svg>Try those 2 again</button></div></div></div>
+  <div class="notice warning"><svg class="icon" aria-hidden="true"><use href="#i-clock"/></svg><div class="notice-body"><span class="notice-title">Too many searches at once.</span><span>The search provider asked us to slow down. Surveys continue on their own in about a minute.</span></div></div>
+</div>
+```
+
 ### Empty states
 
 Nothing yet: what will be here and the first step. No matches: say so, and offer to clear filters.
@@ -1069,4 +1144,5 @@ Every screen is one of these; open the preview file for the full markup.
 | Background work | `preview/page-activity.html` | Tabs Now, History, Usage and cost; lanes with running work; failures with Retry; drawer detail |
 | Step by step | `preview/page-wizard.html` | Steps, one card per step, Back and Next in the card foot |
 | Sidebar shell and queue | `preview/page-sidebar.html` | Sidebar shell; queue on the left, detail with its own bar on the right; command menu |
-| System | `preview/page-states.html` | Signing in, no access, not found, error, first use, loading, saving failed |
+| Sign-in and account | `preview/page-signin.html` | Hosted by the platform, never built by an app; the app's part is the handoff, account menu, no access and session ended |
+| System states | `preview/page-states.html` | Not found, error, updating, offline, read-only, conflict, partly done, slowed down, unsaved changes, first use, loading |

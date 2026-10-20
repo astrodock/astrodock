@@ -2,7 +2,7 @@
 # preview.js and preview.css, which are edited by hand). Run from anywhere:
 #   python3 scripts/build-preview.py   (Python 3.12 or later)
 # then: node scripts/check.js && node scripts/build-reference.js
-import json, os, subprocess
+import json, os, re, subprocess
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, 'preview')
@@ -97,6 +97,22 @@ def confirm(id_, title, text, action, toast):
   </div>
 </div>'''
 
+def account_menu(open_=False):
+    themes = ''.join(f'<button class="item option option-check" type="button" role="menuitemradio" aria-checked="false" data-theme-set="{v}">{ic("check", "icon check-mark")}<span class="option-text">{l}</span></button>' for v, l in [('light', 'Light'), ('dark', 'Dark'), ('auto', 'Match this device')])
+    return f'''<div class="menu-wrap w-full">
+        <button class="item" type="button" data-toggle aria-haspopup="menu" aria-expanded="{'true' if open_ else 'false'}"><span class="avatar avatar-xs">SL</span>Sam Lee{ic('chevrons-up-down', 'icon icon-sm end')}</button>
+        <div class="menu menu-start menu-up" role="menu"{'' if open_ else ' hidden'}>
+          <div class="menu-head"><span class="avatar avatar-sm">SL</span><span class="menu-head-text"><span class="medium">Sam Lee</span><span>sam@example.com</span></span></div>
+          <a class="item" role="menuitem" href="page-signin.html#account">{ic('user')}Your account{ic('external', 'icon icon-sm end')}</a>
+          <div class="menu-sep"></div>
+          <div class="menu-head"><span class="t-label">Theme</span></div>
+          <div role="group" aria-label="Theme">{themes}</div>
+          <div class="menu-sep"></div>
+          {item('help-circle', 'Help')}
+          {item('log-out', 'Sign out')}
+        </div>
+      </div>'''
+
 # ----------------------------------------------------------------------- Competitor Intel frame
 INTEL_CMD = command(f'''<div class="nav-label">Companies</div>
       <a class="item" aria-current="true" href="page-record.html"><span class="avatar avatar-xs">SC</span>StoriiCare<span class="count">Seniorverse Day</span></a>
@@ -134,15 +150,7 @@ def intel(current, main, overlays=''):
     </div>
     <div class="sidebar-foot">
       {nav('page-settings.html', 'settings', 'Settings', 'settings')}
-      <div class="menu-wrap w-full">
-        <button class="item" type="button" data-toggle aria-haspopup="menu" aria-expanded="false"><span class="avatar avatar-xs">SL</span>Sam Lee{ic('chevrons-up-down', 'icon icon-sm end')}</button>
-        <div class="menu menu-start menu-up" role="menu" hidden>
-          <div class="menu-head"><span class="t-small muted">sam@example.com</span></div>
-          {item('help-circle', 'Help')}
-          <div class="menu-sep"></div>
-          {item('log-out', 'Sign out')}
-        </div>
-      </div>
+      {account_menu()}
     </div>
   </nav>
   <div class="panel">
@@ -553,7 +561,7 @@ queue_body = f'''<div class="app">
     </div>
     <div class="sidebar-foot">
       <a class="item" href="#">{ic('settings')}Settings</a>
-      <div class="menu-wrap w-full"><button class="item" type="button" data-toggle aria-haspopup="menu" aria-expanded="false"><span class="avatar avatar-xs">SL</span>Sam Lee{ic('chevrons-up-down', 'icon icon-sm end')}</button><div class="menu menu-start menu-up" role="menu" hidden>{item('log-out', 'Sign out')}</div></div>
+      {account_menu()}
     </div>
   </nav>
   <div class="panel">
@@ -614,7 +622,7 @@ DOCS = [
 SAMPLES = [
     ('page-list.html', 'Collection'), ('page-record.html', 'Record'), ('page-form.html', 'Create'), ('page-settings.html', 'Settings'),
     ('page-dashboard.html', 'Dashboard'), ('page-activity.html', 'Background work'), ('page-wizard.html', 'Step by step'),
-    ('page-sidebar.html', 'Queue'), ('page-states.html', 'Sign-in and errors'), ('mobile.html', 'On a phone'),
+    ('page-sidebar.html', 'Queue'), ('page-signin.html', 'Sign-in and account'), ('page-states.html', 'System states'), ('mobile.html', 'On a phone'),
 ]
 
 def docs(current, main):
@@ -733,21 +741,116 @@ comp_main = f'''    <div class="with-subnav">
     </div>'''
 page('components.html', 'Components · Astrodock UI', docs('components.html', comp_main))
 
-# ---- states
+# ---- sign-in and account: the platform's hosted pages, rendered by the
+# control plane's own code so the preview is never a copy that drifts.
+CP = os.path.join(ROOT, '..', '..', 'apps', 'control-plane')
+HOSTED_JS = """
+process.env.ASTRODOCK_BASE_DOMAIN ||= 'example.com';
+const cp = process.argv[1];
+const { _internal: oauth } = require(cp + '/src/routes/oauth.js');
+const { _internal: inv } = require(cp + '/src/routes/invites.js');
+const { errorPage } = require(cp + '/src/lib/auth-pages.js');
+const { accountPage } = require(cp + '/src/lib/account-page.js');
+const login = (o = {}) => oauth.loginPage({ appName: 'Competitor Intel', appId: 'intel', redirectUri: 'https://intel.example.com/auth/callback', state: 's', nonce: 'n', googleEnabled: true, ...o });
+process.stdout.write(JSON.stringify({
+  'sign-in': login(),
+  'sign-in-error': login(),
+  'sign-in-code': login(),
+  'sign-in-recovery': login(),
+  'sign-in-brand': login({ brandColor: '#6d32e0', signedInAs: 'sam@example.com' }),
+  'join': inv.invitePage({ appName: 'Competitor Intel', appId: 'intel', token: 't', invitedByName: 'Paul', email: 'sam@example.com', googleEnabled: true, needsCredential: true }),
+  'no-access': errorPage('No access', 'Your Google account signed in, but it has not been given access to Competitor Intel. Whoever manages Competitor Intel can add you.', { icon: 'lock', action: { href: '/authorize', label: 'Use another account' } }),
+  'link-used': errorPage('That invite cannot be used', 'It has already been used. Ask for a new one.', { icon: 'mail' }),
+  'signed-out': errorPage('Signed out', 'You have been signed out of Astrodock, so apps will ask who you are again. Any app you are still signed into keeps its own session until you sign out of it.', { icon: 'log-out' }),
+  'account': accountPage(),
+}));
+"""
+STATE_JS = {
+    'sign-in-error': "show('Those details are not right.');",
+    'sign-in-code': 'creds = {}; step(true);',
+    'sign-in-recovery': 'creds = {}; step(true); codeMode(true);',
+}
+THEME_JS = "<script>addEventListener('message', (e) => { if (e.data && e.data.kitTheme) document.documentElement.classList.toggle('dark', e.data.kitTheme === 'dark'); });</script>"
+GEIST = '<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap" rel="stylesheet">'
+hosted = json.loads(subprocess.run(['node', '-e', HOSTED_JS, CP], capture_output=True, text=True, check=True).stdout)
+os.makedirs(os.path.join(OUT, 'hosted'), exist_ok=True)
+for name, html in hosted.items():
+    # The platform serves its own copy of Geist; a file:// preview cannot, so
+    # it borrows the kit preview's font link instead.
+    html = re.sub(r'@font-face\{[^}]*\}\n?', '', html).replace('</title>', '</title>\n' + GEIST, 1)
+    # The live pages follow the system theme. Here they follow the preview's
+    # theme switch instead, which preview.js sends to every frame.
+    html = re.sub(r'@media\(prefers-color-scheme:dark\)\{:root\{(.*?)\}\}', r':root.dark{\1}', html, count=1, flags=re.S)
+    html = html.replace('</body>', THEME_JS + '</body>', 1)
+    if name in STATE_JS:
+        html = html.replace('</body>', f'<script>{STATE_JS[name]}</script></body>')
+    with open(os.path.join(OUT, 'hosted', f'{name}.html'), 'w') as f:
+        f.write('<!-- Generated by scripts/build-preview.py from apps/control-plane. Do not edit. -->\n' + html)
+
+def hosted_frame(name, title, desc, h=620):
+    return f'''<div class="stack-sm"><div class="section-head"><h3 class="t-heading">{title}</h3><span class="section-meta">{desc}</span></div><div class="frame"><iframe class="hosted" src="hosted/{name}.html" title="{title}" style="--h: {h}px"></iframe></div></div>'''
+
 def frame(label, desc, inner):
     return f'''        <section class="section"><div class="section-head"><h2 class="section-title">{label}</h2><span class="section-meta">{desc}</span></div><div class="frame">{inner}</div></section>'''
-states_main = f'''    <main class="page">
-      {header('Sign-in, errors, loading', desc='Each says what happened in plain words and offers one way forward.')}
+
+def static_dialog(icon, tone, title, text, buttons):
+    return f'''<div class="center"><div class="modal modal-sm modal-confirm" role="alertdialog" aria-labelledby="sd-{icon}" aria-describedby="sd-{icon}-d"><div class="modal-head"><span class="avatar{tone}">{ic(icon)}</span><div class="overlay-heading"><div class="overlay-title" id="sd-{icon}">{title}</div><div class="overlay-desc" id="sd-{icon}-d">{text}</div></div></div><div class="modal-foot">{buttons}</div></div></div>'''
+
+signin_main = f'''    <main class="page">
+      {header('Sign-in and account', desc='Apps never build a sign-in page. Astrodock hosts it on the sign-in host, so an app never sees a password; these are the platform\'s pages, rendered from its code. The app\'s part is the handoff, the account menu and the session ending.')}
       <div class="sections">
-{frame('Signing in', 'The moment between Astrodock\'s sign-in and the app.', f'<div class="center"><div class="empty"><span class="avatar avatar-xl avatar-accent">{ic("radar")}</span><div class="empty-title">Competitor Intel</div>{status("running", "Signing you in")}</div></div>')}
-{frame('No access', 'Who is signed in, and who can grant access.', f'<div class="center"><div class="empty"><span class="avatar avatar-xl">{ic("lock")}</span><div class="empty-title">You don\'t have access</div><p class="empty-text">You\'re signed in as sam@example.com. An administrator can give you access in Astrodock.</p><div class="actions actions-center"><button class="btn" type="button">Switch account</button><a class="btn btn-primary" href="#">Back to Company OS</a></div></div></div>')}
+        <section class="section"><div class="section-head"><h2 class="section-title">Signing in</h2><span class="section-meta">One page; the code step appears only for accounts with two-step sign-in.</span></div>
+          <div class="grid-2">
+            {hosted_frame('sign-in', 'Sign in', 'Password, passkey or Google.')}
+            {hosted_frame('sign-in-error', 'Details wrong', 'The error sits above the fields; what was typed stays.')}
+            {hosted_frame('sign-in-code', 'Authenticator code', 'After the password, never instead of it.', 520)}
+            {hosted_frame('sign-in-recovery', 'Recovery code', 'For a lost phone. Each code works once.', 520)}
+            {hosted_frame('sign-in-brand', 'With the app\'s color and a session', 'An app may set its accent and logo; nothing else changes.')}
+            {hosted_frame('join', 'Joining from an invite', 'Who invited them, which address, then Google or a password.')}
+          </div>
+        </section>
+        <section class="section"><div class="section-head"><h2 class="section-title">When sign-in cannot go on</h2><span class="section-meta">What happened, and the one next step when there is one.</span></div>
+          <div class="grid-2">
+            {hosted_frame('no-access', 'No access', 'Who can grant it, and a way to try another account.', 460)}
+            {hosted_frame('link-used', 'A link that cannot be used', 'Invites and confirmation links.', 460)}
+          </div>
+        </section>
+        <section class="section" id="account"><div class="section-head"><h2 class="section-title">Account and signing out</h2><span class="section-meta">The account page is linked from every app's account menu.</span></div>
+          <div class="grid-2">
+            {hosted_frame('account', 'Your account', 'Signed in, it also changes the address and Google.', 760)}
+            {hosted_frame('signed-out', 'Signed out', 'Apps ask again from here on.', 460)}
+          </div>
+        </section>
+        <section class="section"><div class="section-head"><h2 class="section-title">In the app</h2><span class="section-meta">The handoff, the account menu, and the session ending.</span></div>
+          <div class="grid-2">
+            <div class="stack-sm"><div class="section-head"><h3 class="t-heading">Coming back from sign-in</h3><span class="section-meta">The app's name and a spinner while it starts the session.</span></div><div class="frame"><div class="center"><div class="empty"><span class="avatar avatar-xl avatar-accent">{ic("radar")}</span><div class="empty-title">Competitor Intel</div>{status("running", "Signing you in")}</div></div></div></div>
+            <div class="stack-sm"><div class="section-head"><h3 class="t-heading">Account menu</h3><span class="section-meta">At the foot of the sidebar.</span></div><div class="frame demo-foot">{account_menu(True)}</div></div>
+            <div class="stack-sm"><div class="section-head"><h3 class="t-heading">Session ended</h3><span class="section-meta">Sign-in opens in a new window, so nothing typed is lost.</span></div><div class="frame">{static_dialog('key', '', 'Sign in again to keep working', 'Your session ended after 12 hours. What you typed stays on this page; sign in and then save.', '<button class="btn btn-primary" type="button">Sign in again</button>')}</div></div>
+            <div class="stack-sm"><div class="section-head"><h3 class="t-heading">No access to this app</h3><span class="section-meta">Signed in, but not given this app.</span></div><div class="frame"><div class="center"><div class="empty"><span class="avatar avatar-xl">{ic("lock")}</span><div class="empty-title">You don\'t have access</div><p class="empty-text">You\'re signed in as sam@example.com. Whoever manages Competitor Intel can give you access.</p><div class="actions actions-center"><button class="btn" type="button">Use another account</button></div></div></div></div></div>
+          </div>
+        </section>
+      </div>
+    </main>'''
+page('page-signin.html', 'Sign-in and account · Astrodock UI', docs('page-signin.html', signin_main))
+
+# ---- system states
+states_main = f'''    <main class="page">
+      {header('System states', desc='Each says what happened in plain words and offers one way forward. Whole-page states replace the page; the rest sit at the top of what they affect.')}
+      <div class="sections">
 {frame('Not found', 'Keep people moving.', f'<div class="center"><div class="empty"><span class="avatar avatar-xl">{ic("file-question")}</span><div class="empty-title">This company isn\'t here</div><p class="empty-text">It may have been removed, or the link may be wrong.</p><a class="btn" href="page-list.html">Go to projects</a></div></div>')}
 {frame('Something went wrong', 'What failed, nothing lost, what to do, a reference.', f'<div class="center"><div class="empty"><span class="avatar avatar-xl avatar-danger">{ic("alert-triangle")}</span><div class="empty-title">This page could not load</div><p class="empty-text">The server did not answer. Nothing you entered was lost. Reference <span class="mono">req 7f3a-19c2</span></p><div class="actions actions-center"><button class="btn" type="button" data-toast="Reference copied">{ic("copy")}Copy reference</button><button class="btn btn-primary" type="button">Try again</button></div></div></div>')}
+{frame('The app is updating', 'During a deploy. The page checks every few seconds and reloads itself.', f'<div class="center"><div class="empty"><span class="avatar avatar-xl avatar-soft">{ic("refresh")}</span><div class="empty-title">Competitor Intel is updating</div><p class="empty-text">It is back in a moment. This page reloads itself; nothing you entered was lost.</p>{status("running", "Checking again in 5 s")}</div></div>')}
+{frame('Offline', 'Above the header while the connection is down; work keeps going where it can.', f'<div class="page">{chr(10)}<div class="notice warning">{ic("wifi-off")}<div class="notice-body"><span class="notice-title">You are offline.</span><span>Changes are kept on this page and saved when the connection is back.</span></div></div><div class="stack-sm"><span class="skeleton skeleton-title" style="--w: 240px"></span><span class="skeleton" style="--w: 360px"></span></div></div>')}
+{frame('Read-only', 'Why, and who can change it.', f'<div class="page"><div class="notice">{ic("lock")}<div class="notice-body"><span class="notice-title">You can view this project.</span><span>Only its owners can change it. Sam Lee can give you edit access.</span></div></div><div class="cluster"><span class="has-tip"><button class="btn btn-primary" type="button" disabled>{ic("plus")}Add competitor</button><span class="tooltip" role="tooltip">Only owners can add competitors</span></span><span class="t-small muted">A disabled button says why on hover.</span></div></div>')}
+{frame('Someone else changed it', 'Before saving over another person\'s edit.', f'<div class="page"><div class="notice warning">{ic("git-compare")}<div class="notice-body"><span class="notice-title">Ann Ruiz changed this project 2 min ago.</span><span>Saving now replaces their changes to the description.</span><div class="actions"><button class="btn btn-sm" type="button">Load their version</button><button class="btn btn-sm btn-quiet" type="button">Save mine anyway</button></div></div></div></div>')}
+{frame('Partly done', 'A bulk action where some items failed: what worked, what did not, a retry for the rest.', f'<div class="page"><div class="notice danger">{ic("alert-triangle")}<div class="notice-body"><span class="notice-title">2 of 14 could not be archived.</span><span>CareWatch and Turning Point Systems are still collecting. The other 12 were archived.</span><div class="actions"><button class="btn btn-sm" type="button">{ic("refresh")}Try those 2 again</button></div></div></div></div>')}
+{frame('Slowed down', 'A provider asked us to wait. Said once, where the work is.', f'<div class="page"><div class="notice warning">{ic("clock")}<div class="notice-body"><span class="notice-title">Too many searches at once.</span><span>The search provider asked us to slow down. Surveys continue on their own in about a minute.</span></div></div></div>')}
+{frame('Leaving with unsaved changes', 'Only when something changed. Keep editing has focus.', static_dialog('alert-triangle', ' avatar-warning', 'Leave without saving?', 'Your changes to the project description and 2 settings are lost.', '<button class="btn" type="button">Keep editing</button><button class="btn btn-danger-solid" type="button">Discard changes</button>'))}
 {frame('First use', 'One sentence and the first step. No tour.', f'<div class="center"><div class="empty"><span class="avatar avatar-xl avatar-soft">{ic("radar")}</span><div class="empty-title">Start with a project</div><p class="empty-text">A project is one market. Describe it, add the competitors you know, and the app finds the rest.</p><a class="btn btn-primary btn-lg" href="page-form.html">{ic("plus")}New project</a></div></div>')}
 {frame('Loading', 'Skeletons shaped like what is coming.', '<div class="page"><div class="stack-sm"><span class="skeleton skeleton-title" style="--w: 240px"></span><span class="skeleton" style="--w: 360px"></span></div><div class="list">' + ''.join(f'<div class="row"><div class="row-lead"><span class="skeleton skeleton-avatar"></span><div class="row-main w-full"><span class="skeleton" style="--w: {a}%"></span><span class="skeleton" style="--w: {b}%"></span></div></div></div>' for a, b in [(30, 55), (24, 48), (34, 40)]) + '</div></div>')}
       </div>
     </main>'''
-page('page-states.html', 'Sign-in, errors, loading · Astrodock UI', docs('page-states.html', states_main))
+page('page-states.html', 'System states · Astrodock UI', docs('page-states.html', states_main))
 
 # ---- mobile
 mobile_main = f'''    <main class="page">

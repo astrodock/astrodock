@@ -106,7 +106,7 @@ Rules:
 ## The shell
 
 **App frame (every app).** The sidebar sits on the gray frame; the page sits on one white panel beside it.
-- **Sidebar, top to bottom:** the switcher (the app's avatar and name; it opens the other apps), a search button that opens the command menu (Cmd+K), the sections with icons and counts, then labeled groups of records people go to often (projects, queues), and at the bottom Settings and the person (help, sign out).
+- **Sidebar, top to bottom:** the switcher (the app's avatar and name; it opens the other apps), a search button that opens the command menu (Cmd+K), the sections with icons and counts, then labeled groups of records people go to often (projects, queues), and at the bottom Settings and the account menu (who is signed in, Your account, theme, help, sign out).
 - **Current section:** a white fill with a hairline, the same shape as the panel.
 - **On a phone:** the sidebar hides behind a menu button in a slim bar at the top of the panel.
 - **Section nav:** when one area has many parts (a component index, settings groups, help articles), a second column at the panel's left edge lists them (`.with-subnav`, `.subnav`; rows are `.item`). It marks the part in view and hides under 1100px.
@@ -195,8 +195,13 @@ Only when decisions must happen in order (setting up a domain, an import with ma
 - A review step before anything is committed.
 - Not for ordinary forms. If the steps do not depend on each other, it is a form.
 
-### 8. System pages (`preview/page-states.html`)
-Signing in, no access, not found, something went wrong, first use, page loading, saving failed. Each: what happened in plain words, whether anything was lost, one way forward. Not-found and errors keep the shell so people can carry on.
+### 8. System states (`preview/page-states.html`)
+Not found, something went wrong, the app updating, offline, read-only, someone else changed it, partly done, slowed down, leaving with unsaved changes, first use, loading. Each: what happened in plain words, whether anything was lost, one way forward. Whole-page states keep the shell so people can carry on; the rest are notices at the top of what they affect.
+
+### Sign-in and account (`preview/page-signin.html`)
+Apps never build sign-in. Astrodock hosts it on the sign-in host (`auth.<domain>`) so an app never sees a password: sign in (password, passkey, Google), the authenticator-code step and recovery codes, joining from an invite, the account page, signed out, and the pages for when sign-in cannot go on. They are built from the same tokens as the kit, self-contained, with the app's accent and logo when it sets them. The preview frames are rendered from the control plane's code (`apps/control-plane/src/lib/auth-pages.js`, `account-page.js`, `routes/oauth.js`, `routes/invites.js`), so changing those pages means changing that code.
+
+The app's part: the handoff screen while it starts the session, the account menu, "no access to this app", and the session-ended dialog (sign-in in a new window; nothing typed is lost).
 
 ### Sidebar shell and queue (`preview/page-sidebar.html`)
 **Sidebar shell:** a white column with the app switcher (app avatar, name, organization) at the top, a search button that opens the command menu (Cmd+K), grouped sections with icons and counts, then settings, help and the person at the bottom.
@@ -248,6 +253,7 @@ When to use each, and when not. `preview/components.html` shows them.
 | Timeline | History, newest first, grouped by year; dates only as precise as known | |
 | Show detail | Summary first, detail on demand | Hiding required information |
 | Tabs | Views of one record | Steps; filters |
+| Account menu | Who is signed in, Your account (on the sign-in host), theme, help, sign out; at the sidebar foot | App settings |
 | Section nav | The parts of one area, in a column at the panel's left edge; marks the part in view | Moving between areas (the sidebar) |
 | Filter sidebar | Pages filtered constantly (history, logs) | Ordinary collections (use the Filter button) |
 | Modal | Short blocking tasks: up to five fields, a choice. Title and one line, the fields, actions on the right | Long forms; reading |
@@ -281,6 +287,13 @@ When to use each, and when not. `preview/components.html` shows them.
 | Needs setup | A notice where the missing piece matters, saying what to set | |
 | Working in the background | Status "Running" with words on what is happening; the page polls while it runs | "Page 7 of 20: storiicare.com/pricing" |
 | Read-only | A notice saying why and who can change it | |
+| Offline | A notice above the header; work stays on the page and saves when the connection is back | "You are offline." |
+| App updating | Whole page, with a status that checks again; the page reloads itself | "Competitor Intel is updating" |
+| Session ended | A dialog; signing in opens a new window so nothing typed is lost | "Sign in again to keep working" |
+| Someone else changed it | A notice before saving over their edit: load theirs or save anyway | "Ann Ruiz changed this project 2 min ago." |
+| Partly done | A notice naming what failed and what worked, with a retry for the rest | "2 of 14 could not be archived." |
+| Slowed down | A notice where the work is; the work resumes by itself | "Too many searches at once." |
+| Leaving with unsaved changes | A confirmation, only when something changed; Keep editing has focus | "Leave without saving?" |
 
 ---
 
