@@ -55,6 +55,17 @@ module.exports = [
     }
   },
 
+  // The UI kit's preview pages run in a browser; the screenshot script hands
+  // functions to the page it drives, so it sees both.
+  {
+    files: ['packages/ui/preview/**/*.js'],
+    languageOptions: { sourceType: 'script', globals: { ...globals.browser } }
+  },
+  {
+    files: ['packages/ui/scripts/shoot.js'],
+    languageOptions: { globals: { ...globals.node, ...globals.browser } }
+  },
+
   // Tests are ESM with node globals.
   {
     files: ['**/test/**/*.mjs'],
