@@ -27,8 +27,13 @@ ARG TARGETARCH
 # Deliberately here and not `init: true` in docker-compose.yml: the compose file
 # lives on the operator's disk and is never refreshed by a pull, so a fix that
 # needs a compose edit reaches new installs only. This one ships in the image.
+#
+# chromium (with a basic font set) is for apps that take screenshots of web pages
+# in a headless browser (playwright-core / puppeteer-core pointed at
+# /usr/bin/chromium). Apps run in this container, so a browser has to be here;
+# an app cannot apt-get its own system libraries.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends git rsync ca-certificates curl tini \
+ && apt-get install -y --no-install-recommends git rsync ca-certificates curl tini chromium fonts-liberation fonts-noto-color-emoji \
  && rm -rf /var/lib/apt/lists/* \
  && case "${TARGETARCH:-amd64}" in arm64) DARCH=aarch64;; *) DARCH=x86_64;; esac \
  && curl -fsSL "https://download.docker.com/linux/static/stable/${DARCH}/docker-27.3.1.tgz" \
