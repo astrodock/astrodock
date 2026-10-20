@@ -1020,7 +1020,7 @@ a.stat:hover { box-shadow: var(--shadow-raised); }
 
 /* ================================================================ 7. responsive */
 @media (max-width: 1100px) {
-  .with-aside, .with-subnav { grid-template-columns: minmax(0, 1fr); }
+  .with-aside, .with-aside.reading, .with-subnav { grid-template-columns: minmax(0, 1fr); }
   .aside { position: static; }
   .subnav { display: none; }
   .hide-md { display: none; }
