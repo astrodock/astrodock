@@ -9,7 +9,7 @@ const userSession = require('../lib/user-session');
 const google = require('../lib/google');
 const googleAccounts = require('../lib/google-accounts');
 const accountEmail = require('../lib/account-email');
-const { shell, esc, errorPage } = require('../lib/auth-pages');
+const { shell, esc, errorPage, icon } = require('../lib/auth-pages');
 
 const router = express.Router();
 
@@ -159,11 +159,12 @@ router.get('/email/confirm/:token', accountLimiter, async (req, res) => {
     // next sign-in mints one that matches the account.
     userSession.clear(res);
     res.type('html').send(shell('Address confirmed', `
-<h1>That is your address now</h1>
-<p class="sub">This account signs in as <b>${esc(to)}</b> instead of ${esc(from)}.</p>
+<span class="tile success">${icon('check')}</span>
+<div class="heading"><h1>That is your address now</h1>
+<p class="sub">This account signs in as <b>${esc(to)}</b> instead of ${esc(from)}.</p></div>
 <p class="muted">Sign in again to continue.</p>`));
   } catch (err) {
-    res.status(400).type('html').send(errorPage('That link cannot be used', err.message));
+    res.status(400).type('html').send(errorPage('That link cannot be used', err.message, { icon: 'link' }));
   }
 });
 

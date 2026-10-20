@@ -116,6 +116,25 @@ await test('no third-party script is pulled onto the login page', () => {
   assert.doesNotMatch(html, /<script[^>]+src=/i, 'the login page loads an external script');
 });
 
+await test('the authenticator step is its own form, with a recovery code in place of the code', () => {
+  // The server has accepted recoveryCode for a while; the page never offered it,
+  // so a lost phone meant no way in.
+  assert.match(html, /<form id="f2" hidden>/, 'no second step');
+  assert.match(html, /autocomplete="one-time-code"/);
+  assert.match(html, /id="recovery"/, 'no recovery code field');
+  assert.match(scripts(html).join('\n'), /recoveryCode: value/, 'the recovery code is never sent');
+});
+
+await test('the hosted account page script parses and loads no third party', () => {
+  const { accountPage } = require('../src/lib/account-page.js');
+  const page = accountPage();
+  for (const [i, code] of scripts(page).entries()) {
+    try { new vm.Script(code); }
+    catch (e) { assert.fail(`account page script #${i + 1} does not parse: ${e.message}`); }
+  }
+  assert.doesNotMatch(page, /fonts\.googleapis|<link[^>]+stylesheet/i, 'the account page loads a stylesheet from elsewhere');
+});
+
 console.log('\nlogin page: framing');
 
 await test('the sign-in page refuses to be embedded', async () => {

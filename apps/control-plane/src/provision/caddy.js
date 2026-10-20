@@ -83,11 +83,11 @@ function setupGlobalOptions() {
 // in this list AND client-side routes, so hard-loading /login — a refresh, a
 // bookmark, a new tab — reached Express instead of the app and answered
 // "Cannot GET /login". Same for Your Account and Health.
-const ADMIN_PATHS = ['/setup/*', '/admin/*', '/whoami', '/webhooks/*', '/healthz'];
+const ADMIN_PATHS = ['/setup/*', '/admin/*', '/whoami', '/webhooks/*', '/healthz', '/_auth/*'];
 
 // End-user surfaces. These belong to auth.<domain> and nothing on that host
 // serves an SPA, so there is nothing for them to collide with.
-const AUTH_PATHS = ['/authorize', '/login*', '/launch', '/token', '/logout', '/verify', '/account*', '/invite/*', '/health'];
+const AUTH_PATHS = ['/authorize', '/login*', '/launch', '/token', '/logout', '/verify', '/account*', '/invite/*', '/health', '/_auth/*'];
 
 function apiHandles(paths) {
   return paths.map((p) => `\thandle ${p} {\n\t\treverse_proxy ${API}\n\t}`).join('\n');

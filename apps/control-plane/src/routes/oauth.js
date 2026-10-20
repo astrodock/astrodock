@@ -28,7 +28,7 @@ function googleCallbackUrl(req) {
 const { decryptSecret } = require('../lib/crypto');
 // The page shell, shared with the invite redemption page: the same surface at
 // two moments, so one stylesheet.
-const { esc, scriptJson, safeColor, shell, errorPage, brandMark, googleButton } = require('../lib/auth-pages');
+const { esc, scriptJson, safeColor, shell, errorPage, brandMark, googleButton, icon, errorLine, passwordField, REVEAL_JS } = require('../lib/auth-pages');
 const { emitEvent } = require('../lib/events');
 // The hosted sign-in is the replacement for /verify, which was rate limited.
 // This one was not — same exposure, no throttle.
@@ -116,7 +116,8 @@ router.get('/logout', (req, res) => {
   if (back && /^https?:\/\//.test(String(back))) return res.redirect(String(back));
   res.type('html').send(errorPage('Signed out',
     'You have been signed out of Astrodock, so apps will ask who you are again. '
-    + 'Any app you are still signed into keeps its own session until you sign out of it.'));
+    + 'Any app you are still signed into keeps its own session until you sign out of it.',
+  { icon: 'log-out' }));
 });
 
 // ── /login ────────────────────────────────────────────────────────────────────
@@ -229,10 +230,15 @@ router.get('/login/google/callback', pageLoginLimiter, async (req, res) => {
     const app = await appBySlug(ctx.appSlug);
     if (!app) return res.type('html').send(errorPage('Unknown app', 'That application is not registered here.'));
 
+    // Back to this app's sign-in form, asking afresh. The redirect was checked
+    // against the app's allowlist when this Google round trip started.
+    const retry = `/authorize?${new URLSearchParams({ app_id: app.slug, redirect_uri: ctx.redirectUri, state: ctx.state || '', prompt: 'login' })}`;
+
     const { user, error } = await googleAccounts.resolveEndUser(identity, app);
     if (error) {
       logAttempt(identity.email, app.slug, 'NO_ACCESS', req.ip || '');
-      return res.type('html').send(errorPage('Cannot sign you in', error));
+      return res.type('html').send(errorPage('Cannot sign you in', error,
+        { action: { href: retry, label: 'Try another way' } }));
     }
 
     // Identity is settled; access is still its own question.
@@ -240,7 +246,8 @@ router.get('/login/google/callback', pageLoginLimiter, async (req, res) => {
     if (!access.includes(app.slug)) {
       logAttempt(user.email, app.slug, 'NO_ACCESS', req.ip || '');
       return res.type('html').send(errorPage('No access',
-        'Your Google account signed in, but it has not been given access to this app.'));
+        `Your Google account signed in, but it has not been given access to ${app.name}. Whoever manages ${app.name} can add you.`,
+        { icon: 'lock', action: { href: retry, label: 'Use another account' } }));
     }
 
     // An end user with TOTP set up is still asked for it, because Google's
@@ -250,7 +257,8 @@ router.get('/login/google/callback', pageLoginLimiter, async (req, res) => {
     const f = await factors.factorsFor(user.id);
     if (f.totp) {
       return res.type('html').send(errorPage('Use your password',
-        'This account has two-factor authentication, so it signs in with its password and code rather than Google.'));
+        'This account has two-step sign-in, so it signs in with its password and code rather than Google.',
+        { icon: 'key', action: { href: retry, label: 'Sign in with your password' } }));
     }
 
     userSession.set(res, user);
@@ -369,29 +377,39 @@ router.post('/login/passkey/options', pageLoginLimiter, express.json(), async (r
 function loginPage({ appName, appId, redirectUri, state, nonce, brandColor, logoUrl, signedInAs, googleEnabled }) {
   const accent = safeColor(brandColor);
   const cfg = scriptJson({ appId, redirectUri, state, nonce });
+  // Two steps on one page. The second (the authenticator code, or a recovery
+  // code in its place) appears only when the server says the account has one,
+  // and the email and password are held in memory to send with it: /login is
+  // stateless, so the code alone proves nothing.
   return shell(`Sign in to ${appName}`, `
 ${brandMark(logoUrl, appName)}
-<h1 class="solo">Sign in to ${esc(appName)}</h1>
-<div class="err" id="err"></div>
+<div class="heading"><h1 id="title">Sign in to ${esc(appName)}</h1><p class="sub" id="lead" hidden></p></div>
+${errorLine()}
 <form id="f">
-  <label for="email">Email</label>
-  <input id="email" type="email" autocomplete="username webauthn" required>
-  <label for="password">Password</label>
-  <input id="password" type="password" autocomplete="current-password">
-  <div id="totpWrap" style="display:none">
-    <label for="totp">Authenticator code</label>
-    <input id="totp" inputmode="numeric" autocomplete="one-time-code" placeholder="123456">
-  </div>
+  <div class="field"><label for="email">Email</label><input id="email" type="email" autocomplete="username webauthn" required></div>
+  ${passwordField('password', 'Password')}
   <button type="submit" id="go">Sign in</button>
 </form>
-<button class="secondary" id="pk" type="button">Sign in with a passkey</button>
-${googleEnabled ? googleButton(`/login/google/start?app_id=${encodeURIComponent(appId)}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state || '')}`) : ''}
-${signedInAs ? `<p class="muted">Signed in as ${esc(signedInAs)} — sign in again to continue.</p>` : ''}
-<p class="muted">Protected by Astrodock</p>
+<form id="f2" hidden>
+  <div class="field" id="totpField"><label for="totp">Authenticator code</label><input id="totp" class="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000"></div>
+  <div class="field" id="recoveryField" hidden><label for="recovery">Recovery code</label><input id="recovery" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="xxxxx-xxxxx"><p class="hint">Each recovery code works once.</p></div>
+  <button type="submit" id="go2">Verify</button>
+  <div class="split"><button class="quiet" type="button" id="back">Back</button><button class="quiet" type="button" id="swap">Use a recovery code</button></div>
+</form>
+<div class="alt" id="alt">
+  <div class="or"><span>or</span></div>
+  <button class="secondary" id="pk" type="button">${icon('key')}Sign in with a passkey</button>
+  ${googleEnabled ? googleButton(`/login/google/start?app_id=${encodeURIComponent(appId)}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state || '')}`) : ''}
+</div>
+${signedInAs ? `<p class="muted">Signed in as ${esc(signedInAs)}. Sign in again to continue.</p>` : ''}
 <script>
 const CFG = ${cfg};
 const err = document.getElementById('err');
-const show = (m) => { err.textContent = m; err.style.display = 'block'; };
+const show = (m) => { err.querySelector('span').textContent = m; err.hidden = false; };
+const clear = () => { err.hidden = true; };
+const el = (id) => document.getElementById(id);
+let creds = null;
+let useRecovery = false;
 function handoff(code) {
   const u = new URL(CFG.redirectUri);
   u.searchParams.set('code', code);
@@ -404,21 +422,53 @@ async function post(path, body) {
   if (!r.ok) { const e = new Error(d.error || 'Sign-in failed'); e.code = d.code; throw e; }
   return d;
 }
-document.getElementById('f').addEventListener('submit', async (e) => {
-  e.preventDefault(); err.style.display='none';
+function codeMode(recovery) {
+  useRecovery = recovery;
+  el('totpField').hidden = recovery;
+  el('recoveryField').hidden = !recovery;
+  el('swap').textContent = recovery ? 'Use the authenticator code' : 'Use a recovery code';
+  el('lead').textContent = recovery
+    ? 'Enter one of the recovery codes you saved when you set up two-step sign-in.'
+    : 'Enter the 6-digit code from your authenticator app.';
+  el(recovery ? 'recovery' : 'totp').focus();
+}
+function step(two) {
+  el('f').hidden = two; el('alt').hidden = two;
+  el('f2').hidden = !two; el('lead').hidden = !two;
+  el('title').textContent = two ? 'Two-step sign-in' : ${scriptJson(`Sign in to ${appName}`)};
+  clear();
+  if (two) codeMode(false); else el('password').focus();
+}
+el('f').addEventListener('submit', async (e) => {
+  e.preventDefault(); clear();
+  creds = { email: el('email').value, password: el('password').value };
+  el('go').disabled = true;
   try {
-    const d = await post('/login', {
-      appId: CFG.appId, redirectUri: CFG.redirectUri,
-      email: document.getElementById('email').value,
-      password: document.getElementById('password').value,
-      totp: document.getElementById('totp').value || undefined
-    });
+    const d = await post('/login', { appId: CFG.appId, redirectUri: CFG.redirectUri, ...creds });
     handoff(d.code);
   } catch (ex) {
-    if (ex.code === 'totp_required') document.getElementById('totpWrap').style.display = 'block';
-    show(ex.message);
+    el('go').disabled = false;
+    if (ex.code === 'totp_required') step(true); else show(ex.message);
   }
 });
+el('f2').addEventListener('submit', async (e) => {
+  e.preventDefault(); clear();
+  const value = el(useRecovery ? 'recovery' : 'totp').value.trim();
+  if (!value) return show(useRecovery ? 'Enter one of your recovery codes.' : 'Enter the 6-digit code.');
+  el('go2').disabled = true;
+  try {
+    const extra = useRecovery ? { recoveryCode: value } : { totp: value };
+    const d = await post('/login', { appId: CFG.appId, redirectUri: CFG.redirectUri, ...creds, ...extra });
+    handoff(d.code);
+  } catch (ex) {
+    el('go2').disabled = false;
+    show(ex.message);
+    el(useRecovery ? 'recovery' : 'totp').select();
+  }
+});
+el('swap').addEventListener('click', () => { clear(); codeMode(!useRecovery); });
+el('back').addEventListener('click', () => step(false));
+${REVEAL_JS}
 // WebAuthn's browser half is base64url plumbing around navigator.credentials.
 // Written out rather than imported: pulling a script from a CDN onto a login page
 // would put a third party in the authentication path and break offline installs.
@@ -430,7 +480,7 @@ const bufToB64u = (b) => btoa(String.fromCharCode(...new Uint8Array(b)))
   .replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/, '');
 
 document.getElementById('pk').addEventListener('click', async () => {
-  err.style.display='none';
+  clear();
   try {
     if (!window.PublicKeyCredential) return show('This browser does not support passkeys.');
     const { handle, options } = await post('/login/passkey/options', {});

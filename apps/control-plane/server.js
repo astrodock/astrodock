@@ -80,8 +80,17 @@ app.get('/_caddy/ask', async (req, res) => {
   } catch { return res.status(500).send('error'); }
 });
 
-// Hosted end-user account page.
-app.get('/account', (req, res) => res.sendFile(path.join(__dirname, 'public', 'account.html')));
+// Hosted end-user account page, on the same shell as sign-in.
+const { accountPage } = require('./src/lib/account-page');
+app.get('/account', (req, res) => res.type('html').send(accountPage()));
+
+// The sign-in pages' one asset: the Geist font, served from here so no third
+// party is on a page that takes a password. Variable weight, Latin; SIL OFL
+// (src/assets/OFL.txt).
+app.get('/_auth/geist.woff2', (req, res) => {
+  res.set('Cache-Control', 'public, max-age=31536000, immutable');
+  res.type('font/woff2').sendFile(path.join(__dirname, 'src', 'assets', 'geist-latin.woff2'));
+});
 
 // First-run setup. Mounted unconditionally: /setup/status is how the admin SPA
 // decides whether to render the wizard or the login page, on every boot.

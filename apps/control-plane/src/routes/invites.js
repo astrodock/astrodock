@@ -23,7 +23,7 @@ const invites = require('../lib/invites');
 const google = require('../lib/google');
 const factors = require('../lib/auth-factors');
 const userSession = require('../lib/user-session');
-const { esc, scriptJson, safeColor, shell, errorPage, brandMark, googleButton } = require('../lib/auth-pages');
+const { esc, scriptJson, safeColor, shell, errorPage, brandMark, googleButton, errorLine, passwordField, REVEAL_JS } = require('../lib/auth-pages');
 const { pageLoginLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
@@ -37,29 +37,26 @@ function invitePage({ appName, appId, token, brandColor, logoUrl, invitedByName,
 
   return shell(`Join ${appName}`, `
 ${brandMark(logoUrl, appName)}
-<h1>Join ${esc(appName)}</h1>
-<p class="sub">${esc(who)}</p>
-<div class="err" id="err"></div>
+<div class="heading"><h1>Join ${esc(appName)}</h1><p class="sub">${esc(who)}</p></div>
 <p class="who">Setting up <strong>${esc(email)}</strong></p>
+${errorLine()}
 ${googleEnabled ? googleButton(`/invite/${encodeURIComponent(token)}/google`, 'Continue with Google') : ''}
 ${needsCredential ? `
 ${googleEnabled ? '<div class="or"><span>or set a password</span></div>' : ''}
 <form id="f">
-  <label for="password">Password</label>
-  <input id="password" type="password" autocomplete="new-password" minlength="8" required>
-  <label for="confirm">Confirm password</label>
-  <input id="confirm" type="password" autocomplete="new-password" minlength="8" required>
+  ${passwordField('password', 'Password', { autocomplete: 'new-password', required: true, minlength: 8, hint: 'At least 8 characters.' })}
+  ${passwordField('confirm', 'Confirm password', { autocomplete: 'new-password', required: true, minlength: 8 })}
   <button type="submit" id="go">Create my account</button>
 </form>` : `
 <p class="muted">You already have an account here, so there is nothing to set up.</p>`}
-<p class="muted">Protected by Astrodock</p>
 <script>
 const CFG = ${cfg};
 const err = document.getElementById('err');
-const show = (m) => { err.textContent = m; err.style.display = 'block'; };
+const show = (m) => { err.querySelector('span').textContent = m; err.hidden = false; };
+${REVEAL_JS}
 const form = document.getElementById('f');
 if (form) form.addEventListener('submit', async (e) => {
-  e.preventDefault(); err.style.display = 'none';
+  e.preventDefault(); err.hidden = true;
   const pw = document.getElementById('password').value;
   const confirm = document.getElementById('confirm').value;
   // Checked here as well as on the server, because a mismatch is a typo and a
@@ -91,7 +88,7 @@ async function hasCredential(user) {
 
 router.get('/:token', pageLoginLimiter, async (req, res) => {
   const { invite, user, app, error } = await invites.resolve(req.params.token);
-  if (error) return res.status(400).type('html').send(errorPage('That invite cannot be used', error));
+  if (error) return res.status(400).type('html').send(errorPage('That invite cannot be used', error, { icon: 'mail' }));
 
   res.type('html').send(invitePage({
     appName: app.name,
@@ -135,7 +132,7 @@ function googleCallbackUrl(req) {
 
 router.get('/:token/google', pageLoginLimiter, async (req, res) => {
   const { app, error } = await invites.resolve(req.params.token);
-  if (error) return res.status(400).type('html').send(errorPage('That invite cannot be used', error));
+  if (error) return res.status(400).type('html').send(errorPage('That invite cannot be used', error, { icon: 'mail' }));
   try {
     const { url } = await google.begin({
       redirectUri: googleCallbackUrl(req),
