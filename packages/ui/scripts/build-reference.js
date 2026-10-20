@@ -93,8 +93,8 @@ Every screen is one of these; open the preview file for the full markup.
 |---|---|---|
 | Collection | \`preview/page-list.html\` | Back, header with actions, tabs, summary links, filter sidebar, toolbar, grouped list or cards, bulk bar |
 | Record | \`preview/page-record.html\` | Back, header with avatar and labels, tabs, nav list of sections, summary cards first, sections with Show detail |
-| Create and edit | \`preview/page-form.html\` | Narrow page, error summary notice, fieldsets, save bar |
-| Settings | \`preview/page-settings.html\` | Section root, nav list of groups, one card per group with its own Save, danger zone last |
+| Create and edit | \`preview/page-form.html\` | Narrow page (880px), error summary notice, fieldsets, save bar |
+| Settings | \`preview/page-settings.html\` | Narrow page, tabs for groups, fieldsets, save bar, danger zone last |
 | Dashboard | \`preview/page-dashboard.html\` | Stats with sparklines, a chart with its head, project cards, needs attention, running now |
 | Background work | \`preview/page-activity.html\` | Tabs Now, History, Usage and cost; lanes with running work; failures with Retry; drawer detail |
 | Step by step | \`preview/page-wizard.html\` | Steps, one card per step, Back and Next in the card foot |

@@ -260,7 +260,7 @@ def sec(id_, title, lead, meta, action, cites):
 
 reviewed = '<span class="status success"><span class="status-dot"></span>Reviewed</span>'
 mark = f'<button class="btn btn-sm" type="button" data-toast="Marked reviewed">{ic("check")}Mark reviewed</button>'
-record_main = f'''    <main class="page page-wide">
+record_main = f'''    <main class="page">
       {header('StoriiCare', back=('page-list.html', 'Seniorverse Day'),
         avatar='<span class="avatar avatar-lg">SC</span>', labels='<span class="label">Full study</span>',
         meta=f'<a class="link" href="#">storiicare.com</a><span class="has-tip" tabindex="0">Collected 2 h ago<span class="tooltip" role="tooltip">Oct 19, 2026, 12:14 PM</span></span>{status("running", "Reading 14 items")}',
@@ -325,7 +325,7 @@ record_main = f'''    <main class="page page-wide">
 page('page-record.html', 'StoriiCare · Competitor Intel', intel('day', record_main))
 
 # ======================================================================= form page
-form_main = f'''    <main class="page">
+form_main = f'''    <main class="page page-narrow">
       {header('New project', back=('page-list.html', 'Projects'), desc='A project is one market and the companies in it. Everything here can be changed later.')}
       <div class="notice danger" role="alert">{ic('alert-triangle')}<div class="notice-body"><span class="notice-title">Two things need fixing.</span><span><a class="link" href="#nf-market">Describe the market</a> and <a class="link" href="#nf-site">check the website address</a>.</span></div></div>
       <form class="form">
@@ -363,7 +363,7 @@ form_main = f'''    <main class="page">
 page('page-form.html', 'New project · Competitor Intel', intel('none', form_main))
 
 # ======================================================================= settings
-settings_main = f'''    <main class="page">
+settings_main = f'''    <main class="page page-narrow">
       {header('Settings', desc='For everyone using Competitor Intel.', tabs=[('General', None, True), ('Collecting', None, False), ('Connections', None, False), ('Notifications', None, False), ('Access', None, False)])}
       <form class="form">
         <div class="fieldset">
@@ -456,7 +456,7 @@ page('page-dashboard.html', 'Home · Competitor Intel', intel('home', dash_main)
 def worker(job, company, progress, time):
     return f'<div class="row" style="--cols: minmax(0, 1fr) auto"><div class="row-lead"><span class="avatar avatar-sm avatar-soft"><span class="spinner"></span></span><div class="row-main"><span class="row-title">{job}<span class="faint">·</span><span class="muted">{company}</span></span><span class="row-sub">{progress}</span></div></div><span class="row-meta num">{time}</span></div>'
 
-act_main = f'''    <main class="page page-wide">
+act_main = f'''    <main class="page">
       {header('Activity', desc='Background work in two lanes. Every AI call and search is recorded with its cost.', tabs=[('Now', None, True), ('History', '2,318', False), ('Usage and cost', None, False)])}
       <div class="grid-2">
         <section class="stack-sm">
@@ -703,7 +703,7 @@ toc, secs, n = [], [], 0
 for g in CATALOG:
     toc.append(f'<div class="nav-label">{g["group"]}</div>')
     for c in g['components']:
-        toc.append(f'<a href="#{c["id"]}">{c["title"]}</a>')
+        toc.append(f'<a class="item" href="#{c["id"]}">{c["title"]}</a>')
         use = ''
         if c.get('use') or c.get('notFor'):
             use = '<div class="catalog-use">' + (f'<span><b>Use for</b> {c["use"]}</span>' if c.get('use') else '') + (f'<span><b>Not for</b> {c["notFor"]}</span>' if c.get('notFor') else '') + '</div>'
@@ -722,15 +722,15 @@ for g in CATALOG:
           {use}
           {''.join(exs)}
         </section>''')
-comp_main = f'''    <main class="page page-wide">
+comp_main = f'''    <div class="with-subnav">
+    <nav class="subnav" aria-label="Components"><span class="subnav-title">Components</span><div class="nav-list" data-spy>{''.join(toc)}</div></nav>
+    <main class="page">
       <header class="page-header"><div class="page-head"><div class="page-head-main"><div class="page-head-text"><div class="page-title-row"><h1 class="t-title">Components</h1></div><p class="page-desc">Every part, its examples and when to use it. Show markup reveals the canonical markup; REFERENCE.md is built from the same catalog.</p></div></div></div></header>
-      <div class="with-toc">
-        <div class="sections">
+      <div class="sections">
 {chr(10).join(secs)}
-        </div>
-        <nav class="toc" aria-label="On this page">{''.join(toc)}</nav>
       </div>
-    </main>'''
+    </main>
+    </div>'''
 page('components.html', 'Components · Astrodock UI', docs('components.html', comp_main))
 
 # ---- states
@@ -750,7 +750,7 @@ states_main = f'''    <main class="page">
 page('page-states.html', 'Sign-in, errors, loading · Astrodock UI', docs('page-states.html', states_main))
 
 # ---- mobile
-mobile_main = f'''    <main class="page page-wide">
+mobile_main = f'''    <main class="page">
       {header('On a phone', desc='The same pages at 390px. The sidebar hides behind the menu button; columns and side panels stack; controls grow; dialog buttons fill the width.')}
       <div class="phone-row">
         <div class="stack-sm"><div class="phone"><iframe src="page-list.html" title="Collection on a phone"></iframe></div><span class="phone-caption">Collection</span></div>

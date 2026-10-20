@@ -12,7 +12,7 @@
 //   data-selectable        a list or table whose [data-row-check] boxes drive
 //                          the [data-bulk] bar just before it
 //   data-reveal="id"       shows and hides detail
-//   .toc                   an "On this page" list; marks the section in view
+//   data-spy               a nav list of #links; marks the section in view
 //   data-copy="id"         copies the text of the code block inside #id
 //   data-filters-toggle    shows the filter sidebar on a phone
 //   ⌘K / Ctrl+K           opens the command menu when the page has one
@@ -316,10 +316,11 @@
     document.querySelectorAll('.scrim:not([hidden])').forEach((s) => { s.hidden = true; });
   });
 
-  // On this page: the current section is the last one whose top has passed
+  // Section nav: the current section is the last one whose top has passed
   // near the top of the window. Only aria-current changes, so nothing moves.
-  document.querySelectorAll('.toc').forEach((toc) => {
-    const links = [...toc.querySelectorAll('a[href^="#"]')];
+  document.querySelectorAll('[data-spy]').forEach((list) => {
+    const toc = list.closest('.subnav') || list;
+    const links = [...list.querySelectorAll('a[href^="#"]')];
     const targets = links.map((a) => document.getElementById(a.hash.slice(1)));
     let queued = false;
     const mark = () => {

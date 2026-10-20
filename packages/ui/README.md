@@ -109,6 +109,9 @@ Rules:
 - **Sidebar, top to bottom:** the switcher (the app's avatar and name; it opens the other apps), a search button that opens the command menu (Cmd+K), the sections with icons and counts, then labeled groups of records people go to often (projects, queues), and at the bottom Settings and the person (help, sign out).
 - **Current section:** a white fill with a hairline, the same shape as the panel.
 - **On a phone:** the sidebar hides behind a menu button in a slim bar at the top of the panel.
+- **Section nav:** when one area has many parts (a component index, settings groups, help articles), a second column at the panel's left edge lists them (`.with-subnav`, `.subnav`; rows are `.item`). It marks the part in view and hides under 1100px.
+
+**Page width.** Two only. Full (`.page`) fills the panel, with the gutter at each side: collections, records, dashboards, background work, queues. Narrow (`.page page-narrow`, 880px) for forms, settings and step-by-step pages, where long lines and wide fields slow people down. Reading text keeps its own line length (70 characters) inside either.
 
 Nothing else is permanent chrome: no footer, no second bar, no banner unless something needs setup (then a notice in the page that is affected). The CSS keeps a top-bar frame (`.app-topbar`) for one-screen tools; everything else uses the sidebar.
 
@@ -245,8 +248,7 @@ When to use each, and when not. `preview/components.html` shows them.
 | Timeline | History, newest first, grouped by year; dates only as precise as known | |
 | Show detail | Summary first, detail on demand | Hiding required information |
 | Tabs | Views of one record | Steps; filters |
-| Side list | Settings groups, a record's sections | |
-| On this page | An index beside a long page that marks the section in view; hidden under 1100px | Short pages |
+| Section nav | The parts of one area, in a column at the panel's left edge; marks the part in view | Moving between areas (the sidebar) |
 | Filter sidebar | Pages filtered constantly (history, logs) | Ordinary collections (use the Filter button) |
 | Modal | Short blocking tasks: up to five fields, a choice. Title and one line, the fields, actions on the right | Long forms; reading |
 | Confirmation | Actions that cannot be undone: a small icon, the question, what will be lost, Cancel focused | Reversible actions (toast with Undo instead) |

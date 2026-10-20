@@ -157,7 +157,7 @@
   --topbar-h: 52px;
   --frame-gap: 8px;
   --aside-w: 288px;
-  --toc-w: 200px;
+  --subnav-w: 220px;
   --filters-w: 208px;
   --queue-w: 360px;
   --drawer-w: 520px;
@@ -165,9 +165,7 @@
   --modal-md: 520px;
   --modal-lg: 720px;
   --toast-w: 360px;
-  --page-narrow: 720px;
-  --page-standard: 1120px;
-  --page-wide: 1440px;
+  --page-narrow: 880px;     /* the one limited width; every other page fills the panel */
   --gutter: 40px;
 
   /* Layers */
@@ -898,13 +896,6 @@ a.stat:hover { box-shadow: var(--shadow-raised); }
 .bar-list-row > .num { margin-left: auto; color: var(--ink-2); }
 .bar-list-row > .num + .num { margin-left: 0; width: 48px; text-align: right; color: var(--ink-4); }
 
-/* ---- On this page: an index of a long page's sections, beside it. */
-.with-toc { display: grid; grid-template-columns: minmax(0, 1fr) var(--toc-w); gap: var(--space-12); align-items: start; }
-.toc { position: sticky; top: var(--space-6); max-height: calc(100vh - var(--space-12)); overflow-y: auto; display: flex; flex-direction: column; gap: 1px; padding: var(--space-1) 0; font-size: var(--text-sm); }
-.toc > .nav-label { padding-left: var(--space-3); }
-.toc > a { display: block; padding: var(--space-1) var(--space-3); border-radius: var(--radius-sm); color: var(--ink-3); line-height: var(--leading); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.toc > a:hover { color: var(--ink); background: var(--bg-hover); }
-.toc > a[aria-current="true"] { color: var(--ink); font-weight: var(--weight-medium); }
 /* ================================================================ 5. layout */
 
 /* App frame: the sidebar sits on the gray frame; the page sits on one white panel. */
@@ -935,11 +926,10 @@ a.stat:hover { box-shadow: var(--shadow-raised); }
 /* On a phone the sidebar hides behind a menu button in this bar. */
 .mobile-bar { display: none; align-items: center; gap: var(--space-2); height: var(--topbar-h); padding: 0 var(--space-3); box-shadow: inset 0 calc(var(--line-width) * -1) 0 var(--line); font-size: var(--text-sm); font-weight: var(--weight-semibold); }
 
-/* Page inside the panel: a column; its parts are spaced by the gap. */
-.page { max-width: var(--page-standard); margin: 0 auto; padding: var(--space-8) var(--gutter) var(--space-16); display: flex; flex-direction: column; gap: var(--space-6); }
+/* Page inside the panel: a column; its parts are spaced by the gap.
+   Two widths only: full (fills the panel) and narrow (forms, settings, steps). */
+.page { width: 100%; min-width: 0; margin: 0 auto; padding: var(--space-8) var(--gutter) var(--space-16); display: flex; flex-direction: column; gap: var(--space-6); }
 .page-narrow { max-width: var(--page-narrow); }
-.page-wide { max-width: var(--page-wide); }
-.page-full { max-width: none; }
 .page-header { display: flex; flex-direction: column; gap: var(--space-4); }
 .back { align-self: flex-start; display: inline-flex; align-items: center; gap: var(--space-1); height: var(--ctl-sm); padding: 0 var(--space-2) 0 var(--space-1); margin: 0 0 calc(var(--space-2) * -1) calc(var(--space-1) * -1); border-radius: var(--radius-sm); color: var(--ink-3); font-size: var(--text-sm); font-weight: var(--weight-medium); }
 .back:hover { background: var(--bg-hover); color: var(--ink); }
@@ -977,6 +967,12 @@ a.stat:hover { box-shadow: var(--shadow-raised); }
 .spacer { flex: 1; }
 .center { min-height: 60vh; display: grid; place-items: center; padding: var(--space-8) var(--space-4); }
 
+/* Section nav: a second column at the panel's left edge for the parts of one
+   area (a component index, settings groups, help articles). Rows are .item. */
+.with-subnav { display: grid; grid-template-columns: var(--subnav-w) minmax(0, 1fr); min-height: calc(100vh - var(--frame-gap) * 2); }
+.subnav { position: sticky; top: var(--frame-gap); height: calc(100vh - var(--frame-gap) * 2); overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-6) var(--space-3); box-shadow: var(--line-width) 0 0 var(--line); }
+.subnav-title { padding: 0 var(--space-2); font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--ink); }
+
 /* Split view: a queue and the open item, inside the panel. */
 .split { display: grid; grid-template-columns: var(--queue-w) minmax(0, 1fr); min-height: calc(100vh - var(--frame-gap) * 2); }
 .queue { display: flex; flex-direction: column; box-shadow: var(--line-width) 0 0 var(--line); position: sticky; top: var(--frame-gap); height: calc(100vh - var(--frame-gap) * 2); min-width: 0; }
@@ -997,7 +993,7 @@ a.stat:hover { box-shadow: var(--shadow-raised); }
 .detail { min-width: 0; display: flex; flex-direction: column; }
 .detail-bar { position: sticky; top: var(--frame-gap); z-index: var(--z-sticky); display: flex; align-items: center; gap: var(--space-2); height: 52px; padding: 0 var(--space-5); background: var(--bg-page); box-shadow: 0 var(--line-width) 0 var(--line); border-radius: 0 var(--radius-md) 0 0; }
 .detail-pos { font-size: var(--text-sm); color: var(--ink-3); font-variant-numeric: tabular-nums; }
-.detail-body { padding: var(--space-8) var(--space-10) var(--space-16); max-width: 860px; width: 100%; margin: 0 auto; display: flex; flex-direction: column; gap: var(--space-8); }
+.detail-body { padding: var(--space-8) var(--space-10) var(--space-16); max-width: var(--page-narrow); width: 100%; margin: 0 auto; display: flex; flex-direction: column; gap: var(--space-8); }
 
 /* ================================================================ 6. utilities */
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
@@ -1013,9 +1009,9 @@ a.stat:hover { box-shadow: var(--shadow-raised); }
 
 /* ================================================================ 7. responsive */
 @media (max-width: 1100px) {
-  .with-aside, .with-toc { grid-template-columns: minmax(0, 1fr); }
+  .with-aside, .with-subnav { grid-template-columns: minmax(0, 1fr); }
   .aside { position: static; }
-  .toc { display: none; }
+  .subnav { display: none; }
   .hide-md { display: none; }
 }
 @media (max-width: 900px) {
