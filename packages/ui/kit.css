@@ -962,7 +962,7 @@ a.stat:hover { box-shadow: var(--shadow-raised); }
 .sidebar { position: sticky; top: var(--space-6); }
 .with-aside { display: grid; grid-template-columns: minmax(0, 1fr) var(--aside-w); gap: var(--space-12); align-items: start; }
 /* Reading: the main column stops at the prose measure, so section heads line up with their text. */
-.with-aside.reading { grid-template-columns: minmax(0, 70ch) var(--aside-w); }
+.with-aside.reading { grid-template-columns: minmax(0, 70ch) var(--aside-w); justify-content: space-between; }
 .aside { display: flex; flex-direction: column; }
 .aside-block { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-5) 0; }
 .aside-block:first-child { padding-top: 0; }

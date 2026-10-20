@@ -111,7 +111,7 @@ Rules:
 - **On a phone:** the sidebar hides behind a menu button in a slim bar at the top of the panel.
 - **Section nav:** when one area has many parts (a component index, settings groups, help articles), a second column at the panel's left edge lists them (`.with-subnav`, `.subnav`; rows are `.item`). It marks the part in view and hides under 1100px.
 
-**Page width.** Two only. Full (`.page`) fills the panel, with the gutter at each side: collections, records, dashboards, background work, queues. Narrow (`.page page-narrow`, 880px) for forms, settings and step-by-step pages, where long lines and wide fields slow people down. Reading text keeps its own line length (70 characters) inside either. A record page whose main column is reading text uses `.with-aside.reading`: the column stops at 70 characters, so section heads and their actions line up with the text, and the properties column sits beside it.
+**Page width.** Two only. Full (`.page`) fills the panel, with the gutter at each side: collections, records, dashboards, background work, queues. Narrow (`.page page-narrow`, 880px) for forms, settings and step-by-step pages, where long lines and wide fields slow people down. Reading text keeps its own line length (70 characters) inside either. A record page whose main column is reading text uses `.with-aside.reading`: the column stops at 70 characters, so section heads and their actions line up with the text, and the properties column stays at the right edge, under the page's actions.
 
 Nothing else is permanent chrome: no footer, no second bar, no banner unless something needs setup (then a notice in the page that is affected). The CSS keeps a top-bar frame (`.app-topbar`) for one-screen tools; everything else uses the sidebar.
 
