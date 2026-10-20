@@ -630,11 +630,11 @@ Inside a page, content is sections, not cards: a title, a line of meta or an act
 <div class="sections">
   <section class="section">
     <div class="section-head"><h2 class="section-title">Summary</h2><span class="section-meta">Written 2 h ago</span></div>
-    <p class="section-lead">StoriiCare sells care management and EHR software to adult day centers, home care agencies and care homes. <button class="cite" type="button">12</button></p>
+    <p class="section-lead">StoriiCare sells care management and EHR software to adult day centers, home care agencies and care homes.<button class="cite" type="button">1</button></p>
   </section>
   <section class="section">
     <div class="section-head"><h2 class="section-title">Pricing</h2><div class="actions"><span class="section-meta">14 facts</span><button class="btn btn-sm" type="button"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>Mark reviewed</button></div></div>
-    <p class="section-lead">Published pricing is per participant per month, with a minimum per center. <button class="cite" type="button">301</button></p>
+    <p class="section-lead">Published pricing is per participant per month, with a minimum per center.<button class="cite" type="button">1</button></p>
   </section>
 </div>
 ```
@@ -647,6 +647,16 @@ Inside a page, content is sections, not cards: a title, a line of meta or an act
   <dt>Study</dt><dd><span class="label">Full study</span></dd>
   <dt>Status</dt><dd><span class="status success"><span class="status-dot"></span>Up to date</span></dd>
   <dt>Founded</dt><dd>[From the profile]</dd>
+  <dt>Team size</dt><dd class="faint">Not found</dd>
+</dl>
+```
+
+**Properties, stacked.** For values that run to a sentence: the label above the value.
+
+```html
+<dl class="properties stacked">
+  <dt>What they sell</dt><dd>Care management and EHR software for adult day centers and home care.<button class="cite" type="button">1</button></dd>
+  <dt>Who it is for</dt><dd>Adult day centers, home care agencies and care homes in the UK and US.<button class="cite" type="button">2</button></dd>
   <dt>Team size</dt><dd class="faint">Not found</dd>
 </dl>
 ```
@@ -709,7 +719,7 @@ History newest first. The icon says where an entry came from; dates only as prec
 ```html
 <ol class="timeline">
   <li class="timeline-item"><div class="timeline-mark"><span class="avatar avatar-sm"><svg class="icon" aria-hidden="true"><use href="#i-eye"/></svg></span><span class="timeline-stem"></span></div><div class="timeline-body"><span class="timeline-title">Pricing page lists a per-participant plan</span><span class="timeline-meta">Site change we saw</span></div><span class="timeline-date">Oct 17</span></li>
-  <li class="timeline-item"><div class="timeline-mark"><span class="avatar avatar-sm"><svg class="icon" aria-hidden="true"><use href="#i-newspaper"/></svg></span><span class="timeline-stem"></span></div><div class="timeline-body"><span class="timeline-title">Launched a billing module</span><span class="timeline-meta">Product launch · <button class="cite" type="button">3</button></span></div><span class="timeline-date">Mar 2026</span></li>
+  <li class="timeline-item"><div class="timeline-mark"><span class="avatar avatar-sm"><svg class="icon" aria-hidden="true"><use href="#i-newspaper"/></svg></span><span class="timeline-stem"></span></div><div class="timeline-body"><span class="timeline-title">Launched a billing module</span><span class="timeline-meta">Product launch · <button class="link" type="button">3 sources</button></span></div><span class="timeline-date">Mar 2026</span></li>
   <li class="timeline-item"><div class="timeline-mark"><span class="avatar avatar-sm"><svg class="icon" aria-hidden="true"><use href="#i-archive"/></svg></span><span class="timeline-stem"></span></div><div class="timeline-body"><span class="timeline-title">Pro plan went from $149 to $199</span><span class="timeline-meta">From an archived copy</span></div><span class="timeline-date">2021</span></li>
 </ol>
 ```
@@ -722,7 +732,7 @@ Long text uses prose. A lead first; Show detail reveals the rest. Citations are 
 
 ```html
 <div class="stack-sm">
-  <p class="section-lead">Published pricing is per participant per month, with a minimum per center. <button class="cite" type="button">301</button></p>
+  <p class="section-lead">Published pricing is per participant per month, with a minimum per center.<button class="cite" type="button">1</button></p>
   <div><button class="btn btn-sm btn-quiet align-start" type="button" data-reveal="ex-pricing" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show detail</span></button></div>
   <div class="reveal-body prose" id="ex-pricing" hidden><p>The full section, with its tables and citations.</p><ul><li>Plan A: per participant per month.</li><li>Setup fee waived on annual terms.</li></ul></div>
 </div>

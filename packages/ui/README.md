@@ -111,7 +111,7 @@ Rules:
 - **On a phone:** the sidebar hides behind a menu button in a slim bar at the top of the panel.
 - **Section nav:** when one area has many parts (a component index, settings groups, help articles), a second column at the panel's left edge lists them (`.with-subnav`, `.subnav`; rows are `.item`). It marks the part in view and hides under 1100px.
 
-**Page width.** Two only. Full (`.page`) fills the panel, with the gutter at each side: collections, records, dashboards, background work, queues. Narrow (`.page page-narrow`, 880px) for forms, settings and step-by-step pages, where long lines and wide fields slow people down. Reading text keeps its own line length (70 characters) inside either.
+**Page width.** Two only. Full (`.page`) fills the panel, with the gutter at each side: collections, records, dashboards, background work, queues. Narrow (`.page page-narrow`, 880px) for forms, settings and step-by-step pages, where long lines and wide fields slow people down. Reading text keeps its own line length (70 characters) inside either. A record page whose main column is reading text uses `.with-aside.reading`: the column stops at 70 characters, so section heads and their actions line up with the text, and the properties column sits beside it.
 
 Nothing else is permanent chrome: no footer, no second bar, no banner unless something needs setup (then a notice in the page that is affected). The CSS keeps a top-bar frame (`.app-topbar`) for one-screen tools; everything else uses the sidebar.
 
@@ -157,7 +157,7 @@ One thing in detail.
 - **Header:** back button naming the parent; title with a label for its type or level; meta line (key facts, freshness with the full time on hover, background work in progress); actions (main action primary, others plain, rare and destructive in More).
 - **Tabs** under the header when the record has several views. Counts on tabs that hold lists.
 - **First tab:** sections, not cards. Summary first, then the comparison, then each section with its lead and Show detail.
-- **Properties column** on the right: the record's details and at-a-glance fields as a properties list, then recent activity. Moves below the content on narrow screens.
+- **Properties column** on the right: the record's details and at-a-glance fields as a properties list, then recent activity. Values that run to a sentence use `.properties.stacked` (label above value). The column scrolls with the page. Moves below the content on narrow screens.
 
 ### 3. Create and edit (`preview/page-form.html`)
 - **Five fields or fewer:** a modal. **More:** a page where each group has its title and one sentence on the left and its fields on the right, hairlines between groups (two short related fields may share a row).
@@ -268,7 +268,7 @@ When to use each, and when not. `preview/components.html` shows them.
 | Progress | Long work with a known size; words beside it say what is happening | |
 | Tooltip | An icon button's name, a full date, why a button is disabled | Anything needed to do the work |
 | Avatar | People, companies and things: a rounded square with initials or an icon; accent for the app or "us"; in list rows it turns into the checkbox on hover | Circles |
-| Citation | A small numbered mark linking a claim to its source | |
+| Citation | A small raised number after the claim it backs, numbered 1, 2, 3 in the order they appear. Several sources for one claim are one mark | Database ids as labels; a mark per source |
 
 ---
 
