@@ -760,8 +760,7 @@ a.stat:hover { box-shadow: var(--shadow-raised); }
 .shot-strip { display: grid; grid-auto-flow: column; grid-auto-columns: var(--shot-w, 168px); gap: var(--space-4); overflow-x: auto; padding-bottom: var(--space-2); }
 /* A page on desktop and phone, side by side. */
 .shot-pair { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 1fr); gap: var(--space-4); align-items: start; }
-/* The viewer: one picture large, its details beside it. */
-.modal-xl { width: min(var(--modal-xl), 100%); }
+/* The viewer (in a .modal-xl): one picture large, its details beside it. */
 .viewer { display: grid; grid-template-columns: minmax(0, 1fr) var(--aside-w); gap: var(--space-6); align-items: start; }
 .viewer-img { overflow: auto; max-height: calc(100vh - 220px); border-radius: var(--radius-sm); background: var(--bg-sunken); box-shadow: var(--shadow-panel); }
 .viewer-img > img { display: block; width: 100%; height: auto; }
@@ -832,6 +831,7 @@ a.stat:hover { box-shadow: var(--shadow-raised); }
 .modal { position: relative; width: min(var(--modal-md), 100%); max-height: calc(100vh - var(--space-12)); display: flex; flex-direction: column; background: var(--bg-raised); border-radius: var(--radius-md); box-shadow: var(--shadow-pop); animation: modal-in var(--slow) var(--ease); }
 .modal-sm { width: min(var(--modal-sm), 100%); }
 .modal-lg { width: min(var(--modal-lg), 100%); }
+.modal-xl { width: min(var(--modal-xl), 100%); }
 @keyframes modal-in { from { opacity: 0; transform: translateY(4px) scale(.98); } to { opacity: 1; transform: none; } }
 .modal-head { display: flex; align-items: flex-start; gap: var(--space-3); padding: var(--space-5) var(--space-5) 0; }
 .overlay-heading { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-1); }
