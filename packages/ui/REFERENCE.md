@@ -620,7 +620,7 @@ For comparing many values across rows. Headers sort when clicked; numbers align 
 
 ### Comparison matrix
 
-Many things compared across many columns, like features across products. The box scrolls both ways while the head, the first columns and the totals stay put; nothing wraps. Marks fill by how much: full, half, an empty ring for no, a dash for unknown. Notes and sources open from a cell, never inside it.
+Many things compared across many columns, like features across products. It scrolls sideways in its box with the first columns kept in place; nothing wraps. A long one never scrolls inside a box of its own: in .matrix-frame its head sticks to the top of the window and its totals and scrollbar to the bottom, with a script keeping the parts scrolled together. Marks fill by how much: full, half, an empty ring for no, a dash for unknown. Notes and sources open from a cell, never inside it.
 
 - **Use for:** Feature and capability comparisons, coverage by area.
 - **Not for:** Records people browse (a table or list); a few values (properties).

@@ -334,7 +334,7 @@ ${opt('Not now', 'Add it without collecting')}
 
   g.components.push({
     id: 'matrix', title: 'Comparison matrix',
-    lede: 'Many things compared across many columns, like features across products. The box scrolls both ways while the head, the first columns and the totals stay put; nothing wraps. Marks fill by how much: full, half, an empty ring for no, a dash for unknown. Notes and sources open from a cell, never inside it.',
+    lede: 'Many things compared across many columns, like features across products. It scrolls sideways in its box with the first columns kept in place; nothing wraps. A long one never scrolls inside a box of its own: in .matrix-frame its head sticks to the top of the window and its totals and scrollbar to the bottom, with a script keeping the parts scrolled together. Marks fill by how much: full, half, an empty ring for no, a dash for unknown. Notes and sources open from a cell, never inside it.',
     use: 'Feature and capability comparisons, coverage by area.', notFor: 'Records people browse (a table or list); a few values (properties).',
     examples: [
       { title: 'Marks with totals', desc: 'Our column is shaded. Area rows give each column\'s count; the second column counts across; the foot rows total each column.',
