@@ -674,9 +674,12 @@ a.card:hover { box-shadow: var(--shadow-raised); }
 .matrix-hit:hover { background: var(--bg-active); }
 .matrix .lead .matrix-hit { justify-content: flex-start; min-width: 0; max-width: 100%; margin-left: calc(var(--space-1) * -1); }
 /* Heat: a cell shaded by its share (--v, 0% to 100%); .deep flips the text. */
-.matrix td.heat, .matrix tbody tr:hover td.heat { background: color-mix(in oklab, var(--series-1) calc(var(--v, 0%) * 0.85), var(--bg-surface)); color: var(--ink); }
+.matrix td.heat, .matrix tbody tr:hover td.heat { background: color-mix(in oklab, var(--series-1) calc(var(--v, 0%) * 0.85), var(--bg-surface)); }
+.matrix td.heat { color: var(--ink); }
 .matrix td.heat.deep { color: var(--ink-inverse); }
-.matrix tbody tr:hover td.heat { box-shadow: inset 0 0 0 var(--line-width) var(--line-strong); }
+/* A heat table keeps still on hover: the tooltip carries the counts. */
+.matrix tbody tr:has(> td.heat):hover > td:not(.heat) { background: var(--bg-surface); }
+.matrix tbody tr:has(> td.heat):hover > td.mine:not(.heat) { background: var(--bg-subtle); }
 
 .mk { display: inline-block; flex: none; width: 14px; height: 14px; border-radius: var(--radius-full); vertical-align: middle; box-shadow: inset 0 0 0 1.5px var(--mk, var(--series-1)); }
 .mk.yes { background: var(--mk, var(--series-1)); }
