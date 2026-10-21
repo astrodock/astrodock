@@ -500,6 +500,12 @@ input[type="date"].input, input[type="time"].input { font-variant-numeric: tabul
 .option[aria-disabled="true"] { opacity: .5; cursor: not-allowed; }
 .option.option-check { align-items: center; padding-top: 0; padding-bottom: 0; }
 .select.multi .popover { min-width: 260px; }
+/* "Only": keep this one and clear the rest. Shown on hover or focus. */
+.option-only { margin-left: auto; height: 22px; padding: 0 var(--space-2); border: 0; border-radius: var(--radius-xs); background: none; color: var(--ink-3); font: inherit; font-size: var(--text-xs); font-weight: var(--weight-medium); cursor: pointer; opacity: 0; }
+.option-only:hover { background: var(--bg-active); color: var(--ink); }
+.option:hover .option-only, .option:focus-within .option-only { opacity: 1; }
+.option-only + .count { margin-left: var(--space-2); }
+@media (hover: none) { .option-only { opacity: 1; } }
 .menu-head { padding: var(--space-2); font-size: var(--text-sm); display: flex; align-items: center; gap: var(--space-3); }
 .menu-head-text { min-width: 0; display: flex; flex-direction: column; line-height: var(--leading-tight); gap: 2px; }
 .menu-head-text > :last-child { color: var(--ink-3); font-size: var(--text-xs); overflow: hidden; text-overflow: ellipsis; }
@@ -618,6 +624,10 @@ a.card:hover { box-shadow: var(--shadow-raised); }
 .matrix th, .matrix td { height: 34px; padding: 0 var(--space-3); background: var(--bg-surface); color: var(--ink-2); text-align: center; vertical-align: middle; box-shadow: inset 0 calc(var(--line-width) * -1) 0 var(--line); font-variant-numeric: tabular-nums; }
 .matrix thead th { position: sticky; top: 0; z-index: var(--z-raised); height: 40px; font-size: var(--text-xs); font-weight: var(--weight-medium); color: var(--ink-3); }
 .matrix tfoot td { position: sticky; bottom: 0; z-index: var(--z-raised); font-weight: var(--weight-medium); color: var(--ink); box-shadow: inset 0 var(--line-width) 0 var(--line-strong); }
+/* Up to three foot rows (each 34px) stack from the bottom. */
+.matrix tfoot tr + tr td { box-shadow: none; }
+.matrix tfoot tr:nth-last-child(2) td { bottom: 34px; }
+.matrix tfoot tr:nth-last-child(3) td { bottom: 68px; }
 .matrix .lead, .matrix .lead-2 { position: sticky; z-index: calc(var(--z-raised) + 1); text-align: left; }
 .matrix .lead { left: 0; color: var(--ink); }
 .matrix .lead-2 { left: var(--lead-w, 280px); box-shadow: inset calc(var(--line-width) * -1) 0 0 var(--line), inset 0 calc(var(--line-width) * -1) 0 var(--line); }
@@ -652,6 +662,14 @@ a.card:hover { box-shadow: var(--shadow-raised); }
 .meter > i { width: var(--v); min-width: 0; border-radius: var(--radius-xs); background: var(--series-1); }
 .meter > i.part { background: color-mix(in oklab, var(--series-1) 45%, var(--bg-surface)); }
 .meter > i.rest { flex: 1; width: auto; background: var(--bg-sunken); }
+/* A bar with its number after it, on one line. */
+.meter-row { display: flex; align-items: center; gap: var(--space-3); min-width: 160px; }
+.meter-row > .meter { flex: 1; }
+.meter-row > .num { flex: none; min-width: 36px; text-align: right; font-variant-numeric: tabular-nums; }
+/* The key's swatch for a bar segment, used inside .mk-key. */
+.meter-key { display: inline-block; flex: none; width: 14px; height: 8px; border-radius: var(--radius-xs); background: var(--series-1); }
+.meter-key.part { background: color-mix(in oklab, var(--series-1) 45%, var(--bg-surface)); }
+.meter-key.rest { background: var(--bg-sunken); }
 
 /* ---- View bar: above a collection. Views on the left; filter, search, sort and layout on the right. */
 .view-bar { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }

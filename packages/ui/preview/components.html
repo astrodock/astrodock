@@ -204,7 +204,7 @@
   &lt;/div&gt;
 &lt;/div&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-11" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
           </div><div class="specimen">
-            <div class="specimen-head"><span class="medium">Multi-select with search</span><span class="t-small muted">Shows two names, then a count.</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-12" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-head"><span class="medium">Multi-select with search</span><span class="t-small muted">Shows two names, then a count. Only, on hover, keeps that one and clears the rest.</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-12" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
             <div class="specimen-demo"><div class="field">
   <span class="field-label" id="ex-types-l">Event types</span>
   <div class="select multi">
@@ -214,7 +214,7 @@
       <div class="listbox" role="listbox" aria-multiselectable="true" aria-labelledby="ex-types-l">
         <label class="item option option-check" data-label="Funding"><input type="checkbox" checked>Funding<span class="count">4</span></label>
         <label class="item option option-check" data-label="Product launch"><input type="checkbox" checked>Product launch<span class="count">11</span></label>
-        <label class="item option option-check" data-label="Leadership"><input type="checkbox">Leadership<span class="count">6</span></label>
+        <label class="item option option-check" data-label="Leadership"><input type="checkbox">Leadership<button class="option-only" type="button">Only</button><span class="count">6</span></label>
         <label class="item option option-check" data-label="Partnership"><input type="checkbox">Partnership<span class="count">5</span></label>
       </div>
       <div class="popover-foot"><button class="btn btn-sm btn-quiet" type="button" data-clear>Clear</button><button class="btn btn-sm" type="button" data-toggle-close>Done</button></div>
@@ -230,7 +230,7 @@
       &lt;div class="listbox" role="listbox" aria-multiselectable="true" aria-labelledby="ex-types-l"&gt;
         &lt;label class="item option option-check" data-label="Funding"&gt;&lt;input type="checkbox" checked&gt;Funding&lt;span class="count"&gt;4&lt;/span&gt;&lt;/label&gt;
         &lt;label class="item option option-check" data-label="Product launch"&gt;&lt;input type="checkbox" checked&gt;Product launch&lt;span class="count"&gt;11&lt;/span&gt;&lt;/label&gt;
-        &lt;label class="item option option-check" data-label="Leadership"&gt;&lt;input type="checkbox"&gt;Leadership&lt;span class="count"&gt;6&lt;/span&gt;&lt;/label&gt;
+        &lt;label class="item option option-check" data-label="Leadership"&gt;&lt;input type="checkbox"&gt;Leadership&lt;button class="option-only" type="button"&gt;Only&lt;/button&gt;&lt;span class="count"&gt;6&lt;/span&gt;&lt;/label&gt;
         &lt;label class="item option option-check" data-label="Partnership"&gt;&lt;input type="checkbox"&gt;Partnership&lt;span class="count"&gt;5&lt;/span&gt;&lt;/label&gt;
       &lt;/div&gt;
       &lt;div class="popover-foot"&gt;&lt;button class="btn btn-sm btn-quiet" type="button" data-clear&gt;Clear&lt;/button&gt;&lt;button class="btn btn-sm" type="button" data-toggle-close&gt;Done&lt;/button&gt;&lt;/div&gt;
@@ -534,7 +534,7 @@
           <p class="section-lead">Many things compared across many columns, like features across products. The box scrolls both ways while the head, the first columns and the totals stay put; nothing wraps. Marks fill by how much: full, half, an empty ring for no, a dash for unknown. Notes and sources open from a cell, never inside it.</p>
           <div class="catalog-use"><span><b>Use for</b> Feature and capability comparisons, coverage by area.</span><span><b>Not for</b> Records people browse (a table or list); a few values (properties).</span></div>
           <div class="specimen">
-            <div class="specimen-head"><span class="medium">Marks with totals</span><span class="t-small muted">Our column is shaded. Area rows give each column's count; the second column counts across; the foot totals each column.</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-24" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-head"><span class="medium">Marks with totals</span><span class="t-small muted">Our column is shaded. Area rows give each column's count; the second column counts across; the foot rows total each column.</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-24" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
             <div class="specimen-demo"><div class="stack-sm">
 <div class="mk-key"><span><i class="mk yes"></i>Yes</span><span><i class="mk partial"></i>Partial</span><span><i class="mk no"></i>No</span><span><i class="mk unknown"></i>Unknown</span></div>
 <div class="matrix-box">
@@ -546,7 +546,7 @@
       <tr><td class="lead"><span class="matrix-name"><button class="matrix-hit" type="button"><span class="truncate">Facial recognition check-in</span></button><span class="label">Important</span></span></td><td class="lead-2 num">1 of 3</td><td class="mine"><button class="matrix-hit" type="button" aria-label="Yes"><i class="mk yes"></i></button></td><td><button class="matrix-hit" type="button" aria-label="Yes"><i class="mk yes"></i></button></td><td><button class="matrix-hit" type="button" aria-label="No"><i class="mk no"></i></button></td><td><button class="matrix-hit" type="button" aria-label="Unknown"><i class="mk unknown"></i></button></td></tr>
       <tr><td class="lead"><span class="matrix-name"><button class="matrix-hit" type="button"><span class="truncate">Expected attendance schedules</span></button></span></td><td class="lead-2 num">0 of 3</td><td class="mine"><button class="matrix-hit" type="button" aria-label="Yes"><i class="mk yes"></i></button></td><td><button class="matrix-hit" type="button" aria-label="Partial"><i class="mk partial"></i></button></td><td><button class="matrix-hit" type="button" aria-label="Unknown"><i class="mk unknown"></i></button></td><td><button class="matrix-hit" type="button" aria-label="Unknown"><i class="mk unknown"></i></button></td></tr>
     </tbody>
-    <tfoot><tr><td class="lead">Score</td><td class="lead-2 num">3 shown</td><td class="mine">100%</td><td>83%</td><td>33%</td><td>0%</td></tr></tfoot>
+    <tfoot><tr><td class="lead">Yes</td><td class="lead-2 num"></td><td class="mine">3</td><td>2</td><td>0</td><td>0</td></tr><tr><td class="lead">Partial</td><td class="lead-2 num"></td><td class="mine">0</td><td>1</td><td>1</td><td>0</td></tr></tfoot>
   </table>
 </div>
 </div></div>
@@ -561,7 +561,7 @@
       &lt;tr&gt;&lt;td class="lead"&gt;&lt;span class="matrix-name"&gt;&lt;button class="matrix-hit" type="button"&gt;&lt;span class="truncate"&gt;Facial recognition check-in&lt;/span&gt;&lt;/button&gt;&lt;span class="label"&gt;Important&lt;/span&gt;&lt;/span&gt;&lt;/td&gt;&lt;td class="lead-2 num"&gt;1 of 3&lt;/td&gt;&lt;td class="mine"&gt;&lt;button class="matrix-hit" type="button" aria-label="Yes"&gt;&lt;i class="mk yes"&gt;&lt;/i&gt;&lt;/button&gt;&lt;/td&gt;&lt;td&gt;&lt;button class="matrix-hit" type="button" aria-label="Yes"&gt;&lt;i class="mk yes"&gt;&lt;/i&gt;&lt;/button&gt;&lt;/td&gt;&lt;td&gt;&lt;button class="matrix-hit" type="button" aria-label="No"&gt;&lt;i class="mk no"&gt;&lt;/i&gt;&lt;/button&gt;&lt;/td&gt;&lt;td&gt;&lt;button class="matrix-hit" type="button" aria-label="Unknown"&gt;&lt;i class="mk unknown"&gt;&lt;/i&gt;&lt;/button&gt;&lt;/td&gt;&lt;/tr&gt;
       &lt;tr&gt;&lt;td class="lead"&gt;&lt;span class="matrix-name"&gt;&lt;button class="matrix-hit" type="button"&gt;&lt;span class="truncate"&gt;Expected attendance schedules&lt;/span&gt;&lt;/button&gt;&lt;/span&gt;&lt;/td&gt;&lt;td class="lead-2 num"&gt;0 of 3&lt;/td&gt;&lt;td class="mine"&gt;&lt;button class="matrix-hit" type="button" aria-label="Yes"&gt;&lt;i class="mk yes"&gt;&lt;/i&gt;&lt;/button&gt;&lt;/td&gt;&lt;td&gt;&lt;button class="matrix-hit" type="button" aria-label="Partial"&gt;&lt;i class="mk partial"&gt;&lt;/i&gt;&lt;/button&gt;&lt;/td&gt;&lt;td&gt;&lt;button class="matrix-hit" type="button" aria-label="Unknown"&gt;&lt;i class="mk unknown"&gt;&lt;/i&gt;&lt;/button&gt;&lt;/td&gt;&lt;td&gt;&lt;button class="matrix-hit" type="button" aria-label="Unknown"&gt;&lt;i class="mk unknown"&gt;&lt;/i&gt;&lt;/button&gt;&lt;/td&gt;&lt;/tr&gt;
     &lt;/tbody&gt;
-    &lt;tfoot&gt;&lt;tr&gt;&lt;td class="lead"&gt;Score&lt;/td&gt;&lt;td class="lead-2 num"&gt;3 shown&lt;/td&gt;&lt;td class="mine"&gt;100%&lt;/td&gt;&lt;td&gt;83%&lt;/td&gt;&lt;td&gt;33%&lt;/td&gt;&lt;td&gt;0%&lt;/td&gt;&lt;/tr&gt;&lt;/tfoot&gt;
+    &lt;tfoot&gt;&lt;tr&gt;&lt;td class="lead"&gt;Yes&lt;/td&gt;&lt;td class="lead-2 num"&gt;&lt;/td&gt;&lt;td class="mine"&gt;3&lt;/td&gt;&lt;td&gt;2&lt;/td&gt;&lt;td&gt;0&lt;/td&gt;&lt;td&gt;0&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td class="lead"&gt;Partial&lt;/td&gt;&lt;td class="lead-2 num"&gt;&lt;/td&gt;&lt;td class="mine"&gt;0&lt;/td&gt;&lt;td&gt;1&lt;/td&gt;&lt;td&gt;1&lt;/td&gt;&lt;td&gt;0&lt;/td&gt;&lt;/tr&gt;&lt;/tfoot&gt;
   &lt;/table&gt;
 &lt;/div&gt;
 &lt;/div&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-24" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
@@ -588,25 +588,25 @@
   &lt;/table&gt;
 &lt;/div&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-25" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
           </div><div class="specimen">
-            <div class="specimen-head"><span class="medium">A share as a bar</span><span class="t-small muted">Filled, part-filled, then the rest.</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-26" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
-            <div class="specimen-demo"><div class="table-box flush">
+            <div class="specimen-head"><span class="medium">A share as a bar</span><span class="t-small muted">Filled, part-filled, then the rest. A key above the table says what each shade means.</span><span class="spacer"></span><button class="btn btn-sm btn-quiet" type="button" data-reveal="code-26" aria-expanded="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron-right"/></svg><span data-reveal-label>Show markup</span></button></div>
+            <div class="specimen-demo"><div class="stack-sm"><div class="mk-key"><span><i class="meter-key"></i>Yes</span><span><i class="meter-key part"></i>Partial</span><span><i class="meter-key rest"></i>No or unknown</span></div><div class="table-box flush">
   <table class="table">
-    <thead><tr><th>Company</th><th>Coverage</th><th class="num">Score</th></tr></thead>
+    <thead><tr><th>Company</th><th>Coverage</th><th class="num">Score</th><th>With its number</th></tr></thead>
     <tbody>
-      <tr><td class="primary">Seniorverse</td><td><span class="meter"><i style="--v: 62%"></i><i class="part" style="--v: 18%"></i><i class="rest"></i></span></td><td class="num">71%</td></tr>
-      <tr><td class="primary">StoriiCare</td><td><span class="meter"><i style="--v: 44%"></i><i class="part" style="--v: 30%"></i><i class="rest"></i></span></td><td class="num">59%</td></tr>
+      <tr><td class="primary">Seniorverse</td><td><span class="meter"><i style="--v: 62%"></i><i class="part" style="--v: 18%"></i><i class="rest"></i></span></td><td class="num">71%</td><td><span class="meter-row"><span class="meter"><i style="--v: 62%"></i><i class="part" style="--v: 18%"></i><i class="rest"></i></span><span class="num">71%</span></span></td></tr>
+      <tr><td class="primary">StoriiCare</td><td><span class="meter"><i style="--v: 44%"></i><i class="part" style="--v: 30%"></i><i class="rest"></i></span></td><td class="num">59%</td><td><span class="meter-row"><span class="meter"><i style="--v: 44%"></i><i class="part" style="--v: 30%"></i><i class="rest"></i></span><span class="num">59%</span></span></td></tr>
     </tbody>
   </table>
-</div></div>
-            <div class="specimen-code" id="code-26" hidden><pre class="code-block">&lt;div class="table-box flush"&gt;
+</div></div></div>
+            <div class="specimen-code" id="code-26" hidden><pre class="code-block">&lt;div class="stack-sm"&gt;&lt;div class="mk-key"&gt;&lt;span&gt;&lt;i class="meter-key"&gt;&lt;/i&gt;Yes&lt;/span&gt;&lt;span&gt;&lt;i class="meter-key part"&gt;&lt;/i&gt;Partial&lt;/span&gt;&lt;span&gt;&lt;i class="meter-key rest"&gt;&lt;/i&gt;No or unknown&lt;/span&gt;&lt;/div&gt;&lt;div class="table-box flush"&gt;
   &lt;table class="table"&gt;
-    &lt;thead&gt;&lt;tr&gt;&lt;th&gt;Company&lt;/th&gt;&lt;th&gt;Coverage&lt;/th&gt;&lt;th class="num"&gt;Score&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;
+    &lt;thead&gt;&lt;tr&gt;&lt;th&gt;Company&lt;/th&gt;&lt;th&gt;Coverage&lt;/th&gt;&lt;th class="num"&gt;Score&lt;/th&gt;&lt;th&gt;With its number&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;
     &lt;tbody&gt;
-      &lt;tr&gt;&lt;td class="primary"&gt;Seniorverse&lt;/td&gt;&lt;td&gt;&lt;span class="meter"&gt;&lt;i style="--v: 62%"&gt;&lt;/i&gt;&lt;i class="part" style="--v: 18%"&gt;&lt;/i&gt;&lt;i class="rest"&gt;&lt;/i&gt;&lt;/span&gt;&lt;/td&gt;&lt;td class="num"&gt;71%&lt;/td&gt;&lt;/tr&gt;
-      &lt;tr&gt;&lt;td class="primary"&gt;StoriiCare&lt;/td&gt;&lt;td&gt;&lt;span class="meter"&gt;&lt;i style="--v: 44%"&gt;&lt;/i&gt;&lt;i class="part" style="--v: 30%"&gt;&lt;/i&gt;&lt;i class="rest"&gt;&lt;/i&gt;&lt;/span&gt;&lt;/td&gt;&lt;td class="num"&gt;59%&lt;/td&gt;&lt;/tr&gt;
+      &lt;tr&gt;&lt;td class="primary"&gt;Seniorverse&lt;/td&gt;&lt;td&gt;&lt;span class="meter"&gt;&lt;i style="--v: 62%"&gt;&lt;/i&gt;&lt;i class="part" style="--v: 18%"&gt;&lt;/i&gt;&lt;i class="rest"&gt;&lt;/i&gt;&lt;/span&gt;&lt;/td&gt;&lt;td class="num"&gt;71%&lt;/td&gt;&lt;td&gt;&lt;span class="meter-row"&gt;&lt;span class="meter"&gt;&lt;i style="--v: 62%"&gt;&lt;/i&gt;&lt;i class="part" style="--v: 18%"&gt;&lt;/i&gt;&lt;i class="rest"&gt;&lt;/i&gt;&lt;/span&gt;&lt;span class="num"&gt;71%&lt;/span&gt;&lt;/span&gt;&lt;/td&gt;&lt;/tr&gt;
+      &lt;tr&gt;&lt;td class="primary"&gt;StoriiCare&lt;/td&gt;&lt;td&gt;&lt;span class="meter"&gt;&lt;i style="--v: 44%"&gt;&lt;/i&gt;&lt;i class="part" style="--v: 30%"&gt;&lt;/i&gt;&lt;i class="rest"&gt;&lt;/i&gt;&lt;/span&gt;&lt;/td&gt;&lt;td class="num"&gt;59%&lt;/td&gt;&lt;td&gt;&lt;span class="meter-row"&gt;&lt;span class="meter"&gt;&lt;i style="--v: 44%"&gt;&lt;/i&gt;&lt;i class="part" style="--v: 30%"&gt;&lt;/i&gt;&lt;i class="rest"&gt;&lt;/i&gt;&lt;/span&gt;&lt;span class="num"&gt;59%&lt;/span&gt;&lt;/span&gt;&lt;/td&gt;&lt;/tr&gt;
     &lt;/tbody&gt;
   &lt;/table&gt;
-&lt;/div&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-26" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+&lt;/div&gt;&lt;/div&gt;</pre><button class="btn btn-sm" type="button" data-copy="code-26" data-toast="Markup copied"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
           </div>
         </section>
         <section class="section" id="sections">

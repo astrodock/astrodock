@@ -128,7 +128,7 @@ ${opt('Not now', 'Add it without collecting')}
     </div></div>
   </div>
 </div>` },
-      { title: 'Multi-select with search', desc: 'Shows two names, then a count.',
+      { title: 'Multi-select with search', desc: 'Shows two names, then a count. Only, on hover, keeps that one and clears the rest.',
         html: `<div class="field">
   <span class="field-label" id="ex-types-l">Event types</span>
   <div class="select multi">
@@ -138,7 +138,7 @@ ${opt('Not now', 'Add it without collecting')}
       <div class="listbox" role="listbox" aria-multiselectable="true" aria-labelledby="ex-types-l">
         <label class="item option option-check" data-label="Funding"><input type="checkbox" checked>Funding<span class="count">4</span></label>
         <label class="item option option-check" data-label="Product launch"><input type="checkbox" checked>Product launch<span class="count">11</span></label>
-        <label class="item option option-check" data-label="Leadership"><input type="checkbox">Leadership<span class="count">6</span></label>
+        <label class="item option option-check" data-label="Leadership"><input type="checkbox">Leadership<button class="option-only" type="button">Only</button><span class="count">6</span></label>
         <label class="item option option-check" data-label="Partnership"><input type="checkbox">Partnership<span class="count">5</span></label>
       </div>
       <div class="popover-foot"><button class="btn btn-sm btn-quiet" type="button" data-clear>Clear</button><button class="btn btn-sm" type="button" data-toggle-close>Done</button></div>
@@ -337,7 +337,7 @@ ${opt('Not now', 'Add it without collecting')}
     lede: 'Many things compared across many columns, like features across products. The box scrolls both ways while the head, the first columns and the totals stay put; nothing wraps. Marks fill by how much: full, half, an empty ring for no, a dash for unknown. Notes and sources open from a cell, never inside it.',
     use: 'Feature and capability comparisons, coverage by area.', notFor: 'Records people browse (a table or list); a few values (properties).',
     examples: [
-      { title: 'Marks with totals', desc: 'Our column is shaded. Area rows give each column\'s count; the second column counts across; the foot totals each column.',
+      { title: 'Marks with totals', desc: 'Our column is shaded. Area rows give each column\'s count; the second column counts across; the foot rows total each column.',
         html: `<div class="stack-sm">
 <div class="mk-key"><span><i class="mk yes"></i>Yes</span><span><i class="mk partial"></i>Partial</span><span><i class="mk no"></i>No</span><span><i class="mk unknown"></i>Unknown</span></div>
 <div class="matrix-box">
@@ -349,7 +349,7 @@ ${opt('Not now', 'Add it without collecting')}
       <tr><td class="lead"><span class="matrix-name"><button class="matrix-hit" type="button"><span class="truncate">Facial recognition check-in</span></button><span class="label">Important</span></span></td><td class="lead-2 num">1 of 3</td><td class="mine"><button class="matrix-hit" type="button" aria-label="Yes"><i class="mk yes"></i></button></td><td><button class="matrix-hit" type="button" aria-label="Yes"><i class="mk yes"></i></button></td><td><button class="matrix-hit" type="button" aria-label="No"><i class="mk no"></i></button></td><td><button class="matrix-hit" type="button" aria-label="Unknown"><i class="mk unknown"></i></button></td></tr>
       <tr><td class="lead"><span class="matrix-name"><button class="matrix-hit" type="button"><span class="truncate">Expected attendance schedules</span></button></span></td><td class="lead-2 num">0 of 3</td><td class="mine"><button class="matrix-hit" type="button" aria-label="Yes"><i class="mk yes"></i></button></td><td><button class="matrix-hit" type="button" aria-label="Partial"><i class="mk partial"></i></button></td><td><button class="matrix-hit" type="button" aria-label="Unknown"><i class="mk unknown"></i></button></td><td><button class="matrix-hit" type="button" aria-label="Unknown"><i class="mk unknown"></i></button></td></tr>
     </tbody>
-    <tfoot><tr><td class="lead">Score</td><td class="lead-2 num">3 shown</td><td class="mine">100%</td><td>83%</td><td>33%</td><td>0%</td></tr></tfoot>
+    <tfoot><tr><td class="lead">Yes</td><td class="lead-2 num"></td><td class="mine">3</td><td>2</td><td>0</td><td>0</td></tr><tr><td class="lead">Partial</td><td class="lead-2 num"></td><td class="mine">0</td><td>1</td><td>1</td><td>0</td></tr></tfoot>
   </table>
 </div>
 </div>` },
@@ -364,16 +364,16 @@ ${opt('Not now', 'Add it without collecting')}
     </tbody>
   </table>
 </div>` },
-      { title: 'A share as a bar', desc: 'Filled, part-filled, then the rest.',
-        html: `<div class="table-box flush">
+      { title: 'A share as a bar', desc: 'Filled, part-filled, then the rest. A key above the table says what each shade means.',
+        html: `<div class="stack-sm"><div class="mk-key"><span><i class="meter-key"></i>Yes</span><span><i class="meter-key part"></i>Partial</span><span><i class="meter-key rest"></i>No or unknown</span></div><div class="table-box flush">
   <table class="table">
-    <thead><tr><th>Company</th><th>Coverage</th><th class="num">Score</th></tr></thead>
+    <thead><tr><th>Company</th><th>Coverage</th><th class="num">Score</th><th>With its number</th></tr></thead>
     <tbody>
-      <tr><td class="primary">Seniorverse</td><td><span class="meter"><i style="--v: 62%"></i><i class="part" style="--v: 18%"></i><i class="rest"></i></span></td><td class="num">71%</td></tr>
-      <tr><td class="primary">StoriiCare</td><td><span class="meter"><i style="--v: 44%"></i><i class="part" style="--v: 30%"></i><i class="rest"></i></span></td><td class="num">59%</td></tr>
+      <tr><td class="primary">Seniorverse</td><td><span class="meter"><i style="--v: 62%"></i><i class="part" style="--v: 18%"></i><i class="rest"></i></span></td><td class="num">71%</td><td><span class="meter-row"><span class="meter"><i style="--v: 62%"></i><i class="part" style="--v: 18%"></i><i class="rest"></i></span><span class="num">71%</span></span></td></tr>
+      <tr><td class="primary">StoriiCare</td><td><span class="meter"><i style="--v: 44%"></i><i class="part" style="--v: 30%"></i><i class="rest"></i></span></td><td class="num">59%</td><td><span class="meter-row"><span class="meter"><i style="--v: 44%"></i><i class="part" style="--v: 30%"></i><i class="rest"></i></span><span class="num">59%</span></span></td></tr>
     </tbody>
   </table>
-</div>` },
+</div></div>` },
     ],
   });
   g.components.push({
