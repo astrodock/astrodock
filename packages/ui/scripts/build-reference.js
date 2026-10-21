@@ -55,6 +55,7 @@ The rules live in README.md; this file is the markup. The live versions are in \
 - Active state: an underline for horizontal navigation (\`.tab\`, shell sections), the selected fill for vertical (\`.item\` with \`aria-current\`).
 - Toasts confirm and offer Undo; errors people must act on go in the page.
 - Charts are HTML and CSS (SVG only for lines), with a tooltip on every column, a table view, and series colors in fixed order.
+- Hover hints are the kit tooltip, never the browser's own (the title attribute): \`.has-tip\` around one element, or one \`.tooltip.float\` placed by a script for a whole page.
 
 ## Tokens
 
