@@ -331,6 +331,51 @@ ${opt('Not now', 'Add it without collecting')}
     ],
   });
 
+
+  g.components.push({
+    id: 'matrix', title: 'Comparison matrix',
+    lede: 'Many things compared across many columns, like features across products. The box scrolls both ways while the head, the first columns and the totals stay put; nothing wraps. Marks fill by how much: full, half, an empty ring for no, a dash for unknown. Notes and sources open from a cell, never inside it.',
+    use: 'Feature and capability comparisons, coverage by area.', notFor: 'Records people browse (a table or list); a few values (properties).',
+    examples: [
+      { title: 'Marks with totals', desc: 'Our column is shaded. Area rows give each column\'s count; the second column counts across; the foot totals each column.',
+        html: `<div class="stack-sm">
+<div class="mk-key"><span><i class="mk yes"></i>Yes</span><span><i class="mk partial"></i>Partial</span><span><i class="mk no"></i>No</span><span><i class="mk unknown"></i>Unknown</span></div>
+<div class="matrix-box">
+  <table class="matrix">
+    <thead><tr><th class="lead">Capability</th><th class="lead-2 num">Competitors with it</th><th class="mine">Seniorverse</th><th>StoriiCare</th><th>Collabrios</th><th>Ankota</th></tr></thead>
+    <tbody>
+      <tr class="group"><td class="lead">Attendance</td><td class="lead-2 num">3 areas</td><td class="mine">3 of 3</td><td>2 of 3</td><td>1 of 3</td><td>0 of 3</td></tr>
+      <tr><td class="lead"><span class="matrix-name"><button class="matrix-hit" type="button"><span class="truncate">Digital check-in and check-out</span></button></span></td><td class="lead-2 num">2 of 3</td><td class="mine"><button class="matrix-hit" type="button" aria-label="Yes"><i class="mk yes"></i></button></td><td><button class="matrix-hit" type="button" aria-label="Yes"><i class="mk yes"></i></button></td><td><button class="matrix-hit" type="button" aria-label="Partial"><i class="mk partial"></i></button></td><td><button class="matrix-hit" type="button" aria-label="Unknown"><i class="mk unknown"></i></button></td></tr>
+      <tr><td class="lead"><span class="matrix-name"><button class="matrix-hit" type="button"><span class="truncate">Facial recognition check-in</span></button><span class="label">Important</span></span></td><td class="lead-2 num">1 of 3</td><td class="mine"><button class="matrix-hit" type="button" aria-label="Yes"><i class="mk yes"></i></button></td><td><button class="matrix-hit" type="button" aria-label="Yes"><i class="mk yes"></i></button></td><td><button class="matrix-hit" type="button" aria-label="No"><i class="mk no"></i></button></td><td><button class="matrix-hit" type="button" aria-label="Unknown"><i class="mk unknown"></i></button></td></tr>
+      <tr><td class="lead"><span class="matrix-name"><button class="matrix-hit" type="button"><span class="truncate">Expected attendance schedules</span></button></span></td><td class="lead-2 num">0 of 3</td><td class="mine"><button class="matrix-hit" type="button" aria-label="Yes"><i class="mk yes"></i></button></td><td><button class="matrix-hit" type="button" aria-label="Partial"><i class="mk partial"></i></button></td><td><button class="matrix-hit" type="button" aria-label="Unknown"><i class="mk unknown"></i></button></td><td><button class="matrix-hit" type="button" aria-label="Unknown"><i class="mk unknown"></i></button></td></tr>
+    </tbody>
+    <tfoot><tr><td class="lead">Score</td><td class="lead-2 num">3 shown</td><td class="mine">100%</td><td>83%</td><td>33%</td><td>0%</td></tr></tfoot>
+  </table>
+</div>
+</div>` },
+      { title: 'Coverage by area', desc: 'Each cell is shaded by its share. A hover names the counts.',
+        html: `<div class="matrix-box">
+  <table class="matrix">
+    <thead><tr><th class="lead">Company</th><th>Attendance</th><th>Billing</th><th>Care plans</th><th>Activities</th></tr></thead>
+    <tbody>
+      <tr><td class="lead mine">Seniorverse</td><td class="heat deep" style="--v: 89%" title="8 of 9 yes">89%</td><td class="heat deep" style="--v: 72%" title="12 of 18 yes, 2 partial">72%</td><td class="heat" style="--v: 40%">40%</td><td class="heat deep" style="--v: 86%">86%</td></tr>
+      <tr><td class="lead">StoriiCare</td><td class="heat" style="--v: 44%">44%</td><td class="heat" style="--v: 31%">31%</td><td class="heat deep" style="--v: 80%">80%</td><td class="heat" style="--v: 14%">14%</td></tr>
+      <tr><td class="lead">Collabrios</td><td class="heat" style="--v: 22%">22%</td><td class="heat" style="--v: 6%">6%</td><td class="heat" style="--v: 0%">0%</td><td class="heat" style="--v: 29%">29%</td></tr>
+    </tbody>
+  </table>
+</div>` },
+      { title: 'A share as a bar', desc: 'Filled, part-filled, then the rest.',
+        html: `<div class="table-box flush">
+  <table class="table">
+    <thead><tr><th>Company</th><th>Coverage</th><th class="num">Score</th></tr></thead>
+    <tbody>
+      <tr><td class="primary">Seniorverse</td><td><span class="meter"><i style="--v: 62%"></i><i class="part" style="--v: 18%"></i><i class="rest"></i></span></td><td class="num">71%</td></tr>
+      <tr><td class="primary">StoriiCare</td><td><span class="meter"><i style="--v: 44%"></i><i class="part" style="--v: 30%"></i><i class="rest"></i></span></td><td class="num">59%</td></tr>
+    </tbody>
+  </table>
+</div>` },
+    ],
+  });
   g.components.push({
     id: 'sections', title: 'Sections and properties',
     lede: 'Inside a page, content is sections, not cards: a title, a line of meta or an action, then the content, with hairlines between. A record\'s fields sit in a properties list in the side column.',
