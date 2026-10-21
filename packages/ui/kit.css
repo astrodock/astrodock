@@ -775,7 +775,9 @@ a.card:hover { box-shadow: var(--shadow-raised); }
 
 .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--space-3); }
 .stat { display: block; padding: var(--space-4) var(--space-5); color: inherit; }
-a.stat:hover { box-shadow: var(--shadow-raised); }
+a.stat:hover, button.stat:hover { box-shadow: var(--shadow-raised); }
+/* A stat that opens a view in the same page is a button. */
+button.stat { width: 100%; border: 0; background: none; font: inherit; text-align: left; cursor: pointer; }
 .stat-label { font-size: var(--text-sm); font-weight: var(--weight-medium); color: var(--ink-3); }
 .stat-value { font-size: var(--text-2xl); font-weight: var(--weight-semibold); letter-spacing: var(--tracking-tight); font-variant-numeric: tabular-nums; line-height: var(--leading-tight); margin: var(--space-2) 0 var(--space-1); }
 .stat-sub { font-size: var(--text-xs); color: var(--ink-3); display: flex; align-items: center; gap: var(--space-1); }
@@ -1094,6 +1096,7 @@ a.stat:hover { box-shadow: var(--shadow-raised); }
 .stack { display: flex; flex-direction: column; gap: var(--space-4); }
 .stack-lg { display: flex; flex-direction: column; gap: var(--space-8); }
 .stack-sm { display: flex; flex-direction: column; gap: var(--space-2); }
+.stack-xs { display: flex; flex-direction: column; gap: var(--space-1); }
 .cluster { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
 .spacer { flex: 1; }
 .center { min-height: 60vh; display: grid; place-items: center; padding: var(--space-8) var(--space-4); }
