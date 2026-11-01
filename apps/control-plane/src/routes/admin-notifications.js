@@ -11,11 +11,14 @@
 const express = require('express');
 const { desc } = require('drizzle-orm');
 const { db, schema } = require('../db');
-const { requireAdmin } = require('../middleware/auth');
+const { requireAdmin, permit } = require('../middleware/auth');
 const notifications = require('../lib/notifications');
 
 const router = express.Router();
 router.use(requireAdmin);
+// Rules are settings: readable with settings:read, changed (and tested) only with
+// settings:write.
+router.use((req, res, next) => permit(req.method === 'GET' ? 'settings:read' : 'settings:write')(req, res, next));
 
 router.get('/', async (req, res, next) => {
   try { res.json({ rules: await notifications.listRules() }); }

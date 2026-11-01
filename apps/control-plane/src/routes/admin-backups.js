@@ -15,7 +15,7 @@ const express = require('express');
 const { desc } = require('drizzle-orm');
 const config = require('../config');
 const { db, schema } = require('../db');
-const { requireAdmin } = require('../middleware/auth');
+const { requireAdmin, permit } = require('../middleware/auth');
 const { requireRecentAuth } = require('../lib/sessions');
 const { emitEvent } = require('../lib/events');
 const { runner } = require('../runner/client');
@@ -23,7 +23,12 @@ const { runner } = require('../runner/client');
 const router = express.Router();
 router.use(requireAdmin);
 
-router.get('/', async (req, res, next) => {
+// The list is readable with settings:read. Everything that makes, hands out or
+// applies a dump needs backups:write: a dump holds every password hash, and a
+// restore runs whatever SQL is in the file.
+const canWrite = permit('backups:write');
+
+router.get('/', permit('settings:read'), async (req, res, next) => {
   try {
     const rows = await db.select().from(schema.backups).orderBy(desc(schema.backups.createdAt)).limit(50);
     const last = rows.find((r) => r.status === 'success') || null;
@@ -35,7 +40,7 @@ router.get('/', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', canWrite, async (req, res) => {
   try {
     const r = await runner.backup('manual');
     res.status(r.status === 200 ? 200 : 502).json(r.body || { error: 'runner error' });
@@ -43,7 +48,7 @@ router.post('/', async (req, res) => {
 });
 
 // Stream a dump out through the api, so the runner never has to be exposed.
-router.get('/:id/file', requireRecentAuth, async (req, res) => {
+router.get('/:id/file', canWrite, requireRecentAuth, async (req, res) => {
   try {
     const upstream = await runner.backupFile(req.params.id);
     if (!upstream.ok) {
@@ -70,7 +75,7 @@ router.get('/:id/file', requireRecentAuth, async (req, res) => {
 
 // Bring a dump back onto the box. Not step-up on its own: uploading only adds a
 // row to the list. Doing anything WITH it is the guarded part.
-router.post('/upload', express.raw({ type: '*/*', limit: '2gb' }), async (req, res) => {
+router.post('/upload', canWrite, express.raw({ type: '*/*', limit: '2gb' }), async (req, res) => {
   try {
     const r = await runner.backupUpload(req.body, req.auth.email);
     if (r.status !== 200) return res.status(r.status || 502).json(r.body || { error: 'runner error' });
@@ -78,7 +83,7 @@ router.post('/upload', express.raw({ type: '*/*', limit: '2gb' }), async (req, r
   } catch (err) { res.status(err.status || 500).json({ error: err.message }); }
 });
 
-router.post('/:id/restore', requireRecentAuth, async (req, res) => {
+router.post('/:id/restore', canWrite, requireRecentAuth, async (req, res) => {
   try {
     emitEvent({
       category: 'audit', type: 'restore.requested', severity: 'critical',

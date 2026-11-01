@@ -103,6 +103,9 @@ export default function App() {
 
   function handleLogin() {
     setIsAuthed(true);
+    // Signed out, /setup/status leaves out the version and domain the sidebar and
+    // footer show, so ask again now that there is a session.
+    getSetupStatus().then(setSetup).catch(() => {});
     navigate('/overview');
   }
 

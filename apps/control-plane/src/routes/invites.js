@@ -108,6 +108,12 @@ router.get('/:token', pageLoginLimiter, async (req, res) => {
 router.post('/:token/password', pageLoginLimiter, express.json(), async (req, res) => {
   const { invite, user, app, error } = await invites.resolve(req.params.token);
   if (error) return res.status(400).json({ error });
+  // An invite gives an account an app. It never replaces a credential the account
+  // already has: inviting someone's address must not be a way to choose their
+  // password. The page hides this form for them; this is the check that counts.
+  if (await hasCredential(user)) {
+    return res.status(400).json({ error: 'You already have an account here. Sign in instead.' });
+  }
 
   try {
     await factors.setPassword(user.id, req.body?.password);

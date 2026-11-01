@@ -132,11 +132,32 @@ router.post('/', requireRecentAuth, async (req, res) => {
   }
 });
 
+/** Is `row` the key `tokenId`, or descended from it? */
+async function createdBy(row, tokenId) {
+  const seen = new Set();
+  let cur = row;
+  while (cur && !seen.has(cur.id)) {
+    if (cur.id === tokenId) return true;
+    seen.add(cur.id);
+    if (!cur.createdByTokenId) return false;
+    [cur] = await db.select().from(schema.apiTokens)
+      .where(eq(schema.apiTokens.id, cur.createdByTokenId)).limit(1);
+  }
+  return false;
+}
+
 // Revoke rather than delete, so the audit trail keeps pointing at something real.
 router.delete('/:id', requireRecentAuth, async (req, res) => {
   const [row] = await db.select().from(schema.apiTokens)
     .where(eq(schema.apiTokens.id, req.params.id)).limit(1);
   if (!row) return res.status(404).json({ error: 'Key not found' });
+
+  // A key may revoke itself and the keys it created, directly or through its
+  // children. Revoking a sibling, its own parent or another agent's key would let
+  // one key shut every other agent out.
+  if (req.auth.type === 'token' && !await createdBy(row, req.auth.id)) {
+    return res.status(403).json({ error: 'An access key can only revoke itself and the keys it created.' });
+  }
 
   await db.update(schema.apiTokens).set({ revokedAt: new Date() })
     .where(eq(schema.apiTokens.id, req.params.id));

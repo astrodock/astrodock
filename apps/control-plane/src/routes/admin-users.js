@@ -8,6 +8,7 @@ const { hashPassword } = require('../lib/passwords');
 const roles = require('../lib/roles');
 const invites = require('../lib/invites');
 const accountEmail = require('../lib/account-email');
+const sessions = require('../lib/sessions');
 
 const router = express.Router();
 // Agent keys CAN manage end users now, but never operators — enforced per-request
@@ -24,12 +25,24 @@ function publicUser(u) {
  * May this caller act on this target?
  *
  * Two separate rules, because a key and a person are limited differently:
- *   • a KEY may only touch end users, and never its own principal
+ *   • a KEY may only touch end users, and never its own principal. A key scoped
+ *     to some apps may only touch access to those apps, and may only change an
+ *     account as a whole (password, email, deletion) when every app that account
+ *     can reach is one of them.
  *   • a PERSON is bound by role — only an owner may change an owner
  */
-function guardTarget(req, target) {
-  if (req.auth.type === 'token') return roles.keyCanManageUser(req.auth, target);
-  return roles.canManageUser({ role: req.auth.role }, target);
+function guardTarget(req, target, { appSlug = null } = {}) {
+  if (req.auth.type !== 'token') return roles.canManageUser({ role: req.auth.role }, target);
+  const verdict = roles.keyCanManageUser(req.auth, target);
+  if (!verdict.ok) return verdict;
+  const scope = Array.isArray(req.auth.appScope) ? req.auth.appScope : [];
+  if (!scope.length) return verdict;
+  if (appSlug) {
+    return scope.includes(appSlug) ? verdict : { ok: false, reason: 'This key is not scoped to that app.' };
+  }
+  const access = Array.isArray(target.appAccess) ? target.appAccess : [];
+  if (access.every((s) => scope.includes(s))) return verdict;
+  return { ok: false, reason: 'This person uses apps outside this key\'s scope, so the key cannot change their account.' };
 }
 
 function refuse(res, verdict) {
@@ -91,13 +104,24 @@ router.post('/invite', requirePermission('users:write'), async (req, res) => {
     }
   }
 
+  // Inviting an existing account is how it gets one more app. For a key, that
+  // account has to be one the key could manage anyway: never an operator.
+  if (req.auth.type === 'token') {
+    const addr = String(email).toLowerCase().trim();
+    const [existing] = await db.select().from(schema.users).where(eq(schema.users.email, addr)).limit(1);
+    if (existing) {
+      const verdict = roles.keyCanManageUser(req.auth, existing);
+      if (!verdict.ok) return refuse(res, verdict);
+    }
+  }
+
   try {
     const r = await invites.create({
       email, name, app, invitedByName, redirectTo, ttlDays
     });
-    // An operator is never created or elevated here, so there is no target to
-    // guard: the worst an invite can do is give an existing end user access to
-    // one more app, which is what users:write already means.
+    // An operator is never created or elevated here. Redeeming cannot replace a
+    // credential the account already has (routes/invites.js), so the worst an
+    // invite can do is give an existing account access to one more app.
     res.status(201).json({
       url: r.url,
       expiresAt: r.invite.expiresAt,
@@ -175,6 +199,12 @@ router.patch('/:id', requirePermission('users:write'), async (req, res) => {
   }
 
   const rows = await db.update(schema.users).set(update).where(eq(schema.users.id, req.params.id)).returning();
+  // Losing the dashboard, or the account, ends the sessions that came with it.
+  // A role change otherwise takes effect on the next request, since the role is
+  // read from the account each time.
+  if (isActive === false || (operatorRole !== undefined && operatorRole !== target.operatorRole)) {
+    await sessions.revokeAllFor(target.id).catch(() => {});
+  }
   res.json({ user: publicUser(rows[0]) });
 });
 
@@ -184,6 +214,7 @@ router.delete('/:id', requirePermission('users:write'), async (req, res) => {
   if (!target) return res.status(404).json({ error: 'User not found' });
   const verdict = guardTarget(req, target);
   if (!verdict.ok) return refuse(res, verdict);
+  await sessions.revokeAllFor(target.id).catch(() => {});
   const rows = await db.delete(schema.users).where(eq(schema.users.id, req.params.id)).returning();
   if (!rows[0]) return res.status(404).json({ error: 'User not found' });
   res.status(204).end();
@@ -207,7 +238,7 @@ router.post('/:id/reset-password', requirePermission('users:write'), async (req,
 router.put('/:id/access/:appSlug', requirePermission('users:write'), async (req, res) => {
   const [target] = await db.select().from(schema.users).where(eq(schema.users.id, req.params.id)).limit(1);
   if (!target) return res.status(404).json({ error: 'User not found' });
-  const verdict = guardTarget(req, target);
+  const verdict = guardTarget(req, target, { appSlug: req.params.appSlug });
   if (!verdict.ok) return refuse(res, verdict);
   const rows = await db.select().from(schema.users).where(eq(schema.users.id, req.params.id)).limit(1);
   const user = rows[0];
@@ -222,7 +253,7 @@ router.put('/:id/access/:appSlug', requirePermission('users:write'), async (req,
 router.delete('/:id/access/:appSlug', requirePermission('users:write'), async (req, res) => {
   const [target] = await db.select().from(schema.users).where(eq(schema.users.id, req.params.id)).limit(1);
   if (!target) return res.status(404).json({ error: 'User not found' });
-  const verdict = guardTarget(req, target);
+  const verdict = guardTarget(req, target, { appSlug: req.params.appSlug });
   if (!verdict.ok) return refuse(res, verdict);
   const rows = await db.select().from(schema.users).where(eq(schema.users.id, req.params.id)).limit(1);
   const user = rows[0];

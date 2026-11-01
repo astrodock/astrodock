@@ -26,8 +26,10 @@ const ROLES = {
   },
   operator: {
     label: 'Operator',
-    description: 'Apps, deploys, configuration, runtime and logs. No user or key management.',
-    scopes: ALL.filter((s) => !['users:write', 'tokens:write', 'platform:write', 'settings:write', 'apps:delete', 'exec']
+    description: 'Apps, deploys, configuration, runtime and logs. No user or key management, and no backups.',
+    // backups:write is withheld because a restore runs arbitrary SQL and a backup
+    // file holds every password hash: either one is a path to owner.
+    scopes: ALL.filter((s) => !['users:write', 'tokens:write', 'platform:write', 'settings:write', 'backups:write', 'apps:delete', 'exec']
       .includes(s))
   },
   viewer: {

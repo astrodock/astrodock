@@ -178,5 +178,43 @@ console.log('\nread scopes must not grant writes');
   });
 }
 
+console.log('\nperson-only routers are held to the role');
+
+test('an operator cannot run, download or restore backups', () => {
+  assert.ok(!R.scopesFor('operator').includes('backups:write'));
+  assert.ok(R.scopesFor('admin').includes('backups:write'));
+});
+
+test('a viewer reads settings and changes nothing', () => {
+  const v = R.scopesFor('viewer');
+  assert.ok(v.includes('settings:read'));
+  for (const s of ['settings:write', 'backups:write', 'platform:write', 'pages:write']) assert.ok(!v.includes(s), s);
+});
+
+// requireAdmin only says "a person, not a key". It used to be the whole check, so
+// a viewer could change settings, restore a backup or rewrite the launcher. Every
+// requireAdmin router except a person's own account must also name a permission.
+{
+  const fs = await import('node:fs');
+  const dir = new URL('../src/routes/', import.meta.url);
+  const offenders = [];
+  for (const name of fs.readdirSync(dir).filter((f) => f.endsWith('.js'))) {
+    if (name === 'admin-account.js') continue;
+    const src = fs.readFileSync(new URL(name, dir), 'utf8');
+    const routerLevel = /router\.use\(requireAdmin\)/.test(src);
+    const routerPermit = /router\.use\([^\n]*permit\(/.test(src);
+    for (const line of src.split('\n')) {
+      const m = /^router\.(get|post|put|patch|delete)\('([^']*)'\s*,\s*([^)]*)/.exec(line);
+      if (!m) continue;
+      const [, verb, route, rest] = m;
+      const gated = routerLevel || /requireAdmin/.test(rest);
+      if (gated && !routerPermit && !/permit\(|canWrite/.test(rest)) offenders.push(`${name}: ${verb.toUpperCase()} ${route}`);
+    }
+  }
+  test('every requireAdmin route also names a permission', () => {
+    assert.deepStrictEqual(offenders, [], 'these routes check only that the caller is a person');
+  });
+}
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

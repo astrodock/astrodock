@@ -10,7 +10,7 @@ const crypto = require('crypto');
 const { eq, and, desc } = require('drizzle-orm');
 const config = require('../config');
 const { db, schema } = require('../db');
-const { requireScope } = require('../middleware/auth');
+const { requireScope, requirePermission } = require('../middleware/auth');
 const { encryptSecret, decryptSecret } = require('../lib/crypto');
 const { emitEvent, actorFromAuth } = require('../lib/events');
 const pages = require('../lib/pages');
@@ -23,7 +23,7 @@ const router = express.Router();
 // files — while the Read-only preset that carries it is described as "see
 // everything, change nothing".
 router.use(requireScope('pages:read'));
-const canWrite = requireScope('pages:write');
+const canWrite = requirePermission('pages:write');
 router.use(express.json({ limit: config.pages.editTextMaxBytes }));
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: config.pages.maxFileBytes, files: config.pages.maxFilesPerUpload } });

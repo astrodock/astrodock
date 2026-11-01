@@ -8,13 +8,16 @@
 // Mounted after the global express.json in server.js, so the body is already parsed.
 
 const express = require('express');
-const { requireAdmin } = require('../middleware/auth');
+const { requireAdmin, permit } = require('../middleware/auth');
 const settings = require('../lib/settings');
 const { db, schema } = require('../db');
 const { emitEvent } = require('../lib/events');
 
 const router = express.Router();
 router.use(requireAdmin);
+// Reading is for anyone with settings:read (viewers included); every change needs
+// settings:write, which only admins and owners hold.
+router.use((req, res, next) => permit(req.method === 'GET' ? 'settings:read' : 'settings:write')(req, res, next));
 
 router.get('/', async (req, res, next) => {
   try {
@@ -161,7 +164,7 @@ function requireFreshAuth(req, res, next) {
   });
 }
 
-router.post('/update', requireFreshAuth, async (req, res) => {
+router.post('/update', permit('platform:write'), requireFreshAuth, async (req, res) => {
   const updates = require('../lib/updates');
   const version = require('../lib/version');
   try {

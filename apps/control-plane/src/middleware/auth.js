@@ -42,26 +42,39 @@ async function resolveAuth(req) {
   }
 
   // Operator session JWT.
+  let payload;
   try {
-    const payload = jwt.verify(raw, config.adminJwtSecret);
-    // A session id makes revocation possible: an 8h JWT with no server-side record
-    // could not be killed. Tokens minted before sessions existed have no sid and
-    // are accepted until they expire on their own.
-    if (payload.sid) {
-      const srows = await db.select().from(schema.sessions).where(eq(schema.sessions.id, payload.sid)).limit(1);
-      const sess = srows[0];
-      if (!sess || sess.revokedAt || new Date(sess.expiresAt) <= new Date()) return null;
-      db.update(schema.sessions).set({ lastSeenAt: new Date() }).where(eq(schema.sessions.id, sess.id)).catch(() => {});
-      return {
-        type: 'admin', email: payload.email, sub: payload.sub,
-        role: payload.role || 'admin', sessionId: sess.id, reauthAt: sess.reauthAt || null
-      };
-    }
-    if (!payload.isAdmin) return null;
-    return { type: 'admin', email: payload.email, sub: payload.sub, role: payload.role || 'admin' };
+    payload = jwt.verify(raw, config.adminJwtSecret);
   } catch {
     return null;
   }
+  // A session id makes revocation possible: an 8h JWT with no server-side record
+  // could not be killed. Tokens minted before sessions existed have no sid and
+  // are accepted until they expire on their own.
+  let sess = null;
+  if (payload.sid) {
+    const srows = await db.select().from(schema.sessions).where(eq(schema.sessions.id, payload.sid)).limit(1);
+    sess = srows[0];
+    if (!sess || sess.revokedAt || new Date(sess.expiresAt) <= new Date()) return null;
+  } else if (!payload.isAdmin) {
+    return null;
+  }
+  // The role comes from the account, not the token. A token carries the role it
+  // was signed with, so a demoted or deactivated operator would otherwise keep
+  // their old access until it expired.
+  const userId = sess ? sess.userId : payload.sub;
+  if (!userId) return null;
+  const urows = await db.select().from(schema.users).where(eq(schema.users.id, userId)).limit(1);
+  const user = urows[0];
+  if (!user || !user.isActive || !roles.isOperator(user)) return null;
+  if (sess) {
+    db.update(schema.sessions).set({ lastSeenAt: new Date() }).where(eq(schema.sessions.id, sess.id)).catch(() => {});
+    return {
+      type: 'admin', email: user.email, sub: user.id,
+      role: user.operatorRole, sessionId: sess.id, reauthAt: sess.reauthAt || null
+    };
+  }
+  return { type: 'admin', email: user.email, sub: user.id, role: user.operatorRole };
 }
 
 function tokenHasScope(list, scope) {
@@ -106,7 +119,9 @@ function requireScope(scope) {
   return (req, res, next) => {
     resolveAuth(req).then((auth) => {
       if (!auth) return res.status(401).json({ error: 'Authentication required' });
-      if (auth.type === 'admin') { req.auth = auth; return next(); }
+      // People are held to their role: a viewer holds every :read scope and
+      // nothing else.
+      if (auth.type === 'admin' && callerHasScope(auth, scope)) { req.auth = auth; return next(); }
       if (auth.type === 'token' && tokenHasScope(auth.scopes, scope)) {
         // NB: per-app scope is enforced per-route (router.param('slug') on the apps router,
         // and explicit tokenAllowsApp filters on the cross-app list/activity/health routes).
@@ -138,7 +153,23 @@ function requirePermission(scope) {
   };
 }
 
+/**
+ * Check a permission on a caller already resolved by `requireAdmin`. For the
+ * person-only surfaces (settings, backups, notifications, setup), where keys stay
+ * excluded but a viewer must not get an owner's reach.
+ */
+function permit(scope) {
+  return (req, res, next) => {
+    if (callerHasScope(req.auth, scope)) return next();
+    return res.status(403).json({
+      error: `This action needs the "${scope}" permission.`,
+      code: 'insufficient_scope',
+      required: scope
+    });
+  };
+}
+
 module.exports = {
-  resolveAuth, requireAdmin, requireScope, requirePermission,
+  resolveAuth, requireAdmin, requireScope, requirePermission, permit,
   tokenHasScope, tokenAllowsApp, grantedScopes, callerHasScope
 };

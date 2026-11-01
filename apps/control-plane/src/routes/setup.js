@@ -22,7 +22,7 @@ const config = require('../config');
 const sessions = require('../lib/sessions');
 const { db, schema } = require('../db');
 const { hashPassword } = require('../lib/passwords');
-const { requireAdmin } = require('../middleware/auth');
+const { requireAdmin, permit, resolveAuth } = require('../middleware/auth');
 const { setBootstrap, isSetupDeferred, setSetupDeferred } = require('../lib/settings');
 const { MIN_PASSWORD_LENGTH } = require('../lib/auth-factors');
 const { normalizeHostname, validHostname } = require('../lib/domains');
@@ -47,6 +47,7 @@ let setupToken = null;
 // in the window before the account is claimed, which the generated 48-char one is
 // not. Reject rather than silently accept a weak one.
 const MIN_PRESET_TOKEN_LENGTH = 16;
+const PLACEHOLDER_TOKEN = /replace|change-?me|generate|example/i;
 
 function validatePresetToken(value) {
   const v = String(value || '').trim();
@@ -55,6 +56,9 @@ function validatePresetToken(value) {
     return { ok: false, reason: `shorter than ${MIN_PRESET_TOKEN_LENGTH} characters` };
   }
   if (/\s/.test(v)) return { ok: false, reason: 'contains whitespace' };
+  // Install guides ship a placeholder for this value. Copied unchanged, it is a
+  // token anyone who has read the same guide already knows.
+  if (PLACEHOLDER_TOKEN.test(v)) return { ok: false, reason: 'looks like a placeholder from an install guide' };
   return { ok: true, value: v };
 }
 
@@ -128,6 +132,18 @@ async function initSetup({ log = console.log } = {}) {
 router.get('/status', async (req, res) => {
   try {
     const hasAdmin = await adminExists();
+    const complete = hasAdmin && (config.isConfigured() || await isSetupDeferred());
+    // Once setup is over, a stranger gets only what decides which screen to show.
+    // The version, domain, ACME email and server IP are for a signed-in operator.
+    if (complete) {
+      const auth = await resolveAuth(req).catch(() => null);
+      if (!auth || auth.type !== 'admin') {
+        return res.json({
+          configured: config.isConfigured(), hasAdmin, needsClaim: false,
+          adminSubdomain: config.adminSubdomain, complete
+        });
+      }
+    }
     res.json({
       configured: config.isConfigured(),
       hasAdmin,
@@ -149,7 +165,7 @@ router.get('/status', async (req, res) => {
       // "Complete" means "stop showing the wizard", not "fully configured". Someone
       // who chose to set their domain later gets the dashboard over the server's IP
       // instead of being held at a form they cannot fill in yet.
-      complete: hasAdmin && (config.isConfigured() || await isSetupDeferred())
+      complete
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -199,7 +215,7 @@ router.post('/claim', async (req, res) => {
 
 // Check the wildcard record before committing to a domain, so the operator finds
 // out here rather than after Caddy has already failed to get a certificate.
-router.post('/check-dns', requireAdmin, async (req, res) => {
+router.post('/check-dns', requireAdmin, permit('platform:write'), async (req, res) => {
   const host = normalizeHostname((req.body || {}).baseDomain);
   if (!validHostname(host)) {
     return res.status(400).json({ error: 'Enter a valid domain, e.g. apps.example.com' });
@@ -242,11 +258,11 @@ router.post('/check-dns', requireAdmin, async (req, res) => {
 // manual, unbounded in time, and easy to get subtly wrong. If the operator's DNS
 // lives somewhere with an API, we can just do it.
 
-router.get('/dns/providers', requireAdmin, (req, res) => {
+router.get('/dns/providers', requireAdmin, permit('platform:write'), (req, res) => {
   res.json({ providers: require('../lib/dns-providers').list() });
 });
 
-router.post('/dns/create', requireAdmin, async (req, res) => {
+router.post('/dns/create', requireAdmin, permit('platform:write'), async (req, res) => {
   const { provider, token } = req.body || {};
   const baseDomain = normalizeHostname((req.body || {}).baseDomain);
   const observed = String((req.body || {}).observedIp || '').trim();
@@ -316,7 +332,7 @@ router.post('/handoff', async (req, res) => {
 // Skip the domain step for now. Nothing is configured — this only records that the
 // operator made the choice, so the wizard stops blocking the dashboard. Setting a
 // domain later clears it.
-router.post('/defer', requireAdmin, async (req, res) => {
+router.post('/defer', requireAdmin, permit('platform:write'), async (req, res) => {
   try {
     const actor = actorFromAuth(req.auth);
     await setSetupDeferred(true, actor.actor);
@@ -334,7 +350,7 @@ router.post('/defer', requireAdmin, async (req, res) => {
 // What would change break? Passkeys are bound to the admin hostname, so moving the
 // base domain invalidates them. Reported so the UI can warn — never used to block,
 // since an enrolled credential should not hold the platform's routing hostage.
-router.post('/domain/impact', requireAdmin, async (req, res) => {
+router.post('/domain/impact', requireAdmin, permit('platform:write'), async (req, res) => {
   const baseDomain = normalizeHostname((req.body || {}).baseDomain);
   if (!validHostname(baseDomain)) return res.status(400).json({ error: 'Enter a valid domain.' });
   try {
@@ -346,7 +362,7 @@ router.post('/domain/impact', requireAdmin, async (req, res) => {
 
 // Commit the domain. Persists it, applies it to the live config, and republishes
 // routing — after which the operator is redirected to the real admin host.
-router.post('/domain', requireAdmin, async (req, res) => {
+router.post('/domain', requireAdmin, permit('platform:write'), async (req, res) => {
   const { tlsMode, acmeEmail } = req.body || {};
   const baseDomain = normalizeHostname((req.body || {}).baseDomain);
   try {
