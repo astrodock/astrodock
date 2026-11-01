@@ -65,15 +65,28 @@ try {
     });
   });
 
-  ok('environment variables win over the file', () => {
+  ok('environment variables win over the file when both are set there', () => {
     const dir = tmpdir();
     fs.writeFileSync(path.join(dir, CRED_FILE),
       'ASTRODOCK_URL=https://file.example\nASTRODOCK_TOKEN=tk_file\n');
     process.env.ASTRODOCK_TOKEN = 'tk_env';
+    process.env.ASTRODOCK_URL = 'https://env.example';
     try {
       const creds = loadCredentials(dir);
       assert.strictEqual(creds.ASTRODOCK_TOKEN, 'tk_env');
-      assert.strictEqual(creds.ASTRODOCK_URL, 'https://file.example');
+      assert.strictEqual(creds.ASTRODOCK_URL, 'https://env.example');
+    } finally {
+      delete process.env.ASTRODOCK_TOKEN;
+      delete process.env.ASTRODOCK_URL;
+    }
+  });
+
+  ok('a token from the environment is never sent to a URL from the file', () => {
+    const dir = tmpdir();
+    fs.writeFileSync(path.join(dir, CRED_FILE), 'ASTRODOCK_URL=https://attacker.example\n');
+    process.env.ASTRODOCK_TOKEN = 'tk_env';
+    try {
+      assert.throws(() => loadCredentials(dir), /different places/);
     } finally {
       delete process.env.ASTRODOCK_TOKEN;
     }

@@ -8,40 +8,19 @@
 // the reason a submission appears to fail.
 
 const fb = require('./feedback');
+const netGuard = require('./net-guard');
 
 const WEBHOOK_TIMEOUT_MS = 5000;
 
-// Hostnames the control plane must not be talked into calling.
-//
 // This URL comes from an app's own app.json, and the control plane sits inside
 // the compose network where `postgres`, `objectstore` and `runner` all answer to
-// their service names. Without this, "webhook": "http://objectstore:8333/…"
-// is a request the platform makes on an app author's behalf, from inside the
-// perimeter. The cloud metadata address is the same problem with a worse prize.
-//
-// A hostname check is not airtight: a public name can resolve to a private
-// address, and only resolving it at request time would catch that. It stops the
-// direct version, which is the one someone writes by accident.
-const BLOCKED_HOSTS = new Set([
-  'localhost', '127.0.0.1', '::1', '0.0.0.0',
-  'postgres', 'objectstore', 'runner', 'api', 'caddy',
-  '169.254.169.254', 'metadata.google.internal'
-]);
+// their service names. net-guard checks the address after DNS resolution and does
+// not follow redirects, so neither a private name nor a public URL that bounces
+// to one gets a request out of the platform on an app author's behalf.
 
-const PRIVATE_IP = /^(10\.|127\.|0\.|169\.254\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/;
-
-/** HTTPS, and not pointed at something inside the perimeter. */
+/** HTTPS, and not pointed at something inside the perimeter (before DNS). */
 function isPublicHttps(value) {
-  let url;
-  try { url = new URL(value); } catch { return false; }
-  if (url.protocol !== 'https:') return false;      // never a user report in the clear
-  const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, '');
-  if (BLOCKED_HOSTS.has(host)) return false;
-  if (PRIVATE_IP.test(host)) return false;
-  // A bare name with no dot is a container or a search-domain lookup, never a
-  // public endpoint.
-  if (!host.includes('.') && !host.includes(':')) return false;
-  return true;
+  return netGuard.checkUrl(value, { httpsOnly: true }).ok;
 }
 
 /**
@@ -58,33 +37,21 @@ async function fireWebhook(item, app) {
   if (!config.webhook) return false;
   if (!isPublicHttps(config.webhook)) return false;
 
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), WEBHOOK_TIMEOUT_MS);
-  try {
-    await fetch(config.webhook, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      signal: controller.signal,
-      body: JSON.stringify({
-        event: 'feedback.created',
-        app: app.slug,
-        feedback: {
-          key: item.key,
-          title: item.title,
-          body: item.body,
-          category: item.category,
-          status: item.status,
-          context: item.context,
-          createdAt: item.createdAt
-        }
-      })
-    });
-    return true;
-  } catch {
-    return false;      // a developer's endpoint being down is not our problem
-  } finally {
-    clearTimeout(timer);
-  }
+  const res = await netGuard.postJson(config.webhook, {
+    event: 'feedback.created',
+    app: app.slug,
+    feedback: {
+      key: item.key,
+      title: item.title,
+      body: item.body,
+      category: item.category,
+      status: item.status,
+      context: item.context,
+      createdAt: item.createdAt
+    }
+  }, { timeoutMs: WEBHOOK_TIMEOUT_MS, httpsOnly: true });
+  // A developer's endpoint being down is not our problem.
+  return res.ok || res.status > 0;
 }
 
 /**

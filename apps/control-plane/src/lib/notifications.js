@@ -14,6 +14,7 @@ const { eq, and, gt } = require('drizzle-orm');
 const { db, schema } = require('../db');
 const config = require('../config');
 const { sendEmail } = require('./email');
+const netGuard = require('./net-guard');
 
 const CHANNELS = ['email', 'webhook'];
 const SEVERITIES = ['info', 'warning', 'critical'];
@@ -100,16 +101,12 @@ async function dispatchWebhook(rule, event) {
   const url = rule.target && rule.target.url;
   if (!url) return { status: 'skipped', target: '', error: 'no url configured' };
   const format = (rule.target && rule.target.format) || 'json';
-  try {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(webhookBody(event, format)),
-      signal: typeof AbortSignal !== 'undefined' && AbortSignal.timeout ? AbortSignal.timeout(8000) : undefined
-    });
-    if (!res.ok) return { status: 'failed', target: url, error: `HTTP ${res.status}` };
-    return { status: 'sent', target: url };
-  } catch (err) { return { status: 'failed', target: url, error: err.message }; }
+  // net-guard refuses private and internal destinations after DNS resolution and
+  // does not follow redirects, so a rule (or the /test route) cannot be used to
+  // probe runner:3200, postgres or the cloud metadata service.
+  const res = await netGuard.postJson(url, webhookBody(event, format), { timeoutMs: 8000 });
+  if (!res.ok) return { status: 'failed', target: url, error: res.reason || 'delivery failed' };
+  return { status: 'sent', target: url };
 }
 function dispatch(rule, event) {
   return rule.channel === 'webhook' ? dispatchWebhook(rule, event) : dispatchEmail(rule, event);
@@ -166,6 +163,8 @@ function normalizeRule(b, current) {
     out.target = { to: target.to.trim() };
   } else {
     if (!target.url || !/^https?:\/\//i.test(target.url)) throw badReq('webhook rule needs an http(s) target.url');
+    const checked = netGuard.checkUrl(target.url.trim());
+    if (!checked.ok) throw badReq(`webhook target.url ${checked.reason}`);
     const format = target.format || 'json';
     if (!FORMATS.includes(format)) throw badReq(`webhook format must be one of: ${FORMATS.join(', ')}`);
     out.target = { url: target.url.trim(), format };

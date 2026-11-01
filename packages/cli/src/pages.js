@@ -10,6 +10,8 @@ const BATCH = 20;                                   // max files per upload requ
 const SKIP = new Set(['.git', 'node_modules', '.DS_Store']);
 
 // Collect files from a dir (recursively, nested paths preserved) or a single file.
+// Symlinks are skipped: pages default to public, and following one would publish
+// whatever it points at (a key, a file outside the folder).
 function collect(input) {
   const st = fs.statSync(input);
   if (st.isFile()) return [{ abs: path.resolve(input), rel: path.basename(input) }];
@@ -19,8 +21,10 @@ function collect(input) {
     for (const name of fs.readdirSync(dir)) {
       if (name.startsWith('.') || SKIP.has(name)) continue; // dotfiles are rejected server-side anyway
       const abs = path.join(dir, name);
-      if (fs.statSync(abs).isDirectory()) walk(abs);
-      else out.push({ abs, rel: path.relative(root, abs).split(path.sep).join('/') });
+      const lst = fs.lstatSync(abs);
+      if (lst.isSymbolicLink()) continue;
+      if (lst.isDirectory()) walk(abs);
+      else if (lst.isFile()) out.push({ abs, rel: path.relative(root, abs).split(path.sep).join('/') });
     }
   })(root);
   return out;

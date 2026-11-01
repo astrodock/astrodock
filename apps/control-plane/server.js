@@ -15,12 +15,19 @@ const { isEnabled: secretEncryptionEnabled } = require('./src/lib/crypto');
 
 const app = express();
 
-// Trust one proxy (Caddy) so req.ip + rate limiting work.
-app.set('trust proxy', 1);
+// Trust X-Forwarded-For only when the request came from Caddy, so req.ip and the
+// rate limiters see the real client. `trust proxy 1` trusted whoever connected:
+// apps reach this server directly at api:3100, and could put any address in the
+// header to reset every IP-keyed limit.
+const caddyIps = require('./src/lib/trusted-proxy');
+app.set('trust proxy', (addr) => caddyIps.isTrusted(addr));
 
-const corsMiddleware = cors({
-  origin: (origin, cb) => (config.isAllowedOrigin(origin) ? cb(null, true) : cb(new Error('Not allowed by CORS'))),
-  credentials: true
+// Credentials (cookies) only for the admin and auth hosts. Apps and Pages get
+// plain CORS: see config.isCredentialedOrigin.
+const corsMiddleware = cors((req, cb) => {
+  const origin = req.headers.origin;
+  if (!config.isAllowedOrigin(origin)) return cb(new Error('Not allowed by CORS'));
+  cb(null, { origin: true, credentials: config.isCredentialedOrigin(origin) });
 });
 // POST /launch is a top-level form post from a trusted launcher's origin, which
 // is not one of ours, so CORS would refuse it. It checks Origin itself.
@@ -129,11 +136,22 @@ app.use('/admin/backups', require('./src/routes/admin-backups'));
 app.use('/admin/feedback', require('./src/routes/admin-feedback'));
 app.use('/admin/work', require('./src/routes/admin-work'));
 
-// Fallback error handler.
+// Fallback error handler. A 4xx message is meant for the caller; a 5xx one is an
+// internal detail (a database error, a path), so in production it is logged and
+// not returned.
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
+  const status = err.status || err.statusCode || 500;
   console.error('[error]', err.message);
-  res.status(err.status || 500).json({ error: err.message || 'Internal error' });
+  const expose = status < 500 || config.env !== 'production';
+  res.status(status).json({ error: (expose && err.message) || 'Internal error' });
+});
+
+// Express 4 does not catch a rejected promise from an async route, and Node exits
+// on an unhandled rejection by default — so one bad request could stop the
+// control plane. Log it and keep serving; the request itself times out.
+process.on('unhandledRejection', (reason) => {
+  console.error('[unhandledRejection]', reason && reason.stack ? reason.stack : reason);
 });
 
 async function start() {
@@ -153,6 +171,8 @@ async function start() {
   if (!secretEncryptionEnabled()) {
     console.warn('WARNING: ASTRODOCK_SECRET_KEY is not set — secrets are stored in PLAINTEXT. Set it to encrypt secrets at rest (see SECURITY.md).');
   }
+
+  caddyIps.start();         // learn Caddy's address, for trust proxy
 
   await migrate();          // bring the schema up to date
   await ping();             // verify DB connectivity

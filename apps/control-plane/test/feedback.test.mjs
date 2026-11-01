@@ -367,7 +367,7 @@ test('a draft never closes the item', () => {
 
 test('the webhook never carries an internal note', () => {
   const src = fs.readFileSync(new URL('../src/lib/feedback-hooks.js', import.meta.url), 'utf8');
-  const payload = /body: JSON\.stringify\(\{[\s\S]*?\}\)/.exec(src);
+  const payload = /netGuard\.postJson\(config\.webhook, \{[\s\S]*?\}, \{ timeoutMs/.exec(src);
   assert.ok(payload, 'could not find the webhook payload');
   assert.ok(!/note|internal|messages/.test(payload[0]), 'the payload must be the report only');
 });

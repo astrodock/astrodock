@@ -14,6 +14,9 @@ setup.conf
 !setup.conf.example
 *.pem
 *.key
+private/
+# scripts/backup.sh output: full database dumps
+backups/
 
 # ── Logs ───────────────────────────────────────
 *.log

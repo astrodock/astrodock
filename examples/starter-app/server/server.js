@@ -31,7 +31,13 @@ const LOGOUT_URL = (process.env.ASTRODOCK_LOGOUT_URL || `${AUTH_URL}/logout`).re
 const APP_URL = process.env.ASTRODOCK_APP_URL || 'http://localhost:3000';
 const APP_ID = process.env.ASTRODOCK_APP_ID;
 const APP_SECRET = process.env.ASTRODOCK_APP_SECRET;
-const APP_JWT_SECRET = process.env.ASTRODOCK_APP_JWT_SECRET || 'dev-secret';
+// No fallback. A known default would let anyone sign their own session cookie.
+// The platform injects this when auth.mode is "platform"; set it yourself otherwise.
+const APP_JWT_SECRET = process.env.ASTRODOCK_APP_JWT_SECRET;
+if (!APP_JWT_SECRET) {
+  console.error('ASTRODOCK_APP_JWT_SECRET is not set. Refusing to start.');
+  process.exit(1);
+}
 const WELCOME = process.env.WELCOME_MESSAGE || 'Welcome to your Astrodock app';
 
 const app = express();
@@ -50,11 +56,16 @@ app.get('/health', (req, res) => res.json({ status: 'ok' }));
 // this way the password never touches this server, and the platform can offer
 // passkeys and two-factor on our behalf.
 const crypto = require('crypto');
-const pendingStates = new Map(); // state -> expiry; in a real app use your session store
+// The state lives in a cookie on THIS browser, not in a server-wide list. A
+// server-wide list only proves the state was issued to someone, so an attacker
+// could start a sign-in, keep the callback URL, and send it to a victim.
+const STATE_COOKIE = 'login_state';
 
 app.get('/api/login', (req, res) => {
   const state = crypto.randomBytes(16).toString('hex');
-  pendingStates.set(state, Date.now() + 10 * 60 * 1000);
+  res.cookie(STATE_COOKIE, state, {
+    httpOnly: true, sameSite: 'lax', secure: true, path: '/auth/callback', maxAge: 10 * 60 * 1000
+  });
   const params = new URLSearchParams({
     app_id: APP_ID,
     redirect_uri: `${APP_URL}/auth/callback`,
@@ -65,11 +76,15 @@ app.get('/api/login', (req, res) => {
 
 app.get('/auth/callback', async (req, res) => {
   const { code, state } = req.query;
-  // Compare the state we stored. Without this, anyone could hand a user a
-  // callback URL and sign them in as somebody else.
-  const expiry = pendingStates.get(state);
-  pendingStates.delete(state);
-  if (!expiry || expiry < Date.now()) return res.status(400).send('Sign-in expired. Please try again.');
+  // Compare against the state this browser was given. Without this, anyone could
+  // hand a user a callback URL and sign them in as somebody else.
+  const expected = req.cookies?.[STATE_COOKIE] || '';
+  res.clearCookie(STATE_COOKIE, { path: '/auth/callback' });
+  const given = typeof state === 'string' ? state : '';
+  if (!expected || expected.length !== given.length
+    || !crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(given))) {
+    return res.status(400).send('Sign-in expired. Please try again.');
+  }
 
   const r = await fetch(`${AUTH_URL}/token`, {
     method: 'POST',

@@ -10,6 +10,7 @@ const { db, schema } = require('../db');
 const config = require('../config');
 const { generateAppSecret, generateSecretHex } = require('./ids');
 const { encryptSecret } = require('./crypto');
+const { validSubdomain, reservedReason } = require('./subdomains');
 
 async function nextPort() {
   const rows = await db.select({ port: schema.apps.port }).from(schema.apps);
@@ -115,6 +116,19 @@ async function applyManifest(manifest, { prune = false } = {}) {
 
   const rows = await db.select().from(schema.apps).where(eq(schema.apps.slug, manifest.slug)).limit(1);
   let app = rows[0];
+  // The schema checks the label's shape; the platform's own hosts are checked
+  // here. Without it a manifest could claim `admin` or `auth`, and every Caddy
+  // reload after that fails on the duplicate site. An existing app that already
+  // holds a now-reserved name keeps it; only a change is checked.
+  if ((!rows[0] || rows[0].subdomain !== manifest.subdomain) && !validSubdomain(String(manifest.subdomain))) {
+    const why = reservedReason(String(manifest.subdomain).toLowerCase());
+    const err = new Error(why
+      ? `subdomain "${manifest.subdomain}" is reserved (${why})`
+      : `subdomain "${manifest.subdomain}" is not a valid name`);
+    err.status = 400; err.errors = [{ path: 'subdomain', message: err.message }];
+    throw err;
+  }
+
   let created = false;
   let appSecretPlain;
 

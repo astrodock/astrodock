@@ -55,16 +55,32 @@ function assertNotTracked(cwd) {
   );
 }
 
+// The URL and the token must come from the same place. Mixing them let a
+// .env.astrodock in a downloaded folder (one that is not a git repo, so the
+// tracked-file guard never runs) supply the URL while the token came from the
+// shell — sending a real token to whatever host that file named.
 function loadCredentials(cwd = process.cwd()) {
-  const out = {};
+  let fromFile = {};
   const file = path.join(cwd, CRED_FILE);
   if (fs.existsSync(file)) {
     assertNotTracked(cwd);
-    Object.assign(out, parseCredFile(fs.readFileSync(file, 'utf8')));
+    fromFile = parseCredFile(fs.readFileSync(file, 'utf8'));
   }
-  if (process.env.ASTRODOCK_URL) out.ASTRODOCK_URL = process.env.ASTRODOCK_URL;
-  if (process.env.ASTRODOCK_TOKEN) out.ASTRODOCK_TOKEN = process.env.ASTRODOCK_TOKEN;
-  return out;
+  const fromEnv = {};
+  if (process.env.ASTRODOCK_URL) fromEnv.ASTRODOCK_URL = process.env.ASTRODOCK_URL;
+  if (process.env.ASTRODOCK_TOKEN) fromEnv.ASTRODOCK_TOKEN = process.env.ASTRODOCK_TOKEN;
+
+  const envHasAny = !!(fromEnv.ASTRODOCK_URL || fromEnv.ASTRODOCK_TOKEN);
+  if (!envHasAny) return fromFile;
+  const mixed = (fromEnv.ASTRODOCK_TOKEN && !fromEnv.ASTRODOCK_URL && fromFile.ASTRODOCK_URL)
+    || (fromEnv.ASTRODOCK_URL && !fromEnv.ASTRODOCK_TOKEN && fromFile.ASTRODOCK_TOKEN);
+  if (mixed) {
+    throw new Error(
+      `ASTRODOCK_URL and ASTRODOCK_TOKEN come from different places (one from the environment, ` +
+      `one from ${CRED_FILE}). Set both in the environment, or both in ${CRED_FILE}.`
+    );
+  }
+  return fromEnv;
 }
 
 module.exports = { loadCredentials, parseCredFile, CRED_FILE };

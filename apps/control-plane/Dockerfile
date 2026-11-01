@@ -4,12 +4,20 @@
 # git + Docker CLI + PM2 so it can clone, build, and run apps.
 
 # ── Stage 1: build the admin SPA ──
+# Installed from the committed root lockfile, so every release builds the SPA from
+# the same dependency tree that was tested. `npm install` here resolved fresh
+# versions on every build.
 FROM node:22-bookworm-slim AS admin-build
-WORKDIR /admin
-COPY apps/admin/package.json ./
-RUN npm install --no-audit --no-fund
-COPY apps/admin/ ./
-RUN npm run build   # → /admin/dist
+WORKDIR /src
+COPY package.json package-lock.json ./
+COPY apps/control-plane/package.json apps/control-plane/package.json
+COPY apps/admin/package.json apps/admin/package.json
+COPY packages/schema/package.json packages/schema/package.json
+COPY packages/auth-client/package.json packages/auth-client/package.json
+COPY packages/cli/package.json packages/cli/package.json
+RUN npm ci --workspace @astrodock/admin --no-audit --no-fund
+COPY apps/admin/ apps/admin/
+RUN npm run build -w @astrodock/admin   # → /src/apps/admin/dist
 
 # ── Stage 2: runtime ──
 FROM node:22-bookworm-slim AS runtime
@@ -54,7 +62,8 @@ RUN apt-get update \
  # ENTRYPOINT hard-codes this path, and a wrong one would fail every container at
  # boot rather than here.
  && /usr/bin/tini --version \
- && npm install -g pm2
+ # Pinned: an unpinned global install is a different PM2 on every build.
+ && npm install -g pm2@7.1.1
 
 WORKDIR /app
 # Install workspace runtime deps using the committed lockfile.
@@ -72,7 +81,7 @@ COPY apps/control-plane apps/control-plane
 COPY packages packages
 
 # Built admin SPA → copied into the shared static volume at boot by the entrypoint
-COPY --from=admin-build /admin/dist /opt/admin-dist
+COPY --from=admin-build /src/apps/admin/dist /opt/admin-dist
 COPY apps/control-plane/docker-entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 

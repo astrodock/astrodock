@@ -19,6 +19,14 @@ function makeClient({ url, token } = {}) {
     );
   }
   const base = url.replace(/\/$/, '');
+  // The token travels in a header, so plain http hands it to anyone on the path.
+  // Loopback is the exception (a local control plane in development).
+  let parsed;
+  try { parsed = new URL(base); } catch { throw new Error(`ASTRODOCK_URL is not a valid URL: ${url}`); }
+  const loopback = ['localhost', '127.0.0.1', '[::1]'].includes(parsed.hostname);
+  if (parsed.protocol !== 'https:' && !(parsed.protocol === 'http:' && loopback)) {
+    throw new Error(`ASTRODOCK_URL must use https (got ${parsed.protocol}//${parsed.host})`);
+  }
 
   async function request(method, path, body) {
     let res;

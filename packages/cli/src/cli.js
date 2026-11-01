@@ -8,6 +8,7 @@ const { validate } = require('@astrodock/schema');
 const { makeClient } = require('./client');
 const { cmdPages } = require('./pages');
 const { cmdFeedback, cmdWork } = require('./feedback');
+const { filesToUpload } = require('./upload-files');
 
 const USAGE = `astrodock — drive an Astrodock platform from an app repo
 
@@ -131,24 +132,30 @@ async function cmdApply(client, flags) {
 }
 
 // Tar the working dir (minus heavy/secret bits) and upload it for a non-GitHub deploy.
+// What goes in is decided by src/upload-files.js, not by tar excludes.
 async function localDeploy(client, slug) {
   const cwd = process.cwd();
-  const tmp = path.join(os.tmpdir(), `astrodock-${slug}-${process.pid}.tgz`);
-  const excludes = ['node_modules', '.git', 'dist', '.env', '.env.local', '.env.astrodock', '.DS_Store', '._*']
-    .flatMap((e) => [`--exclude=${e}`, `--exclude=*/${e}`]);
+  const files = filesToUpload(cwd);
+  if (!files.length) die('nothing to upload in this directory');
+  // A private temp directory, so another local user cannot pre-create or read
+  // the archive at a predictable path.
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'astrodock-'));
+  const tmp = path.join(tmpDir, 'upload.tgz');
+  const list = path.join(tmpDir, 'files');
+  fs.writeFileSync(list, files.join('\0'));
   try {
     // COPYFILE_DISABLE stops macOS bsdtar from inventing AppleDouble ._* entries
     // for extended attributes. Without it a Mac upload sprouts a ._ twin of every
     // file, and a static build happily publishes them as pages — this was the
-    // "server reports 60 pages, the same tree reports 30 locally" mystery. The
-    // ._* exclude also drops any real ._ files Finder has left on disk.
-    execFileSync('tar', ['czf', tmp, ...excludes, '-C', cwd, '.'],
+    // "server reports 60 pages, the same tree reports 30 locally" mystery.
+    execFileSync('tar', ['czf', tmp, '-C', cwd, '--null', '-T', list],
       { stdio: ['ignore', 'ignore', 'inherit'], env: { ...process.env, COPYFILE_DISABLE: '1' } });
   } catch (e) {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
     die(`could not create upload archive (is tar installed?): ${e.message}`);
   }
   const buf = fs.readFileSync(tmp);
-  fs.rmSync(tmp, { force: true });
+  fs.rmSync(tmpDir, { recursive: true, force: true });
 
   // Ask before uploading. The required-variable gate runs in the deploy worker,
   // which only starts once the whole archive has been sent — so a blocked deploy
