@@ -64,19 +64,48 @@ plainly rather than pretending they aren't there.
   control-plane (`api`) container holds neither (verified: no socket, blank PAT). The runner's
   internal API is token-authed and reachable only on the compose network. Socket access is still
   ≈ host root, but confined to the runner.
-- **Caddy admin API** (`:2019`) lives only on the internal network — do not publish port 2019.
-- **The bundled object store** is internal-only and uses S3 identities (platform admin + per-app
-  scoped keys), not anonymous access. Do not expose it.
+- **Caddy admin API** listens on a unix socket (`/run/caddy-admin/admin.sock`) in a volume only
+  the `caddy` and `api` containers mount. No app can reach it. Older compose files put it on
+  `:2019` on the shared network instead, where any app could rewrite routing; see
+  [Older installs](#older-installs).
+- **The bundled object store** is split in two. The `seaweed` service (master, volume server,
+  filer, S3 gateway) sits on an internal `storage` network no app joins. The `objectstore`
+  service is an HTTP proxy that forwards only the S3 port, `:8333`. Apps hold per-app keys
+  scoped to their own bucket. The filer, master and volume ports have no authentication, which
+  is why nothing but the proxy can reach them. If a per-app key cannot be created, provisioning
+  fails; it no longer falls back to the platform's admin key.
+- **The runner token** has no default. The runner refuses to start when it is unset or set to the
+  old published placeholder, and compares it in constant time.
+- **Backups** (`/data/backups`) are root-only: the directory is `0700`, each dump `0600`. PM2's
+  home, which holds every Node app's environment, is `0700`.
 - Only Caddy's `80`/`443` should be published to the internet.
+
+### Older installs
+An update replaces the images, never `docker-compose.yml` or `infra/caddy/Caddyfile` on the
+host. An install made before the socket and storage split keeps its old topology (Caddy admin
+on `:2019`, one `objectstore` container on the shared network) until both files are replaced:
+
+```sh
+cd <install dir>
+curl -fsSL https://raw.githubusercontent.com/astrodock/astrodock/main/docker-compose.yml -o docker-compose.yml
+curl -fsSL https://raw.githubusercontent.com/astrodock/astrodock/main/infra/caddy/Caddyfile -o infra/caddy/Caddyfile
+grep -q '^ASTRODOCK_RUNNER_TOKEN=.' .env || echo "ASTRODOCK_RUNNER_TOKEN=$(openssl rand -hex 32)" >> .env
+docker compose up -d --remove-orphans
+```
+
+The object data volume is kept. The control plane works with either topology.
 
 ## Remaining known limitations
 - The runner container itself is privileged (holds the Docker socket ≈ host root and the GitHub
   PAT). App build + runtime drop to a non-root per-app user, but a bug in the runner's own
   orchestration code, or a Dockerfile-app escape via the socket, is bounded only by the runner
   container. The trust boundary is the runner container.
-- Dockerfile apps share one Docker network with the control plane/Caddy; a deployed Dockerfile
-  app could reach internal services (objectstore, caddy admin, runner) on that network. Put only
-  trusted Dockerfile apps on the box, or segment the network.
+- Apps (Node apps in the runner, and Dockerfile apps) share one Docker network with the control
+  plane, Caddy's proxy ports, the runner API (token-authed) and the S3 proxy. They cannot reach
+  the Caddy admin API or the storage core. Node apps also share the runner's network namespace
+  and process table, so one app can see another's process names and bind a port another app
+  has released. Put only apps you trust on the box.
+- Apps can reach the cloud metadata service (`169.254.169.254`) unless the host blocks it.
 - No multi-admin RBAC — admins are all-powerful (per-app scoping exists only for API tokens).
 
 ## Operator guidance

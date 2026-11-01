@@ -4,6 +4,7 @@
 // the Caddy admin API (POST /load with the Caddyfile adapter) so reconfiguration
 // is atomic and zero-downtime. See DECISIONS.md (B2).
 
+const http = require('http');
 const config = require('../config');
 
 const API = `api:${config.port}`;
@@ -51,11 +52,36 @@ function appLog(app, accessLogs) {
   return `\tlog {\n\t\toutput file ${CADDY_LOG_DIR}/${app.slug}.log {\n\t\t\troll_size 10MiB\n\t\t\troll_keep 3\n\t\t}\n\t\tformat json\n\t}\n`;
 }
 
+// Where the Caddy admin API lives. A `unix://` address is the hardened setup: the
+// socket sits in a volume only caddy and api mount, so no app on the shared
+// network can reach it. An http URL is the old topology, kept for installs whose
+// docker-compose.yml predates the socket — the compose file on an operator's disk
+// is never refreshed by an update.
+function adminSocket() {
+  const m = /^unix:\/\/(\/.+)$/.exec(String(config.caddyAdmin || ''));
+  return m ? m[1] : null;
+}
+
 function adminOrigin() {
   // Caddy parses origins with url.Parse, so they MUST include a scheme
   // (a bare "caddy:2019" is read as scheme "caddy"). Match the Origin header
   // the control plane sends (config.caddyAdmin, e.g. http://caddy:2019).
   try { return new URL(config.caddyAdmin).origin; } catch { return 'http://caddy:2019'; }
+}
+
+// The `admin` global option. It has to describe the same endpoint the control
+// plane talks to, because the pushed config replaces the bootstrap one: push a
+// different address and the next push has nowhere to go.
+function adminLines() {
+  const sock = adminSocket();
+  // No `origins` on a socket: Caddy's defaults for unix sockets accept an empty
+  // or loopback Host, which is what loadCaddyfile sends.
+  if (sock) return [`\tadmin unix/${sock}`];
+  return [
+    '\tadmin 0.0.0.0:2019 {',
+    `\t\torigins ${adminOrigin()} http://localhost:2019 http://127.0.0.1:2019`,
+    '\t}'
+  ];
 }
 
 function askUrl() {
@@ -68,7 +94,7 @@ function askUrl() {
 // whatever address the operator reaches the box by — normally http://<server-ip>.
 // This is what lets `docker compose up -d` be the only command.
 function setupGlobalOptions() {
-  return `{\n\tadmin 0.0.0.0:2019 {\n\t\torigins ${adminOrigin()} http://localhost:2019 http://127.0.0.1:2019\n\t}\n\tauto_https off\n}\n`;
+  return `{\n${adminLines().join('\n')}\n\tauto_https off\n}\n`;
 }
 
 // Everything the control plane serves, as opposed to the SPA. Both the setup-mode
@@ -108,13 +134,8 @@ ${apiHandles(ADMIN_PATHS)}
 }
 
 function globalOptions(onDemand) {
-  // Keep the admin API reachable from the api container; the origins list must
-  // include the Origin the control plane POSTs from, or Caddy returns 403.
-  const lines = [
-    '\tadmin 0.0.0.0:2019 {',
-    `\t\torigins ${adminOrigin()} http://localhost:2019 http://127.0.0.1:2019`,
-    '\t}'
-  ];
+  // Keep the admin API reachable from the api container, on the same endpoint.
+  const lines = adminLines();
   if (config.tlsMode === 'auto' && config.acmeEmail) lines.push(`\temail ${config.acmeEmail}`);
   if (config.tlsMode === 'internal') lines.push('\tlocal_certs');
   if (config.tlsMode === 'off') lines.push('\tauto_https off');
@@ -327,7 +348,8 @@ function generateCaddyfile(apps, opts = {}) {
  */
 async function loadCaddyfile(text) {
   try {
-    const res = await fetch(`${config.caddyAdmin}/load`, {
+    const sock = adminSocket();
+    const res = sock ? await postToSocket(sock, '/load', text) : await fetch(`${config.caddyAdmin}/load`, {
       method: 'POST',
       // Caddy's admin API enforces an Origin check on non-loopback binds; send one it allows.
       headers: { 'Content-Type': 'text/caddyfile', Origin: config.caddyAdmin },
@@ -343,6 +365,27 @@ async function loadCaddyfile(text) {
     console.error('[caddy] reload error:', err.message);
     return false;
   }
+}
+
+// fetch() cannot speak to a unix socket, so this is the same POST over http.request.
+// Host is 127.0.0.1 because Caddy only accepts an empty or loopback Host on a socket.
+function postToSocket(socketPath, urlPath, body) {
+  return new Promise((resolve, reject) => {
+    const req = http.request({
+      socketPath, path: urlPath, method: 'POST', timeout: 30000,
+      headers: { Host: '127.0.0.1', 'Content-Type': 'text/caddyfile', 'Content-Length': Buffer.byteLength(body) }
+    }, (res) => {
+      const chunks = [];
+      res.on('data', (c) => chunks.push(c));
+      res.on('end', () => {
+        const text = Buffer.concat(chunks).toString('utf8');
+        resolve({ ok: res.statusCode >= 200 && res.statusCode < 300, status: res.statusCode, text: async () => text });
+      });
+    });
+    req.on('timeout', () => req.destroy(new Error('Caddy admin socket timed out')));
+    req.on('error', reject);
+    req.end(body);
+  });
 }
 
 module.exports = { generateCaddyfile, loadCaddyfile, parseRedirects, API };

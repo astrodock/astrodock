@@ -2,6 +2,8 @@
 // Run: node test/unit.mjs
 import assert from 'node:assert';
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 
@@ -81,6 +83,41 @@ test('docker app block whole-proxies the subdomain', () => {
   const cfg = generateCaddyfile([{ ...internalApp, slug: 'pytool', subdomain: 'pytool', runtimeType: 'docker', port: 3102 }]);
   assert.ok(/reverse_proxy app-pytool:3102/.test(cfg), 'whole-proxy to sibling container');
   assert.ok(!/handle \/api\/\*[\s\S]*app-pytool/.test(cfg), 'docker app has no /api split');
+});
+
+test('a unix-socket admin address is pushed as the socket, with no :2019 listener', () => {
+  const prev = config.caddyAdmin;
+  config.caddyAdmin = 'unix:///run/caddy-admin/admin.sock';
+  try {
+    const cfg = generateCaddyfile([internalApp]);
+    assert.ok(cfg.includes('\tadmin unix//run/caddy-admin/admin.sock\n'), 'admin on the socket');
+    assert.ok(!cfg.includes('2019'), 'no TCP admin listener');
+  } finally {
+    config.caddyAdmin = prev;
+  }
+});
+
+console.log('\napp file access');
+
+test('resolveInApp refuses a symlink that leads out of the app', () => {
+  const { resolveInApp } = require('../src/runner/app-ops.js');
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'adock-ops-'));
+  const prev = config.paths.apps;
+  config.paths.apps = tmp;
+  try {
+    fs.mkdirSync(path.join(tmp, 'mine'));
+    fs.mkdirSync(path.join(tmp, 'other'));
+    fs.writeFileSync(path.join(tmp, 'other', 'secret.txt'), 'x');
+    fs.writeFileSync(path.join(tmp, 'mine', 'ok.txt'), 'y');
+    fs.symlinkSync(path.join(tmp, 'other', 'secret.txt'), path.join(tmp, 'mine', 'link.txt'));
+    assert.throws(() => resolveInApp('mine', 'link.txt'), /outside the app/);
+    assert.throws(() => resolveInApp('mine', '../other/secret.txt'), /outside the app/);
+    assert.ok(resolveInApp('mine', 'ok.txt').target.endsWith(path.join('mine', 'ok.txt')));
+    assert.ok(resolveInApp('mine', 'missing.txt').target.endsWith('missing.txt'), 'missing is not an error here');
+  } finally {
+    config.paths.apps = prev;
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
 });
 
 console.log('\napex routing');
@@ -316,6 +353,22 @@ test('CORS opens only while unconfigured, then closes to the base domain', () =>
     assert.strictEqual(config.isAllowedOrigin('https://admin.apps.example.com'), true);
   } finally {
     config.applyRuntimeDomain({ baseDomain: saved });
+  }
+});
+
+test('credentialed CORS is only for the admin and auth hosts', () => {
+  const saved = config.baseDomain;
+  const savedTls = config.tlsMode;
+  try {
+    config.applyRuntimeDomain({ baseDomain: 'apps.example.com', tlsMode: 'auto' });
+    assert.strictEqual(config.isCredentialedOrigin('https://admin.apps.example.com'), true);
+    assert.strictEqual(config.isCredentialedOrigin('https://auth.apps.example.com'), true);
+    assert.strictEqual(config.isCredentialedOrigin('https://notes.apps.example.com'), false, 'an app gets no credentials');
+    assert.strictEqual(config.isCredentialedOrigin('https://pages.apps.example.com'), false, 'pages get no credentials');
+    assert.strictEqual(config.isAllowedOrigin('https://notes.apps.example.com'), true, 'apps still get plain CORS');
+    assert.strictEqual(config.isAllowedOrigin('http://notes.apps.example.com'), false, 'no plain http once TLS is on');
+  } finally {
+    config.applyRuntimeDomain({ baseDomain: saved, tlsMode: savedTls });
   }
 });
 
@@ -675,7 +728,7 @@ console.log('\nreserved subdomains');
 test('the reserved list covers every host the platform itself serves', () => {
   // A subdomain that collides with a platform host would be shadowed by it and
   // simply never resolve to the app — so the refusal has to be exhaustive.
-  const src = fs.readFileSync(new URL('../src/routes/admin-apps.js', import.meta.url), 'utf8');
+  const src = fs.readFileSync(new URL('../src/lib/subdomains.js', import.meta.url), 'utf8');
   const block = /const RESERVED_SUBDOMAINS = new Map\(\[([\s\S]*?)\]\.filter/.exec(src);
   assert.ok(block, 'could not find the reserved list');
   const names = [...block[1].matchAll(/\['([a-z]+)',/g)].map((m) => m[1]);
@@ -687,7 +740,7 @@ test('the reserved list covers every host the platform itself serves', () => {
 
 test('every reserved name carries a reason', () => {
   // "Reserved" alone does not tell anyone whether it will ever be available.
-  const src = fs.readFileSync(new URL('../src/routes/admin-apps.js', import.meta.url), 'utf8');
+  const src = fs.readFileSync(new URL('../src/lib/subdomains.js', import.meta.url), 'utf8');
   const block = /const RESERVED_SUBDOMAINS = new Map\(\[([\s\S]*?)\]\.filter/.exec(src);
   assert.ok(block, 'could not find the reserved list');
   const pairs = [...block[1].matchAll(/\[[^,]+,\s*'([^']*)'\]/g)].map((m) => m[1]);
@@ -733,6 +786,39 @@ test('no integration test defaults its admin credentials from the environment', 
   }
   assert.deepStrictEqual(offenders, [],
     `these pick up ambient credentials instead of pinning their own: ${offenders.join(', ')}`);
+});
+
+console.log('\noutbound request guard');
+
+const netGuard = require('../src/lib/net-guard.js');
+const trustedProxy = require('../src/lib/trusted-proxy.js');
+
+test('private, loopback, link-local and mapped addresses are refused', () => {
+  for (const a of ['127.0.0.1', '10.0.0.5', '172.20.1.2', '192.168.1.1', '169.254.169.254', '100.64.0.1',
+    '0.0.0.0', '::1', '::', 'fe80::1', 'fd00::1', '::ffff:127.0.0.1', '::ffff:7f00:1', '::ffff:a9fe:a9fe']) {
+    assert.strictEqual(netGuard.isPublicAddress(a), false, `${a} should be refused`);
+  }
+  for (const a of ['93.184.216.34', '1.1.1.1', '2606:4700:4700::1111']) {
+    assert.strictEqual(netGuard.isPublicAddress(a), true, `${a} should be allowed`);
+  }
+});
+
+test('internal names and literal private hosts are refused before DNS', () => {
+  for (const u of ['http://runner:3200/', 'http://postgres:5432', 'https://localhost/x', 'http://169.254.169.254/latest/',
+    'https://[::ffff:7f00:1]/', 'https://metadata.google.internal/', 'ftp://example.com/', 'https://u:p@example.com/']) {
+    assert.strictEqual(netGuard.checkUrl(u).ok, false, `${u} should be refused`);
+  }
+  assert.strictEqual(netGuard.checkUrl('http://example.com/x', { httpsOnly: true }).ok, false);
+  assert.strictEqual(netGuard.checkUrl('https://hooks.slack.com/services/x').ok, true);
+});
+
+test('only Caddy (and loopback) may set X-Forwarded-For', () => {
+  trustedProxy._set(['172.18.0.4']);
+  assert.strictEqual(trustedProxy.isTrusted('172.18.0.4'), true);
+  assert.strictEqual(trustedProxy.isTrusted('::ffff:172.18.0.4'), true);
+  assert.strictEqual(trustedProxy.isTrusted('127.0.0.1'), true);
+  assert.strictEqual(trustedProxy.isTrusted('172.18.0.9'), false, 'an app container is not a proxy');
+  trustedProxy._set([]);
 });
 
 console.log(`\n${passed} passed, ${failed} failed`);

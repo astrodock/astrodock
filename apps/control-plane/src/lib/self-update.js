@@ -26,9 +26,9 @@ const os = require('os');
 const config = require('../config');
 const version = require('./version');
 
-function docker(args, { timeout = 15000 } = {}) {
+function docker(args, { timeout = 15000, env } = {}) {
   return new Promise((resolve, reject) => {
-    execFile('docker', args, { timeout, encoding: 'utf8' }, (err, stdout, stderr) => {
+    execFile('docker', args, { timeout, encoding: 'utf8', ...(env ? { env } : {}) }, (err, stdout, stderr) => {
       if (err) return reject(new Error((stderr || err.message).trim()));
       resolve(String(stdout || '').trim());
     });
@@ -107,7 +107,15 @@ function classify(labels) {
 // Launch the updater and return immediately. Detached on purpose: this process is
 // about to be replaced, and waiting for a result it will not survive to read is
 // worse than not waiting.
+// A version is written into the host's .env by the updater. Anything but a plain
+// version string could carry a newline and add lines of its own, such as an
+// ASTRODOCK_IMAGE pointing at an image that then runs with the Docker socket.
+const VERSION_RE = /^(latest|v?\d+\.\d+\.\d+)$/;
+
 async function launch({ toVersion, actor, currentVersion }) {
+  if (toVersion && !VERSION_RE.test(String(toVersion))) {
+    const e = new Error('That is not a version. Use a release like v1.2.3, or latest.'); e.status = 400; throw e;
+  }
   const info = await describe();
   if (!info.ok) { const e = new Error(info.reason); e.status = 409; throw e; }
 
@@ -154,6 +162,11 @@ async function launch({ toVersion, actor, currentVersion }) {
   // and a text editor on the box.
   const stored = await storedRegistryCreds();
   // Same database and secrets as this process — it is the same platform.
+  //
+  // Passed as `-e NAME` with the value in the docker CLI's own environment, never as
+  // `-e NAME=value`: a command line is readable by every process on the box through
+  // /proc/<pid>/cmdline, and Node apps share this container's process table.
+  const childEnv = { ...process.env };
   for (const k of ['ASTRODOCK_PG_HOST', 'ASTRODOCK_PG_PORT', 'ASTRODOCK_PG_USER',
     'ASTRODOCK_PG_PASSWORD', 'ASTRODOCK_PG_DATABASE', 'ASTRODOCK_SECRET_KEY',
     // Without these a private image is refused: the Docker socket carries no
@@ -161,12 +174,12 @@ async function launch({ toVersion, actor, currentVersion }) {
     // client config this container cannot see.
     'ASTRODOCK_REGISTRY_USER', 'ASTRODOCK_REGISTRY_TOKEN', 'ASTRODOCK_IMAGE']) {
     const v = stored[k] != null ? stored[k] : process.env[k];
-    if (v != null) args.push('-e', `${k}=${v}`);
+    if (v != null) { childEnv[k] = v; args.push('-e', k); }
   }
   args.push('--workdir', '/app/apps/control-plane', '--entrypoint', 'node',
     self, 'src/runner/update-worker.js');
 
-  const id = await docker(args, { timeout: 30000 });
+  const id = await docker(args, { timeout: 30000, env: childEnv });
   return { started: true, containerId: id.slice(0, 12), from: currentVersion, to: toVersion || 'latest' };
 }
 

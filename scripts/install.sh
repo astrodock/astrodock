@@ -278,6 +278,9 @@ while IFS= read -r line || [ -n "$line" ]; do
     *)                                  printf '%s\n' "$line" ;;
   esac
 done < "$DIR/.env.example" > "$tmp"
+# The compose file refuses to start without a runner token, so never depend on the
+# template having the line.
+grep -q '^ASTRODOCK_RUNNER_TOKEN=.' "$tmp" || printf 'ASTRODOCK_RUNNER_TOKEN=%s\n' "$RUNNER" >> "$tmp"
 
 # Pin the image tag that was actually installed, so a later `docker compose up`
 # on this box can't silently jump versions.

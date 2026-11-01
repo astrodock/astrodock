@@ -8,9 +8,10 @@
 // Configuring identities also locks down anonymous access, so the platform's
 // own key is registered as an admin identity.
 //
-// Fallback (if identities can't be minted — e.g. no socket / unsupported store):
-// the shared platform key + a per-app key prefix, exactly as before. The injected
-// env var set is identical either way, so app code never changes. See DECISIONS B3.
+// There is no fallback. It used to hand the app the platform's own Admin key plus a
+// prefix when minting failed, which made every such app able to read and write
+// every bucket — and one known trigger (a renamed compose project) failed every
+// time, silently. A failure to mint is now a provisioning error the operator sees.
 
 const { execFileSync } = require('child_process');
 const { S3Client, HeadBucketCommand, CreateBucketCommand, ListObjectsV2Command, DeleteObjectsCommand, DeleteBucketCommand } = require('@aws-sdk/client-s3');
@@ -18,7 +19,18 @@ const config = require('../config');
 const { generateSecretHex } = require('../lib/ids');
 const { encryptSecret, decryptSecret } = require('../lib/crypto');
 
-const CONTAINER = process.env.ASTRODOCK_OBJECTSTORE_CONTAINER || 'astrodock-objectstore-1';
+const { containerFor } = require('../runner/containers');
+
+// The container that runs `weed` with a master. In the current compose that is the
+// `seaweed` service, which apps cannot reach; in older compose files it is the
+// single `objectstore` service.
+function weedContainer() {
+  return containerFor({
+    env: 'ASTRODOCK_OBJECTSTORE_CONTAINER',
+    services: ['seaweed', 'objectstore'],
+    legacy: 'astrodock-objectstore-1'
+  });
+}
 
 function s3(creds) {
   return new S3Client({
@@ -29,13 +41,16 @@ function s3(creds) {
   });
 }
 
-// Run a `weed shell` command inside the objectstore container. Throws on failure.
+// Run a `weed shell` command inside the storage container. Throws on failure.
+//
+// The command goes down stdin. It carries secret keys, and anything on a command
+// line is readable by every process on the box through /proc/<pid>/cmdline — Node
+// apps share the runner's process table.
 function weedShell(command) {
-  // `docker exec -i <container> sh -c 'echo "<cmd>" | weed shell'`
-  const script = `echo ${shq(command)} | weed shell 2>&1`;
-  return execFileSync('docker', ['exec', '-i', CONTAINER, 'sh', '-c', script], { encoding: 'utf8', timeout: 15000 });
+  return execFileSync('docker', ['exec', '-i', weedContainer(), 'weed', 'shell'], {
+    encoding: 'utf8', timeout: 15000, input: `${command}\n`
+  });
 }
-function shq(s) { return `'${String(s).replace(/'/g, `'\\''`)}'`; }
 
 let adminEnsured = false;
 function ensureAdminIdentity() {
@@ -73,16 +88,9 @@ async function provisionStorage(app) {
       scoped: true
     };
   } catch (err) {
-    // fallback: shared platform key + per-app prefix in the shared bucket
-    console.error(`[storage] scoped key provisioning unavailable (${err.message.split('\n')[0]}); falling back to shared key + prefix`);
-    await ensureBucket(config.objectstore.bucket);
-    return {
-      storageBucket: config.objectstore.bucket,
-      storagePrefix: `${app.slug}/`,
-      storageAccessKey: null,
-      storageSecretKey: null,
-      scoped: false
-    };
+    console.error(`[storage] could not mint a scoped storage key for ${app.slug}: ${err.message}`);
+    throw new Error(`Could not create a storage key for this app (${err.message.split('\n')[0]}). `
+      + 'Check that the runner can reach the object store container through the Docker socket.');
   }
 }
 

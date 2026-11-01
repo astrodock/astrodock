@@ -99,6 +99,9 @@ while IFS= read -r line || [ -n "$line" ]; do
     *)                                  printf '%s\n' "$line" ;;
   esac
 done < "$TEMPLATE" > "$tmp"
+# The compose file refuses to start without a runner token, so never depend on the
+# template having the line.
+grep -q '^ASTRODOCK_RUNNER_TOKEN=.' "$tmp" || printf 'ASTRODOCK_RUNNER_TOKEN=%s\n' "$RUNNER" >> "$tmp"
 mv "$tmp" "$OUT"
 chmod 600 "$OUT"
 

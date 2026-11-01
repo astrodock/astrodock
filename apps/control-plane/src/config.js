@@ -234,7 +234,25 @@ config.isAllowedOrigin = function isAllowedOrigin(origin) {
   // never applied to non-browser callers. Once a domain is set this closes.
   if (!config.isConfigured()) return true;
   const d = config.baseDomain.replace(/\./g, '\\.');
-  return new RegExp(`^https?://(.*\\.)?${d}$`).test(origin);
+  const scheme = config.tlsMode === 'off' ? 'https?' : 'https';
+  return new RegExp(`^${scheme}://(.*\\.)?${d}$`).test(origin);
+};
+
+// May this origin make CREDENTIALED requests (cookies sent, response readable)?
+// Only the platform's own admin and auth hosts. Every app subdomain and the Pages
+// host are the same site as auth.<domain>, so the SameSite=Lax session cookie
+// rides their requests; allowing credentials for them let any hosted app or page
+// act as the signed-in visitor (read /account/me, change their email). They still
+// get plain CORS, which the feedback widget needs.
+config.isCredentialedOrigin = function isCredentialedOrigin(origin) {
+  if (!origin) return false;
+  if (config.env !== 'production') {
+    if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return true;
+  }
+  if (!config.isConfigured()) return config.isAllowedOrigin(origin);
+  const scheme = config.tlsMode === 'off' ? 'http' : 'https';
+  const hosts = [`${config.adminSubdomain}.${config.baseDomain}`, config.authHost].map((h) => h.toLowerCase());
+  return hosts.some((h) => origin.toLowerCase() === `${scheme}://${h}`);
 };
 
 module.exports = config;

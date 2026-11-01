@@ -23,13 +23,33 @@ services:
       retries: 10
     restart: unless-stopped
 
-  objectstore:
+  # Object storage, in two parts so apps can reach only the S3 API.
+  #
+  # `weed server` also runs a master, a volume server and a filer, and none of them
+  # check credentials: the per-app S3 keys apply to the S3 gateway alone. When this
+  # one container sat on the shared network, any app could skip its key and read
+  # every bucket through the filer on :8888. So the storage core lives on an
+  # internal network nothing else joins, and `objectstore` is an HTTP proxy that
+  # forwards :8333 and nothing else. Apps keep the same address.
+  seaweed:
     image: chrislusf/seaweedfs:3.80
-    # S3-compatible store on :8333. Reachable only on the internal network.
-    # See SECURITY.md for the v1 storage isolation note.
     command: "server -dir=/data -s3 -s3.port=8333 -ip.bind=0.0.0.0 -volume.max=0 -master.volumeSizeLimitMB=1024"
     volumes:
       - objectdata:/data
+    networks:
+      - storage
+    restart: unless-stopped
+
+  objectstore:
+    image: caddy:2-alpine
+    # Host is passed through unchanged (no --change-host-header), which S3
+    # signatures depend on.
+    command: ["caddy", "reverse-proxy", "--from", "http://:8333", "--to", "http://seaweed:8333"]
+    networks:
+      - default
+      - storage
+    depends_on:
+      - seaweed
     restart: unless-stopped
 
   caddy:
@@ -43,6 +63,12 @@ services:
       - caddy_data:/data
       - caddy_config:/config
       - caddylogs:/var/log/caddy      # per-app access logs (opt-in via Settings)
+      - caddy_admin:/run/caddy-admin  # admin API socket, shared with the api only
+    # The admin API is a unix socket, not a port. On a port it was reachable from
+    # every app on the shared network, and Caddy's origin check only reads a Host
+    # header the caller chooses — any app could replace the routing for the admin
+    # and auth hosts. A stale socket from the last run would block the bind.
+    command: ["sh", "-c", "rm -f /run/caddy-admin/admin.sock; exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile"]
     restart: unless-stopped
 
   api:
@@ -58,20 +84,21 @@ services:
       ASTRODOCK_ROLE: control-plane
       ASTRODOCK_GITHUB_PAT: ""                 # explicitly blanked on the api
       ASTRODOCK_RUNNER_URL: http://runner:3200
-      ASTRODOCK_RUNNER_TOKEN: "${ASTRODOCK_RUNNER_TOKEN:-change-me-runner-shared-token}"
+      ASTRODOCK_RUNNER_TOKEN: "${ASTRODOCK_RUNNER_TOKEN:?set ASTRODOCK_RUNNER_TOKEN in .env}"
       ASTRODOCK_PG_HOST: postgres
       ASTRODOCK_PG_PORT: "5432"
       ASTRODOCK_PG_APP_HOST: postgres
       ASTRODOCK_PG_APP_PORT: "5432"
       ASTRODOCK_OBJECTSTORE_ENDPOINT: http://objectstore:8333
       ASTRODOCK_OBJECTSTORE_APP_ENDPOINT: http://objectstore:8333
-      ASTRODOCK_CADDY_ADMIN: http://caddy:2019
+      ASTRODOCK_CADDY_ADMIN: unix:///run/caddy-admin/admin.sock
       ASTRODOCK_INTERNAL_AUTH_URL: http://api:3100
       ASTRODOCK_CADDY_STATIC_DIR: /srv/static
       ASTRODOCK_STATIC_DIR: /data/static
     volumes:
       - static:/data/static     # publishes the admin SPA into the shared static volume
       - caddylogs:/var/log/caddy:ro   # read deployed-app access logs back (opt-in)
+      - caddy_admin:/run/caddy-admin  # Caddy admin API socket
     depends_on:
       postgres:
         condition: service_healthy
@@ -89,14 +116,13 @@ services:
     environment:
       ASTRODOCK_ROLE: runner
       ASTRODOCK_RUNNER_PORT: "3200"
-      ASTRODOCK_RUNNER_TOKEN: "${ASTRODOCK_RUNNER_TOKEN:-change-me-runner-shared-token}"
+      ASTRODOCK_RUNNER_TOKEN: "${ASTRODOCK_RUNNER_TOKEN:?set ASTRODOCK_RUNNER_TOKEN in .env}"
       ASTRODOCK_PG_HOST: postgres
       ASTRODOCK_PG_PORT: "5432"
       ASTRODOCK_PG_APP_HOST: postgres
       ASTRODOCK_PG_APP_PORT: "5432"
       ASTRODOCK_OBJECTSTORE_ENDPOINT: http://objectstore:8333
       ASTRODOCK_OBJECTSTORE_APP_ENDPOINT: http://objectstore:8333
-      ASTRODOCK_OBJECTSTORE_CONTAINER: astrodock-objectstore-1
       ASTRODOCK_INTERNAL_AUTH_URL: http://api:3100
       # Deliberately NOT set. The runner asks Docker which network it is actually on
       # (see src/runner/network.js) instead of being told a name that has to be kept
@@ -133,3 +159,9 @@ volumes:
   backups:
   caddy_data:
   caddy_config:
+  caddy_admin:
+
+networks:
+  # Storage core only. Not named, so `docker compose -p` still namespaces it.
+  storage:
+    internal: true

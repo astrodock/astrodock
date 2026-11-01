@@ -104,6 +104,12 @@ async function record(type, severity, message, meta) {
 }
 
 async function main() {
+  // Checked again here because this value is written into the host .env (see
+  // lib/self-update.js): a newline in it would add lines of its own.
+  if (TO && !/^(latest|v?\d+\.\d+\.\d+)$/.test(TO)) {
+    await record('update.failed', 'critical', `Update refused: "${TO.slice(0, 40)}" is not a version. Nothing was changed.`, { to: TO.slice(0, 40) });
+    process.exit(1);
+  }
   console.log(`[update] ${FROM || 'unknown'} → ${TO || 'latest'}`);
   await record('update.started', 'warning', `Update started: ${FROM || 'unknown'} → ${TO || 'latest'}`, { from: FROM, to: TO });
 

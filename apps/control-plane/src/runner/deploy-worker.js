@@ -14,9 +14,25 @@ const { db, schema, close } = require('../db');
 const { computeEnv, computeMissingRequired } = require('../lib/env-compute');
 const { emitEvent } = require('../lib/events');
 const processControl = require('./process-control');
+const { maskSecrets } = require('./app-ops');
 
 function exec(cmd, opts = {}) {
   return execSync(cmd, { encoding: 'utf8', timeout: config.deploy.buildTimeoutMs, ...opts }).trim();
+}
+
+const within = (root, p) => p === root || p.startsWith(root + path.sep);
+
+// The repo, its build output and app.repoPath are all controlled by the app, and
+// they are copied by root. A `dist` that is a symlink to /data/apps or
+// /data/backups got rsync'ed — contents and all — into the app's public static
+// folder. So every source directory is resolved to its real path and has to stay
+// inside the tree it came from.
+function realInside(dir, root, label) {
+  const real = fs.realpathSync(dir);
+  if (!within(fs.realpathSync(root), real)) {
+    throw new Error(`${label} resolves outside the app's source (${path.relative(root, dir) || '.'} is a link out of the repository)`);
+  }
+  return real;
 }
 
 async function run() {
@@ -34,9 +50,11 @@ async function run() {
   let commitHash = deployment.commitHash || '';
   let commitMessage = deployment.commitMessage || '';
 
-  // Never let the GitHub token reach the stored log (raw, in a URL, or base64 in an auth header).
+  // Never let the GitHub token reach the stored log (raw, in a URL, or base64 in an
+  // auth header), nor this app's own secret values: build output that echoes one
+  // would otherwise be stored and readable with apps:read.
   function redact(s) {
-    let out = String(s);
+    let out = maskSecrets(String(s), envVars).text;
     if (config.github.pat) {
       out = out.split(config.github.pat).join('***');
       const b64 = Buffer.from(`x-access-token:${config.github.pat}`).toString('base64');
@@ -70,24 +88,30 @@ async function run() {
       await appendLog('Extracting local upload');
       fs.rmSync(repoDir, { recursive: true, force: true });
       fs.mkdirSync(repoDir, { recursive: true });
-      exec(`tar xzf "${localTarball}" -C "${repoDir}"`);
+      // --no-same-owner: as root, tar would otherwise keep whatever uid the archive names.
+      exec(`tar xzf "${localTarball}" --no-same-owner -C "${repoDir}"`);
       try { fs.rmSync(localTarball, { force: true }); } catch { /* ignore */ }
       commitHash = commitHash || 'local';
       commitMessage = commitMessage || 'local upload';
     } else {
-      // Pass the token via a per-invocation auth header (-c http.extraHeader) and keep the
-      // stored remote tokenless, so the PAT is never written to <repo>/.git/config on disk.
+      // Pass the token as a per-invocation auth header and keep the stored remote
+      // tokenless, so the PAT is never written to <repo>/.git/config on disk. The
+      // header goes through the environment (GIT_CONFIG_*), not `git -c` on the
+      // command line: argv is readable by every process on the box through
+      // /proc/<pid>/cmdline, and Node apps share this container's process table.
       const tokenlessUrl = `https://github.com/${app.githubRepo}.git`;
       const authHeader = `Authorization: Basic ${Buffer.from(`x-access-token:${config.github.pat}`).toString('base64')}`;
-      const gitAuth = `git -c http.extraHeader="${authHeader}"`;
+      const gitEnv = {
+        env: { ...process.env, GIT_CONFIG_COUNT: '1', GIT_CONFIG_KEY_0: 'http.extraHeader', GIT_CONFIG_VALUE_0: authHeader }
+      };
       if (fs.existsSync(path.join(repoDir, '.git'))) {
         await appendLog(`Pulling ${app.githubRepo} (${app.branch})`);
-        exec(`${gitAuth} -C "${repoDir}" fetch origin`);
+        exec(`git -C "${repoDir}" fetch origin`, gitEnv);
       } else {
         await appendLog(`Cloning ${app.githubRepo} (${app.branch})`);
         fs.rmSync(repoDir, { recursive: true, force: true });
-        exec(`${gitAuth} clone --branch "${app.branch}" --single-branch "${tokenlessUrl}" "${repoDir}"`);
-        exec(`${gitAuth} -C "${repoDir}" fetch origin`); // ensure rollback target commits are present
+        exec(`git clone --branch "${app.branch}" --single-branch "${tokenlessUrl}" "${repoDir}"`, gitEnv);
+        exec(`git -C "${repoDir}" fetch origin`, gitEnv); // ensure rollback target commits are present
       }
       if (targetCommit) {
         // Rollback / pinned deploy: check out the requested commit instead of branch HEAD.
@@ -102,10 +126,11 @@ async function run() {
     await db.update(schema.deployments).set({ commitHash, commitMessage }).where(eq(schema.deployments.id, deploymentId));
     await appendLog(`Commit ${commitHash} — ${commitMessage}`);
 
-    const deployRoot = app.repoPath ? path.join(repoDir, app.repoPath) : repoDir;
+    let deployRoot = app.repoPath ? path.join(repoDir, app.repoPath) : repoDir;
     if (app.repoPath && !fs.existsSync(deployRoot)) {
       throw new Error(`repoPath "${app.repoPath}" does not exist in the repository`);
     }
+    deployRoot = realInside(deployRoot, repoDir, `repoPath "${app.repoPath || '.'}"`);
 
     // This runs in a FORKED, detached process. The api and the runner server each
     // hydrate the stored base domain at startup; this one never did, so it
@@ -274,9 +299,10 @@ async function deployNode(app, deployRoot, env, { appendLog, setStatus }) {
     await appendLog(`Building frontend (${app.buildCommand})…`);
     await appendLog(runAsApp(appSrc, `${app.buildCommand} 2>&1`) || 'build complete');
 
-    const distDir = path.join(appSrc, 'dist');
+    let distDir = path.join(appSrc, 'dist');
     const staticPath = path.join(config.paths.static, app.slug);
     if (fs.existsSync(distDir)) {
+      distDir = realInside(distDir, repoDir, 'dist/');
       // Build into a staging directory, don't publish it yet. The frontend used to
       // land here directly, several minutes before the server was restarted — so a
       // failure anywhere in between left the new UI live against the old API, with
@@ -286,7 +312,9 @@ async function deployNode(app, deployRoot, env, { appendLog, setStatus }) {
       exec(`rm -rf "${incoming}"`);
       fs.mkdirSync(incoming, { recursive: true });
       await appendLog(`Staging frontend → ${staticPath}`);
-      exec(`rsync -a --delete "${distDir}/" "${incoming}/"`);
+      // --no-links: links inside dist/ are dropped. Caddy serves this folder from its
+      // own container, where a link could point at its certificates and config.
+      exec(`rsync -a --no-links --delete "${distDir}/" "${incoming}/"`);
       publishFrontend = () => {
         const old = `${staticPath}.previous`;
         exec(`rm -rf "${old}"`);
@@ -305,7 +333,9 @@ async function deployNode(app, deployRoot, env, { appendLog, setStatus }) {
     const apiPath = path.join(config.paths.apps, app.slug);
     fs.mkdirSync(apiPath, { recursive: true });
     await appendLog(`Copying server → ${apiPath}`);
-    exec(`rsync -a --delete --exclude='.env' --exclude='node_modules' "${serverSrc}/" "${apiPath}/"`);
+    const serverReal = realInside(serverSrc, repoDir, 'server/');
+    // --safe-links: keep links that stay inside the tree, drop any that point out.
+    exec(`rsync -a --safe-links --delete --exclude='.env' --exclude='node_modules' "${serverReal}/" "${apiPath}/"`);
     if (ids) { try { exec(`chown -R ${appUser}:${appUser} "${apiPath}"`); } catch { /* best effort */ } }
     await appendLog('Installing server deps…');
     await appendLog(runAsApp(apiPath, `${installCmd(apiPath, true)} 2>&1`) || 'server deps installed');
@@ -322,7 +352,11 @@ async function deployNode(app, deployRoot, env, { appendLog, setStatus }) {
     const ecosystemPath = path.join(apiPath, `ecosystem.config${ext}`);
     const appCfg = { name: app.slug, script: 'server.js', cwd: apiPath, log_date_format: 'YYYY-MM-DD HH:mm:ss', env: ecosystemEnv };
     if (ids) { appCfg.uid = appUser; appCfg.gid = appUser; }
-    fs.writeFileSync(ecosystemPath, `module.exports = ${JSON.stringify({ apps: [appCfg] }, null, 2)};\n`);
+    // The app user owns this directory and has just run `npm install` in it, so a
+    // file at this name may be a link it planted. Root writing through that link
+    // would put the env anywhere. Remove whatever is there and create it fresh.
+    fs.rmSync(ecosystemPath, { force: true });
+    fs.writeFileSync(ecosystemPath, `module.exports = ${JSON.stringify({ apps: [appCfg] }, null, 2)};\n`, { flag: 'wx', mode: 0o600 });
 
     if (ids) {
       // lock down: secrets file 600, dirs 700, all owned by the app user — no cross-app reads
@@ -362,16 +396,20 @@ async function deployDocker(app, deployRoot, env, { appendLog, setStatus, commit
   const tag = `app-${app.slug}:${commitHash || 'latest'}`;
   const dockerfile = app.dockerfile || 'Dockerfile';
 
+  // Read by the Docker CLI as root; a Dockerfile linked to another app's files
+  // would echo their lines back in the build errors.
+  const dockerfilePath = realInside(path.join(deployRoot, dockerfile), deployRoot, `Dockerfile "${dockerfile}"`);
   await appendLog(`docker build -t ${tag} (${dockerfile})`);
-  await appendLog(exec(`docker build -f "${path.join(deployRoot, dockerfile)}" -t "${tag}" "${deployRoot}" 2>&1`, { timeout: config.deploy.dockerBuildTimeoutMs }) || 'build complete');
+  await appendLog(exec(`docker build -f "${dockerfilePath}" -t "${tag}" "${deployRoot}" 2>&1`, { timeout: config.deploy.dockerBuildTimeoutMs }) || 'build complete');
 
   await setStatus('deploying');
   // env-file (contains secrets) — written to the app's apps-dir, locked down
   const apiPath = path.join(config.paths.apps, app.slug);
   fs.mkdirSync(apiPath, { recursive: true });
   const envFile = path.join(apiPath, '.docker.env');
+  fs.rmSync(envFile, { force: true });
   const envText = Object.entries(env).map(([k, v]) => `${k}=${String(v).replace(/\n/g, ' ')}`).join('\n') + '\n';
-  fs.writeFileSync(envFile, envText, { mode: 0o600 });
+  fs.writeFileSync(envFile, envText, { flag: 'wx', mode: 0o600 });
 
   const name = `app-${app.slug}`;
   // Ask Docker which network we are on rather than trusting a configured name —
@@ -381,7 +419,10 @@ async function deployDocker(app, deployRoot, env, { appendLog, setStatus, commit
   try { exec(`docker rm -f ${name} 2>&1`); } catch { /* not running */ }
   await appendLog(`docker run ${name} on network ${network}`);
   await appendLog(exec(
-    `docker run -d --name ${name} --network ${network} --restart unless-stopped --env-file "${envFile}" "${tag}" 2>&1`
+    // no-new-privileges stops setuid binaries in the image from raising privileges;
+    // the pid cap stops a fork bomb from taking the host down with it.
+    `docker run -d --name ${name} --network ${network} --restart unless-stopped`
+    + ` --security-opt no-new-privileges --pids-limit 1024 --env-file "${envFile}" "${tag}" 2>&1`
   ) || 'container started');
 }
 

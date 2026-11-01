@@ -14,6 +14,23 @@ const { eq } = require('drizzle-orm');
 const { db, schema } = require('../db');
 const config = require('../config');
 const { emitEvent } = require('./events');
+const { containerFor } = require('../runner/containers');
+
+// Found by compose labels, so a second stack on the same host backs up its own
+// database rather than the first one's. See runner/containers.js.
+const pgContainer = () => containerFor({ env: 'ASTRODOCK_PG_CONTAINER', services: ['postgres'], legacy: config.backups.pgContainer });
+const apiContainer = () => containerFor({ env: 'ASTRODOCK_API_CONTAINER', services: ['api'], legacy: config.backups.apiContainer });
+
+// A dump is every app's data, every password hash and every token hash. It sits on
+// the runner, where Node apps run under their own users, so the directory and every
+// file in it are root-only. Existing files from before this are tightened too.
+function ensureBackupDir(dir) {
+  fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+  fs.chmodSync(dir, 0o700);
+  for (const f of fs.readdirSync(dir)) {
+    try { fs.chmodSync(path.join(dir, f), 0o600); } catch { /* raced with prune */ }
+  }
+}
 
 function stamp() { return new Date().toISOString().replace(/[:.]/g, '-'); }
 
@@ -31,11 +48,12 @@ function safeResolve(p) {
 
 async function runBackup({ trigger = 'scheduled' } = {}) {
   const dir = config.backups.dir;
-  fs.mkdirSync(dir, { recursive: true });
   const file = path.join(dir, `pg-${stamp()}.sql.gz`);
   try {
-    // pipe to gzip; sanity-check the size after so a failed dump isn't logged as success
-    execSync(`docker exec ${config.backups.pgContainer} pg_dumpall -U ${config.pg.user} | gzip > "${file}"`, {
+    ensureBackupDir(dir);
+    // pipe to gzip; sanity-check the size after so a failed dump isn't logged as success.
+    // umask 077 so the file is never readable by anyone else, not even for a moment.
+    execSync(`umask 077; docker exec ${pgContainer()} pg_dumpall -U ${config.pg.user} | gzip > "${file}"`, {
       shell: '/bin/sh', timeout: 30 * 60 * 1000, stdio: ['ignore', 'ignore', 'pipe']
     });
     const size = fs.existsSync(file) ? fs.statSync(file).size : 0;
@@ -88,9 +106,9 @@ async function saveUploadedBackup(buffer, { actor } = {}) {
     throw new Error('That is not a gzipped SQL dump — Astrodock backups are .sql.gz files.');
   }
   const dir = config.backups.dir;
-  fs.mkdirSync(dir, { recursive: true });
+  ensureBackupDir(dir);
   const file = path.join(dir, `upload-${stamp()}.sql.gz`);
-  fs.writeFileSync(file, buffer);
+  fs.writeFileSync(file, buffer, { mode: 0o600 });
   const [row] = await db.insert(schema.backups)
     .values({ kind: 'postgres', status: 'success', sizeBytes: buffer.length, path: file, trigger: 'uploaded' })
     .returning();
@@ -147,7 +165,7 @@ function fileStamp(name) {
 function psql(args, { stdin } = {}) {
   return new Promise((resolve, reject) => {
     const child = spawn('docker', [
-      'exec', '-i', config.backups.pgContainer,
+      'exec', '-i', pgContainer(),
       'psql', '-U', config.pg.user, '-d', 'postgres', ...args
     ], { stdio: ['pipe', 'pipe', 'pipe'] });
 
@@ -231,7 +249,7 @@ async function restoreBackup({ id, actor } = {}) {
 function restartApiSoon(delayMs = 500) {
   setTimeout(() => {
     try {
-      execFileSync('docker', ['restart', config.backups.apiContainer], { timeout: 60000, stdio: 'ignore' });
+      execFileSync('docker', ['restart', apiContainer()], { timeout: 60000, stdio: 'ignore' });
     } catch (err) {
       console.error('[backups] could not restart the api container:', err.message);
     }
@@ -239,6 +257,7 @@ function restartApiSoon(delayMs = 500) {
 }
 
 function startBackupScheduler() {
+  try { ensureBackupDir(config.backups.dir); } catch (err) { console.error('[backups] could not lock down the backups directory:', err.message); }
   const hrs = config.backups.intervalHours;
   if (!hrs || hrs <= 0) { console.log('[backups] scheduler disabled (interval 0)'); return; }
   console.log(`[backups] scheduler every ${hrs}h → ${config.backups.dir}`);

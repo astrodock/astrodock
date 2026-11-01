@@ -28,16 +28,30 @@ const { decryptSecret } = require('../lib/crypto');
 const MAX_FILE_BYTES = 256 * 1024;
 const COMMAND_TIMEOUT_MS = 5 * 60 * 1000;
 
+const within = (root, p) => p === root || p.startsWith(root + path.sep);
+
 /** Resolve a path INSIDE the app's directory, or refuse. */
 function resolveInApp(slug, relative) {
   const root = path.resolve(config.paths.apps, slug);
   const target = path.resolve(root, relative || '.');
-  // Containment check on the resolved path, so ../ and symlink-ish inputs cannot
-  // walk out into the runner's own filesystem.
-  if (target !== root && !target.startsWith(root + path.sep)) {
-    throw new Error('That path is outside the app.');
+  // Containment check on the resolved path, so ../ inputs cannot walk out into
+  // the runner's own filesystem.
+  if (!within(root, target)) throw new Error('That path is outside the app.');
+  // Then again on the REAL path. The app's own process owns this directory and can
+  // plant a symlink in it; this code reads as root, so following a link to another
+  // app's ecosystem file would hand over that app's secrets.
+  let realRoot;
+  let real;
+  try {
+    realRoot = fs.realpathSync(root);
+    real = fs.realpathSync(target);
+  } catch (err) {
+    // Missing (or a dangling link): callers report "no such file" themselves.
+    if (err.code === 'ENOENT') return { root, target };
+    throw err;
   }
-  return { root, target };
+  if (!within(realRoot, real)) throw new Error('That path is outside the app.');
+  return { root: realRoot, target: real };
 }
 
 function listDirectory(slug, relative = '.') {
@@ -89,11 +103,19 @@ function readFile(slug, relative, envVars) {
   if (!relative) throw new Error('Which file?');
   const { target } = resolveInApp(slug, relative);
   if (!fs.existsSync(target) || !fs.statSync(target).isFile()) throw new Error('No such file in this app.');
-  const size = fs.statSync(target).size;
-  if (size > MAX_FILE_BYTES) {
-    throw new Error(`That file is ${Math.round(size / 1024)}KB; the limit is ${MAX_FILE_BYTES / 1024}KB.`);
+  // O_NOFOLLOW: a link swapped in after the check above is refused, not followed.
+  const fd = fs.openSync(target, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
+  let buf;
+  let size;
+  try {
+    size = fs.fstatSync(fd).size;
+    if (size > MAX_FILE_BYTES) {
+      throw new Error(`That file is ${Math.round(size / 1024)}KB; the limit is ${MAX_FILE_BYTES / 1024}KB.`);
+    }
+    buf = fs.readFileSync(fd);
+  } finally {
+    fs.closeSync(fd);
   }
-  const buf = fs.readFileSync(target);
   // Binary would be noise at best and a terminal-escape vector at worst.
   if (buf.includes(0)) throw new Error('That looks like a binary file.');
   const { text, masked } = maskSecrets(buf.toString('utf8'), envVars);
@@ -120,6 +142,18 @@ function runtimeEnv(app, envVars) {
       value: secret ? null : value
     };
   });
+}
+
+// The app's per-app user (created by the deploy), or null if this host has none.
+function appIds(app) {
+  const appUser = `tsapp_${app.slug.replace(/[^a-z0-9]/g, '_')}`;
+  try {
+    const { execSync } = require('child_process');
+    return {
+      uid: parseInt(execSync(`id -u ${appUser}`, { encoding: 'utf8' }), 10),
+      gid: parseInt(execSync(`id -g ${appUser}`, { encoding: 'utf8' }), 10)
+    };
+  } catch { return null; }
 }
 
 /**
@@ -150,9 +184,11 @@ function runDeclared(app, envVars, name) {
     // request — the caller chooses WHICH declared command, never its text.
     execFile('sh', ['-c', command], {
       cwd,
-      env: { PATH: process.env.PATH, HOME: process.env.HOME, ...computeEnv(app, envVars) },
+      env: { PATH: process.env.PATH, HOME: cwd, ...computeEnv(app, envVars) },
       timeout: COMMAND_TIMEOUT_MS,
-      maxBuffer: 4 * 1024 * 1024
+      maxBuffer: 4 * 1024 * 1024,
+      // As the app's own user, never as root: this container holds the Docker socket.
+      ...(appIds(app) || {})
     }, (err, stdout, stderr) => {
       resolve({
         name,
@@ -196,15 +232,7 @@ function runInteractive(app, envVars, command, res) {
   if (!fs.existsSync(cwd)) throw new Error('This app has not been deployed yet.');
 
   // The app's own user, so a shell here is no more powerful than the app.
-  const appUser = `tsapp_${app.slug.replace(/[^a-z0-9]/g, '_')}`;
-  let ids = null;
-  try {
-    const { execSync } = require('child_process');
-    ids = {
-      uid: parseInt(execSync(`id -u ${appUser}`, { encoding: 'utf8' }), 10),
-      gid: parseInt(execSync(`id -g ${appUser}`, { encoding: 'utf8' }), 10)
-    };
-  } catch { /* no per-app user on this host; run as the runner */ }
+  const ids = appIds(app);
 
   const secrets = secretValues(envVars);
   const mask = (chunk) => {

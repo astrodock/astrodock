@@ -65,8 +65,11 @@ function computeEnv(app, envVars) {
       env.ASTRODOCK_STORAGE_PREFIX = app.storagePrefix || '';
       env.ASTRODOCK_STORAGE_ACCESS_KEY = app.storageAccessKey;
       env.ASTRODOCK_STORAGE_SECRET_KEY = decryptSecret(app.storageSecretKey);
-    } else {
-      // shared-key fallback + per-app prefix
+    } else if (app.storagePrefix) {
+      // LEGACY: an app provisioned while the shared-key fallback existed. It holds
+      // the platform's Admin key, which reaches every bucket. Provisioning no
+      // longer creates these; re-provisioning the app moves it to a scoped key.
+      console.warn(`[env] ${app.slug} uses the legacy shared storage key; re-provision it to get a scoped key`);
       env.ASTRODOCK_STORAGE_BUCKET = config.objectstore.bucket;
       env.ASTRODOCK_STORAGE_PREFIX = app.storagePrefix || `${app.slug}/`;
       env.ASTRODOCK_STORAGE_ACCESS_KEY = config.objectstore.accessKey;

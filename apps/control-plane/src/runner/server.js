@@ -5,6 +5,8 @@
 // container holds none of those. The api calls these endpoints over the internal
 // network, authenticated with a shared token. See DECISIONS.md (#9 / B1).
 
+const crypto = require('crypto');
+const fs = require('fs');
 const express = require('express');
 const { eq } = require('drizzle-orm');
 const config = require('../config');
@@ -17,11 +19,22 @@ const { runBackup, startBackupScheduler } = require('../lib/backups');
 
 const app = express();
 
+// The value docker-compose.yml used to fall back to when .env had no token. Every
+// install that hit that fallback shared one publicly known secret for an API that
+// can restore the database and run self-update with the Docker socket.
+const KNOWN_DEFAULT_TOKEN = 'change-me-runner-shared-token';
+
+function tokenMatches(given) {
+  const a = Buffer.from(String(given || ''));
+  const b = Buffer.from(String(config.runnerToken || ''));
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
 // Shared-secret auth between api ↔ runner.
 app.use((req, res, next) => {
   if (req.path === '/health') return next();
   const tok = (req.headers.authorization || '').replace(/^Bearer /, '');
-  if (!config.runnerToken || tok !== config.runnerToken) return res.status(401).json({ error: 'unauthorized' });
+  if (!config.runnerToken || !tokenMatches(tok)) return res.status(401).json({ error: 'unauthorized' });
   next();
 });
 
@@ -52,11 +65,13 @@ app.post('/deploy-local', express.raw({ type: () => true, limit: '100mb' }), asy
   const a = await loadApp(req.query.slug);
   if (!a) return res.status(404).json({ error: 'App not found' });
   if (!req.body || !req.body.length) return res.status(400).json({ error: 'empty upload' });
-  const fs = require('fs');
   const path = require('path');
   fs.mkdirSync(config.paths.repos, { recursive: true });
   const tarPath = path.join(config.paths.repos, `${a.slug}.upload.tgz`);
-  fs.writeFileSync(tarPath, req.body);
+  // 0600: the upload is the app's whole source tree, .env files and all, and other
+  // apps' users share this filesystem.
+  fs.rmSync(tarPath, { force: true });
+  fs.writeFileSync(tarPath, req.body, { mode: 0o600 });
   try {
     const d = await runDeploy(a, { trigger: 'cli', localTarball: tarPath });
     res.json({ deploymentId: d.id });
@@ -239,6 +254,16 @@ app.post('/update', express.json(), async (req, res) => {
 const BOOTSTRAP_REFRESH_MS = 60_000;
 
 async function start() {
+  if (!config.runnerToken || config.runnerToken === KNOWN_DEFAULT_TOKEN) {
+    throw new Error('ASTRODOCK_RUNNER_TOKEN is unset or still the published default. '
+      + 'Set it in .env to a long random value (openssl rand -hex 32) and restart.');
+  }
+  // PM2's home holds dump.pm2 — every app's environment, secrets included — and
+  // its control sockets. Apps run in this container as their own users, so it is
+  // closed to everyone but root. PM2 itself runs as root and needs nothing more.
+  if (process.env.PM2_HOME) {
+    try { fs.chmodSync(process.env.PM2_HOME, 0o700); } catch (err) { console.error('[runner] could not lock down PM2_HOME:', err.message); }
+  }
   const { applyBootstrapSettings } = require('../lib/settings');
   await applyBootstrapSettings().catch(() => {});
   setInterval(() => { applyBootstrapSettings().catch(() => {}); }, BOOTSTRAP_REFRESH_MS).unref();

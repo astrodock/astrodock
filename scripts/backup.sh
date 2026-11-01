@@ -11,6 +11,8 @@
 # This is the one place an external dependency earns its keep — see
 # https://docs.astrodock.ai/backups.html.
 set -euo pipefail
+# The dump holds every database, password hash and token hash. Nobody else reads it.
+umask 077
 
 OUT_DIR="${1:-./backups}"
 TS="$(date -u +%Y%m%dT%H%M%SZ)"
@@ -24,8 +26,10 @@ echo "[backup] dumping all databases via the postgres container…"
 docker compose exec -T postgres pg_dumpall -U "$PG_USER" > "$WORK/all-databases.sql"
 
 echo "[backup] snapshotting the object store volume…"
-# Copy the objectstore data out of its container.
-docker compose exec -T objectstore sh -c 'cd /data && tar cf - .' > "$WORK/objectdata.tar" 2>/dev/null || \
+# Copy the object store data out of its container: `seaweed` in the current compose
+# file, `objectstore` in older ones (where it was a single service).
+docker compose exec -T seaweed sh -c 'cd /data && tar cf - .' > "$WORK/objectdata.tar" 2>/dev/null || \
+  docker compose exec -T objectstore sh -c 'cd /data && tar cf - .' > "$WORK/objectdata.tar" 2>/dev/null || \
   echo "[backup] (object store snapshot skipped — container not running?)"
 
 TARBALL="$OUT_DIR/astrodock-backup-$TS.tar.gz"

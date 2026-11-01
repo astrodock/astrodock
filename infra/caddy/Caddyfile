@@ -1,18 +1,20 @@
 # Bootstrap Caddy config. The control plane replaces this at runtime by POSTing a
 # freshly-generated Caddyfile to the admin API (POST /load), adding the admin host
 # and one block per provisioned app. This file keeps the admin API reachable (from
-# the api container, over the internal network), answers a health check, and shows
-# a real page until that first push lands.
+# the api container only, over a unix socket in a volume no app mounts), answers a
+# health check, and shows a real page until that first push lands.
 #
 # That gap is brief but it IS visible: Caddy starts before the control plane has
 # finished migrating and pushed its routes, so anyone refreshing at that moment
 # used to get one line of plain text on a white page and reasonably conclude
 # something had broken.
+#
+# The socket path must match ASTRODOCK_CADDY_ADMIN in docker-compose.yml. An install
+# whose compose file predates the socket also has the older copy of this file, which
+# listens on :2019 instead; the control plane follows whichever it is configured for.
 
 {
-	admin 0.0.0.0:2019 {
-		origins http://caddy:2019 http://localhost:2019 http://127.0.0.1:2019
-	}
+	admin unix//run/caddy-admin/admin.sock
 }
 
 :80 {

@@ -63,11 +63,17 @@ async function dropDatabase(app) {
   }
 }
 
-// Prevent app roles from connecting to the control-plane database itself.
+// Prevent app roles from connecting to the control-plane database itself, and to
+// the maintenance databases. From `postgres` an app role could list every
+// database and role name on the server. The superuser is unaffected (it bypasses
+// CONNECT), which is what backups and restores use. Idempotent: REVOKE of a
+// privilege that is already gone is a no-op.
 async function lockdownControlPlaneDb() {
   const admin = postgres(config.pg.url, { max: 1, onnotice: () => {} });
   try {
-    await admin.unsafe(`REVOKE CONNECT ON DATABASE ${quoteIdent(config.pg.database)} FROM PUBLIC`);
+    for (const name of [...new Set([config.pg.database, 'postgres', 'template1'])]) {
+      await admin.unsafe(`REVOKE CONNECT ON DATABASE ${quoteIdent(name)} FROM PUBLIC`);
+    }
   } catch (err) {
     console.error('[provision] control-plane DB lockdown skipped:', err.message);
   } finally {
