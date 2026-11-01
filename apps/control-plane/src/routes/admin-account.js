@@ -15,6 +15,7 @@ const sessions = require('../lib/sessions');
 const factors = require('../lib/auth-factors');
 const passkeys = require('../lib/passkeys');
 const { emitEvent } = require('../lib/events');
+const { reauthLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
 router.use(requireAdmin);
@@ -90,7 +91,7 @@ router.post('/reauth/passkey/options', async (req, res) => {
   } catch (err) { res.status(400).json({ error: err.message }); }
 });
 
-router.post('/reauth', async (req, res) => {
+router.post('/reauth', reauthLimiter, async (req, res) => {
   try {
     const user = await me(req);
     const { password, totp, recoveryCode, passkeyResponse } = req.body || {};

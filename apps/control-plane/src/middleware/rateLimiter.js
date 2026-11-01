@@ -72,4 +72,18 @@ const launchLimiter = rateLimit({
   legacyHeaders: false
 });
 
-module.exports = { launchLimiter, verifyLimiter, adminLoginLimiter, accountLimiter, deployLimiter, pageDataLimiter, pageLoginLimiter, feedbackLimiter };
+// Step-up re-auth guesses a factor from inside a signed-in session, so an IP
+// limit is the wrong key: whoever holds a stolen session can change IP. Keyed on
+// the account, and only failures count, so confirming normally never trips it.
+// Runs after requireAdmin, which is what sets req.auth.
+const reauthLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  keyGenerator: (req) => `reauth:${req.auth?.sub || req.auth?.sessionId || 'unknown'}`,
+  skipSuccessfulRequests: true,
+  message: { error: 'Too many attempts. Wait a few minutes, then try again.' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+module.exports = { reauthLimiter, launchLimiter, verifyLimiter, adminLoginLimiter, accountLimiter, deployLimiter, pageDataLimiter, pageLoginLimiter, feedbackLimiter };

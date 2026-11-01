@@ -29,7 +29,22 @@ function deny(res) {
   return res.status(401).json({ error: 'Invalid credentials' });
 }
 
+// Every way into the dashboard ends here, so the platform's MFA policy is
+// checked here rather than on each path. It used to sit on the password path
+// only, which left Google sign-in as a way around it.
 async function issue(res, user, req) {
+  // An owner can require every operator to hold a second factor. Existing
+  // operators are not locked out — they are told to enrol, which is why this
+  // returns a distinguishable code rather than a flat refusal.
+  // The setting is an enum ('on'/'off'), not a boolean — and 'off' is a truthy
+  // string, so this must compare rather than test for truthiness.
+  const mfaRequired = (await getSetting('security.require_mfa', 'off')) === 'on';
+  if (mfaRequired && !factors.hasSecondFactor(await factors.factorsFor(user.id))) {
+    return res.status(403).json({
+      error: 'This platform requires two-factor authentication. Set it up to continue.',
+      code: 'mfa_enrolment_required'
+    });
+  }
   const { token, session } = await sessions.create(user, {
     ip: req.ip, userAgent: req.headers['user-agent']
   });
@@ -55,19 +70,7 @@ router.post('/login', adminLoginLimiter, async (req, res) => {
     if (!await factors.checkPassword(user, password)) return deny(res);
 
     const f = await factors.factorsFor(user.id);
-
-    // An owner can require every operator to hold a second factor. Existing
-    // operators are not locked out — they are told to enrol, which is why this
-    // returns a distinguishable code rather than a flat refusal.
-    // The setting is an enum ('on'/'off'), not a boolean — and 'off' is a truthy
-    // string, so this must compare rather than test for truthiness.
-    const mfaRequired = (await getSetting('security.require_mfa', 'off')) === 'on';
-    if (mfaRequired && !factors.hasSecondFactor(f)) {
-      return res.status(403).json({
-        error: 'This platform requires two-factor authentication. Set it up to continue.',
-        code: 'mfa_enrolment_required'
-      });
-    }
+    // The MFA policy is checked in issue(), for every sign-in path.
 
     if (f.totp) {
       if (!totp && !recoveryCode) {

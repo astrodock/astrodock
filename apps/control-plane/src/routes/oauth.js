@@ -8,6 +8,7 @@
 //   POST /token       the app's SERVER exchanges the code, with its app secret
 
 const express = require('express');
+const crypto = require('crypto');
 const path = require('path');
 const { eq } = require('drizzle-orm');
 const { db, schema } = require('../db');
@@ -35,6 +36,14 @@ const { emitEvent } = require('../lib/events');
 const { pageLoginLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
+
+// Constant-time compare, as /verify does. The length check leaks only length,
+// and app secrets are a fixed format.
+function safeEqual(a, b) {
+  const ab = Buffer.from(String(a ?? ''));
+  const bb = Buffer.from(String(b ?? ''));
+  return ab.length === bb.length && crypto.timingSafeEqual(ab, bb);
+}
 
 function logAttempt(email, appId, result, ip) {
   db.insert(schema.authLogs).values({ email: email || '', appId: appId || '', result, ip: ip || '' }).catch(() => {});
@@ -110,15 +119,31 @@ router.get('/authorize', async (req, res) => {
 //
 // A real "sign out everywhere" would need each app to clear its own cookie. The
 // honest instruction to an app author is: clear yours, then send them here.
-router.get('/logout', (req, res) => {
+router.get('/logout', async (req, res) => {
   userSession.clear(res);
   const back = req.query.redirect_uri;
-  if (back && /^https?:\/\//.test(String(back))) return res.redirect(String(back));
+  // Only back to an app on this platform: the origin must be one some app has
+  // registered a redirect URI on. Any other URL made this an open redirect that
+  // starts on the auth host, which is what a phishing link wants.
+  if (back && await isPlatformOrigin(String(back)).catch(() => false)) return res.redirect(String(back));
   res.type('html').send(errorPage('Signed out',
     'You have been signed out of Astrodock, so apps will ask who you are again. '
     + 'Any app you are still signed into keeps its own session until you sign out of it.',
   { icon: 'log-out' }));
 });
+
+async function isPlatformOrigin(url) {
+  let origin;
+  try {
+    const u = new URL(url);
+    if (u.protocol !== 'https:' && u.protocol !== 'http:') return false;
+    origin = u.origin;
+  } catch { return false; }
+  const rows = await db.select({ uri: schema.appRedirectUris.uri }).from(schema.appRedirectUris);
+  return rows.some((r) => {
+    try { return new URL(r.uri).origin === origin; } catch { return false; }
+  });
+}
 
 // ── /login ────────────────────────────────────────────────────────────────────
 // Credentials arrive HERE, on the platform's own origin — the app never sees them.
@@ -304,6 +329,16 @@ async function completeInvite({ req, res, identity, ctx }) {
       return res.type('html').send(errorPage('Already linked elsewhere',
         'An account here already uses that address with a different Google account.'));
     }
+    // The invited account already signs in some other way. Attaching whatever
+    // Google account followed the link would let anyone holding an invite to that
+    // address add a way into it, so only the account's own address may link.
+    if (!existing && invited.email !== String(identity.email || '').toLowerCase()) {
+      const f = await factors.factorsFor(invited.id);
+      if (f.password || f.passkeys || invited.googleSub) {
+        return res.type('html').send(errorPage('Use the account you already have',
+          `This invite is for ${invited.email}, which already has a way to sign in. Sign in with that instead.`));
+      }
+    }
     target = existing || invited;
     await googleAccounts.link(target.id, identity);
   }
@@ -353,7 +388,7 @@ router.post('/token', express.json(), async (req, res) => {
   try {
     const app = await appBySlug(appId);
     if (!app) return res.status(400).json({ error: 'Unknown app.' });
-    if (!appSecret || decryptSecret(app.appSecret) !== appSecret) {
+    if (!appSecret || !safeEqual(decryptSecret(app.appSecret), appSecret)) {
       return res.status(401).json({ error: 'Invalid app secret.' });
     }
     const user = await oauth.redeemCode({ code, appId: app.id, redirectUri: req.body.redirect_uri });

@@ -94,8 +94,8 @@ async function issueCode({ appId, userId, redirectUri }) {
 }
 
 /**
- * Spend a code. Single-use is enforced by marking it before returning the user,
- * so a replayed code fails even if two requests race.
+ * Spend a code. Single-use is enforced by a conditional UPDATE before returning
+ * the user, so a replayed code fails even if two requests race.
  */
 async function redeemCode({ code, appId, redirectUri }) {
   const rows = await db.select().from(schema.authorizationCodes)
@@ -106,8 +106,12 @@ async function redeemCode({ code, appId, redirectUri }) {
 
   // Mark spent first. A code that fails validation below is still burned — it has
   // been seen, and letting it be retried would allow probing for the right app.
-  await db.update(schema.authorizationCodes).set({ usedAt: new Date() })
-    .where(eq(schema.authorizationCodes.id, row.id));
+  // The UPDATE is conditional on the code still being unused: two requests that
+  // both read it above race here, and only the one whose UPDATE lands proceeds.
+  const spent = await db.update(schema.authorizationCodes).set({ usedAt: new Date() })
+    .where(and(eq(schema.authorizationCodes.id, row.id), isNull(schema.authorizationCodes.usedAt)))
+    .returning({ id: schema.authorizationCodes.id });
+  if (spent.length !== 1) throw new Error('That sign-in code is not valid.');
 
   if (new Date(row.expiresAt) <= new Date()) throw new Error('That sign-in code has expired.');
   if (row.appId !== appId) throw new Error('That sign-in code was issued for a different app.');

@@ -175,9 +175,12 @@ async function consumeRecoveryCode(userId, submitted) {
     .where(and(eq(schema.recoveryCodes.userId, userId), isNull(schema.recoveryCodes.usedAt)));
   for (const row of rows) {
     if (await verifyPassword(candidate, row.codeHash)) {
-      await db.update(schema.recoveryCodes).set({ usedAt: new Date() })
-        .where(eq(schema.recoveryCodes.id, row.id));
-      return true;
+      // Conditional on still being unused, so two requests racing with the same
+      // code cannot both succeed: only the one whose UPDATE lands wins.
+      const spent = await db.update(schema.recoveryCodes).set({ usedAt: new Date() })
+        .where(and(eq(schema.recoveryCodes.id, row.id), isNull(schema.recoveryCodes.usedAt)))
+        .returning({ id: schema.recoveryCodes.id });
+      return spent.length === 1;
     }
   }
   return false;

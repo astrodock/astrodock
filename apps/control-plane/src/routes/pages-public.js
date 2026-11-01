@@ -10,7 +10,8 @@ const { eq, and, isNull } = require('drizzle-orm');
 const config = require('../config');
 const { db, schema } = require('../db');
 const { decryptSecret } = require('../lib/crypto');
-const { verifyPassword } = require('../lib/passwords');
+const factors = require('../lib/auth-factors');
+const roles = require('../lib/roles');
 const { getSetting } = require('../lib/settings');
 const { pageDataLimiter, pageLoginLimiter } = require('../middleware/rateLimiter');
 const P = require('../lib/pages');
@@ -36,7 +37,7 @@ async function withPage(req, res, next) {
 
 // Access gate. Returns { ok, user } ; on !ok it has already responded (prompt/login/401).
 // `json` = true for API calls (return JSON 401 instead of an HTML prompt/form).
-function gate(page, req, res, { json = false } = {}) {
+async function gate(page, req, res, { json = false } = {}) {
   if (page.accessMode === 'public') return { ok: true, user: null };
 
   if (page.accessMode === 'passkey') {
@@ -44,6 +45,8 @@ function gate(page, req, res, { json = false } = {}) {
     const cookie = req.cookies?.[P.PASSKEY_COOKIE(page.pageId)];
     // Constant-time, like every other secret comparison in the codebase. This
     // one was a plain === — the odd one out.
+    // ?key= still works for links already shared; the prompt below now POSTs,
+    // so a typed passkey no longer lands in history and proxy logs.
     if (req.query.key && P.constantTimeEqual(String(req.query.key), String(real || ''))) {
       res.cookie(P.PASSKEY_COOKIE(page.pageId), P.passkeyToken(page.pageId, real), cookieOpts(true));
       return { ok: true, user: null };
@@ -54,16 +57,29 @@ function gate(page, req, res, { json = false } = {}) {
     return { ok: false };
   }
 
-  // platform: require a logged-in Astrodock user, honor the per-page allowlist
+  // platform: require a signed-in Astrodock user, honor the per-page allowlist.
+  // The account is re-read rather than trusted from the 7-day cookie, so a
+  // deactivated account or a revoked operator role stops working at once.
   const sess = P.verifySession(req.cookies?.[P.SESSION_COOKIE]);
-  if (sess && allowed(page, sess.email)) return { ok: true, user: sess };
+  const user = sess ? await accountFor(sess.sub) : null;
+  if (user && allowed(page, user)) return { ok: true, user: sess };
   if (json) { res.status(401).json({ error: 'login required' }); return { ok: false }; }
   res.status(401).type('html').send(loginFormHtml(page, sess ? 'Your account does not have access to this page.' : ''));
   return { ok: false };
 }
-function allowed(page, email) {
+
+async function accountFor(userId) {
+  if (!userId) return null;
+  const rows = await db.select().from(schema.users).where(eq(schema.users.id, userId)).limit(1);
+  return rows[0] && rows[0].isActive ? rows[0] : null;
+}
+
+// An empty allowlist means operators only. It used to mean any active account,
+// which on a platform with end users is every person signed up to every app.
+function allowed(page, user) {
   const list = page.allowlist || [];
-  return list.length === 0 || list.includes(String(email).toLowerCase());
+  if (list.length === 0) return roles.isOperator(user);
+  return list.includes(String(user.email).toLowerCase());
 }
 
 // IP truncation for the "truncated" privacy mode (zero the last IPv4 octet / keep
@@ -97,18 +113,49 @@ function cookieOpts(httpOnly) {
 }
 
 // ── platform login / logout ──
+// The same factor check as the hosted login: a password alone does not open an
+// account that has two-step sign-in. Server-rendered and without script, so the
+// form comes back with a code field when the account turns out to need one.
 router.post('/:pageId/_login', pageLoginLimiter, express.urlencoded({ extended: false }), withPage, async (req, res) => {
   if (req.page.accessMode !== 'platform') return res.status(400).type('html').send('Not a login-protected page.');
   const email = String(req.body.email || '').toLowerCase().trim();
   const password = String(req.body.password || '');
+  const code = String(req.body.code || '').trim();
   const rows = await db.select().from(schema.users).where(eq(schema.users.email, email)).limit(1);
   const user = rows[0];
-  const ok = user && user.isActive && await verifyPassword(password, user.passwordHash);
-  if (!ok || !allowed(req.page, email)) {
+  const ok = user && user.isActive && await factors.checkPassword(user, password);
+  if (!ok || !allowed(req.page, user)) {
     return res.status(401).type('html').send(loginFormHtml(req.page, 'Invalid credentials or no access.'));
+  }
+  const f = await factors.factorsFor(user.id);
+  if (f.totp) {
+    if (!code) {
+      return res.status(401).type('html').send(loginFormHtml(req.page, 'Enter the code from your authenticator app.', { email, needsCode: true }));
+    }
+    // Six digits is an authenticator code; anything else is a recovery code.
+    const passed = /^\d{6}$/.test(code)
+      ? await factors.checkTotp(user, code)
+      : await factors.consumeRecoveryCode(user.id, code);
+    if (!passed) {
+      return res.status(401).type('html').send(loginFormHtml(req.page, 'That code is not right.', { email, needsCode: true }));
+    }
   }
   res.cookie(P.SESSION_COOKIE, P.signSession(user), cookieOpts(true));
   res.redirect(`/${req.page.pageId}/`);
+});
+
+// The passkey prompt posts here, so the passkey travels in the body rather than
+// the URL. Sets the same cookie ?key= does.
+router.post('/:pageId/_unlock', pageLoginLimiter, express.urlencoded({ extended: false }), withPage, (req, res) => {
+  const page = req.page;
+  if (page.accessMode !== 'passkey') return res.redirect(`/${page.pageId}/`);
+  const real = decryptSecret(page.passkey);
+  const key = String(req.body.key || '');
+  if (!key || !P.constantTimeEqual(key, String(real || ''))) {
+    return res.status(401).type('html').send(passkeyPromptHtml(page, 'That passkey is not right.'));
+  }
+  res.cookie(P.PASSKEY_COOKIE(page.pageId), P.passkeyToken(page.pageId, real), cookieOpts(true));
+  res.redirect(`/${page.pageId}/`);
 });
 
 router.post('/:pageId/_logout', (req, res) => {
@@ -120,7 +167,7 @@ router.post('/:pageId/_logout', (req, res) => {
 router.get('/:pageId/_data', withPage, async (req, res) => {
   const page = req.page;
   if (page.dataMode === 'none') return res.status(404).json({ error: 'this page has no data store' });
-  const g = gate(page, req, res, { json: true });
+  const g = await gate(page, req, res, { json: true });
   if (!g.ok) return;
   const userId = page.dataMode === 'per-user' ? g.user.sub : null;
   const row = await loadData(page.id, userId);
@@ -130,7 +177,7 @@ router.get('/:pageId/_data', withPage, async (req, res) => {
 router.put('/:pageId/_data', pageDataLimiter, withPage, express.json({ limit: config.pages.dataMax }), async (req, res) => {
   const page = req.page;
   if (page.dataMode === 'none') return res.status(404).json({ error: 'this page has no data store' });
-  const g = gate(page, req, res, { json: true });
+  const g = await gate(page, req, res, { json: true });
   if (!g.ok) return;
   const body = req.body || {};
   if (!('data' in body)) return res.status(400).json({ error: 'body must be { data, version? }' });
@@ -175,7 +222,7 @@ router.get('/:pageId/*', withPage, async (req, res) => {
   // Only successful reads were ever logged, so the two things an operator most
   // wants to see — what is 404ing, and who is being turned away — left no trace
   // at all, despite the table having had a `status` column for them all along.
-  const g = gate(page, req, res, { json: false });
+  const g = await gate(page, req, res, { json: false });
   if (!g.ok) { recordView(page, req, name, 401, null).catch(() => {}); return; }
 
   const obj = await store().getFile(page.pageId, name).catch(() => null);
@@ -207,16 +254,19 @@ h1{font-size:20px}input{width:100%;padding:10px;margin:6px 0;border:1px solid #c
 button{padding:10px 16px;border:0;border-radius:8px;background:#5145e6;color:#fff;font-size:15px;cursor:pointer}
 .err{color:#c0392b;font-size:14px}</style>${body}`;
 }
-function passkeyPromptHtml(page) {
+function passkeyPromptHtml(page, err) {
   return shell('Protected page', `<h1>This page is protected</h1>
-<form method="GET" action="/${page.pageId}/"><input name="key" type="password" placeholder="Passkey" autofocus required>
+${err ? `<p class=err>${esc(err)}</p>` : ''}
+<form method="POST" action="/${page.pageId}/_unlock"><input name="key" type="password" placeholder="Passkey" autofocus required>
 <button type="submit">Unlock</button></form>`);
 }
-function loginFormHtml(page, err) {
+function loginFormHtml(page, err, { email = '', needsCode = false } = {}) {
   return shell('Sign in', `<h1>Sign in to view this page</h1>
 ${err ? `<p class=err>${esc(err)}</p>` : ''}
-<form method="POST" action="/${page.pageId}/_login"><input name="email" type="email" placeholder="Email" autofocus required>
-<input name="password" type="password" placeholder="Password" required><button type="submit">Sign in</button></form>`);
+<form method="POST" action="/${page.pageId}/_login"><input name="email" type="email" placeholder="Email" value="${esc(email)}"${email ? '' : ' autofocus'} required>
+<input name="password" type="password" placeholder="Password"${email ? ' autofocus' : ''} required>
+${needsCode ? '<input name="code" inputmode="numeric" autocomplete="one-time-code" placeholder="Authenticator or recovery code" required>' : ''}
+<button type="submit">Sign in</button></form>`);
 }
 function notFoundHtml() { return shell('Not found', '<h1>404 — not found</h1><p>This page doesn’t exist or isn’t available.</p>'); }
 

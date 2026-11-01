@@ -53,10 +53,21 @@ router.post('/', verifyLimiter, async (req, res) => {
     return res.status(401).json({ error: 'Invalid credentials' });
   }
 
+  // /verify carries a password and nothing else, so an account with two-step
+  // sign-in cannot be completed here. Refused with the same answer as a wrong
+  // password: a distinct reply would confirm the password was right, and the
+  // caller here is an app, which is exactly who should not learn that.
+  // Those accounts sign in through the hosted login (/authorize).
+  if (user.totpSecret && user.totpConfirmedAt) {
+    logAttempt(email, appId, 'TOTP_REQUIRED', ip);
+    return res.status(401).json({ error: 'Invalid credentials' });
+  }
+
+  // Same answer again for "no access to this app", for the same reason.
   const access = Array.isArray(user.appAccess) ? user.appAccess : [];
   if (!access.includes(appId)) {
     logAttempt(email, appId, 'NO_ACCESS', ip);
-    return res.status(403).json({ error: 'User does not have access to this app' });
+    return res.status(401).json({ error: 'Invalid credentials' });
   }
 
   logAttempt(email, appId, 'SUCCESS', ip);

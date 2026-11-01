@@ -169,7 +169,7 @@ export default function PageDetailPage() {
         )}
         {page.accessMode === 'platform' && (
           <label>
-            Allowed emails (one per line — empty = any active user)
+            Allowed emails (one per line — empty = operators only)
             <textarea rows={3} value={allowlist} onChange={(e) => setAllowlist(e.target.value)} placeholder="alice@example.com" />
             <button style={{ marginTop: 6 }} onClick={() => patch({ allowlist: allowlist.split(/[\n,]/).map((s) => s.trim()).filter(Boolean) }, 'Allowlist saved.')}>Save Allowlist</button>
           </label>

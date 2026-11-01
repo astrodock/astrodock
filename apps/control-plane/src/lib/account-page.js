@@ -32,6 +32,8 @@ ${errorLine()}
     <h2>Sign-in address</h2>
     <p>Changing it sends a link to the new address. Nothing changes until you follow it.</p>
     <div class="field"><label for="newEmail">New address</label><input type="email" id="newEmail" autocomplete="email"></div>
+    <div id="emailPwField" hidden>${passwordField('emailPassword', 'Current password')}</div>
+    <div class="field" id="emailCodeField" hidden><label for="emailCode">Authenticator code</label><input id="emailCode" class="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000"></div>
     <button class="secondary" type="submit" id="emailBtn">Send the confirmation link</button>
   </form>
   <div class="sec"><h2>Change password</h2></div>
@@ -42,6 +44,7 @@ ${errorLine()}
   ${passwordField('currentPassword', 'Current password', { required: true })}
   ${passwordField('newPassword', 'New password', { autocomplete: 'new-password', required: true, minlength: 8, hint: 'At least 8 characters.' })}
   ${passwordField('confirmPassword', 'Confirm new password', { autocomplete: 'new-password', required: true, minlength: 8 })}
+  <div class="field" id="codeField" hidden><label for="code">Authenticator code</label><input id="code" class="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000"><p class="hint">This account has two-step sign-in.</p></div>
   <button type="submit" id="submitBtn">Change password</button>
 </form>
 <script>
@@ -67,6 +70,9 @@ ${REVEAL_JS}
   el('acctEmail').textContent = me.email;
   el('email').value = me.email;
   el('email').readOnly = true;
+  // Changing the address asks for proof it is you, with whichever factor you have.
+  el('emailPwField').hidden = !me.hasPassword;
+  el('emailCodeField').hidden = me.hasPassword || !me.hasTotp;
 
   if (new URLSearchParams(location.search).get('linked')) {
     say('success', 'That Google account is attached. You can sign in with it from now on.');
@@ -116,12 +122,12 @@ el('emailForm').addEventListener('submit', async (e) => {
   try {
     const r = await fetch('/account/email', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: value })
+      body: JSON.stringify({ email: value, currentPassword: el('emailPassword').value, totp: el('emailCode').value.trim() })
     });
     const d = await r.json();
     if (!r.ok) throw new Error(d.error);
     say('success', d.message);
-    el('newEmail').value = '';
+    el('newEmail').value = ''; el('emailPassword').value = ''; el('emailCode').value = '';
   } catch (ex) {
     say('error', ex.message || 'That did not work.');
   }
@@ -138,13 +144,17 @@ el('form').addEventListener('submit', async (e) => {
     const res = await fetch('/account/change-password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: el('email').value, currentPassword: el('currentPassword').value, newPassword })
+      body: JSON.stringify({ email: el('email').value, currentPassword: el('currentPassword').value, newPassword, totp: el('code').value.trim() })
     });
     const data = await res.json();
-    if (!res.ok) say('error', data.error);
-    else {
+    if (!res.ok) {
+      // The server asks for the code only once the password is right.
+      if (data.code === 'totp_required') { el('codeField').hidden = false; el('code').focus(); }
+      say('error', data.error);
+    } else {
       say('success', data.message);
-      ['currentPassword', 'newPassword', 'confirmPassword'].forEach((id) => { el(id).value = ''; });
+      ['currentPassword', 'newPassword', 'confirmPassword', 'code'].forEach((id) => { el(id).value = ''; });
+      el('codeField').hidden = true;
     }
   } catch {
     say('error', 'The server did not answer. Nothing was changed. Try again in a moment.');

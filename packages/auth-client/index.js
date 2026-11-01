@@ -129,7 +129,8 @@ class AstrodockAuth {
   /**
    * Verify end-user credentials. LEGACY — see the note at the top of this file.
    * @returns {Promise<{userId: string, email: string, name: string}>}
-   * @throws {AuthError} 401 invalid credentials, 403 no access, 503 unavailable
+   * @throws {AuthError} 401 invalid credentials (also returned for no access to this app,
+   *   and for accounts with two-step sign-in, which /verify cannot carry), 503 unavailable
    */
   async verify(email, password, { clientIp } = {}) {
     let res;
