@@ -658,7 +658,7 @@ router.get('/:slug/access-logs', requirePermission('logs:read'), async (req, res
     const lines = fs.readFileSync(file, 'utf8').split('\n').filter(Boolean).slice(-500);
     entries = lines.map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
   } catch (err) {
-    if (err.code === 'ENOENT') return res.json({ enabled: false, recent: [], statusCounts: {}, note: 'No access log yet — enable "Caddy access logs for deployed apps" in Settings, then redeploy.' });
+    if (err.code === 'ENOENT') return res.json({ enabled: false, recent: [], statusCounts: {}, note: 'No access log yet — enable "Caddy Access Logs for Deployed Apps" in Settings, then redeploy.' });
     return res.status(500).json({ error: err.message });
   }
   const statusCounts = {};

@@ -45,8 +45,8 @@ ${needsCredential ? `
 ${googleEnabled ? '<div class="or"><span>or set a password</span></div>' : ''}
 <form id="f">
   ${passwordField('password', 'Password', { autocomplete: 'new-password', required: true, minlength: 8, hint: 'At least 8 characters.' })}
-  ${passwordField('confirm', 'Confirm password', { autocomplete: 'new-password', required: true, minlength: 8 })}
-  <button type="submit" id="go">Create my account</button>
+  ${passwordField('confirm', 'Confirm Password', { autocomplete: 'new-password', required: true, minlength: 8 })}
+  <button type="submit" id="go">Create My Account</button>
 </form>` : `
 <p class="muted">You already have an account here, so there is nothing to set up.</p>`}
 <script>
@@ -88,7 +88,7 @@ async function hasCredential(user) {
 
 router.get('/:token', pageLoginLimiter, async (req, res) => {
   const { invite, user, app, error } = await invites.resolve(req.params.token);
-  if (error) return res.status(400).type('html').send(errorPage('That invite cannot be used', error, { icon: 'mail' }));
+  if (error) return res.status(400).type('html').send(errorPage('That Invite Cannot Be Used', error, { icon: 'mail' }));
 
   res.type('html').send(invitePage({
     appName: app.name,
@@ -138,7 +138,7 @@ function googleCallbackUrl(req) {
 
 router.get('/:token/google', pageLoginLimiter, async (req, res) => {
   const { app, error } = await invites.resolve(req.params.token);
-  if (error) return res.status(400).type('html').send(errorPage('That invite cannot be used', error, { icon: 'mail' }));
+  if (error) return res.status(400).type('html').send(errorPage('That Invite Cannot Be Used', error, { icon: 'mail' }));
   try {
     const { url } = await google.begin({
       redirectUri: googleCallbackUrl(req),
@@ -146,7 +146,7 @@ router.get('/:token/google', pageLoginLimiter, async (req, res) => {
     });
     res.redirect(url);
   } catch (err) {
-    res.type('html').send(errorPage('Google sign-in unavailable', err.message));
+    res.type('html').send(errorPage('Google Sign-In Unavailable', err.message));
   }
 });
 

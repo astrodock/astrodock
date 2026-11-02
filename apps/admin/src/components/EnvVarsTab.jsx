@@ -109,7 +109,7 @@ export default function EnvVarsTab({ app, onRefresh }) {
       </div>
 
       {yours.length === 0 ? (
-        <EmptyState icon="env" title="No variables yet"
+        <EmptyState icon="env" title="No Variables Yet"
           body="Add one below, or import a .env file." />
       ) : (
         <div className="var-list">
@@ -140,7 +140,7 @@ export default function EnvVarsTab({ app, onRefresh }) {
             <label className="var-add-opt">
               <span className={`mini-toggle sm ${newSecret ? 'on' : ''}`} role="switch"
                 aria-checked={newSecret} onClick={() => setNewSecret(!newSecret)} />
-              Treat as a secret
+              Treat as a Secret
             </label>
             <span className="hint" style={{ margin: 0 }}>
               {newSecret
@@ -158,7 +158,7 @@ export default function EnvVarsTab({ app, onRefresh }) {
               <h2>Provided by Astrodock</h2>
               <p>
                 Filled in from your database and storage choices. You do not normally touch these —
-                a few marked <b>not set</b> want a value from you, which happens when you bring your
+                a few marked <b>Not Set</b> want a value from you, which happens when you bring your
                 own database or storage.
               </p>
             </div>
@@ -178,7 +178,7 @@ export default function EnvVarsTab({ app, onRefresh }) {
           time rather than stored, which is why they never appeared in this list. */}
       <div className="sec-head" style={{ marginTop: 30 }}>
         <div>
-          <h2>Set by the platform</h2>
+          <h2>Set by the Platform</h2>
           <p>
             Computed for every deploy from this app's settings — its address, its port, the
             sign-in endpoints. Read-only, and shown here so you can see exactly what the app
@@ -205,7 +205,7 @@ export default function EnvVarsTab({ app, onRefresh }) {
       {showBulk && (
         <ModalForm
           wide
-          title="Import From a .env File"
+          title="Import from a .env File"
           subtitle="Paste the file's contents. Comment lines are ignored, and platform-managed ASTRODOCK_ names are skipped."
           onClose={() => { setShowBulk(false); setBulkResult(null); }}
           onSubmit={handleBulkImport}

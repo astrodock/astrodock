@@ -16,7 +16,7 @@ import WorkTab from '../components/WorkTab';
 import useConfirm from '../lib/useConfirm';
 
 const BASE_TABS = ['deploys', 'env', 'domains', 'signin', 'feedback', 'work', 'logs', 'history', 'operations', 'settings'];
-const TAB_LABELS = { deploys: 'Deploys', env: 'Variables', domains: 'Domains', signin: 'Sign-in', feedback: 'Feedback', work: 'Work', logs: 'Logs', operations: 'Operations', settings: 'Settings' };
+const TAB_LABELS = { deploys: 'Deploys', env: 'Variables', domains: 'Domains', signin: 'Sign-In', feedback: 'Feedback', work: 'Work', logs: 'Logs', operations: 'Operations', settings: 'Settings' };
 
 const STATUS_LABELS = {
   online: { label: 'Running', className: 'active' },
@@ -115,7 +115,7 @@ export default function AppDetailPage() {
     ask({
       title: 'Stop this app?',
       danger: true,
-      confirmLabel: 'Stop it',
+      confirmLabel: 'Stop It',
       body: (
         <>
           <p>It stops answering requests immediately. Anyone using it right now gets an error.</p>
@@ -166,7 +166,7 @@ export default function AppDetailPage() {
                 <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M6 3H3a1 1 0 00-1 1v9a1 1 0 001 1h9a1 1 0 001-1v-3M9 2h5v5M15 1L8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
               </a>
               <span className="badge repo-badge">{app.runtime?.type === 'docker' ? 'Docker' : 'Node'}</span>
-              <span className={`badge ${app.provisioned ? 'active' : 'inactive'}`}>{app.provisioned ? 'Provisioned' : 'Not provisioned'}</span>
+              <span className={`badge ${app.provisioned ? 'active' : 'inactive'}`}>{app.provisioned ? 'Provisioned' : 'Not Provisioned'}</span>
               {app.repoConnected && app.source?.githubRepo && <span className="badge repo-badge">{app.source.githubRepo}</span>}
             </div>
             {app.description && <p className="adh-desc">{app.description}</p>}
@@ -204,7 +204,7 @@ export default function AppDetailPage() {
             exactly when it mattered. */}
         {procStatus && (procStatus.status === 'errored' || procStatus.status === 'stopped') && (
           <div className="adh-stats">
-            <span className="adh-stat">State <b>{procStatus.status}</b></span>
+            <span className="adh-stat">State <b>{procStatus.status === 'errored' ? 'Errored' : 'Stopped'}</b></span>
             <span className="adh-stat">Restarts <b>{procStatus.restarts || 0}</b></span>
             <span className="adh-stat adh-stat-hint">
               {procStatus.status === 'errored'

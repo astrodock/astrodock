@@ -71,7 +71,7 @@ function downEmail(app, state) {
   return {
     to: config.email.alertTo,
     subject: `[Astrodock] ${app.name} is DOWN`,
-    html: `<h2 style="color:#dc2626">App Down</h2><p><strong>${app.name}</strong> (${app.slug}) failed ${state.consecutiveFailures} consecutive health checks.</p><p>URL: ${appUrl(app)}<br>Port: ${app.port}<br>Down since: ${state.downSince ? new Date(state.downSince).toUTCString() : '—'}</p><hr><p style="color:#888;font-size:12px">Astrodock Health Monitor</p>`
+    html: `<h2 style="color:#dc2626">App Down</h2><p><strong>${app.name}</strong> (${app.slug}) failed ${state.consecutiveFailures} consecutive health checks.</p><p>URL: ${appUrl(app)}<br>Port: ${app.port}<br>Down Since: ${state.downSince ? new Date(state.downSince).toUTCString() : '—'}</p><hr><p style="color:#888;font-size:12px">Astrodock Health Monitor</p>`
   };
 }
 function recoveryEmail(app, state) {

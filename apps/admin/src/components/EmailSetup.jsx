@@ -169,7 +169,7 @@ export default function EmailSetup({ initial, onSaved, compact = false, testTo =
           <div className="opt-list" style={{ marginBottom: '1.1rem' }}>
             <div className={`opt-row ${smtp.secure ? 'on' : ''}`}>
               <span className="name">
-                <b>Connect over TLS immediately</b>
+                <b>Connect over TLS Immediately</b>
                 <span className="opt-desc">
                   Port 465 expects an encrypted connection from the first byte. Ports 587 and 25
                   start in the clear and upgrade with STARTTLS, which Astrodock does automatically —
@@ -177,7 +177,7 @@ export default function EmailSetup({ initial, onSaved, compact = false, testTo =
                 </span>
               </span>
               <span className={`mini-toggle ${smtp.secure ? 'on' : ''}`} role="switch" aria-checked={smtp.secure}
-                aria-label="Connect over TLS immediately"
+                aria-label="Connect over TLS Immediately"
                 onClick={() => setSmtp({ ...smtp, secure: !smtp.secure })} />
             </div>
           </div>

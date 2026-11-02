@@ -56,7 +56,7 @@ const REGISTRARS = [
     warning: 'Route 53 shows the full name as {NAME}.{DOMAIN} — that is the same record, not a duplicated prefix.'
   },
   {
-    key: 'other', label: 'Something else',
+    key: 'other', label: 'Something Else',
     where: 'Your DNS provider, wherever records are managed',
     fields: [['Type', 'A'], ['Name / Host', '{NAME}'], ['Value / Points to', '{IP}']],
     warning: 'If there is a "forwarding" or "parking" feature switched on for this domain, turn it off — those override A records.'
@@ -210,7 +210,7 @@ export default function SetupPage({ status }) {
           </div>
           <span className="logo-text-lg">Astrodock</span>
         </div>
-        <p className="login-subtitle">Set up your platform</p>
+        <p className="login-subtitle">Set Up Your Platform</p>
 
         {!finished && <Stepper step={step} needsClaim={needsClaim} />}
         {error && <div className="error">{error}</div>}
@@ -219,7 +219,7 @@ export default function SetupPage({ status }) {
         {finished && done && (
           <div className="setup-body">
             <div className="callout ok">
-              <b>That's it — Astrodock is configured.</b>
+              <b>That's it. Astrodock is configured.</b>
               <p>
                 Your dashboard has moved to its real address. This page, on the server's IP,
                 stops being the way in.
@@ -305,7 +305,7 @@ export default function SetupPage({ status }) {
                 required minLength={8} placeholder="Type it again" />
             </label>
             <button type="submit" className="login-btn" disabled={busy}>
-              {busy ? 'Creating…' : 'Create administrator'}
+              {busy ? 'Creating…' : 'Create Administrator'}
             </button>
           </form>
         )}
@@ -335,7 +335,7 @@ export default function SetupPage({ status }) {
 
             {baseDomain.trim().includes('.') && (
               <>
-                <p className="setup-section-label">Add this DNS record at your registrar</p>
+                <p className="setup-section-label">Add This DNS Record at Your Registrar</p>
                 <div className="seg-pills" style={{ marginBottom: 10 }}>
                   {REGISTRARS.map((r) => (
                     <button type="button" key={r.key}
@@ -395,12 +395,12 @@ export default function SetupPage({ status }) {
                   </button>
                   {providers.length > 0 && !autoDns && (
                     <button type="button" className="link-btn" onClick={() => setAutoDns(true)}>
-                      or let Astrodock create it
+                      Or Let Astrodock Create It
                     </button>
                   )}
                   {dns && (
                     <span className={`chip ${dns.ok ? 'ok' : 'warn'}`}>
-                      {dns.ok ? 'Record is live' : 'Not resolving yet'}
+                      {dns.ok ? 'Record Is Live' : 'Not Resolving Yet'}
                     </span>
                   )}
                 </div>
@@ -408,19 +408,19 @@ export default function SetupPage({ status }) {
 
                 {autoDns && (
                   <div className="callout">
-                    <b>Create the record for me</b>
+                    <b>Create the Record for Me</b>
                     <p>
                       If your DNS is hosted somewhere with an API, paste a token and Astrodock will add
                       the record above. <strong>The token is used once and never stored</strong> — it
                       isn't saved, logged, or needed again.
                     </p>
                     <label>
-                      DNS provider
+                      DNS Provider
                       <Select value={dnsProvider} onChange={setDnsProvider}
                         options={providers.map((p) => ({ value: p.key, label: p.label }))} />
                     </label>
                     <label>
-                      API token
+                      API Token
                       <input type="password" value={dnsToken} spellCheck="false"
                         onChange={(e) => setDnsToken(e.target.value)} placeholder="Paste the token" />
                       <span className="field-help">
@@ -430,10 +430,10 @@ export default function SetupPage({ status }) {
                     <div className="setup-check">
                       <button type="button" className="pillbtn" onClick={handleCreateDns}
                         disabled={busy || !dnsToken.trim()}>
-                        {busy ? 'Creating…' : 'Create the record'}
+                        {busy ? 'Creating…' : 'Create the Record'}
                       </button>
                       <button type="button" className="link-btn" onClick={() => setAutoDns(false)}>
-                        I'll add it myself
+                        I'll Add It Myself
                       </button>
                     </div>
                     {dnsCreated && (
@@ -452,7 +452,7 @@ export default function SetupPage({ status }) {
               HTTPS
               <Select value={tlsMode} onChange={setTlsMode} options={[
                 { value: 'auto', label: 'Automatic', description: 'A free, real certificate from Let\u2019s Encrypt. What you want for a public server.' },
-                { value: 'internal', label: 'Self-signed', description: 'For a private network with no public DNS. Browsers will warn about the certificate.' },
+                { value: 'internal', label: 'Self-Signed', description: 'For a private network with no public DNS. Browsers will warn about the certificate.' },
                 { value: 'off', label: 'Off', description: 'Plain HTTP. Only if something in front of Astrodock already handles HTTPS.' }
               ]} />
               <span className="field-help">
@@ -484,11 +484,11 @@ export default function SetupPage({ status }) {
             )}
 
             <button type="submit" className="login-btn" disabled={busy}>
-              {busy ? 'Applying…' : 'Save and switch over'}
+              {busy ? 'Applying…' : 'Save and Switch Over'}
             </button>
             <div className="setup-skip">
               <button type="button" className="link-btn" onClick={handleDefer} disabled={busy}>
-                I'll do this later
+                I'll Do This Later
               </button>
               <p className="field-help">
                 Takes you straight to the dashboard, reachable at this server's IP over plain HTTP.

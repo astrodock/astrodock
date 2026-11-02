@@ -29,51 +29,51 @@ const { encryptSecret, decryptSecret } = require('./crypto');
 // reflects the current env/config at read time.
 const REGISTRY = {
   'alerts.email_to': {
-    label: 'Alert recipient', type: 'string',
+    label: 'Alert Recipient', type: 'string',
     description: 'Where health and deploy alerts are sent when a notification rule does not name its own recipient.',
     default: () => config.email.alertTo || ''
   },
   'alerts.email_from': {
-    label: 'Email “from” address', type: 'string',
+    label: 'Email “From” Address', type: 'string',
     description: 'The address alerts appear to come from. It must be one your email provider is allowed to send as.',
     default: () => config.email.from
   },
   'google.client_id': {
-    label: 'Google client ID', type: 'string',
+    label: 'Google Client ID', type: 'string',
     description: 'OAuth 2.0 client ID from Google Cloud Console. Blank turns Google sign-in off everywhere.',
     default: () => ''
   },
   'google.client_secret': {
-    label: 'Google client secret', type: 'string', secret: true,
+    label: 'Google Client Secret', type: 'string', secret: true,
     description: 'The client secret for that OAuth client.',
     default: () => ''
   },
   'google.allowed_domains': {
-    label: 'Google domains allowed', type: 'string',
+    label: 'Google Domains Allowed', type: 'string',
     description: 'Comma-separated. Blank allows any Google account; otherwise only these domains may sign in, checked against the verified token rather than anything the browser sends.',
     default: () => ''
   },
   // Signing in from another system. See routes/launch.js. Blank issuer or secret
   // turns POST /launch off.
   'launch.issuer': {
-    label: 'Launcher name', type: 'string',
+    label: 'Launcher Name', type: 'string',
     description: 'The name the other system puts in each pass it signs (its "iss"), for example seniorverse-os. Blank turns signing in from another system off.',
     default: () => ''
   },
   'launch.origin': {
-    label: 'Launcher address', type: 'string',
+    label: 'Launcher Address', type: 'string',
     description: 'The web address people open apps from, for example https://os.example.com. A pass posted from any other page is refused, so a pass cannot be used to sign someone into another person\'s account from elsewhere.',
     default: () => ''
   },
   'launch.secret': {
-    label: 'Shared secret', type: 'string', secret: true, encrypted: true, minLength: 32,
+    label: 'Shared Secret', type: 'string', secret: true, encrypted: true, minLength: 32,
     description: 'At least 32 characters, held by both systems and used to sign and check passes. Generate it with: openssl rand -hex 32',
     default: () => ''
   },
   // Feedback triage by model. Blank turns it off everywhere regardless of what
   // an app's ai_mode says, so one field is the whole off switch.
   'ai.anthropic_key': {
-    label: 'Anthropic API key', type: 'string', secret: true,
+    label: 'Anthropic API Key', type: 'string', secret: true,
     description: 'Used to triage incoming feedback: an internal note about what is likely wrong, and a draft reply for the person who reported it. Blank turns triage off for every app.',
     default: () => ''
   },
@@ -90,44 +90,44 @@ const REGISTRY = {
   // depends on. A stored override wins, and the env var remains the fallback so
   // no existing install has to do anything.
   'registry.user': {
-    label: 'Image registry username', type: 'string',
+    label: 'Image Registry Username', type: 'string',
     description: 'Username for the registry holding the Astrodock image. Only needed if that image is private. Blank uses ASTRODOCK_REGISTRY_USER from the environment.',
     default: () => process.env.ASTRODOCK_REGISTRY_USER || ''
   },
   'registry.token': {
-    label: 'Image registry token', type: 'string', secret: true,
+    label: 'Image Registry Token', type: 'string', secret: true,
     description: 'Access token for that registry, used only to download platform updates. A GitHub token must be a classic personal access token with read:packages; fine-grained tokens do not cover GHCR reads. Blank uses ASTRODOCK_REGISTRY_TOKEN from the environment.',
     // Reads the env var so the page can say whether a credential exists at all.
     // effective() masks any secret on the way out, so the value never leaves.
     default: () => process.env.ASTRODOCK_REGISTRY_TOKEN || ''
   },
   'logging.page_view_ip': {
-    label: 'Store visitor IPs in page access logs', type: 'enum',
+    label: 'Store Visitor IPs in Page Access Logs', type: 'enum',
     description: 'How much of a visitor IP address is kept in page access logs. Truncated drops the last octet; off stores none.',
     values: ['full', 'truncated', 'off'], default: () => 'full'
   },
   'logging.auth_log_retention_days': {
-    label: 'Auth-log retention (days)', type: 'int',
+    label: 'Auth-Log Retention (Days)', type: 'int',
     description: 'How long sign-in records are kept before being deleted.',
     default: () => 90
   },
   'logging.page_view_retention_days': {
-    label: 'Page access-log retention (days)', type: 'int',
+    label: 'Page Access-Log Retention (Days)', type: 'int',
     description: 'How long page access logs are kept before being deleted.',
     default: () => 90
   },
   'logging.app_access_logs': {
-    label: 'Caddy access logs for deployed apps', type: 'enum',
+    label: 'Caddy Access Logs for Deployed Apps', type: 'enum',
     description: 'Record every HTTP request to your deployed apps. Off by default — it is the noisiest thing the platform can store.',
     values: ['off', 'on'], default: () => 'off'
   },
   'security.require_mfa': {
-    label: 'Require two-factor authentication for all operators', type: 'enum',
+    label: 'Require Two-Factor Authentication for All Operators', type: 'enum',
     description: 'Every operator must hold a passkey or authenticator app before they can sign in. You need one yourself before this can be turned on.',
     values: ['off', 'on'], default: () => 'off'
   },
   'updates.check': {
-    label: 'Check for new Astrodock releases', type: 'enum',
+    label: 'Check for New Astrodock Releases', type: 'enum',
     description: 'Asks GitHub once every six hours whether a newer version has been tagged. This is the only request Astrodock makes to the internet on its own. It never installs anything.',
     values: ['on', 'off'], default: () => 'on'
   },
@@ -137,12 +137,12 @@ const REGISTRY = {
   // which stays the default: an operator who has not chosen a site should not
   // have one picked for them.
   'routing.apex_app': {
-    label: 'App at your main domain', type: 'app',
+    label: 'App at Your Main Domain', type: 'app',
     description: 'Which app answers at your domain with no subdomain in front of it. Leave it unset and that address serves nothing.',
     default: () => ''
   },
   'routing.apex_www': {
-    label: 'Send www to it as well', type: 'enum',
+    label: 'Send www to It as Well', type: 'enum',
     description: 'Visitors typing www in front of your domain are redirected to the address without it, so you have one address rather than two.',
     values: ['on', 'off'], default: () => 'on'
   },
@@ -152,13 +152,13 @@ const REGISTRY = {
   // that forwards to wherever the script really lives) is a normal thing to want
   // from a host.
   'routing.redirects': {
-    label: 'Address redirects', type: 'text',
+    label: 'Address Redirects', type: 'text',
     description: 'One per line: a name on your domain, a space, then where it should send people. Lines starting with # are ignored.',
     placeholder: 'get   https://raw.githubusercontent.com/you/repo/main/install.sh',
     default: () => ''
   },
   'alerts.disk_threshold_percent': {
-    label: 'Disk-usage alert threshold (%)', type: 'int',
+    label: 'Disk-Usage Alert Threshold (%)', type: 'int',
     description: 'Raise a warning once the disk is this full.',
     default: () => 85
   }
@@ -168,9 +168,9 @@ const REGISTRY = {
 // trail and the masked-diagnostics plumbing) but kept out of REGISTRY so the
 // operational Settings UI doesn't render "change your domain" as a casual field row.
 const BOOTSTRAP_REGISTRY = {
-  'platform.base_domain': { label: 'Base domain', type: 'string', default: () => config.baseDomain },
-  'platform.tls_mode': { label: 'HTTPS mode', type: 'enum', values: ['auto', 'internal', 'off'], default: () => config.tlsMode },
-  'platform.acme_email': { label: 'Certificate contact email', type: 'string', default: () => config.acmeEmail }
+  'platform.base_domain': { label: 'Base Domain', type: 'string', default: () => config.baseDomain },
+  'platform.tls_mode': { label: 'HTTPS Mode', type: 'enum', values: ['auto', 'internal', 'off'], default: () => config.tlsMode },
+  'platform.acme_email': { label: 'Certificate Contact Email', type: 'string', default: () => config.acmeEmail }
 };
 
 let cache = null;

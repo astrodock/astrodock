@@ -110,10 +110,10 @@
   // ---------------------------------------------------------------- preview switcher
   const PAGES = [
     ['index.html', 'Overview'], ['foundations.html', 'Foundations'], ['components.html', 'Components'],
-    ['page-list.html', 'Collection page'], ['page-record.html', 'Record page'], ['page-form.html', 'Create and edit'],
-    ['page-settings.html', 'Settings'], ['page-dashboard.html', 'Dashboard'], ['page-activity.html', 'Background work'],
-    ['page-wizard.html', 'Step by step'], ['page-sidebar.html', 'Queue'], ['page-signin.html', 'Sign-in and account'], ['page-states.html', 'System states'],
-    ['mobile.html', 'On a phone'],
+    ['page-list.html', 'Collection Page'], ['page-record.html', 'Record Page'], ['page-form.html', 'Create and Edit'],
+    ['page-settings.html', 'Settings'], ['page-dashboard.html', 'Dashboard'], ['page-activity.html', 'Background Work'],
+    ['page-wizard.html', 'Step by Step'], ['page-sidebar.html', 'Queue'], ['page-signin.html', 'Sign-In and Account'], ['page-states.html', 'System States'],
+    ['mobile.html', 'On a Phone'],
   ];
   window.KIT_PAGES = PAGES;
   if (!window.frameElement && !document.querySelector('[data-docs]')) {

@@ -67,7 +67,7 @@ try {
   await test('the first app asks for a password', async () => {
     const res = await authorize('ssoone', 'https://one.example.com/cb');
     assert.strictEqual(res.status, 200, 'expected the sign-in form');
-    assert.match(await res.text(), /Sign in to/);
+    assert.match(await res.text(), /Sign In to/);
   });
 
   await test('signing in returns a code and sets a platform session', async () => {

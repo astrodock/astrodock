@@ -1,10 +1,10 @@
-# Astrodock app design system
+# Astrodock App Design System
 
 How every app on an Astrodock platform is built and how it looks: the frame, the page types, how people move around, what every state looks like, how the words read, and the parts pages are made of. An agent building an app follows this file; a person who knows one app finds the next one works the same way.
 
 **Status: preview for review.** What exists: the stylesheet, the rules (this file), the markup reference, the preview pages and the checker. Not built yet: the React components named below (`@astrodock/ui/react`) and the starter app's move onto them.
 
-| File | What it is |
+| File | What It Is |
 |---|---|
 | `README.md` | The rules: principles, structure, navigation, page types, states, interaction, writing |
 | `REFERENCE.md` | Copy-ready markup for tokens, shells, the page header and every component. Generated; do not edit |
@@ -23,7 +23,7 @@ How every app on an Astrodock platform is built and how it looks: the frame, the
 
 ---
 
-## How it builds on itself
+## How It Builds on Itself
 
 | Layer | What | Rule |
 |---|---|---|
@@ -56,7 +56,7 @@ How every app on an Astrodock platform is built and how it looks: the frame, the
 
 ---
 
-## Building an app
+## Building an App
 
 An Astrodock app is `app/` (Vite and React) plus `server/` (Express, routes under `/api`). See `examples/starter-app/AGENTS.md` for the platform contract. The frontend is laid out like this:
 
@@ -78,7 +78,7 @@ Rules:
 - Load the fonts with `<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">`, or leave them out and the system font is used.
 - Set `data-theme` on `<html>`: `light`, `dark`, or `auto` (follows the device). Default `auto`.
 
-### React components (planned: `@astrodock/ui/react`)
+### React Components (Planned: `@astrodock/ui/react`)
 
 | Component | Covers |
 |---|---|
@@ -103,10 +103,10 @@ Rules:
 
 ---
 
-## The shell
+## The Shell
 
 **App frame (every app).** The sidebar sits on the gray frame; the page sits on one white panel beside it.
-- **Sidebar, top to bottom:** the switcher (the app's avatar and name; it opens the other apps), a search button that opens the command menu (Cmd+K), the sections with icons and counts, then labeled groups of records people go to often (projects, queues), and at the bottom Settings and the account menu (who is signed in, Your account, theme, help, sign out).
+- **Sidebar, top to bottom:** the switcher (the app's avatar and name; it opens the other apps), a search button that opens the command menu (Cmd+K), the sections with icons and counts, then labeled groups of records people go to often (projects, queues), and at the bottom Settings and the account menu (who is signed in, Your Account, theme, help, sign out).
 - **Current section:** a white fill with a hairline, the same shape as the panel.
 - **On a phone:** the sidebar hides behind a menu button in a slim bar at the top of the panel.
 - **Section nav:** when one area has many parts (a component index, settings groups, help articles), a second column at the panel's left edge lists them (`.with-subnav`, `.subnav`; rows are `.item`). It marks the part in view and hides under 1100px.
@@ -139,30 +139,30 @@ The hierarchy is **section → collection → record → tab**. URLs follow it:
 
 ---
 
-## Page types
+## Page Types
 
 Every screen is one of these. Each has a preview page.
 
-### 1. Collection page (`preview/page-list.html`)
+### 1. Collection Page (`preview/page-list.html`)
 A set of records to find, scan and act on.
 - **Header:** back link if not a section root; avatar, title, one line of context; actions: the primary "Add …" last, rare actions in More. Tabs below when the record has views.
-- **View bar:** saved views on the left with counts ("All", "Changed this week", "Needs attention"); on the right the Filter button (a panel of checkbox groups; a badge shows how many are set), search, and list or cards.
+- **View bar:** saved views on the left with counts ("All", "Changed This Week", "Needs Attention"); on the right the Filter button (a panel of checkbox groups; a badge shows how many are set), search, and list or cards.
 - **List:** columns set once and named once in a header row; each row is the avatar, the name with its labels and one line of context, aligned values, status as a dot and a word, and its More button on hover. Group labels when the list has natural parts. The whole row opens the record. A table instead when people compare many values. Load more at the end; no numbered pages.
 - **Selection:** hovering a row turns its avatar into a checkbox; selecting brings up the bulk bar floating at the bottom of the window.
 - **Filter sidebar** only on pages people filter constantly (history, logs).
-- **Empty:** "Nothing yet" (what goes here, how to start) differs from "No matches" (clear the filters).
+- **Empty:** "Nothing Yet" (what goes here, how to start) differs from "No Matches" (clear the filters).
 
-### 2. Record page (`preview/page-record.html`)
+### 2. Record Page (`preview/page-record.html`)
 One thing in detail.
 - **Header:** back button naming the parent; title with a label for its type or level; meta line (key facts, freshness with the full time on hover, background work in progress); actions (main action primary, others plain, rare and destructive in More).
 - **Tabs** under the header when the record has several views. Counts on tabs that hold lists.
-- **First tab:** sections, not cards. Summary first, then the comparison, then each section with its lead and Show detail.
+- **First tab:** sections, not cards. Summary first, then the comparison, then each section with its lead and Show Detail.
 - **Properties column** on the right: the record's details and at-a-glance fields as a properties list, then recent activity. Values that run to a sentence use `.properties.stacked` (label above value). The column scrolls with the page. Moves below the content on narrow screens.
 
-### 3. Create and edit (`preview/page-form.html`)
+### 3. Create and Edit (`preview/page-form.html`)
 - **Five fields or fewer:** a modal. **More:** a page where each group has its title and one sentence on the left and its fields on the right, hairlines between groups (two short related fields may share a row).
 - **Validation:** check a field when it is left, and everything on save. On a failed save, a notice at the top lists what needs fixing with links to the fields, and each field shows its own error.
-- **Save:** the save bar floats at the bottom of the window once something changed: what changed, Discard, and the primary button named for the result ("Create project", "Save changes").
+- **Save:** the save bar floats at the bottom of the window once something changed: what changed, Discard, and the primary button named for the result ("Create Project", "Save Changes").
 - **Leaving with changes** asks first ("Discard your changes?"), via `useUnsavedChanges`.
 - **After save:** go to the record, toast "Saved".
 - **Inline edit** only for a single obvious value (a name), never a group of fields.
@@ -171,39 +171,39 @@ One thing in detail.
 - A section root (no back button). Tabs for large areas; inside, the same grouped layout as forms, saved with the save bar.
 - Switches apply at once with a toast and never sit in a group that needs Save.
 - Connected services show their status, not their keys.
-- **Danger zone** last: red title, each action explained, confirmation for anything that cannot be undone. Typing the name to confirm is kept for deleting large amounts of data.
+- **Danger Zone** last: red title, each action explained, confirmation for anything that cannot be undone. Typing the name to confirm is kept for deleting large amounts of data.
 
 ### 5. Dashboard (`preview/page-dashboard.html`)
-- Up to four stats, each linking to the list behind it, each with one line of context. "Needs attention" and "Running now" sit in the side column.
+- Up to four stats, each linking to the list behind it, each with one line of context. "Needs Attention" and "Running Now" sit in the side column.
 - A chart only when the trend matters; one chart per question.
-- "Needs attention" lists what someone should act on (failures, setup missing, items to review), each row linking to where it is fixed.
-- "Running now" with progress when the app does background work.
+- "Needs Attention" lists what someone should act on (failures, setup missing, items to review), each row linking to where it is fixed.
+- "Running Now" with progress when the app does background work.
 - No vanity numbers. If a number does not lead to an action, leave it off.
 
-### 6. Background work (`preview/page-activity.html`)
+### 6. Background Work (`preview/page-activity.html`)
 For apps that run jobs (crawls, imports, AI work, sends).
-- **Now:** each worker pool, what each worker is doing in words ("Page 7 of 20: storiicare.com/pricing"), how long it has run; what is waiting and how long the oldest has waited; recent failures with Retry and Retry all.
+- **Now:** each worker pool, what each worker is doing in words ("Page 7 of 20: storiicare.com/pricing"), how long it has run; what is waiting and how long the oldest has waited; recent failures with Retry and Retry All.
 - **History:** a table with filters (status, type, record, search), newest first, with the total.
 - **Detail** in a drawer: timings, attempts, input, result, the full error, the AI calls or requests it made with their cost, Retry or Cancel.
 - **Usage and cost** when the work costs money: today, 7 and 30 days; per day by kind; breakdowns by purpose and record. Label estimates as estimates.
 - Every record page that has work running says so in its meta line.
 
-### 7. Step by step (`preview/page-wizard.html`)
+### 7. Step by Step (`preview/page-wizard.html`)
 Only when decisions must happen in order (setting up a domain, an import with mapping).
 - Steps shown at the top; one decision per step; Back and Next in the footer; Next disabled with the reason shown until the step is done.
 - Progress is saved: leaving and coming back resumes.
 - A review step before anything is committed.
 - Not for ordinary forms. If the steps do not depend on each other, it is a form.
 
-### 8. System states (`preview/page-states.html`)
+### 8. System States (`preview/page-states.html`)
 Not found, something went wrong, the app updating, offline, read-only, someone else changed it, partly done, slowed down, leaving with unsaved changes, first use, loading. Each: what happened in plain words, whether anything was lost, one way forward. Whole-page states keep the shell so people can carry on; the rest are notices at the top of what they affect.
 
-### Sign-in and account (`preview/page-signin.html`)
+### Sign-In and Account (`preview/page-signin.html`)
 Apps never build sign-in. Astrodock hosts it on the sign-in host (`auth.<domain>`) so an app never sees a password: sign in (password, passkey, Google), the authenticator-code step and recovery codes, joining from an invite, the account page, signed out, and the pages for when sign-in cannot go on. They are built from the same tokens as the kit, self-contained, with the app's accent and logo when it sets them. The preview frames are rendered from the control plane's code (`apps/control-plane/src/lib/auth-pages.js`, `account-page.js`, `routes/oauth.js`, `routes/invites.js`), so changing those pages means changing that code.
 
 The app's part: the handoff screen while it starts the session, the account menu, "no access to this app", and the session-ended dialog (sign-in in a new window; nothing typed is lost).
 
-### Sidebar shell and queue (`preview/page-sidebar.html`)
+### Sidebar Shell and Queue (`preview/page-sidebar.html`)
 **Sidebar shell:** a white column with the app switcher (app avatar, name, organization) at the top, a search button that opens the command menu (Cmd+K), grouped sections with icons and counts, then settings, help and the person at the bottom.
 
 **Queue (split view):** for working through items: reviewing, approving, triaging. The queue on the left has a title with its count, search, and tabs for its views; each item shows an avatar, title, time, one line of context and its labels, with a dot when new. The open item on the right has its own bar (position "1 of 8", previous and next, then its actions) and its detail and discussion below. Acting on an item opens the next. J and K move, A approves, S sends back.
@@ -214,7 +214,7 @@ The app's part: the handoff screen while it starts the session, the account menu
 
 When to use each, and when not. `preview/components.html` shows them.
 
-| Component | Use for | Not for |
+| Component | Use For | Not For |
 |---|---|---|
 | Button, primary | The main action of a page, card or dialog. One in view | Navigation; secondary actions |
 | Button, default | Other actions | |
@@ -248,14 +248,14 @@ When to use each, and when not. `preview/components.html` shows them.
 | Stat tile | The few numbers that matter, linking to the list behind them; a sparkline for direction | Every number available |
 | Chart | One question per chart: the head gives the answer, the plot the shape. Bars for amounts, lines for trends | Pies, donuts, 3D, two y-axes |
 | Bar list | A ranked breakdown with amount and share | Changes over time (chart) |
-| Status | Done, Running, Queued, Needs setup, Failed: a dot (a spinner while running) and a word | Decoration |
+| Status | Done, Running, Queued, Needs Setup, Failed: a dot (a spinner while running) and a word | Decoration |
 | Label | Describing a record (level, role, draft) in neutral gray | Filters; buttons |
 | Timeline | History, newest first, grouped by year; dates only as precise as known | |
 | Screenshots | Pictures of screens and pages: `.shot` (frame and caption) in a `.shot-grid`, `.shot-strip` or `.shot-pair`; the viewer is a `.modal-xl` holding `.viewer` | Icons and logos; pictures as decoration |
 | Their words | A headline or claim copied word for word: `.quote-lg` | Paraphrase in quote marks |
-| Show detail | Summary first, detail on demand | Hiding required information |
+| Show Detail | Summary first, detail on demand | Hiding required information |
 | Tabs | Views of one record | Steps; filters |
-| Account menu | Who is signed in, Your account (on the sign-in host), theme, help, sign out; at the sidebar foot | App settings |
+| Account menu | Who is signed in, Your Account (on the sign-in host), theme, help, sign out; at the sidebar foot | App settings |
 | Section nav | The parts of one area, in a column at the panel's left edge; marks the part in view | Moving between areas (the sidebar) |
 | Filter sidebar | Pages filtered constantly (history, logs) | Ordinary collections (use the Filter button) |
 | Modal | Short blocking tasks: up to five fields, a choice. Title and one line, the fields, actions on the right | Long forms; reading |
@@ -276,13 +276,13 @@ When to use each, and when not. `preview/components.html` shows them.
 
 ## States
 
-| State | What it shows | Words |
+| State | What It Shows | Words |
 |---|---|---|
 | Loading a page | Shell and header at once; skeletons where content goes; after 10 s, "Still loading" | |
 | Loading an action | The button keeps its label, adds a spinner, is disabled | |
 | Nothing yet | Empty state with what will be here and the first step | "No competitors yet. Add the ones you know, or run a survey." |
 | No matches | Empty state with the filters named and a Clear button | "No jobs match these filters." |
-| Error loading | Inside the shell: what failed, nothing lost, Try again, a reference to send | "This page could not load." |
+| Error loading | Inside the shell: what failed, nothing lost, Try Again, a reference to send | "This Page Could Not Load" |
 | Error saving | In place by the Save button; what was typed is kept | "Not saved: the connection dropped. Your changes are still here." |
 | Field error | Under the field, saying how to fix it | "Enter a full address, like storiicare.com" |
 | No access | Who is signed in, who can grant access, a way out | |
@@ -290,51 +290,58 @@ When to use each, and when not. `preview/components.html` shows them.
 | Working in the background | Status "Running" with words on what is happening; the page polls while it runs | "Page 7 of 20: storiicare.com/pricing" |
 | Read-only | A notice saying why and who can change it | |
 | Offline | A notice above the header; work stays on the page and saves when the connection is back | "You are offline." |
-| App updating | Whole page, with a status that checks again; the page reloads itself | "Competitor Intel is updating" |
-| Session ended | A dialog; signing in opens a new window so nothing typed is lost | "Sign in again to keep working" |
+| App updating | Whole page, with a status that checks again; the page reloads itself | "Competitor Intel Is Updating" |
+| Session ended | A dialog; signing in opens a new window so nothing typed is lost | "Sign In Again to Keep Working" |
 | Someone else changed it | A notice before saving over their edit: load theirs or save anyway | "Ann Ruiz changed this project 2 min ago." |
 | Partly done | A notice naming what failed and what worked, with a retry for the rest | "2 of 14 could not be archived." |
 | Slowed down | A notice where the work is; the work resumes by itself | "Too many searches at once." |
-| Leaving with unsaved changes | A confirmation, only when something changed; Keep editing has focus | "Leave without saving?" |
+| Leaving with unsaved changes | A confirmation, only when something changed; Keep Editing has focus | "Leave without saving?" |
 
 ---
 
-## Interaction rules
+## Interaction Rules
 
-**Saving and deleting**
+**Saving and Deleting**
 - Save is explicit (a button), except switches, which apply at once.
 - Reversible removals (remove from a project, dismiss, archive) happen at once with an Undo toast. No confirmation.
-- Irreversible deletes ask first, name what goes and what stays, and use a red button named for the action ("Delete project"). Cancel has focus.
+- Irreversible deletes ask first, name what goes and what stays, and use a red button named for the action ("Delete Project"). Cancel has focus.
 - Optimistic updates for small changes (marking reviewed, starring); roll back with an error toast on failure.
 
-**Background work**
+**Background Work**
 - Anything that can take more than a few seconds runs in the background. The button that starts it returns at once with a toast ("Survey started; it runs in the background").
 - Pages showing running work poll every 3 to 6 seconds while something runs, and stop when nothing does.
 - Progress is described in words, not only a bar.
 - Failures are listed where people look (the record's meta line, Activity, the dashboard), each with Retry.
 
-**Time, numbers, money**
+**Time, Numbers, Money**
 - Relative times under two weeks ("2 h ago", "3 d ago"), dates after ("Oct 19" this year, "Oct 19, 2025" before), the full date and time on hover.
 - Times in the person's time zone; "Today (UTC)" when a figure is grouped by UTC day.
 - Numbers with thousands separators and tabular figures in tables. Money as "$4.18"; under a cent as "<$0.01"; estimates labeled "estimated".
 - Dates known only to the month or year show only that ("Mar 2021", "2021").
 
-**Keyboard and focus**
+**Keyboard and Focus**
 - Everything works with the keyboard. Focus is always visible.
 - Escape closes the topmost menu, popover, modal or drawer. Enter submits a form; Cmd+Enter submits a long text box.
 - `/` focuses the page's search when it has one. J and K move through a split view's list.
 - A modal or drawer takes focus when it opens and returns it when it closes.
 
-**Feedback timing**
+**Feedback Timing**
 - Under 100 ms: no indicator. Up to 1 s: the button's spinner. Longer: background work with progress.
 
 ---
 
 ## Writing
 
-- Plain words, short sentences, sentence case everywhere ("Add competitor", not "Add Competitor").
-- Buttons are a verb and what it acts on: "Run survey", "Delete project", "Upgrade to full study". Never "Submit", "OK", "Click here", "Yes".
-- Titles name the thing ("StoriiCare"), not the screen ("Company detail").
+- Plain words, short sentences.
+- **Title Case** for headings, page and dialog titles, buttons, tabs, labels, menu items, nav items, column headers, option labels and status words: "Add Competitor", not "Add competitor".
+- **Sentences stay sentences:** descriptions, hints, help text, errors, empty-state body text, toasts and confirmation questions ("Delete Seniorverse Day?", "Leave without saving?").
+- The Title Case rule: capitalize every word except articles (a, an, the), coordinating conjunctions (and, but, or, nor, for, so, yet) and prepositions of four letters or fewer (as, at, by, in, of, off, on, per, to, up, via, from, into, onto, with, over), unless the word is first or last. "Upgrade to Full Study", "Sign In with Google", "Save Mine Anyway", "Most Pages per Site", "Compare Prices At".
+- A word that belongs to the verb is not a preposition and is capitalized: "Sign In", "Sign Out", "Set Up", "Back Up".
+- Hyphenated words take a capital on each part: "Read-Only", "Multi-Select", "Sign-In and Account".
+- Brand and product names, code, identifiers, slugs, URLs, env var names, file names and commands stay exactly as written: "Crawling storiicare.com", "Needs INTEL_EMAIL_DOMAIN".
+- Placeholders are examples, not labels, and keep their own case. An `aria-label` or tooltip that names a control matches the visible label.
+- Buttons are a verb and what it acts on: "Run Survey", "Delete Project", "Upgrade to Full Study". Never "Submit", "OK", "Click here", "Yes".
+- Titles name the thing ("StoriiCare"), not the screen ("Company Detail").
 - Errors say what happened and what to do, without blame or codes: "The server did not answer. Nothing you entered was lost. Try again in a moment."
 - Empty states say what will be here and how to start.
 - Labels are nouns; hints are one sentence; no instructions in placeholders.
@@ -356,7 +363,7 @@ When to use each, and when not. `preview/components.html` shows them.
 
 ---
 
-## Theming and dark mode
+## Theming and Dark Mode
 
 An app's `theme.css` overrides tokens only:
 
@@ -387,7 +394,7 @@ A chart answers one question. Copy the markup from REFERENCE.md (Charts); the ca
 
 ---
 
-## Checklist for a new screen
+## Checklist for a New Screen
 
 - [ ] It is one of the page types, with that type's anatomy.
 - [ ] Back link (if below a section root) names the parent and goes there.

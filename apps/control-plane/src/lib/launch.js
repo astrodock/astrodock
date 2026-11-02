@@ -70,9 +70,9 @@ async function redeemPass(token, { origin } = {}) {
   const l = await launcher();
   if (!l) throw new Error('not configured');
   if (!originAllowed(l, origin)) {
-    throw new LaunchError('Open the app from its launcher', 'This sign-in has to start from the page your apps are listed on.', 403);
+    throw new LaunchError('Open the App from Its Launcher', 'This sign-in has to start from the page your apps are listed on.', 403);
   }
-  if (!token) throw new LaunchError('No pass', 'The request did not carry a launch pass.');
+  if (!token) throw new LaunchError('No Pass', 'The request did not carry a launch pass.');
 
   let claims;
   try {
@@ -85,7 +85,7 @@ async function redeemPass(token, { origin } = {}) {
   } catch (err) {
     const expired = err.name === 'TokenExpiredError';
     throw new LaunchError(
-      expired ? 'That link has expired' : 'That pass is not valid',
+      expired ? 'That Link Has Expired' : 'That Pass Is Not Valid',
       expired ? 'Go back and open the app again.' : 'The pass could not be checked. Go back and open the app again.',
       401
     );
@@ -93,15 +93,15 @@ async function redeemPass(token, { origin } = {}) {
 
   // Short-lived by construction, not by the launcher's good manners.
   if (!claims.exp || !claims.iat || claims.exp - claims.iat > MAX_LIFETIME_S) {
-    throw new LaunchError('That pass is not valid', `A pass must expire within ${MAX_LIFETIME_S} seconds of being issued.`, 401);
+    throw new LaunchError('That Pass Is Not Valid', `A pass must expire within ${MAX_LIFETIME_S} seconds of being issued.`, 401);
   }
   if (!claims.jti || typeof claims.jti !== 'string') {
-    throw new LaunchError('That pass is not valid', 'The pass has no id.', 401);
+    throw new LaunchError('That Pass Is Not Valid', 'The pass has no id.', 401);
   }
   const email = String(claims.email || '').toLowerCase().trim();
-  if (!EMAIL_RE.test(email)) throw new LaunchError('That pass is not valid', 'The pass does not name an email address.', 401);
+  if (!EMAIL_RE.test(email)) throw new LaunchError('That Pass Is Not Valid', 'The pass does not name an email address.', 401);
   const app = String(claims.app || '');
-  if (!/^[a-z0-9-]{1,40}$/.test(app)) throw new LaunchError('That pass is not valid', 'The pass does not name an app.', 401);
+  if (!/^[a-z0-9-]{1,40}$/.test(app)) throw new LaunchError('That Pass Is Not Valid', 'The pass does not name an app.', 401);
 
   // Single use. The primary key makes a second redemption fail even when two
   // arrive at once.
@@ -111,7 +111,7 @@ async function redeemPass(token, { origin } = {}) {
     issuer: l.issuer,
     expiresAt: new Date((claims.exp + CLOCK_TOLERANCE_S) * 1000)
   }).onConflictDoNothing().returning();
-  if (!inserted[0]) throw new LaunchError('That link was already used', 'Go back and open the app again.', 401);
+  if (!inserted[0]) throw new LaunchError('That Link Was Already Used', 'Go back and open the app again.', 401);
 
   return {
     issuer: l.issuer,
@@ -148,9 +148,9 @@ async function resolveUser({ email, name }, app) {
       [user] = await db.select().from(schema.users).where(eq(schema.users.email, email)).limit(1);
     }
   }
-  if (!user) throw new LaunchError('Cannot sign you in', 'The account could not be created.', 500);
+  if (!user) throw new LaunchError('Cannot Sign You In', 'The account could not be created.', 500);
   if (!user.isActive) {
-    throw new LaunchError('That account is disabled', 'Ask whoever manages your apps to turn it back on.', 403);
+    throw new LaunchError('That Account Is Disabled', 'Ask whoever manages your apps to turn it back on.', 403);
   }
 
   const access = Array.isArray(user.appAccess) ? user.appAccess : [];

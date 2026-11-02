@@ -77,14 +77,14 @@ export default function ChangeBaseDomainModal({ current, tlsMode, onClose, onDon
 
       {error && <div className="error">{error}</div>}
 
-      <Field label="New base domain" hint="A subdomain like apps.example.com keeps your main site free."
+      <Field label="New Base Domain" hint="A subdomain like apps.example.com keeps your main site free."
         error={clean && !looksLikeDomain ? 'That does not look like a domain name.'
           : same ? 'That is the address you are already on.' : null}>
         <input value={domain} onChange={(e) => setDomain(e.target.value)} spellCheck="false"
           placeholder="apps.example.com" autoComplete="off" />
       </Field>
 
-      <Field label="Type it again to confirm"
+      <Field label="Type It Again to Confirm"
         error={mismatch ? 'These do not match.' : null}>
         <input value={confirm} onChange={(e) => setConfirm(e.target.value)} spellCheck="false"
           autoComplete="off" />
@@ -92,7 +92,7 @@ export default function ChangeBaseDomainModal({ current, tlsMode, onClose, onDon
 
       <FieldGroup label="HTTPS" hint="Automatic is right for a public server, and needs the DNS record above to be live.">
         <div className="seg seg-fit">
-          {[['auto', 'Automatic'], ['internal', 'Self-signed'], ['off', 'Off']].map(([v, l]) => (
+          {[['auto', 'Automatic'], ['internal', 'Self-Signed'], ['off', 'Off']].map(([v, l]) => (
             <button type="button" key={v} className={mode === v ? 'sel' : ''}
               onClick={() => setMode(v)}>{l}</button>
           ))}
@@ -100,7 +100,7 @@ export default function ChangeBaseDomainModal({ current, tlsMode, onClose, onDon
       </FieldGroup>
 
       {mode === 'auto' && (
-        <Field label="Certificate contact email"
+        <Field label="Certificate Contact Email"
           hint="Let's Encrypt uses this only to warn you if a renewal fails.">
           <input type="email" value={acmeEmail} onChange={(e) => setAcmeEmail(e.target.value)}
             placeholder="you@example.com" />

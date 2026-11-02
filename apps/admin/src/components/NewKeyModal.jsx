@@ -102,7 +102,7 @@ export default function NewKeyModal({ options, apps, onCancel, onCreated, onReau
       {/* Only worth asking once there is something to limit it to. With no apps
           the question read as a broken control rather than an option. */}
       {apps.length > 0 && (
-        <FieldGroup label="Limit to certain apps"
+        <FieldGroup label="Limit to Certain Apps"
           hint="Leave them all off and the key covers every app, including ones you add later.">
           <div className="opt-list">
             {apps.map((a) => {
@@ -124,7 +124,7 @@ export default function NewKeyModal({ options, apps, onCancel, onCreated, onReau
       {/* The starting point and the permission list are one decision: the preset
           fills the switches in, and touching a switch adjusts the preset. They
           used to sit at opposite ends of the dialog with nothing joining them. */}
-      <FieldGroup label="What this key can do"
+      <FieldGroup label="What This Key Can Do"
         hint={custom
           ? 'Adjusted by hand. Pick a starting point again to reset it.'
           : chosen?.description}>

@@ -30,7 +30,7 @@ router.post('/launch', launchLimiter, express.urlencoded({ extended: false, limi
   res.setHeader('Cache-Control', 'no-store');
 
   if (!await launch.launcher()) {
-    return res.status(404).type('html').send(errorPage('Not available', 'Signing in from another system is not set up on this server.'));
+    return res.status(404).type('html').send(errorPage('Not Available', 'Signing in from another system is not set up on this server.'));
   }
 
   let pass;
@@ -45,11 +45,11 @@ router.post('/launch', launchLimiter, express.urlencoded({ extended: false, limi
   const [app] = await db.select().from(schema.apps).where(eq(schema.apps.slug, pass.app)).limit(1);
   if (!app) {
     logAttempt(pass.email, pass.app, 'LAUNCH_UNKNOWN_APP', ip);
-    return res.status(404).type('html').send(errorPage('Unknown app', 'That app is not on this server.'));
+    return res.status(404).type('html').send(errorPage('Unknown App', 'That app is not on this server.'));
   }
   if (!app.provisioned) {
     logAttempt(pass.email, app.slug, 'LAUNCH_NOT_READY', ip);
-    return res.status(409).type('html').send(errorPage('Not ready yet', `${app.name} has not been set up yet.`));
+    return res.status(409).type('html').send(errorPage('Not Ready Yet', `${app.name} has not been set up yet.`));
   }
 
   // A public app needs no account. Send them straight there.

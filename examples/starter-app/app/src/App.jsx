@@ -44,7 +44,7 @@ function Login({ onLogin }) {
     <form onSubmit={submit} style={{ display: 'grid', gap: 10 }}>
       <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email" type="email" required style={inp} />
       <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="password" type="password" required style={inp} />
-      <button type="submit" style={btn}>Log in</button>
+      <button type="submit" style={btn}>Sign In</button>
       {err && <p style={{ color: '#c0392b' }}>{err}</p>}
       <p style={{ color: '#888', fontSize: 13 }}>Use a user the admin granted access to this app.</p>
     </form>
@@ -64,7 +64,7 @@ function Dashboard({ user, welcome, onLogout }) {
   return (
     <div>
       <p>{welcome}</p>
-      <p>Signed in as <strong>{user.email}</strong> · <button onClick={logout} style={linkBtn}>log out</button></p>
+      <p>Signed in as <strong>{user.email}</strong> · <button onClick={logout} style={linkBtn}>Sign Out</button></p>
       <h3>Notes</h3>
       <form onSubmit={add} style={{ display: 'flex', gap: 8 }}>
         <input value={text} onChange={(e) => setText(e.target.value)} placeholder="a quick note" style={{ ...inp, flex: 1 }} />

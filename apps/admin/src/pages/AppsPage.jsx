@@ -10,21 +10,21 @@ import Select from '../components/Select';
 // Same wording as the app's Settings tab — the choice you make here is the same
 // choice, and it should not be described two different ways.
 const RUNTIME_OPTS = [
-  { value: 'node', label: 'Node (zero-config)', description: 'Astrodock builds and runs your Node.js app. Nothing to set up.' },
+  { value: 'node', label: 'Node (Zero-Config)', description: 'Astrodock builds and runs your Node.js app. Nothing to set up.' },
   { value: 'docker', label: 'Dockerfile', description: 'You supply a Dockerfile — any language, full control.' }
 ];
 const AUTH_OPTS = [
-  { value: 'platform', label: 'Astrodock accounts', description: 'People sign in with their Astrodock account. You write no login code.' },
-  { value: 'public', label: 'Public — no sign-in', description: 'Anyone with the address can use it.' }
+  { value: 'platform', label: 'Astrodock Accounts', description: 'People sign in with their Astrodock account. You write no login code.' },
+  { value: 'public', label: 'Public (No Sign-In)', description: 'Anyone with the address can use it.' }
 ];
 const DB_OPTS = [
-  { value: 'internal', label: 'Built-in', description: 'Astrodock runs a database just for this app. The easy choice.' },
-  { value: 'external', label: 'Bring your own', description: 'A database you host elsewhere.' },
+  { value: 'internal', label: 'Built-In', description: 'Astrodock runs a database just for this app. The easy choice.' },
+  { value: 'external', label: 'Bring Your Own', description: 'A database you host elsewhere.' },
   { value: 'none', label: 'None', description: 'This app does not use a database.' }
 ];
 const STORAGE_OPTS = [
-  { value: 'internal', label: 'Built-in', description: 'Astrodock gives this app its own space for uploads and files.' },
-  { value: 'external', label: 'Bring your own', description: 'Your own storage, like Amazon S3.' },
+  { value: 'internal', label: 'Built-In', description: 'Astrodock gives this app its own space for uploads and files.' },
+  { value: 'external', label: 'Bring Your Own', description: 'Your own storage, like Amazon S3.' },
   { value: 'none', label: 'None', description: 'This app does not store files.' }
 ];
 
@@ -32,7 +32,7 @@ const STMAP = {
   running: { badge: 'Running', cls: 'running', led: 'ok' },
   down: { badge: 'Down', cls: 'down', led: 'crit' },
   stopped: { badge: 'Stopped', cls: 'stopped', led: 'inactive' },
-  unprovisioned: { badge: 'Not provisioned', cls: 'stopped', led: 'inactive' }
+  unprovisioned: { badge: 'Not Provisioned', cls: 'stopped', led: 'inactive' }
 };
 const RANK = { down: 0, running: 1, stopped: 2, unprovisioned: 3 };
 function fmtBytes(b) { if (!b) return '—'; return b < 1073741824 ? `${(b / 1048576).toFixed(0)} MB` : `${(b / 1073741824).toFixed(1)} GB`; }
@@ -169,7 +169,7 @@ export default function AppsPage() {
       )}
 
       {!loaded ? <SkeletonRows rows={3} cols={4} /> : apps.length === 0 ? (
-        <EmptyState icon="apps" title="No apps yet"
+        <EmptyState icon="apps" title="No Apps Yet"
           body="Register one to build, run and serve it."
           action={<button onClick={() => setShowCreate(true)}>Register App</button>} />
       ) : (

@@ -82,7 +82,7 @@ function Files({ slug }) {
       {error && <div className="error">{error}</div>}
 
       <div className="crumbs">
-        <button className={`crumb ${path === '.' ? 'here' : ''}`} onClick={() => setPath('.')}>App root</button>
+        <button className={`crumb ${path === '.' ? 'here' : ''}`} onClick={() => setPath('.')}>App Root</button>
         {crumbs.map((c, i) => {
           const p = crumbs.slice(0, i + 1).join('/');
           return (
@@ -103,7 +103,7 @@ function Files({ slug }) {
           <tbody>
             {parent !== null && (
               <tr className="row-up" onClick={() => setPath(parent)}>
-                <td colSpan={3}><span className="fname">↰ up one level</span></td>
+                <td colSpan={3}><span className="fname">↰ Up One Level</span></td>
               </tr>
             )}
             {sorted.map((e) => (
@@ -171,7 +171,7 @@ function Env({ slug }) {
           {rows.map((r) => (
             <tr key={r.key}>
               <td><code>{r.key}</code></td>
-              <td>{r.isSet ? <span className="chip ok">yes</span> : <span className="chip warn">no</span>}</td>
+              <td>{r.isSet ? <span className="chip ok">Yes</span> : <span className="chip warn">No</span>}</td>
               <td>{r.value != null ? <code>{r.value}</code> : <span style={{ color: 'var(--text-3)' }}>hidden · {r.length} chars</span>}</td>
             </tr>
           ))}
@@ -233,7 +233,7 @@ function Commands({ slug }) {
               <h2>{result.name}</h2>
               <p>
                 <span className={`chip ${result.exitCode === 0 ? 'ok' : 'crit'}`}>
-                  exit {result.exitCode}{result.timedOut ? ' · timed out' : ''}
+                  Exit {result.exitCode}{result.timedOut ? ' · Timed Out' : ''}
                 </span>{' '}
                 <code>{result.command}</code>
               </p>

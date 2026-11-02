@@ -67,7 +67,7 @@ export default function PageDetailPage() {
         <button className="danger" onClick={() => ask({
           title: 'Delete this page?',
           danger: true,
-          confirmLabel: 'Delete page',
+          confirmLabel: 'Delete Page',
           typeToConfirm: page.pageId,
           body: (
             <>
@@ -132,7 +132,7 @@ export default function PageDetailPage() {
 
         <div className="sec-head" style={{ marginTop: 20, marginBottom: 8 }}>
           <div>
-            <h3 style={{ fontSize: 15, fontWeight: 600 }}>Change the address</h3>
+            <h3 style={{ fontSize: 15, fontWeight: 600 }}>Change the Address</h3>
             <p>
               Gives this page a brand-new id and moves its files across. Every link anyone
               already has stops working — which is the point, if one went further than you meant.
@@ -151,17 +151,17 @@ export default function PageDetailPage() {
             <Select value={page.accessMode} onChange={(v) => patch({ accessMode: v }, 'Access updated.')} options={[
               { value: 'public', label: 'Public', description: 'Anyone with the link can open it.' },
               { value: 'passkey', label: 'Passkey', description: 'One shared word or phrase you hand out. No accounts.' },
-              { value: 'platform', label: 'Platform login', description: 'People sign in with their Astrodock account.' }
+              { value: 'platform', label: 'Platform Login', description: 'People sign in with their Astrodock account.' }
             ]} />
           </label>
         </div>
         {page.accessMode === 'passkey' && (
           <>
             <div className="kv"><span>Passkey</span><code>{page.passkey}</code>
-              <button className="link-btn" onClick={() => copy(page.passkey, 'Passkey copied.')}>copy</button>
+              <button className="link-btn" onClick={() => copy(page.passkey, 'Passkey copied.')}>Copy</button>
               <button onClick={() => api.generatePagePasskey(pageId).then(load).then(() => flash('Rotated — old links invalid.'))}>Rotate</button>
             </div>
-            <div className="kv"><span>Set custom</span>
+            <div className="kv"><span>Set Custom</span>
               <input value={customKey} onChange={(e) => setCustomKey(e.target.value)} placeholder="min 4 chars" />
               <button disabled={customKey.length < 4} onClick={() => { patch({ accessMode: 'passkey', passkey: customKey }, 'Passkey set.'); setCustomKey(''); }}>Save</button>
             </div>
@@ -169,7 +169,7 @@ export default function PageDetailPage() {
         )}
         {page.accessMode === 'platform' && (
           <label>
-            Allowed emails (one per line — empty = operators only)
+            Allowed Emails (One per Line; Empty = Operators Only)
             <textarea rows={3} value={allowlist} onChange={(e) => setAllowlist(e.target.value)} placeholder="alice@example.com" />
             <button style={{ marginTop: 6 }} onClick={() => patch({ allowlist: allowlist.split(/[\n,]/).map((s) => s.trim()).filter(Boolean) }, 'Allowlist saved.')}>Save Allowlist</button>
           </label>
@@ -185,7 +185,7 @@ export default function PageDetailPage() {
           <Select value={page.dataMode} onChange={(v) => patch({ dataMode: v }, 'Data mode updated.')} options={[
             { value: 'none', label: 'Off', description: 'The page saves nothing.' },
             { value: 'shared', label: 'Shared', description: 'One set of data everyone reads and writes. Needs a passkey or login.', disabled: page.accessMode === 'public' },
-            { value: 'per-user', label: 'Per-user', description: 'Each person gets their own private data. Needs platform login.', disabled: page.accessMode !== 'platform' }
+            { value: 'per-user', label: 'Per-User', description: 'Each person gets their own private data. Needs platform login.', disabled: page.accessMode !== 'platform' }
           ]} />
         </label>
       </div>
@@ -204,20 +204,20 @@ export default function PageDetailPage() {
           </div>
 
           <div className="stat-row">
-            <div className="stat"><b>{views.views}</b><span>Page loads, all time</span></div>
-            <div className="stat"><b>{views.uniqueIps}</b><span>Distinct visitors seen</span></div>
-            <div className="stat"><b>{views.last7d}</b><span>Requests, last 7 days</span></div>
+            <div className="stat"><b>{views.views}</b><span>Page Loads, All Time</span></div>
+            <div className="stat"><b>{views.uniqueIps}</b><span>Distinct Visitors Seen</span></div>
+            <div className="stat"><b>{views.last7d}</b><span>Requests, Last 7 Days</span></div>
           </div>
 
           {views.breakdown && (
             <div className="opt-list" style={{ marginTop: 14 }}>
               <div className="opt-row">
-                <span className="name">Page loads<code>{views.entryFile}</code></span>
+                <span className="name">Page Loads<code>{views.entryFile}</code></span>
                 <span className="mono">{views.breakdown.loads}</span>
               </div>
               <div className="opt-row">
                 <span className="name">
-                  <b>Sub-resources</b>
+                  <b>Sub-Resources</b>
                   <span className="opt-desc">
                     Stylesheets, scripts, images and anything else the page pulls in after it loads.
                   </span>
@@ -226,13 +226,13 @@ export default function PageDetailPage() {
               </div>
               {views.breakdown.notFound > 0 && (
                 <div className="opt-row">
-                  <span className="name" style={{ color: 'var(--danger)' }}>Not found</span>
+                  <span className="name" style={{ color: 'var(--danger)' }}>Not Found</span>
                   <span className="mono">{views.breakdown.notFound}</span>
                 </div>
               )}
               {views.breakdown.denied > 0 && (
                 <div className="opt-row">
-                  <span className="name" style={{ color: 'var(--warning)' }}>Turned away</span>
+                  <span className="name" style={{ color: 'var(--warning)' }}>Turned Away</span>
                   <span className="mono">{views.breakdown.denied}</span>
                 </div>
               )}
@@ -257,7 +257,7 @@ export default function PageDetailPage() {
 
           {views.topPaths?.length > 0 && (
             <>
-              <p className="hint" style={{ marginTop: 14, marginBottom: 6 }}>Most requested</p>
+              <p className="hint" style={{ marginTop: 14, marginBottom: 6 }}>Most Requested</p>
               <div className="opt-list">
                 {views.topPaths.map((t) => (
                   <div className="opt-row" key={t.key}>
@@ -271,7 +271,7 @@ export default function PageDetailPage() {
 
           {views.topReferrers?.length > 0 && (
             <>
-              <p className="hint" style={{ marginTop: 14, marginBottom: 6 }}>Came from</p>
+              <p className="hint" style={{ marginTop: 14, marginBottom: 6 }}>Came From</p>
               <div className="opt-list">
                 {views.topReferrers.map((r) => (
                   <div className="opt-row" key={r.key}>
@@ -360,7 +360,7 @@ function ReissueModal({ page, onClose, onDone, onError }) {
         </ul>
 
         <label>
-          Type <code>{page.pageId}</code> to confirm
+          Type <code>{page.pageId}</code> to Confirm
           <input value={typed} onChange={(e) => setTyped(e.target.value)} autoFocus spellCheck="false"
             placeholder={page.pageId} />
         </label>
@@ -368,7 +368,7 @@ function ReissueModal({ page, onClose, onDone, onError }) {
         <div className="modal-actions">
           <button type="button" onClick={onClose}>Cancel</button>
           <button type="submit" className="danger" disabled={busy || !ready}>
-            {busy ? 'Moving files…' : 'Issue a New Address'}
+            {busy ? 'Moving Files…' : 'Issue a New Address'}
           </button>
         </div>
       </form>

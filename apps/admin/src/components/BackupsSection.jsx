@@ -21,7 +21,7 @@ function fmtBytes(b) {
 }
 
 const TRIGGER_LABEL = {
-  scheduled: 'On schedule', manual: 'By hand', uploaded: 'Uploaded', 'pre-restore': 'Before a restore'
+  scheduled: 'On Schedule', manual: 'By Hand', uploaded: 'Uploaded', 'pre-restore': 'Before a Restore'
 };
 
 function RestoreModal({ backup, onClose, onDone }) {
@@ -66,7 +66,7 @@ function RestoreModal({ backup, onClose, onDone }) {
         {error && <div className="error">{error}</div>}
 
         <label>
-          Type <code>{phrase}</code> to confirm
+          Type <code>{phrase}</code> to Confirm
           <input value={typed} onChange={(e) => setTyped(e.target.value)} autoFocus
             placeholder={phrase} spellCheck="false" />
         </label>
@@ -74,7 +74,7 @@ function RestoreModal({ backup, onClose, onDone }) {
         <div className="modal-actions">
           <button type="button" onClick={onClose}>Cancel</button>
           <button type="button" className="danger" disabled={busy || typed.trim() !== phrase} onClick={go}>
-            {busy ? 'Restoring…' : 'Replace the database'}
+            {busy ? 'Restoring…' : 'Replace the Database'}
           </button>
         </div>
       </div>
@@ -148,7 +148,7 @@ export default function BackupsSection({ backups, onChanged }) {
             {busy === 'upload' ? 'Uploading…' : 'Upload'}
           </button>
           <button type="button" className="primary" onClick={takeBackup} disabled={busy === 'run'}>
-            {busy === 'run' ? 'Backing up…' : 'Back Up Now'}
+            {busy === 'run' ? 'Backing Up…' : 'Back Up Now'}
           </button>
         </div>
       </div>

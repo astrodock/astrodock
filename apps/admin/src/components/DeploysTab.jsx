@@ -12,7 +12,7 @@ const STATUS = {
   success: { led: 'ok', label: 'Live' },
   failed: { led: 'crit', label: 'Failed' }
 };
-const TRIGGER = { webhook: 'GitHub push', manual: 'manual', cli: 'CLI · agent', rollback: 'rollback', local: 'local upload' };
+const TRIGGER = { webhook: 'GitHub Push', manual: 'Manual', cli: 'CLI · Agent', rollback: 'Rollback', local: 'Local Upload' };
 
 const IN_PROGRESS = ['pending', 'cloning', 'building', 'deploying'];
 
@@ -195,13 +195,13 @@ export default function DeploysTab({ app, missingRequired = [], onRefresh }) {
             <button className="secondary" onClick={() => setShowRollback(true)} disabled={deploying}>Roll Back</button>
           )}
           <button onClick={handleDeploy} disabled={deploying}>
-            {deploying ? 'Deploying...' : 'Deploy now'}
+            {deploying ? 'Deploying...' : 'Deploy Now'}
           </button>
         </div>
       </div>
       <p className="hint">
         A deploy pulls your latest code, builds it, and puts it live. Pushing to your connected
-        branch deploys automatically; or click <b>Deploy now</b>. A failed deploy is not undone
+        branch deploys automatically; or click <b>Deploy Now</b>. A failed deploy is not undone
         for you — what is already live keeps running, and you decide whether to fix forward or
         use <b>Roll Back</b> to put an earlier build back.
       </p>
@@ -210,7 +210,7 @@ export default function DeploysTab({ app, missingRequired = [], onRefresh }) {
 
       {missing.length > 0 && (
         <div className="missing-vars-banner">
-          <strong>Deploy blocked: {missing.length} required variable{missing.length > 1 ? 's' : ''} not set</strong>
+          <strong>Deploy Blocked: {missing.length} Required Variable{missing.length > 1 ? 's' : ''} Not Set</strong>
           <ul>
             {missing.map(m => (
               <li key={m.key}>
@@ -268,7 +268,7 @@ export default function DeploysTab({ app, missingRequired = [], onRefresh }) {
       {showNoRepo && (
         <Modal
           title="No Repository Connected"
-          subtitle="Deploy now builds from a Git repository, and this app doesn't have one yet."
+          subtitle="Deploy Now builds from a Git repository, and this app doesn't have one yet."
           onClose={() => setShowNoRepo(false)}
           footer={<button type="button" className="primary" onClick={() => setShowNoRepo(false)}>Got It</button>}
         >
@@ -284,7 +284,7 @@ export default function DeploysTab({ app, missingRequired = [], onRefresh }) {
             </li>
             <li>
               <b>Connect a repository</b> under <b>Settings</b>. After that, every push to your
-              chosen branch deploys on its own, and <b>Deploy now</b> and <b>Roll Back</b> start
+              chosen branch deploys on its own, and <b>Deploy Now</b> and <b>Roll Back</b> start
               working here.
             </li>
           </ul>

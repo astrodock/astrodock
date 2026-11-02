@@ -10,17 +10,19 @@ import useConfirm from '../lib/useConfirm';
 import Select from '../components/Select';
 
 const CATEGORIES = [
-  { key: 'health', label: 'App health' }, { key: 'deploy', label: 'Deploys' },
-  { key: 'pages', label: 'Pages' }, { key: 'auth', label: 'Sign-ins' },
-  { key: 'audit', label: 'Setting changes' }, { key: 'system', label: 'System' }
+  { key: 'health', label: 'App Health' }, { key: 'deploy', label: 'Deploys' },
+  { key: 'pages', label: 'Pages' }, { key: 'auth', label: 'Sign-Ins' },
+  { key: 'audit', label: 'Setting Changes' }, { key: 'system', label: 'System' }
 ];
 const SEVERITIES = [
-  { v: 'info', label: 'Anything' }, { v: 'warning', label: 'Warnings & up' }, { v: 'critical', label: 'Only urgent' }
+  { v: 'info', label: 'Anything' }, { v: 'warning', label: 'Warnings & Up' }, { v: 'critical', label: 'Only Urgent' }
 ];
 const FORMATS = ['json', 'slack', 'discord'];
+const FORMAT_LABEL = { json: 'JSON', slack: 'Slack', discord: 'Discord' };
+const cap = (s) => (s ? String(s).charAt(0).toUpperCase() + String(s).slice(1) : s);
 const SEVRANK = { info: 0, warning: 1, critical: 2 };
 const SEVCOLOR = { critical: 'var(--danger)', warning: 'var(--warning)', info: 'var(--text-3)' };
-const sevWord = (s) => (s === 'critical' ? 'urgent' : s);
+const sevWord = (s) => (s === 'critical' ? 'Urgent' : cap(s));
 
 const EVENTS = {
   health: [{ l: 'An app goes down', s: 'critical' }, { l: 'An app comes back', s: 'warning' }],
@@ -65,10 +67,10 @@ function RuleModal({ initial, onClose, onSaved }) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <form className="modal modal-wide" onClick={(e) => e.stopPropagation()} noValidate onSubmit={submit}>
-        <h2>{editing ? 'Edit notification rule' : 'New notification rule'}</h2>
+        <h2>{editing ? 'Edit Notification Rule' : 'New Notification Rule'}</h2>
         {error && <div className="error">{error}</div>}
 
-        <label>Give it a name<input value={r.name} onChange={(e) => setR({ ...r, name: e.target.value })} placeholder="e.g. Slack #ops when something fails" autoFocus /></label>
+        <label>Give It a Name<input value={r.name} onChange={(e) => setR({ ...r, name: e.target.value })} placeholder="e.g. Slack #ops when something fails" autoFocus /></label>
 
         <label style={{ marginBottom: 6 }}>How should we tell you?</label>
         <div className="seg" style={{ marginBottom: 16 }}>
@@ -77,13 +79,13 @@ function RuleModal({ initial, onClose, onSaved }) {
         </div>
 
         {r.channel === 'email' ? (
-          <label>Email address<input type="email" value={r.target.to} onChange={(e) => setR({ ...r, target: { ...r.target, to: e.target.value } })} placeholder="alerts@example.com" required /></label>
+          <label>Email Address<input type="email" value={r.target.to} onChange={(e) => setR({ ...r, target: { ...r.target, to: e.target.value } })} placeholder="alerts@example.com" required /></label>
         ) : (
           <>
             <label>Webhook URL<input value={r.target.url} onChange={(e) => setR({ ...r, target: { ...r.target, url: e.target.value } })} placeholder="https://hooks.slack.com/services/…" required /></label>
-            <label>Payload format
+            <label>Payload Format
               <Select value={r.target.format} onChange={(v) => setR({ ...r, target: { ...r.target, format: v } })}
-                options={FORMATS.map((f) => ({ value: f, label: f }))} />
+                options={FORMATS.map((f) => ({ value: f, label: FORMAT_LABEL[f] }))} />
             </label>
           </>
         )}
@@ -100,23 +102,23 @@ function RuleModal({ initial, onClose, onSaved }) {
           {SEVERITIES.map((s) => <button type="button" key={s.v} className={r.minSeverity === s.v ? 'sel' : ''} onClick={() => setR({ ...r, minSeverity: s.v })}>{s.label}</button>)}
         </div>
 
-        <label style={{ marginBottom: 6 }}>You’ll be notified about</label>
+        <label style={{ marginBottom: 6 }}>You’ll Be Notified About</label>
         <div className="preview-box">
           {preview.length === 0 ? <span style={{ color: 'var(--text-3)', fontSize: 13 }}>Nothing matches yet.</span> : preview.map((e, i) => (
             <div className="prow" key={i}><span className="led" style={{ background: SEVCOLOR[e.s], boxShadow: 'none', width: 6, height: 6 }} />{e.l}<span style={{ marginLeft: 'auto', fontFamily: 'var(--mono)', fontSize: 10, textTransform: 'uppercase', color: SEVCOLOR[e.s] }}>{sevWord(e.s)}</span></div>
           ))}
         </div>
 
-        <label style={{ marginTop: 16 }}>Limit to apps <span style={{ fontWeight: 400, color: 'var(--text-3)' }}>(comma-separated slugs; blank = all)</span><input value={scopeText} onChange={(e) => setScopeText(e.target.value)} placeholder="blog, notes" /></label>
+        <label style={{ marginTop: 16 }}>Limit to Apps <span style={{ fontWeight: 400, color: 'var(--text-3)' }}>(comma-separated slugs; blank = all)</span><input value={scopeText} onChange={(e) => setScopeText(e.target.value)} placeholder="blog, notes" /></label>
         <div className="opt-list" style={{ marginTop: 10 }}>
           <div className={`opt-row ${r.enabled ? 'on' : ''}`}>
-            <span className="name">Rule is on</span>
+            <span className="name">Rule Is On</span>
             <span className={`mini-toggle ${r.enabled ? 'on' : ''}`} role="switch" aria-checked={r.enabled}
-              aria-label="Rule is on" onClick={() => setR({ ...r, enabled: !r.enabled })} />
+              aria-label="Rule Is On" onClick={() => setR({ ...r, enabled: !r.enabled })} />
           </div>
         </div>
 
-        <div className="modal-actions"><button type="button" onClick={onClose}>Cancel</button><button type="submit" disabled={saving}>{saving ? 'Saving…' : (editing ? 'Save' : 'Create rule')}</button></div>
+        <div className="modal-actions"><button type="button" onClick={onClose}>Cancel</button><button type="submit" disabled={saving}>{saving ? 'Saving…' : (editing ? 'Save' : 'Create Rule')}</button></div>
       </form>
     </div>
   );
@@ -161,7 +163,7 @@ export default function SettingsPage() {
     ask({
       title: 'Delete this notification rule?',
       danger: true,
-      confirmLabel: 'Delete rule',
+      confirmLabel: 'Delete Rule',
       body: (
         <>
           <p>Astrodock will stop sending <b>{rule.name || rule.channel}</b> anywhere. Whatever this
@@ -216,16 +218,16 @@ export default function SettingsPage() {
         {rules.length === 0 ? <EmptyState icon="settings" title="No Custom Rules"
           body="Astrodock already emails the alert address about health and deploy problems. Add a rule to send somewhere else — a Slack or Discord webhook, a second address — or to change what counts as worth telling you about." /> : (
           <table className="data-table">
-            <thead><tr><th>Name</th><th>How</th><th>Where</th><th>About</th><th>Min sev.</th><th>On</th><th></th></tr></thead>
+            <thead><tr><th>Name</th><th>How</th><th>Where</th><th>About</th><th>Min Sev.</th><th>On</th><th></th></tr></thead>
             <tbody>
               {rules.map((rule, i) => (
                 <tr key={rule.id || `implicit-${i}`}>
-                  <td><strong>{rule.name || '—'}</strong>{rule.implicit && <span className="pill" style={{ marginLeft: 6 }}>built-in</span>}</td>
-                  <td>{rule.channel}</td>
+                  <td><strong>{rule.name || '—'}</strong>{rule.implicit && <span className="pill" style={{ marginLeft: 6 }}>Built-In</span>}</td>
+                  <td>{cap(rule.channel)}</td>
                   <td><code>{rule.channel === 'email' ? rule.target?.to : rule.target?.url}</code></td>
-                  <td>{(rule.categories && rule.categories.length) ? rule.categories.join(', ') : 'all'}</td>
-                  <td>{rule.minSeverity}</td>
-                  <td>{rule.implicit ? <span className="chip ok">always</span> : <span className={`mini-toggle ${rule.enabled ? 'on' : ''}`} onClick={() => toggleRule(rule)} title="Turn on/off" />}</td>
+                  <td>{(rule.categories && rule.categories.length) ? rule.categories.map(cap).join(', ') : 'All'}</td>
+                  <td>{cap(rule.minSeverity)}</td>
+                  <td>{rule.implicit ? <span className="chip ok">Always</span> : <span className={`mini-toggle ${rule.enabled ? 'on' : ''}`} onClick={() => toggleRule(rule)} title="Turn On/Off" />}</td>
                   <td className="actions">
                     <button onClick={() => testRule(rule)}>Test</button>
                     {!rule.implicit && <button onClick={() => setEditRule(rule)}>Edit</button>}
@@ -245,7 +247,7 @@ export default function SettingsPage() {
             <h2>Email</h2>
             <p>How Astrodock sends you alerts. Nothing signs in by email, so leaving this unset only means alerts stay in the dashboard.</p>
           </div>
-          {email && <span className={`chip ${email.usable ? 'ok' : 'warn'}`}>{email.usable ? `via ${email.provider}` : 'not set up'}</span>}
+          {email && <span className={`chip ${email.usable ? 'ok' : 'warn'}`}>{email.usable ? `Via ${email.provider === 'smtp' ? 'SMTP' : cap(email.provider)}` : 'Not Set Up'}</span>}
         </div>
         <div className="field-panel" style={{ padding: '20px 22px' }}>
           <EmailSetup initial={email} onSaved={load} testTo={alertTo} />
@@ -262,7 +264,7 @@ export default function SettingsPage() {
       >
         <div className="field">
           <div className="lab">
-            <b>Before this works</b>
+            <b>Before This Works</b>
             <span className="desc">
               A wildcard DNS record does not cover the address itself: <code>*.{baseDomain || 'example.com'}</code> matches
               <code> www.{baseDomain || 'example.com'}</code> but not <code>{baseDomain || 'example.com'}</code>. Add an
@@ -273,7 +275,7 @@ export default function SettingsPage() {
           <div className="ctl">
             {diagnostics?.publicIp
               ? <code>{diagnostics.publicIp}</code>
-              : <span style={{ color: 'var(--text-3)', fontSize: 13 }}>server IP not set</span>}
+              : <span style={{ color: 'var(--text-3)', fontSize: 13 }}>Server IP Not Set</span>}
           </div>
         </div>
       </SettingsGroup>
@@ -297,7 +299,7 @@ export default function SettingsPage() {
       />
 
       <SettingsGroup
-        title="Sign in with Google"
+        title="Sign In with Google"
         description="Adds a Google button to this dashboard and to the sign-in page your apps share. Leaving the client ID blank turns it off everywhere. Google never creates a dashboard account: an operator has to exist already."
         keys={GOOGLE_KEYS}
         settings={settings}
@@ -321,7 +323,7 @@ export default function SettingsPage() {
       </SettingsGroup>
 
       <SettingsGroup
-        title="Sign in from another system"
+        title="Sign In from Another System"
         description="Lets one system you already use, such as a company portal, open your apps for its own signed-in people. It signs a short-lived pass; this server checks it, creates the person as an end user if they are new, gives them that app, and signs them in without showing this sign-in page. Only trust a system whose own sign-in you trust. Leaving any field blank turns this off."
         keys={LAUNCH_KEYS}
         settings={settings}
@@ -330,7 +332,7 @@ export default function SettingsPage() {
       >
         <div className="field">
           <div className="lab">
-            <b>Where passes go</b>
+            <b>Where Passes Go</b>
             <span className="desc">
               The other system posts a form field named <b>token</b> to this address, from the
               launcher address above. The pass is an HS256 JWT with <b>aud</b> set to
@@ -372,7 +374,7 @@ export default function SettingsPage() {
         onSave={api.updateSettings}
         onSaved={load}
       />
-      <p className="store-note" style={{ marginTop: -22, marginBottom: 34 }}><b>Where this lives:</b> sign-ins, page visits, the audit trail, and deploy logs are in your database; app runtime logs sit on the server’s disk. Everything stays on your box. <span className="soon">off-box forwarding soon</span></p>
+      <p className="store-note" style={{ marginTop: -22, marginBottom: 34 }}><b>Where this lives:</b> sign-ins, page visits, the audit trail, and deploy logs are in your database; app runtime logs sit on the server’s disk. Everything stays on your box. <span className="soon">Off-Box Forwarding Soon</span></p>
 
       <BackupsSection backups={backups} onChanged={load} />
 

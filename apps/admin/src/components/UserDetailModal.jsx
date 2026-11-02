@@ -96,7 +96,7 @@ export default function UserDetailModal({ id, onClose }) {
     ask({
       title: 'Permanently delete this account?',
       danger: true,
-      confirmLabel: 'Delete account',
+      confirmLabel: 'Delete Account',
       typeToConfirm: user.email,
       body: (
         <>
@@ -161,7 +161,7 @@ export default function UserDetailModal({ id, onClose }) {
         <span className={`badge ${user.isActive ? 'active' : 'inactive'}`}>
           {user.isActive ? 'Active' : 'Inactive'}
         </span>
-        {user.operatorRole && <span className={`chip ${ROLE_TONE[user.operatorRole] || ''}`}>{user.operatorRole}</span>}
+        {user.operatorRole && <span className={`chip ${ROLE_TONE[user.operatorRole] || ''}`}>{user.operatorRole.charAt(0).toUpperCase() + user.operatorRole.slice(1)}</span>}
       </div>
 
       {error && <div className="error">{error}</div>}
@@ -192,14 +192,14 @@ export default function UserDetailModal({ id, onClose }) {
           </div>
         <div className="field" style={{ display: 'block', padding: '14px 0' }}>
           <div className="lab" style={{ marginBottom: 8 }}>
-            <b>Dashboard access</b>
+            <b>Dashboard Access</b>
             <span className="desc">
-              Separate from which apps they can sign in to. "App user" means they can use apps you
+              Separate from which apps they can sign in to. "App User" means they can use apps you
               grant them, but cannot open this dashboard.
             </span>
           </div>
           <div className="seg">
-            {[['', 'App user'], ['viewer', 'Viewer'], ['operator', 'Operator'], ['admin', 'Admin'], ['owner', 'Owner']]
+            {[['', 'App User'], ['viewer', 'Viewer'], ['operator', 'Operator'], ['admin', 'Admin'], ['owner', 'Owner']]
               .map(([v, label]) => (
                 <button type="button" key={label} className={(operatorRole || '') === v ? 'sel' : ''}
                   onClick={() => setOperatorRole(v)}>{label}</button>
@@ -273,7 +273,7 @@ export default function UserDetailModal({ id, onClose }) {
         <div className="danger-actions">
           <div className="danger-action">
             <div>
-              <strong>{user.isActive ? 'Deactivate' : 'Activate'} user</strong>
+              <strong>{user.isActive ? 'Deactivate' : 'Activate'} User</strong>
               <p>{user.isActive
                 ? 'User will no longer be able to log in to any apps.'
                 : 'Re-enable login access for this user.'
@@ -285,7 +285,7 @@ export default function UserDetailModal({ id, onClose }) {
           </div>
           <div className="danger-action">
             <div>
-              <strong>Delete user</strong>
+              <strong>Delete User</strong>
               <p>Permanently remove this user and all their access. This cannot be undone.</p>
             </div>
             <button className="danger" onClick={handleDelete}>Delete User</button>

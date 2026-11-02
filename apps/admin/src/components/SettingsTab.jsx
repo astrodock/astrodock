@@ -19,27 +19,27 @@ import useConfirm from '../lib/useConfirm';
 // instead of choosing blind and then reading a sentence that appears underneath.
 
 const AUTH_OPTIONS = [
-  { value: 'platform', label: 'Astrodock accounts',
+  { value: 'platform', label: 'Astrodock Accounts',
     description: 'People sign in with their Astrodock account. You write no login code, and they get passkeys and two-factor for free.' },
-  { value: 'public', label: 'Public — no sign-in',
+  { value: 'public', label: 'Public (No Sign-In)',
     description: 'Anyone with the address can use it.' }
 ];
 const DB_OPTIONS = [
-  { value: 'internal', label: 'Built-in',
+  { value: 'internal', label: 'Built-In',
     description: 'Astrodock runs a database just for this app and hands it the connection. The easy choice.' },
-  { value: 'external', label: 'Bring your own',
+  { value: 'external', label: 'Bring Your Own',
     description: 'A database you host elsewhere. You paste its connection string in the Variables tab.' },
   { value: 'none', label: 'None', description: 'This app does not use a database.' }
 ];
 const STORAGE_OPTIONS = [
-  { value: 'internal', label: 'Built-in',
+  { value: 'internal', label: 'Built-In',
     description: 'Astrodock gives this app its own space for uploads, images and other files.' },
-  { value: 'external', label: 'Bring your own',
+  { value: 'external', label: 'Bring Your Own',
     description: 'Your own storage, like Amazon S3. You add the keys in the Variables tab.' },
   { value: 'none', label: 'None', description: 'This app does not store files.' }
 ];
 const RUNTIME_OPTIONS = [
-  { value: 'node', label: 'Node (zero-config)',
+  { value: 'node', label: 'Node (Zero-Config)',
     description: 'Astrodock builds and runs your Node.js app. Nothing to set up.' },
   { value: 'docker', label: 'Dockerfile',
     description: 'You supply a Dockerfile and Astrodock builds and runs that — any language, full control.' }
@@ -123,7 +123,7 @@ export default function SettingsTab({ app, onRefresh }) {
       body: (
         <>
           <p>Pushes to <code>{app.source?.githubRepo}</code> will stop redeploying this app, and
-            <b> Deploy now</b> and <b>Roll Back</b> will stop working until you connect a repository again.</p>
+            <b> Deploy Now</b> and <b>Roll Back</b> will stop working until you connect a repository again.</p>
           <p className="hint">What is running right now stays running. Your code and deploy history are untouched.</p>
         </>
       ),
@@ -139,7 +139,7 @@ export default function SettingsTab({ app, onRefresh }) {
     ask({
       title: 'Make a new app secret?',
       danger: true,
-      confirmLabel: 'Make a new secret',
+      confirmLabel: 'Make a New Secret',
       body: (
         <>
           <p>The current secret stops working the moment you do this. Sign-in for this app will
@@ -162,7 +162,7 @@ export default function SettingsTab({ app, onRefresh }) {
   function handleProvision() {
     ask({
       title: app.provisioned ? `Re-provision "${app.name}"?` : `Set up "${app.name}"?`,
-      confirmLabel: app.provisioned ? 'Re-provision' : 'Set it up',
+      confirmLabel: app.provisioned ? 'Re-Provision' : 'Set It Up',
       body: app.provisioned ? (
         <>
           <p>Re-checks this app's database, storage and web address against the settings above, and
@@ -171,7 +171,7 @@ export default function SettingsTab({ app, onRefresh }) {
             afterwards so the app picks up any new connection details.</p>
         </>
       ) : (
-        <p>Creates this app's database and file storage (for anything set to Built-in) and its web
+        <p>Creates this app's database and file storage (for anything set to Built-In) and its web
           address. This is the one-time step between creating an app and deploying it.</p>
       ),
       onConfirm: async () => {
@@ -186,7 +186,7 @@ export default function SettingsTab({ app, onRefresh }) {
     ask({
       title: `Delete "${app.name}"?`,
       danger: true,
-      confirmLabel: 'Delete this app',
+      confirmLabel: 'Delete This App',
       typeToConfirm: app.slug,
       body: (
         <>
@@ -247,11 +247,11 @@ export default function SettingsTab({ app, onRefresh }) {
             )}
             <div className="field">
               <div className="lab">
-                <b>Deploy on push</b>
+                <b>Deploy on Push</b>
                 <span className="desc">
                   {app.webhookConnected
                     ? 'GitHub tells Astrodock when you push, and the app redeploys on its own.'
-                    : 'Not set up — pushing to GitHub will not redeploy this app. Use Deploy now on the Deploys tab.'}
+                    : 'Not set up — pushing to GitHub will not redeploy this app. Use Deploy Now on the Deploys tab.'}
                 </span>
               </div>
               <div className="ctl">
@@ -269,7 +269,7 @@ export default function SettingsTab({ app, onRefresh }) {
           <div className="field-panel">
             <div className="field">
               <div className="lab">
-                <b>No GitHub access yet</b>
+                <b>No GitHub Access Yet</b>
                 <span className="desc">
                   Astrodock needs a GitHub personal access token before it can list your
                   repositories. Add one under <Link to="/settings">Settings</Link> — it needs the
@@ -282,7 +282,7 @@ export default function SettingsTab({ app, onRefresh }) {
             </div>
             <div className="field">
               <div className="lab">
-                <b>Or skip GitHub entirely</b>
+                <b>Or Skip GitHub Entirely</b>
                 <span className="desc">
                   You can push code straight from your machine with the CLI
                   (<code>astrodock deploy</code>) and never connect a repository.
@@ -358,7 +358,7 @@ export default function SettingsTab({ app, onRefresh }) {
 
         <form id="cfgform" onSubmit={handleSaveConfig} className="field-panel" noValidate>
           <div className="field">
-            <div className="lab"><b>Sign-in</b><span className="desc">Whether people need an account to use this app.</span></div>
+            <div className="lab"><b>Sign-In</b><span className="desc">Whether people need an account to use this app.</span></div>
             <div className="ctl" style={{ width: 280 }}>
               <Select value={authMode} onChange={setAuthMode} options={AUTH_OPTIONS} />
             </div>
@@ -370,7 +370,7 @@ export default function SettingsTab({ app, onRefresh }) {
             </div>
           </div>
           <div className="field">
-            <div className="lab"><b>File storage</b><span className="desc">Where this app keeps uploads and other files.</span></div>
+            <div className="lab"><b>File Storage</b><span className="desc">Where this app keeps uploads and other files.</span></div>
             <div className="ctl" style={{ width: 280 }}>
               <Select value={storageMode} onChange={setStorageMode} options={STORAGE_OPTIONS} />
             </div>
@@ -384,7 +384,7 @@ export default function SettingsTab({ app, onRefresh }) {
           {runtimeType === 'node' && (
             <div className="field">
               <div className="lab">
-                <b>Unknown web addresses</b>
+                <b>Unknown Web Addresses</b>
                 <span className="desc">
                   {spa
                     ? 'Anything that is not a file is handed to your app to deal with. Right for an app whose pages are drawn in the browser.'
@@ -393,9 +393,9 @@ export default function SettingsTab({ app, onRefresh }) {
               </div>
               <div className="ctl" style={{ width: 280 }}>
                 <Select value={spa ? 'spa' : 'static'} onChange={(v) => setSpa(v === 'spa')} options={[
-                  { value: 'spa', label: 'Hand them to the app',
+                  { value: 'spa', label: 'Hand Them to the App',
                     description: 'For apps that draw their own pages — React, Vue and the like.' },
-                  { value: 'static', label: 'Show a "not found" page',
+                  { value: 'static', label: 'Show a "Not Found" Page',
                     description: 'For ordinary pages and documentation. Serves your 404.html with a real 404.' }
                 ]} />
               </div>
@@ -404,7 +404,7 @@ export default function SettingsTab({ app, onRefresh }) {
           {runtimeType === 'node' ? (
             <div className="field">
               <div className="lab">
-                <b>Build command</b>
+                <b>Build Command</b>
                 <span className="desc">
                   Run before the app goes live — usually <code>npm run build</code>. Leave it empty
                   if there is nothing to build.
@@ -436,17 +436,17 @@ export default function SettingsTab({ app, onRefresh }) {
           <div>
             <h2>Setup &amp; Web Address</h2>
             <p>Provisioning creates this app's moving parts — its database and storage, if they are
-              set to Built-in, and its web address. Run it once after creating the app, and again
+              set to Built-In, and its web address. Run it once after creating the app, and again
               whenever you change the resources above.</p>
           </div>
-          <button onClick={handleProvision}>{app.provisioned ? 'Re-provision' : 'Set It Up'}</button>
+          <button onClick={handleProvision}>{app.provisioned ? 'Re-Provision' : 'Set It Up'}</button>
         </div>
         <div className="diag">
-          <div className="drow"><label>Web address</label><div className="v">{appHost(app.subdomain)}</div></div>
-          <div className="drow"><label>Internal port</label><div className="v">{app.port}</div></div>
-          <div className="drow"><label>Status</label><div className="v"><span className={`badge ${app.provisioned ? 'active' : 'inactive'}`}>{app.provisioned ? 'Set up' : 'Not set up'}</span></div></div>
-          {app.database?.mode === 'internal' && app.internal?.dbName && <div className="drow"><label>Database name</label><div className="v">{app.internal.dbName}</div></div>}
-          {app.storage?.mode === 'internal' && app.internal?.storagePrefix && <div className="drow"><label>Storage prefix</label><div className="v">{app.internal.storagePrefix}</div></div>}
+          <div className="drow"><label>Web Address</label><div className="v">{appHost(app.subdomain)}</div></div>
+          <div className="drow"><label>Internal Port</label><div className="v">{app.port}</div></div>
+          <div className="drow"><label>Status</label><div className="v"><span className={`badge ${app.provisioned ? 'active' : 'inactive'}`}>{app.provisioned ? 'Set Up' : 'Not Set Up'}</span></div></div>
+          {app.database?.mode === 'internal' && app.internal?.dbName && <div className="drow"><label>Database Name</label><div className="v">{app.internal.dbName}</div></div>}
+          {app.storage?.mode === 'internal' && app.internal?.storagePrefix && <div className="drow"><label>Storage Prefix</label><div className="v">{app.internal.storagePrefix}</div></div>}
         </div>
         {provisionResult && (
           <div className="provision-banner" style={{ marginTop: 14 }}>
@@ -468,7 +468,7 @@ export default function SettingsTab({ app, onRefresh }) {
         </div>
         {newSecret && (
           <div className="secret-banner">
-            <strong>New app secret — copy it now, it won't be shown again</strong>
+            <strong>New app secret. Copy it now: it won't be shown again.</strong>
             <code>{newSecret}</code>
           </div>
         )}
@@ -478,7 +478,7 @@ export default function SettingsTab({ app, onRefresh }) {
       <section className="set-section">
         <div className="sec-head"><div><h2>About This App</h2></div></div>
         <div className="diag">
-          <div className="drow"><label>ID (slug)</label><div className="v">{app.slug}</div></div>
+          <div className="drow"><label>ID (Slug)</label><div className="v">{app.slug}</div></div>
           {app.description && <div className="drow"><label>Description</label><div className="v" style={{ fontFamily: 'var(--font)' }}>{app.description}</div></div>}
           {app.createdAt && <div className="drow"><label>Created</label><div className="v">{new Date(app.createdAt).toLocaleDateString()}</div></div>}
         </div>
@@ -490,7 +490,7 @@ export default function SettingsTab({ app, onRefresh }) {
         <div className="danger-actions">
           <div className="danger-action">
             <div>
-              <strong>Delete this app</strong>
+              <strong>Delete This App</strong>
               <p>Permanently removes the app, its deploy history, its variables and its web address.
                 This can't be undone.</p>
             </div>

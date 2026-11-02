@@ -120,26 +120,26 @@ export default function TokensPage() {
             <tr key={t.id}>
               <td>
                 <b>{t.name}</b>
-                {t.delegated && <span className="chip" style={{ marginLeft: 8 }}>made by a key</span>}
-                {t.legacy && <span className="chip warn" style={{ marginLeft: 8 }}>legacy</span>}
+                {t.delegated && <span className="chip" style={{ marginLeft: 8 }}>Made by a Key</span>}
+                {t.legacy && <span className="chip warn" style={{ marginLeft: 8 }}>Legacy</span>}
               </td>
               <td>
                 <span className="chip ok">{t.effectiveScopes.length}</span>{' '}
                 <span style={{ color: 'var(--text-3)', fontSize: 12.5 }}>{summarise(t.effectiveScopes)}</span>
               </td>
-              <td>{t.appScope?.length ? t.appScope.join(', ') : <span style={{ color: 'var(--text-3)' }}>all</span>}</td>
+              <td>{t.appScope?.length ? t.appScope.join(', ') : <span style={{ color: 'var(--text-3)' }}>All</span>}</td>
               <td>
-                {t.expired ? <span className="chip crit">expired</span>
+                {t.expired ? <span className="chip crit">Expired</span>
                   : t.expiresAt ? new Date(t.expiresAt).toLocaleDateString()
-                    : <span className="chip warn">never</span>}
+                    : <span className="chip warn">Never</span>}
               </td>
               <td>{t.lastUsedAt ? new Date(t.lastUsedAt).toLocaleDateString()
-                : <span style={{ color: 'var(--text-3)' }}>never</span>}</td>
+                : <span style={{ color: 'var(--text-3)' }}>Never</span>}</td>
               <td style={{ textAlign: 'right' }}>
                 <button className="link-btn danger" onClick={() => ask({
                   title: 'Revoke this key?',
                   danger: true,
-                  confirmLabel: 'Revoke it',
+                  confirmLabel: 'Revoke It',
                   body: (
                     <>
                       <p>Anything still using <b>{t.name}</b> — a script, an agent, a deploy job —

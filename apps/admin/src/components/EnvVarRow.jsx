@@ -34,9 +34,9 @@ export default function EnvVarRow({ v, appSlug, deletable, onChanged, onError, o
       <div className="var-name">
         <code>{v.key}</code>
         <div className="var-tags">
-          {v.required && <span className="tag tag-required">required</span>}
-          {v.isSecret && <span className="tag tag-secret">secret</span>}
-          {!v.isSet && <span className="tag tag-unset">not set</span>}
+          {v.required && <span className="tag tag-required">Required</span>}
+          {v.isSecret && <span className="tag tag-secret">Secret</span>}
+          {!v.isSet && <span className="tag tag-unset">Not Set</span>}
         </div>
         {v.description && <span className="var-desc">{v.description}</span>}
       </div>
@@ -64,7 +64,7 @@ export default function EnvVarRow({ v, appSlug, deletable, onChanged, onError, o
         ) : v.isSet ? (
           <code className="var-val">{v.value}</code>
         ) : (v.default != null && v.default !== '') ? (
-          <code className="var-val var-default">{v.default}<span className="tag">default</span></code>
+          <code className="var-val var-default">{v.default}<span className="tag">Default</span></code>
         ) : (
           <span className="var-empty">—</span>
         )}

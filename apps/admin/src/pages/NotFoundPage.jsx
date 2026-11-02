@@ -20,7 +20,7 @@ export default function NotFoundPage() {
           </svg>
         </div>
         <div className="code">Error 404</div>
-        <h1>Nothing At This Address</h1>
+        <h1>Nothing at This Address</h1>
         <p>
           There is no page at <code>{pathname}</code>. It may have moved, or the link that brought
           you here may be out of date.

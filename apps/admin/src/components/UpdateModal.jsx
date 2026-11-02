@@ -10,10 +10,10 @@ import * as api from '../lib/api';
 // it comes back and reports its version.
 
 const STAGES = [
-  ['backup', 'Backing up the database', 'So there is a way back if the new version cannot read the old data.'],
-  ['pull', 'Downloading the new version', 'Nothing has changed yet — the running platform is untouched.'],
-  ['restart', 'Restarting the platform', 'The dashboard stops responding here. That is expected.'],
-  ['verify', 'Checking it came back', 'If it does not, Astrodock puts the previous version back by itself.']
+  ['backup', 'Backing Up the Database', 'So there is a way back if the new version cannot read the old data.'],
+  ['pull', 'Downloading the New Version', 'Nothing has changed yet — the running platform is untouched.'],
+  ['restart', 'Restarting the Platform', 'The dashboard stops responding here. That is expected.'],
+  ['verify', 'Checking It Came Back', 'If it does not, Astrodock puts the previous version back by itself.']
 ];
 
 export default function UpdateModal({ current, latest, onClose, onDone }) {

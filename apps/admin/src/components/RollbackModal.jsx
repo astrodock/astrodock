@@ -58,7 +58,7 @@ export default function RollbackModal({ deployments, current, onClose, onRollbac
                   <span className="name">
                     <b>
                       <code>{d.commitHash}</code>
-                      {isCurrent && <span className="tag" style={{ marginLeft: 8 }}>running now</span>}
+                      {isCurrent && <span className="tag" style={{ marginLeft: 8 }}>Running Now</span>}
                     </b>
                     <span className="opt-desc">
                       {d.commitMessage || 'No commit message'} · {when(d)}

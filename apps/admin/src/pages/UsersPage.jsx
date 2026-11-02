@@ -45,7 +45,7 @@ export default function UsersPage() {
       {error && <div className="error">{error}</div>}
 
       {!loaded ? <SkeletonRows rows={4} cols={5} /> : users.length === 0 ? (
-        <EmptyState icon="users" title="No people yet"
+        <EmptyState icon="users" title="No People Yet"
           body="Add someone to give them access to your apps."
           action={<button onClick={() => setShowCreate(true)}>Add User</button>} />
       ) : (
@@ -75,13 +75,13 @@ export default function UsersPage() {
               </td>
               <td>
                 {user.operatorRole
-                  ? <span className={`chip ${ROLE_TONE[user.operatorRole] || ''}`}>{user.operatorRole}</span>
-                  : <span className="chip">app user</span>}
+                  ? <span className={`chip ${ROLE_TONE[user.operatorRole] || ''}`}>{user.operatorRole.charAt(0).toUpperCase() + user.operatorRole.slice(1)}</span>
+                  : <span className="chip">App User</span>}
               </td>
               <td>
                 <div className="access-pills">
                   {user.appAccess.length === 0 && (
-                    <span className="text-muted">No apps</span>
+                    <span className="text-muted">No Apps</span>
                   )}
                   {user.appAccess.map(slug => (
                     <span key={slug} className="pill">{slug}</span>

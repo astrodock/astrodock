@@ -44,9 +44,9 @@ export default function OverviewPage() {
   const memPct = server.memory?.usedPercent || 0;
 
   const attention = [];
-  down.forEach((a) => attention.push({ sev: 'crit', title: `${a.name} is down`, sub: `failed ${a.consecutiveFailures || 0} health checks`, to: `/apps/${a.slug}`, go: 'View →' }));
-  degraded.forEach((a) => attention.push({ sev: 'warn', title: `${a.name} is degraded`, sub: 'responding slowly or intermittently', to: `/apps/${a.slug}`, go: 'View →' }));
-  if (diskPct >= 85) attention.push({ sev: 'warn', title: 'Disk almost full', sub: `${diskPct}% used`, to: '/settings', go: 'Settings →' });
+  down.forEach((a) => attention.push({ sev: 'crit', title: `${a.name} Is Down`, sub: `failed ${a.consecutiveFailures || 0} health checks`, to: `/apps/${a.slug}`, go: 'View →' }));
+  degraded.forEach((a) => attention.push({ sev: 'warn', title: `${a.name} Is Degraded`, sub: 'responding slowly or intermittently', to: `/apps/${a.slug}`, go: 'View →' }));
+  if (diskPct >= 85) attention.push({ sev: 'warn', title: 'Disk Almost Full', sub: `${diskPct}% used`, to: '/settings', go: 'Settings →' });
   const isDegraded = attention.length > 0;
 
   const feed = events.map((ev) => ({
@@ -60,14 +60,14 @@ export default function OverviewPage() {
   // `starting` = one failed probe, not yet confirmed; usually a container still booting.
   const dep = (p, okV, downV) => !p ? ['', '—']
     : p.ok ? ['ok', okV]
-      : p.starting ? ['warn', 'starting…']
-        : ['crit', p.error ? 'down' : downV];
+      : p.starting ? ['warn', 'Starting…']
+        : ['crit', p.error ? 'Down' : downV];
   const deps = platform ? [
-    ['Database', ...dep(platform.database, `${platform.database?.responseTime != null ? '' : ''}ok`, 'down')],
-    ['Object store', ...dep(platform.objectstore, 'ok', 'down')],
-    ['Runner', ...dep(platform.runner, 'ok', 'down')],
-    ['TLS cert', platform.cert?.skipped ? 'ok' : (platform.cert?.ok ? 'ok' : 'warn'),
-      platform.cert?.skipped ? 'n/a' : (platform.cert?.daysLeft != null ? `${platform.cert.daysLeft}d` : (platform.cert?.ok ? 'ok' : 'error'))]
+    ['Database', ...dep(platform.database, `${platform.database?.responseTime != null ? '' : ''}OK`, 'Down')],
+    ['Object Store', ...dep(platform.objectstore, 'OK', 'Down')],
+    ['Runner', ...dep(platform.runner, 'OK', 'Down')],
+    ['TLS Cert', platform.cert?.skipped ? 'ok' : (platform.cert?.ok ? 'ok' : 'warn'),
+      platform.cert?.skipped ? 'N/A' : (platform.cert?.daysLeft != null ? `${platform.cert.daysLeft}d` : (platform.cert?.ok ? 'OK' : 'Error'))]
   ] : [];
 
   return (
@@ -81,7 +81,7 @@ export default function OverviewPage() {
       <section className={`hero ${isDegraded ? 'degraded' : ''}`}>
         <div className="beacon"><span className="ring" /><span className="ring" /><span className="core" /></div>
         <div className="hero-text">
-          <div className="hero-state">{isDegraded ? `${attention.length} ${attention.length === 1 ? 'thing needs' : 'things need'} attention` : 'All systems nominal'}</div>
+          <div className="hero-state">{isDegraded ? `${attention.length} ${attention.length === 1 ? 'Thing Needs' : 'Things Need'} Attention` : 'All Systems Nominal'}</div>
           <div className="hero-sub">{up} of {total} apps online · {attention.length} open {attention.length === 1 ? 'alert' : 'alerts'} · disk {diskPct}%</div>
         </div>
         <div className="hero-meta"><label>Uptime</label><b>{fmtUptime(server.uptime)}</b></div>
@@ -92,7 +92,7 @@ export default function OverviewPage() {
           <>
             <div className="attn-head">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2 1.5 13.5h13L8 2z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /><path d="M8 6.3v3.4M8 11.5v.3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
-              Needs attention <span className="attn-count">{attention.length}</span>
+              Needs Attention <span className="attn-count">{attention.length}</span>
             </div>
             {attention.map((a, i) => (
               <div className="att-item" key={i} onClick={() => navigate(a.to)}>
@@ -105,7 +105,7 @@ export default function OverviewPage() {
         ) : (
           <div className="att-empty">
             <div className="att-check"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M5 10.5 8.5 14 15 6.5" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" /></svg></div>
-            <div><b>All clear</b><span style={{ display: 'block' }}>nothing needs your attention</span></div>
+            <div><b>All Clear</b><span style={{ display: 'block' }}>nothing needs your attention</span></div>
           </div>
         )}
       </section>
@@ -114,7 +114,7 @@ export default function OverviewPage() {
         <div className="tile">
           <div className="tile-top"><label>Apps</label><span className={`tile-dot ${down.length ? 'crit' : ''}`} /></div>
           <div className="tile-val">{up}<small> / {total}</small></div>
-          <div className={`tile-foot ${down.length ? 'bad' : 'good'}`}>{down.length ? `${down.length} down` : 'all online'}</div>
+          <div className={`tile-foot ${down.length ? 'bad' : 'good'}`}>{down.length ? `${down.length} Down` : 'All Online'}</div>
         </div>
         <div className="tile">
           <div className="tile-top"><label>Disk</label><span className={`tile-dot ${diskPct >= 85 ? 'crit' : ''}`} /></div>
@@ -129,13 +129,13 @@ export default function OverviewPage() {
         <div className="tile">
           <div className="tile-top"><label>Alerts</label><span className={`tile-dot ${attention.length ? 'crit' : ''}`} /></div>
           <div className="tile-val">{attention.length}</div>
-          <div className={`tile-foot ${attention.length ? 'bad' : 'good'}`}>{attention.length ? 'need attention' : 'all clear'}</div>
+          <div className={`tile-foot ${attention.length ? 'bad' : 'good'}`}>{attention.length ? 'Need Attention' : 'All Clear'}</div>
         </div>
       </section>
 
       <section className="ov-lower">
         <div className="panel">
-          <div className="panel-h"><h2>Live Activity</h2><span className="panel-live">live</span></div>
+          <div className="panel-h"><h2>Live Activity</h2><span className="panel-live">Live</span></div>
           <div className="feed">
             {feed.length === 0 ? <EmptyState icon="activity" title="Nothing Yet"
               body="Deploys and platform events show up here as they happen." /> : feed.map((f, i) => (
@@ -152,7 +152,7 @@ export default function OverviewPage() {
         <div className="panel">
           <div className="panel-h"><h2>Platform</h2></div>
           <div className="deps">
-            {deps.length === 0 ? <div className="dep"><span className="led" /><label>checking…</label></div> : deps.map(([n, st, v]) => (
+            {deps.length === 0 ? <div className="dep"><span className="led" /><label>Checking…</label></div> : deps.map(([n, st, v]) => (
               <div className="dep" key={n}><span className={`led ${st}`} /><label>{n}</label><span className={`dep-v ${st}`}>{v}</span></div>
             ))}
           </div>

@@ -125,7 +125,7 @@ function widgetSource() {
   var panel = root.querySelector('.panel');
   var config = { categories: ['bug', 'idea', 'question'], anonymous: false, enabled: true, widget: true };
 
-  var NAMES = { bug: 'Something is broken', idea: 'An idea', question: 'A question', other: 'Something else' };
+  var NAMES = { bug: 'Something Is Broken', idea: 'An Idea', question: 'A Question', other: 'Something Else' };
   function nameFor(c) { return NAMES[c] || (c.charAt(0).toUpperCase() + c.slice(1)); }
 
   function form() {
@@ -136,9 +136,9 @@ function widgetSource() {
       '<select id="fb-cat">' + config.categories.map(function (c) {
         return '<option value="' + esc(c) + '">' + esc(nameFor(c)) + '</option>';
       }).join('') + '</select>',
-      '<label for="fb-body">Tell us what happened</label>',
+      '<label for="fb-body">Tell Us What Happened</label>',
       '<textarea id="fb-body" placeholder="What were you doing, and what did you expect?"></textarea>',
-      needsEmail ? '<label for="fb-email">Your email, if you would like a reply</label><input id="fb-email" type="email" autocomplete="email">' : '',
+      needsEmail ? '<label for="fb-email">Your Email, If You Would Like a Reply</label><input id="fb-email" type="email" autocomplete="email">' : '',
       '<button class="send" type="button">Send</button>',
       '<div class="err hidden"></div>'
     ].join('');
@@ -169,7 +169,7 @@ function widgetSource() {
       }).then(function (res) {
         panel.innerHTML = [
           '<div class="done">',
-          '<h2>Thank you</h2>',
+          '<h2>Thank You</h2>',
           '<p>We have this as <code>' + esc(res.key) + '</code>. If we need anything else, we will be in touch.</p>',
           '</div>'
         ].join('');

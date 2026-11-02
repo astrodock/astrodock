@@ -37,10 +37,10 @@ function formatTime(dateStr) {
 // usual cause is that the container is still coming up. Saying "down" there
 // accuses a dependency that is merely slow to boot.
 function depLabel(d) {
-  if (!d) return { cls: 'inactive', text: 'unknown' };
-  if (d.ok) return { cls: 'active', text: 'ok' };
-  if (d.starting) return { cls: 'warn', text: 'starting…' };
-  return { cls: 'errored', text: d.error || 'down' };
+  if (!d) return { cls: 'inactive', text: 'Unknown' };
+  if (d.ok) return { cls: 'active', text: 'OK' };
+  if (d.starting) return { cls: 'warn', text: 'Starting…' };
+  return { cls: 'errored', text: d.error || 'Down' };
 }
 
 function Sparkline({ values, color, max }) {
@@ -125,13 +125,13 @@ export default function HealthPage() {
       {/* platform dependencies */}
       {platform && (
         <div className="deps deps-standalone">
-          {[['database', 'Database'], ['objectstore', 'Object store'], ['runner', 'Runner']].map(([k, label]) => {
+          {[['database', 'Database'], ['objectstore', 'Object Store'], ['runner', 'Runner']].map(([k, label]) => {
             const st = depLabel(platform[k]);
             const led = st.cls === 'active' ? 'ok' : st.cls === 'errored' ? 'crit' : st.cls === 'warn' ? 'warn' : '';
             return <div className="dep" key={k}><span className={`led ${led}`} /><label>{label}</label><span className={`dep-v ${led}`}>{st.text}</span></div>;
           })}
           {platform.cert && !platform.cert.skipped && (
-            <div className="dep"><span className={`led ${platform.cert.ok ? 'ok' : 'warn'}`} /><label>TLS cert</label><span className="dep-v">{platform.cert.daysLeft != null ? `${platform.cert.daysLeft}d left` : (platform.cert.ok ? 'ok' : 'error')}</span></div>
+            <div className="dep"><span className={`led ${platform.cert.ok ? 'ok' : 'warn'}`} /><label>TLS Cert</label><span className="dep-v">{platform.cert.daysLeft != null ? `${platform.cert.daysLeft}d Left` : (platform.cert.ok ? 'OK' : 'Error')}</span></div>
           )}
         </div>
       )}
@@ -140,7 +140,7 @@ export default function HealthPage() {
       {server && (
         <div className="health-vitals">
           <div className="vcard">
-            <div className="vhead"><span className="metric-label">CPU load</span><b>{server.cpu.load1m.toFixed(2)}</b></div>
+            <div className="vhead"><span className="metric-label">CPU Load</span><b>{server.cpu.load1m.toFixed(2)}</b></div>
             <Sparkline values={cpuSeries} color="var(--info)" />
             <div className="metric-sub">5m {server.cpu.load5m.toFixed(2)} · 15m {server.cpu.load15m.toFixed(2)}</div>
           </div>
@@ -155,7 +155,7 @@ export default function HealthPage() {
             <div className="metric-sub">{server.disk.used} / {server.disk.total}</div>
           </div>
           <div className="vcard">
-            <div className="vhead"><span className="metric-label">Server uptime</span><b style={{ fontSize: 20 }}>{formatUptime(server.uptime)}</b></div>
+            <div className="vhead"><span className="metric-label">Server Uptime</span><b style={{ fontSize: 20 }}>{formatUptime(server.uptime)}</b></div>
             <div className="spark-empty" style={{ color: 'var(--text-3)' }}>since last reboot</div>
             <div className="metric-sub">{apps.length} app{apps.length === 1 ? '' : 's'} monitored</div>
           </div>
@@ -164,7 +164,7 @@ export default function HealthPage() {
 
       {/* per-app health */}
       {apps.length === 0 ? (
-        <EmptyState icon="health" title="Nothing To Monitor Yet"
+        <EmptyState icon="health" title="Nothing to Monitor Yet"
           body="Once an app is set up and running, its status, memory and response time show up here." />
       ) : (
         <table className="data-table clickable">

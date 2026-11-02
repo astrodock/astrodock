@@ -56,7 +56,7 @@ export default function AccountPage({ theme, onToggleTheme, onSignOut }) {
       <PageHeader title="Your Account"
         description="How you sign in, where you are signed in right now, and how this looks."
         action={onSignOut
-          ? <button className="danger" onClick={onSignOut}>Sign out</button>
+          ? <button className="danger" onClick={onSignOut}>Sign Out</button>
           : undefined} />
 
       {error && <div className="error">{error}</div>}
@@ -80,7 +80,7 @@ export default function AccountPage({ theme, onToggleTheme, onSignOut }) {
           <h2>Signed In As</h2>
           <div className="dom">{data.email}</div>
           <div className="meta">
-            <span className="chip ok">{data.role}</span>{' '}
+            <span className="chip ok">{data.role ? data.role.charAt(0).toUpperCase() + data.role.slice(1) : data.role}</span>{' '}
             {secure
               ? 'Two factors protect this account.'
               : 'A password is the only thing protecting this account — add a passkey below.'}
@@ -209,8 +209,8 @@ function Passkeys({ data, guarded }) {
             </div>
             <div className="ctl">
               {p.stale
-                ? <span className="chip warn">re-add</span>
-                : <span className="chip ok">active</span>}
+                ? <span className="chip warn">Re-Add</span>
+                : <span className="chip ok">Active</span>}
               <button className="link-btn" onClick={() => guarded(() => api.passkeyRemove(p.id), 'Passkey removed.', 'Removing a passkey')}>
                 Remove
               </button>
@@ -220,7 +220,7 @@ function Passkeys({ data, guarded }) {
 
         <div className="field">
           <div className="lab">
-            <b>Add a passkey</b>
+            <b>Add a Passkey</b>
             <span className="desc">
               {supported
                 ? 'Name it so you can tell your devices apart later.'
@@ -253,7 +253,7 @@ function Totp({ data, guarded, reload, flash, onReauth }) {
       <div className="field-panel">
         <div className="field">
           <div className="lab">
-            <b>Authenticator app</b>
+            <b>Authenticator App</b>
             <span className="desc">
               {on ? "You're asked for a code each time you sign in."
                 : 'Not set up. Scan a code once, then confirm it works.'}
@@ -262,12 +262,12 @@ function Totp({ data, guarded, reload, flash, onReauth }) {
           <div className="ctl">
             {on ? (
               <>
-                <span className="chip ok">on</span>
+                <span className="chip ok">On</span>
                 <button className="link-btn danger" onClick={() => guarded(
                   () => api.totpRemove(), 'Authenticator app removed.', 'Removing your authenticator app'
                 )}>Remove</button>
               </>
-            ) : <span className="chip">off</span>}
+            ) : <span className="chip">Off</span>}
           </div>
         </div>
       </div>
@@ -302,13 +302,13 @@ function Recovery({ data, guarded }) {
       <div className="field-panel">
         <div className="field">
           <div className="lab">
-            <b>Unused codes</b>
+            <b>Unused Codes</b>
             <span className="desc">
               Generating a set replaces any you already have — which is also how you revoke them.
             </span>
           </div>
           <div className="ctl">
-            <span className={`chip ${n > 0 ? 'ok' : 'warn'}`}>{n} left</span>
+            <span className={`chip ${n > 0 ? 'ok' : 'warn'}`}>{n} Left</span>
             <button onClick={() => guarded(async () => {
               const r = await api.generateRecoveryCodes(); setCodes(r.codes);
             }, null, 'Generating recovery codes')}>{n > 0 ? 'Generate New' : 'Generate'}</button>
@@ -336,7 +336,7 @@ function PasswordSection({ data, guarded, reload, flash }) {
       <div className="field-panel">
         <div className="field">
           <div className="lab">
-            <b>{has ? 'Your password' : 'No password set'}</b>
+            <b>{has ? 'Your Password' : 'No Password Set'}</b>
             <span className="desc">
               {has
                 ? 'Changing it asks for the current one, and for the new one twice.'
@@ -351,7 +351,7 @@ function PasswordSection({ data, guarded, reload, flash }) {
         {canDrop && (
           <div className="field">
             <div className="lab">
-              <b>Go passwordless</b>
+              <b>Go Passwordless</b>
               <span className="desc">
                 Sign in with your passkey alone. Nothing left to phish, reuse or forget.
               </span>
@@ -380,7 +380,7 @@ function PasswordSection({ data, guarded, reload, flash }) {
 function Sessions({ data, guarded }) {
   return (
     <Section
-      title="Where you're signed in"
+      title="Where You're Signed In"
       description="If you don't recognise one, sign it out — it takes effect immediately."
       action={data.sessions.length > 1 && (
         <button className="pillbtn" onClick={() => guarded(() => api.revokeOtherSessions(), 'Other sessions signed out.')}>
@@ -395,7 +395,7 @@ function Sessions({ data, guarded }) {
             <tr key={s.id}>
               <td>
                 {(s.userAgent || 'Unknown device').slice(0, 54)}
-                {s.current && <span className="chip ok" style={{ marginLeft: 8 }}>this device</span>}
+                {s.current && <span className="chip ok" style={{ marginLeft: 8 }}>This Device</span>}
               </td>
               <td><code>{s.ip || '—'}</code></td>
               <td>{new Date(s.lastSeenAt).toLocaleString()}</td>

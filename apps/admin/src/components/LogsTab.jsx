@@ -61,21 +61,21 @@ export default function LogsTab({ app }) {
         <div className="log-controls">
           <Select value={view} onChange={setView} options={[
             { value: 'runtime', label: 'Runtime', description: 'What your app itself prints — console output and crashes.' },
-            { value: 'access', label: 'HTTP access', description: 'One line per request that reached this app.' }
+            { value: 'access', label: 'HTTP Access', description: 'One line per request that reached this app.' }
           ]} />
           {view === 'runtime' && (
             <Select value={lines} onChange={setLines} options={[
-              { value: 50, label: '50 lines' },
-              { value: 100, label: '100 lines' },
-              { value: 250, label: '250 lines' },
-              { value: 500, label: '500 lines' }
+              { value: 50, label: '50 Lines' },
+              { value: 100, label: '100 Lines' },
+              { value: 250, label: '250 Lines' },
+              { value: 500, label: '500 Lines' }
             ]} />
           )}
           <label className="checkbox-label">
             <span className={`mini-toggle sm ${autoRefresh ? 'on' : ''}`} role="switch"
-              aria-checked={autoRefresh} aria-label="Auto-refresh"
+              aria-checked={autoRefresh} aria-label="Auto-Refresh"
               onClick={() => setAutoRefresh(!autoRefresh)} />
-            Auto-refresh
+            Auto-Refresh
           </label>
           <button onClick={load}>Refresh</button>
         </div>
@@ -109,7 +109,7 @@ export default function LogsTab({ app }) {
       {view === 'access' && access && (
         access.enabled === false ? (
           <EmptyState icon="logs" title="Request Logs Are Off"
-            body={access.note || 'Turn on “Caddy access logs for deployed apps” in Settings and redeploy, and every request to this app will be listed here.'} />
+            body={access.note || 'Turn on “Caddy Access Logs for Deployed Apps” in Settings and redeploy, and every request to this app will be listed here.'} />
         ) : (
           <div>
             <div className="access-pills" style={{ margin: '8px 0' }}>

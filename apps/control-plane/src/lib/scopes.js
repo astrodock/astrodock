@@ -24,34 +24,34 @@ const GROUPS = [
 ];
 
 const SCOPES = {
-  'apps:read': { group: 'apps', label: 'View apps', description: 'View apps, status and health' },
-  'apps:write': { group: 'apps', label: 'Create & configure apps', description: 'Create and configure apps, provision resources, connect repos' },
-  'apps:delete': { group: 'sensitive', label: 'Delete apps', description: 'Delete apps — destroys their database and stored files' },
-  'deploys:write': { group: 'apps', label: 'Deploy & roll back', description: 'Deploy, deploy a local build, roll back' },
-  'runtime:write': { group: 'apps', label: 'Restart & stop', description: 'Restart and stop apps' },
-  'logs:read': { group: 'observe', label: 'Read logs', description: 'Read runtime, build and HTTP access logs' },
-  'env:read': { group: 'config', label: 'View configuration', description: 'List configuration keys (secret values stay hidden)' },
-  'env:write': { group: 'config', label: 'Change configuration', description: 'Set and remove configuration values' },
-  'domains:write': { group: 'config', label: 'Manage custom domains', description: 'Add, verify and remove custom domains' },
-  'pages:read': { group: 'pages', label: 'View pages', description: 'View published pages' },
-  'pages:write': { group: 'pages', label: 'Create & edit pages', description: 'Create, edit and delete pages' },
-  'users:read': { group: 'people', label: 'View end users', description: 'View end users and their app access' },
-  'users:write': { group: 'people', label: 'Manage end users', description: 'Create end users and grant or revoke app access' },
-  'events:read': { group: 'observe', label: 'Read the audit trail', description: 'Read the audit trail and sign-in logs' },
-  'settings:read': { group: 'platform', label: 'View platform settings', description: 'View platform settings and diagnostics' },
-  'settings:write': { group: 'platform', label: 'Change platform settings', description: 'Change platform settings and notification rules' },
-  'backups:write': { group: 'platform', label: 'Run & restore backups', description: 'Run and restore backups' },
-  'platform:write': { group: 'platform', label: 'Change domain & HTTPS', description: 'Change the base domain, HTTPS mode and DNS records' },
-  'feedback:read': { group: 'observe', label: 'Read feedback', description: 'Read user feedback and internal notes' },
-  'feedback:write': { group: 'apps', label: 'Triage feedback', description: 'Write internal notes, set status, link work, draft replies' },
+  'apps:read': { group: 'apps', label: 'View Apps', description: 'View apps, status and health' },
+  'apps:write': { group: 'apps', label: 'Create & Configure Apps', description: 'Create and configure apps, provision resources, connect repos' },
+  'apps:delete': { group: 'sensitive', label: 'Delete Apps', description: 'Delete apps — destroys their database and stored files' },
+  'deploys:write': { group: 'apps', label: 'Deploy & Roll Back', description: 'Deploy, deploy a local build, roll back' },
+  'runtime:write': { group: 'apps', label: 'Restart & Stop', description: 'Restart and stop apps' },
+  'logs:read': { group: 'observe', label: 'Read Logs', description: 'Read runtime, build and HTTP access logs' },
+  'env:read': { group: 'config', label: 'View Configuration', description: 'List configuration keys (secret values stay hidden)' },
+  'env:write': { group: 'config', label: 'Change Configuration', description: 'Set and remove configuration values' },
+  'domains:write': { group: 'config', label: 'Manage Custom Domains', description: 'Add, verify and remove custom domains' },
+  'pages:read': { group: 'pages', label: 'View Pages', description: 'View published pages' },
+  'pages:write': { group: 'pages', label: 'Create & Edit Pages', description: 'Create, edit and delete pages' },
+  'users:read': { group: 'people', label: 'View End Users', description: 'View end users and their app access' },
+  'users:write': { group: 'people', label: 'Manage End Users', description: 'Create end users and grant or revoke app access' },
+  'events:read': { group: 'observe', label: 'Read the Audit Trail', description: 'Read the audit trail and sign-in logs' },
+  'settings:read': { group: 'platform', label: 'View Platform Settings', description: 'View platform settings and diagnostics' },
+  'settings:write': { group: 'platform', label: 'Change Platform Settings', description: 'Change platform settings and notification rules' },
+  'backups:write': { group: 'platform', label: 'Run & Restore Backups', description: 'Run and restore backups' },
+  'platform:write': { group: 'platform', label: 'Change Domain & HTTPS', description: 'Change the base domain, HTTPS mode and DNS records' },
+  'feedback:read': { group: 'observe', label: 'Read Feedback', description: 'Read user feedback and internal notes' },
+  'feedback:write': { group: 'apps', label: 'Triage Feedback', description: 'Write internal notes, set status, link work, draft replies' },
   // Separate, and sensitive, because it is the only one that reaches a person.
   // An agent in draft mode holds feedback:write and not this: it can write the
   // reply, and a human decides whether it is sent.
-  'feedback:reply': { group: 'sensitive', label: 'Reply to a user', description: 'Send a message the person who reported it will read' },
-  'work:read': { group: 'observe', label: 'View work items', description: 'View tracked work items' },
-  'work:write': { group: 'apps', label: 'Manage work items', description: 'Create work items, change status, link and relate them' },
-  'tokens:write': { group: 'sensitive', label: 'Create & revoke keys', description: 'Create and revoke access keys' },
-  exec: { group: 'sensitive', label: 'Run commands in an app', description: 'Run commands inside an app' }
+  'feedback:reply': { group: 'sensitive', label: 'Reply to a User', description: 'Send a message the person who reported it will read' },
+  'work:read': { group: 'observe', label: 'View Work Items', description: 'View tracked work items' },
+  'work:write': { group: 'apps', label: 'Manage Work Items', description: 'Create work items, change status, link and relate them' },
+  'tokens:write': { group: 'sensitive', label: 'Create & Revoke Keys', description: 'Create and revoke access keys' },
+  exec: { group: 'sensitive', label: 'Run Commands in an App', description: 'Run commands inside an app' }
 };
 
 const ALL = Object.keys(SCOPES);
@@ -80,12 +80,12 @@ const PRESETS = {
     scopes: ['apps:read', 'logs:read', 'feedback:read', 'feedback:write', 'work:read', 'work:write']
   },
   platform: {
-    label: 'Platform manager',
+    label: 'Platform Manager',
     description: 'Manage the whole platform. Excludes running commands and minting keys.',
     scopes: ALL.filter((s) => s !== 'exec' && s !== 'tokens:write')
   },
   readonly: {
-    label: 'Read-only',
+    label: 'Read-Only',
     description: 'See everything, change nothing.',
     scopes: ALL.filter((s) => s.endsWith(':read'))
   }

@@ -7,6 +7,8 @@ import { SkeletonRows } from '../components/Loading';
 import Select from '../components/Select';
 
 const BLANK = { title: '', accessMode: 'public', dataMode: 'none', passkeyMode: 'generate', passkey: '' };
+const ACCESS_LABEL = { public: 'Public', passkey: 'Passkey', platform: 'Platform Login' };
+const DATA_LABEL = { shared: 'Shared', 'per-user': 'Per-User' };
 
 export default function PagesPage() {
   const [pages, setPages] = useState([]);
@@ -56,8 +58,8 @@ export default function PagesPage() {
   const dataModes = draft.accessMode === 'public'
     ? [['none', 'None']]
     : draft.accessMode === 'passkey'
-      ? [['none', 'None'], ['shared', 'Shared (one blob)']]
-      : [['none', 'None'], ['shared', 'Shared (one blob)'], ['per-user', 'Per-user']];
+      ? [['none', 'None'], ['shared', 'Shared (One Blob)']]
+      : [['none', 'None'], ['shared', 'Shared (One Blob)'], ['per-user', 'Per-User']];
 
   return (
     <div>
@@ -75,7 +77,7 @@ export default function PagesPage() {
       {error && <div className="error">{error}</div>}
 
       {!loaded ? <SkeletonRows rows={3} cols={4} /> : pages.length === 0 ? (
-        <EmptyState icon="pages" title="No pages yet"
+        <EmptyState icon="pages" title="No Pages Yet"
           body="Create one here, or push a folder with astrodock pages push ./dir"
           action={<button onClick={() => setShowCreate(true)}>New Page</button>} />
       ) : (
@@ -88,13 +90,13 @@ export default function PagesPage() {
               <tr key={p.pageId} onClick={() => navigate(`/pages/${p.pageId}`)}>
                 <td><strong>{p.title || 'Untitled'}</strong><span className="row-subtitle">{p.pageId}</span></td>
                 <td>
-                  <a href={p.url} className="app-link" target="_blank" rel="noopener" onClick={(e) => e.stopPropagation()}>open</a>
+                  <a href={p.url} className="app-link" target="_blank" rel="noopener" onClick={(e) => e.stopPropagation()}>Open</a>
                   <button className="link-btn" style={{ marginLeft: 8 }} onClick={(e) => copyLink(e, p.url, p.pageId)}>
-                    {copied === p.pageId ? 'copied!' : 'copy'}
+                    {copied === p.pageId ? 'Copied!' : 'Copy'}
                   </button>
                 </td>
-                <td><span className="pill">{p.accessMode}</span></td>
-                <td>{p.dataMode === 'none' ? <span className="text-muted">—</span> : <span className="pill">{p.dataMode}</span>}</td>
+                <td><span className="pill">{ACCESS_LABEL[p.accessMode] || p.accessMode}</span></td>
+                <td>{p.dataMode === 'none' ? <span className="text-muted">—</span> : <span className="pill">{DATA_LABEL[p.dataMode] || p.dataMode}</span>}</td>
                 <td>{p.views}</td>
                 <td>
                   <button className={`toggle-btn ${p.isActive ? 'on' : 'off'}`} onClick={(e) => toggleActive(e, p)}>
@@ -122,7 +124,7 @@ export default function PagesPage() {
                 <Select value={draft.accessMode} onChange={(v) => setDraft({ ...draft, accessMode: v, dataMode: 'none' })} options={[
                   { value: 'public', label: 'Public', description: 'Anyone with the link can open it.' },
                   { value: 'passkey', label: 'Passkey', description: 'One shared word or phrase you hand out. No accounts.' },
-                  { value: 'platform', label: 'Platform login', description: 'People sign in with their Astrodock account.' }
+                  { value: 'platform', label: 'Platform Login', description: 'People sign in with their Astrodock account.' }
                 ]} />
               </label>
               <label>
@@ -136,8 +138,8 @@ export default function PagesPage() {
                 <label>
                   Passkey
                   <Select value={draft.passkeyMode} onChange={(v) => setDraft({ ...draft, passkeyMode: v })} options={[
-                    { value: 'generate', label: 'Generate one', description: 'Astrodock picks something hard to guess.' },
-                    { value: 'custom', label: 'Set my own', description: 'Choose a word or phrase yourself.' }
+                    { value: 'generate', label: 'Generate One', description: 'Astrodock picks something hard to guess.' },
+                    { value: 'custom', label: 'Set My Own', description: 'Choose a word or phrase yourself.' }
                   ]} />
                 </label>
                 {draft.passkeyMode === 'custom' && (

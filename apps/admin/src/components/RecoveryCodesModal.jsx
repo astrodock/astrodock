@@ -14,7 +14,7 @@ export default function RecoveryCodesModal({ codes, onClose }) {
   const [acknowledged, setAcknowledged] = useState(false);
 
   const text = [
-    'Astrodock recovery codes',
+    'Astrodock Recovery Codes',
     'Each code works once. Keep them somewhere other than the device you sign in with.',
     `Generated ${new Date().toLocaleString()}`,
     '',
@@ -42,7 +42,7 @@ export default function RecoveryCodesModal({ codes, onClose }) {
             <label className="ack">
               <input type="checkbox" checked={acknowledged}
                 onChange={(e) => setAcknowledged(e.target.checked)} />
-              I’ve saved these somewhere safe
+              I’ve Saved These Somewhere Safe
             </label>
           </span>
           <button type="button" className="primary" disabled={!acknowledged} onClick={onClose}>

@@ -5,7 +5,7 @@ import DnsRecords from './DnsRecords';
 import useConfirm from '../lib/useConfirm';
 
 const STC = { active: 'ok', pending: 'warn', failed: 'crit' };
-const STLABEL = { active: 'live', pending: 'waiting for DNS', failed: 'not connected' };
+const STLABEL = { active: 'Live', pending: 'Waiting for DNS', failed: 'Not Connected' };
 
 export default function DomainsTab({ app }) {
   const [domains, setDomains] = useState([]);
@@ -43,7 +43,7 @@ export default function DomainsTab({ app }) {
     ask({
       title: 'Remove this domain?',
       danger: true,
-      confirmLabel: 'Remove domain',
+      confirmLabel: 'Remove Domain',
       body: (
         <>
           <p><code>{host}</code> will stop pointing at this app. Anyone who visits it gets an error
@@ -77,7 +77,7 @@ export default function DomainsTab({ app }) {
 
       <form onSubmit={add} className="dom-add" noValidate>
         <input className="mono" value={hostname} onChange={(e) => setHostname(e.target.value)} placeholder="app.example.com" />
-        <button type="submit" disabled={busy}>{busy ? 'Adding…' : 'Add domain'}</button>
+        <button type="submit" disabled={busy}>{busy ? 'Adding…' : 'Add Domain'}</button>
       </form>
 
       {domains.length === 0 ? (
@@ -98,7 +98,7 @@ export default function DomainsTab({ app }) {
             <div className="dom-actions">
               {d.status !== 'active' && <button className="primary" onClick={() => verify(d.id)}>Check DNS</button>}
               {d.status === 'active' && !d.isPrimary && <button onClick={() => makePrimary(d.id)}>Make Primary</button>}
-              {d.status === 'active' && !d.isPrimary && hasPrimary && <button onClick={() => toggleRedirect(d.id, !d.redirectToCanonical)}>{d.redirectToCanonical ? 'Redirect: on' : 'Redirect: off'}</button>}
+              {d.status === 'active' && !d.isPrimary && hasPrimary && <button onClick={() => toggleRedirect(d.id, !d.redirectToCanonical)}>{d.redirectToCanonical ? 'Redirect: On' : 'Redirect: Off'}</button>}
               <button className="danger" onClick={() => remove(d.id, d.hostname)}>Remove</button>
             </div>
           </div>

@@ -10,7 +10,7 @@ import useConfirm from '../lib/useConfirm';
 import Select from '../components/Select';
 
 const STC = { active: 'ok', pending: 'warn', failed: 'crit' };
-const STLABEL = { active: 'live', pending: 'waiting for DNS', failed: 'not connected' };
+const STLABEL = { active: 'Live', pending: 'Waiting for DNS', failed: 'Not Connected' };
 
 export default function DomainsPage() {
   const [data, setData] = useState(null);
@@ -53,7 +53,7 @@ export default function DomainsPage() {
     ask({
       title: 'Remove this domain?',
       danger: true,
-      confirmLabel: 'Remove domain',
+      confirmLabel: 'Remove Domain',
       body: (
         <>
           <p><code>{d.hostname}</code> will stop pointing at <b>{d.appName}</b>. Anyone who visits
@@ -106,7 +106,7 @@ export default function DomainsPage() {
           </div>
         </div>
         <div className="hero-side">
-          <div className="pill-ok"><span className="led ok" /> {data.tlsMode === 'auto' ? 'HTTPS on · renews itself' : `HTTPS: ${data.tlsMode}`}</div>
+          <div className="pill-ok"><span className="led ok" /> {data.tlsMode === 'auto' ? 'HTTPS On · Renews Itself' : `HTTPS: ${data.tlsMode.charAt(0).toUpperCase() + data.tlsMode.slice(1)}`}</div>
           <button className="link-btn" onClick={() => setChangeBase(true)}>Change</button>
         </div>
       </div>
@@ -126,12 +126,12 @@ export default function DomainsPage() {
                 <tr key={d.id}>
                   <td><span className="host">{d.isPrimary && <span className="star" title="Main Address">★</span>}{d.status === 'active' ? <a className="link" href={`https://${d.hostname}`} target="_blank" rel="noopener">{d.hostname} ↗</a> : <span className="mono">{d.hostname}</span>}</span></td>
                   <td><Link className="link" to={`/apps/${d.appSlug}`}>the <b>{d.appName}</b> app</Link>{d.redirectToCanonical && <span className="redir"> · redirects to primary</span>}</td>
-                  <td>{d.status === 'active' ? <span className="tls ok">on</span> : <span className="tls">—</span>}</td>
+                  <td>{d.status === 'active' ? <span className="tls ok">On</span> : <span className="tls">—</span>}</td>
                   <td><span className={`chip ${STC[d.status]}`}>{STLABEL[d.status]}</span></td>
                   <td className="actions" style={{ justifyContent: 'flex-end' }}>
                     {d.status === 'active'
                       ? <button onClick={() => setManage(d)}>Manage</button>
-                      : <button className="primary" onClick={() => setSetup(d)}>Set up DNS</button>}
+                      : <button className="primary" onClick={() => setSetup(d)}>Set Up DNS</button>}
                   </td>
                 </tr>
               ))}
@@ -176,11 +176,11 @@ export default function DomainsPage() {
               <Select value={addApp} onChange={setAddApp} placeholder="Choose an app…"
                 options={appOptions.map((a) => ({ value: a.slug, label: a.name, description: a.slug }))} />
             </label>
-            <label>Your domain name
+            <label>Your Domain Name
               <input className="mono" value={addHost} onChange={(e) => setAddHost(e.target.value)} placeholder="shop.example.com" required />
             </label>
             <p className="hint">After you add it, we’ll show you exactly what to do next.</p>
-            <div className="modal-actions"><button type="button" onClick={() => setAddOpen(false)}>Cancel</button><button type="submit" disabled={busy}>{busy ? 'Adding…' : 'Add & show steps'}</button></div>
+            <div className="modal-actions"><button type="button" onClick={() => setAddOpen(false)}>Cancel</button><button type="submit" disabled={busy}>{busy ? 'Adding…' : 'Add & Show Steps'}</button></div>
           </form>
         </div>
       )}
@@ -196,7 +196,7 @@ export default function DomainsPage() {
               footnote="DNS changes can take a few minutes — sometimes a few hours."
             />
             {setup.status === 'failed' && <div className="callout danger">We looked but couldn’t find the TXT record yet. Double-check it was added exactly as shown, then check again.</div>}
-            <div className="modal-actions"><button onClick={() => setSetup(null)}>Close</button><button className="primary" disabled={busy} onClick={() => verify(setup)}>{busy ? 'Checking…' : 'Check it now'}</button></div>
+            <div className="modal-actions"><button onClick={() => setSetup(null)}>Close</button><button className="primary" disabled={busy} onClick={() => verify(setup)}>{busy ? 'Checking…' : 'Check It Now'}</button></div>
           </div>
         </div>
       )}
@@ -206,10 +206,10 @@ export default function DomainsPage() {
         <div className="modal-overlay" onClick={() => setManage(null)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h2>{manage.hostname}</h2>
-            <div className="mrow"><div className="ml"><b>Goes to the {manage.appName} app</b><span>What people see when they visit {manage.hostname}.</span></div><Link className="link" to={`/apps/${manage.appSlug}`}>Open app →</Link></div>
-            <div className="mrow"><div className="ml"><b>Secure (HTTPS) is on</b><span>Visitors get a padlock; the certificate renews itself.</span></div><span className="led ok" /></div>
-            {!manage.isPrimary && <div className="mrow"><div className="ml"><b>Make this the main address</b><span>People will see {manage.hostname} as the primary; the app’s other addresses send visitors here.</span></div><button onClick={() => setPrimary(manage)}>Make Primary</button></div>}
-            {!manage.isPrimary && <div className="mrow"><div className="ml"><b>Redirect to the main address</b><span>Send anyone who visits {manage.hostname} to the primary domain instead.</span></div><button onClick={() => toggleRedirect(manage, !manage.redirectToCanonical)}>{manage.redirectToCanonical ? 'On' : 'Off'}</button></div>}
+            <div className="mrow"><div className="ml"><b>Goes to the {manage.appName} App</b><span>What people see when they visit {manage.hostname}.</span></div><Link className="link" to={`/apps/${manage.appSlug}`}>Open App →</Link></div>
+            <div className="mrow"><div className="ml"><b>Secure (HTTPS) Is On</b><span>Visitors get a padlock; the certificate renews itself.</span></div><span className="led ok" /></div>
+            {!manage.isPrimary && <div className="mrow"><div className="ml"><b>Make This the Main Address</b><span>People will see {manage.hostname} as the primary; the app’s other addresses send visitors here.</span></div><button onClick={() => setPrimary(manage)}>Make Primary</button></div>}
+            {!manage.isPrimary && <div className="mrow"><div className="ml"><b>Redirect to the Main Address</b><span>Send anyone who visits {manage.hostname} to the primary domain instead.</span></div><button onClick={() => toggleRedirect(manage, !manage.redirectToCanonical)}>{manage.redirectToCanonical ? 'On' : 'Off'}</button></div>}
             <div className="modal-actions" style={{ justifyContent: 'space-between' }}>
               <button className="danger" onClick={() => removeDomain(manage)}>Remove Domain</button>
               <button onClick={() => setManage(null)}>Done</button>

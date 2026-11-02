@@ -53,7 +53,7 @@ export default function SettingsGroup({
             <>
               <button type="button" onClick={() => { setDraft({}); setError(''); }}>Discard</button>
               <button type="button" className="primary" onClick={save} disabled={saving}>
-                {saving ? 'Saving…' : `Save ${dirty} change${dirty === 1 ? '' : 's'}`}
+                {saving ? 'Saving…' : `Save ${dirty} Change${dirty === 1 ? '' : 's'}`}
               </button>
             </>
           )}
@@ -97,7 +97,7 @@ export default function SettingsGroup({
                   <div className="seg">
                     {s.values.map((v) => (
                       <button key={v} type="button" className={String(valueOf(s.key)) === String(v) ? 'sel' : ''}
-                        onClick={() => setField(s, v)}>{v}</button>
+                        onClick={() => setField(s, v)}>{String(v).charAt(0).toUpperCase() + String(v).slice(1)}</button>
                     ))}
                   </div>
                 ) : s.secret ? (
@@ -125,7 +125,7 @@ export default function SettingsGroup({
                 )}
                 <span className={`src ${s.source === 'override' ? 'override' : ''}`}
                   title={s.source === 'override' ? 'Set here, overriding the installed default' : 'The value this was installed with'}>
-                  {s.source}
+                  {s.source === 'override' ? 'Override' : 'Default'}
                 </span>
               </div>
             </div>

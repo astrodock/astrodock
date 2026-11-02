@@ -13,6 +13,8 @@ import Select from './Select';
 const STATUSES = ['open', 'in_progress', 'done', 'wont_do'];
 const TYPES = ['bug', 'feature', 'chore'];
 const PRIORITIES = ['P0', 'P1', 'P2', 'P3'];
+const STATUS_LABEL = { open: 'Open', in_progress: 'In Progress', done: 'Done', wont_do: 'Won’t Do' };
+const TYPE_LABEL = { bug: 'Bug', feature: 'Feature', chore: 'Chore' };
 
 export default function WorkTab({ app }) {
   const [items, setItems] = useState([]);
@@ -61,11 +63,11 @@ export default function WorkTab({ app }) {
               value={filter}
               onChange={setFilter}
               options={[{ value: 'all', label: 'Everything' },
-                ...STATUSES.map((s) => ({ value: s, label: s.replace(/_/g, ' ') }))]}
+                ...STATUSES.map((s) => ({ value: s, label: STATUS_LABEL[s] }))]}
             />
           </div>
           <button type="button" className="primary" onClick={() => setAdding((v) => !v)}>
-            {adding ? 'Cancel' : 'New item'}
+            {adding ? 'Cancel' : 'New Item'}
           </button>
         </div>
       </div>
@@ -95,11 +97,11 @@ export default function WorkTab({ app }) {
             </div>
           </div>
           <div className="field">
-            <div className="lab"><b>Type and priority</b></div>
+            <div className="lab"><b>Type and Priority</b></div>
             <div className="ctl" style={{ gap: 8 }}>
               <div style={{ width: 140 }}>
                 <Select value={draft.type} onChange={(v) => setDraft({ ...draft, type: v })}
-                  options={TYPES.map((t) => ({ value: t, label: t }))} />
+                  options={TYPES.map((t) => ({ value: t, label: TYPE_LABEL[t] }))} />
               </div>
               <div style={{ width: 110 }}>
                 <Select value={draft.priority} onChange={(v) => setDraft({ ...draft, priority: v })}
@@ -119,7 +121,7 @@ export default function WorkTab({ app }) {
       )}
 
       {items.length === 0 ? (
-        <EmptyState title="Nothing tracked" body="Work items are what feedback turns into, and anything else you need to remember." />
+        <EmptyState title="Nothing Tracked" body="Work items are what feedback turns into, and anything else you need to remember." />
       ) : (
         <div className="field-panel">
           {items.map((i) => (
@@ -133,17 +135,17 @@ export default function WorkTab({ app }) {
               </div>
               <div className="row-meta">
                 <span className="chip">{i.priority}</span>
-                <span className="chip">{i.type}</span>
+                <span className="chip">{TYPE_LABEL[i.type] || i.type}</span>
                 {i.feedback && i.feedback.length > 0 && (
                   <span className="chip" title="People waiting to hear about this">
-                    {i.feedback.length} waiting
+                    {i.feedback.length} Waiting
                   </span>
                 )}
                 <div style={{ width: 150 }}>
                   <Select
                     value={i.status}
                     onChange={(v) => setStatus(i.key, v)}
-                    options={STATUSES.map((s) => ({ value: s, label: s.replace(/_/g, ' ') }))}
+                    options={STATUSES.map((s) => ({ value: s, label: STATUS_LABEL[s] }))}
                   />
                 </div>
               </div>

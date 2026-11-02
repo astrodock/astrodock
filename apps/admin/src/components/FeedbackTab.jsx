@@ -16,6 +16,8 @@ import EmptyState from './EmptyState';
 import Select from './Select';
 
 const STATUSES = ['new', 'under_review', 'planned', 'in_progress', 'shipped', 'answered', 'declined'];
+// Display label for a status value: under_review → Under Review.
+const statusLabel = (s) => s.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
 function when(value) {
   if (!value) return '';
@@ -87,7 +89,7 @@ export default function FeedbackTab({ app }) {
             options={[
               { value: 'open', label: 'Open' },
               { value: 'all', label: 'Everything' },
-              ...STATUSES.map((s) => ({ value: s, label: s.replace(/_/g, ' ') }))
+              ...STATUSES.map((s) => ({ value: s, label: statusLabel(s) }))
             ]}
           />
         </div>
@@ -99,7 +101,7 @@ export default function FeedbackTab({ app }) {
 
       {items.length === 0 ? (
         <EmptyState
-          title="Nothing reported yet"
+          title="Nothing Reported Yet"
           body={`Add the widget to ${app.slug} and a button appears for your users. Settings tells you the script tag.`}
         />
       ) : (
@@ -113,7 +115,7 @@ export default function FeedbackTab({ app }) {
                 <span className="t">{f.title}</span>
               </span>
               <span className="row-meta">
-                <span className="chip">{f.status.replace(/_/g, ' ')}</span>
+                <span className="chip">{statusLabel(f.status)}</span>
                 {f.work && f.work.length > 0 && <span className="chip">{f.work.join(' ')}</span>}
                 <span className="dim">{when(f.createdAt)}</span>
               </span>
@@ -154,7 +156,7 @@ function Detail({ app, data, error, onBack, onChanged }) {
             <Select
               value={f.status}
               onChange={(v) => run(() => api.setFeedbackStatus(app.slug, f.key, v))}
-              options={STATUSES.map((s) => ({ value: s, label: s.replace(/_/g, ' ') }))}
+              options={STATUSES.map((s) => ({ value: s, label: statusLabel(s) }))}
             />
           </div>
           <button type="button" onClick={onBack}>Back</button>
@@ -165,7 +167,7 @@ function Detail({ app, data, error, onBack, onChanged }) {
 
       <div className="field-panel" style={{ marginBottom: 20 }}>
         <div className="field">
-          <div className="lab"><b>What they said</b></div>
+          <div className="lab"><b>What They Said</b></div>
           <div className="ctl" style={{ whiteSpace: 'pre-wrap' }}>{f.body}</div>
         </div>
         {f.context && Object.keys(f.context).length > 0 && (
@@ -204,12 +206,12 @@ function Detail({ app, data, error, onBack, onChanged }) {
             disabled={busy || !note.trim()}
             onClick={() => run(async () => { await api.addFeedbackNote(app.slug, f.key, note); setNote(''); })}
           >
-            Add note
+            Add Note
           </button>
         </section>
 
         <section className="pane">
-          <h3>Said to them</h3>
+          <h3>Said to Them</h3>
           <p className="pane-note">What the person reading this needs: that you have it, what changed, and what to do now.</p>
           {data.user.length === 0 && <p className="dim">Nothing sent yet.</p>}
           {data.user.map((m) => (
@@ -227,7 +229,7 @@ function Detail({ app, data, error, onBack, onChanged }) {
                   disabled={busy}
                   onClick={() => run(() => api.sendFeedbackDraft(app.slug, f.key, m.id))}
                 >
-                  Send this
+                  Send This
                 </button>
               )}
             </div>
@@ -252,7 +254,7 @@ function Detail({ app, data, error, onBack, onChanged }) {
               disabled={busy || !reply.trim()}
               onClick={() => run(async () => { await api.replyToFeedback(app.slug, f.key, reply, true); setReply(''); })}
             >
-              Save as draft
+              Save as Draft
             </button>
           </div>
         </section>

@@ -89,7 +89,7 @@ export default function TotpSetupModal({ onClose, onDone, onError }) {
           </p>
 
           {manual ? (
-            <Field label="Or type this key in by hand"
+            <Field label="Or Type This Key In by Hand"
               hint="Some apps call this a setup key or a secret.">
               <div className="linkbar">
                 <code>{setup.secret}</code>
@@ -102,13 +102,13 @@ export default function TotpSetupModal({ onClose, onDone, onError }) {
           ) : (
             <p style={{ textAlign: 'center', marginBottom: 16 }}>
               <button type="button" className="link-btn" onClick={() => setManual(true)}>
-                Can’t scan? Enter the key manually
+                Can’t Scan? Enter the Key Manually
               </button>
             </p>
           )}
 
           <Field
-            label="Code from the app"
+            label="Code from the App"
             hint="Six digits. It changes every thirty seconds — nothing is switched on until one works."
           >
             <input inputMode="numeric" autoComplete="one-time-code" placeholder="123456"

@@ -146,7 +146,7 @@ export default function LoginPage({ onLogin }) {
         </label>}
         {needsCode && (
           <label>
-            {useRecovery ? 'Recovery code' : 'Authenticator code'}
+            {useRecovery ? 'Recovery Code' : 'Authenticator Code'}
             <input
               value={code}
               onChange={(e) => setCode(e.target.value)}
@@ -156,12 +156,12 @@ export default function LoginPage({ onLogin }) {
               placeholder={useRecovery ? 'xxxxx-xxxxx' : '123456'}
             />
             <button type="button" className="link-btn" onClick={() => { setUseRecovery(!useRecovery); setCode(''); }}>
-              {useRecovery ? 'Use my authenticator app instead' : "I've lost my authenticator — use a recovery code"}
+              {useRecovery ? 'Use My Authenticator App Instead' : "I've Lost My Authenticator: Use a Recovery Code"}
             </button>
           </label>
         )}
         <button type="submit" className="login-btn" disabled={loading || passkeyBusy}>
-          {loading ? 'Signing in…' : googleTicket ? 'Continue' : 'Sign In'}
+          {loading ? 'Signing In…' : googleTicket ? 'Continue' : 'Sign In'}
         </button>
 
         {googleEnabled && !googleTicket && (
@@ -190,7 +190,7 @@ export default function LoginPage({ onLogin }) {
                 <path d="M3 13.6c0-2 1.4-3.4 3-3.4M10.5 8.5v5.1M9.2 10.4h2.6M9.2 12.2h2"
                   stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
               </svg>
-              {passkeyBusy ? 'Waiting for your device…' : 'Sign in with a passkey'}
+              {passkeyBusy ? 'Waiting for your device…' : 'Sign In with a Passkey'}
             </button>
           </>
         )}

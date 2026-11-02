@@ -27,14 +27,15 @@ import './App.css';
 // answer and gets a neutral dot, because "we could not ask" is not "everything
 // is fine" and the previous version said fine unconditionally.
 function platformState(platform) {
-  if (!platform) return { tone: 'unknown', label: 'Status unknown', title: 'Could not read platform health' };
+  if (!platform) return { tone: 'unknown', label: 'Status Unknown', title: 'Could not read platform health' };
   const parts = ['database', 'objectstore', 'runner', 'cert'];
   const down = parts.filter((k) => platform[k] && platform[k].ok === false);
-  if (!down.length) return { tone: 'ok', label: 'All systems normal', title: 'Database, storage, runner and certificate are all answering' };
+  if (!down.length) return { tone: 'ok', label: 'All Systems Normal', title: 'Database, storage, runner and certificate are all answering' };
   const names = { database: 'database', objectstore: 'storage', runner: 'runner', cert: 'certificate' };
+  const labels = { database: 'Database', objectstore: 'Storage', runner: 'Runner', cert: 'Certificate' };
   return {
     tone: 'bad',
-    label: down.length === 1 ? `${names[down[0]]} is down` : `${down.length} systems down`,
+    label: down.length === 1 ? `${labels[down[0]]} Is Down` : `${down.length} Systems Down`,
     title: `Not answering: ${down.map((k) => names[k]).join(', ')}`
   };
 }
@@ -148,7 +149,7 @@ export default function App() {
           </div>
           <div className="logo-wrap">
             <span className="logo-text">ASTRO<span className="logo-text-dim">DOCK</span></span>
-            <span className="logo-sub">control plane</span>
+            <span className="logo-sub">Control Plane</span>
           </div>
         </div>
         <ul className="nav-links">
@@ -187,7 +188,7 @@ export default function App() {
           <li>
             <NavLink to="/tokens" className={({ isActive }) => isActive ? 'active' : ''}>
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="10.6" cy="5.4" r="3.1" stroke="currentColor" strokeWidth="1.4"/><path d="M8.4 7.6 2.6 13.4v1.2h2.2v-1.5h1.5v-1.5h1.4l1-1" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              Access keys
+              Access Keys
             </NavLink>
           </li>
           <li className="nav-sec">Observe</li>
@@ -207,7 +208,7 @@ export default function App() {
           <li>
             <NavLink to="/account" className={({ isActive }) => isActive ? 'active' : ''}>
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1.9 3.2 3.9v3.5c0 3 2 5.7 4.8 6.7 2.8-1 4.8-3.7 4.8-6.7V3.9L8 1.9z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"/><path d="m5.9 7.9 1.5 1.5 2.9-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              Your account
+              Your Account
             </NavLink>
           </li>
           <li>
@@ -226,8 +227,8 @@ export default function App() {
           <NavLink to="/account" className={({ isActive }) => `acct-chip${isActive ? ' active' : ''}`}>
             <span className="acct-avatar">{(me?.name || me?.email || '?').trim()[0]?.toUpperCase()}</span>
             <div className="t">
-              <b>{me?.name || me?.email || 'Your account'}</b>
-              <span>{me?.name && me?.email ? me.email : 'Account and security'}</span>
+              <b>{me?.name || me?.email || 'Your Account'}</b>
+              <span>{me?.name && me?.email ? me.email : 'Account and Security'}</span>
             </div>
           </NavLink>
 
@@ -240,7 +241,7 @@ export default function App() {
             <span className="led" />
             <span className="sys-text">{platformState(platform).label}</span>
             <span className="sys-ver">
-              {setup?.version ? `v${String(setup.version).replace(/^v/, '')}` : 'version unknown'}
+              {setup?.version ? `v${String(setup.version).replace(/^v/, '')}` : 'Version Unknown'}
             </span>
           </Link>
         </div>

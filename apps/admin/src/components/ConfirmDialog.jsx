@@ -60,7 +60,7 @@ export default function ConfirmDialog({
 
       {typeToConfirm && (
         <label className="fld" style={{ marginTop: 16 }}>
-          <span className="fld-label">Type <code>{typeToConfirm}</code> to confirm</span>
+          <span className="fld-label">Type <code>{typeToConfirm}</code> to Confirm</span>
           <div className="fld-control">
             <input value={typed} onChange={(e) => setTyped(e.target.value)} autoFocus
               spellCheck="false" placeholder={typeToConfirm} />

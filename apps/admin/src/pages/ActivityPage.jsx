@@ -6,23 +6,23 @@ import PageHeader from '../components/PageHeader';
 import Select from '../components/Select';
 
 const RESULT_OPTS = [
-  { value: '', label: 'All results' },
+  { value: '', label: 'All Results' },
   { value: 'SUCCESS', label: 'Success' },
-  { value: 'BAD_PASSWORD', label: 'Wrong password' },
-  { value: 'USER_NOT_FOUND', label: 'No such account' },
-  { value: 'INACTIVE_USER', label: 'Account deactivated' },
-  { value: 'NO_ACCESS', label: 'No access to that app' },
-  { value: 'INVALID_APP_SECRET', label: 'Bad app secret' },
-  { value: 'PASSWORD_CHANGED', label: 'Password changed' },
-  { value: 'PASSWORD_CHANGE_BAD_PASSWORD', label: 'Password change refused' }
+  { value: 'BAD_PASSWORD', label: 'Wrong Password' },
+  { value: 'USER_NOT_FOUND', label: 'No Such Account' },
+  { value: 'INACTIVE_USER', label: 'Account Deactivated' },
+  { value: 'NO_ACCESS', label: 'No Access to That App' },
+  { value: 'INVALID_APP_SECRET', label: 'Bad App Secret' },
+  { value: 'PASSWORD_CHANGED', label: 'Password Changed' },
+  { value: 'PASSWORD_CHANGE_BAD_PASSWORD', label: 'Password Change Refused' }
 ];
 const CATEGORY_OPTS = [
-  { value: '', label: 'All categories' },
+  { value: '', label: 'All Categories' },
   { value: 'health', label: 'Health' },
   { value: 'deploy', label: 'Deploys' },
   { value: 'pages', label: 'Pages' },
-  { value: 'auth', label: 'Sign-in' },
-  { value: 'audit', label: 'Admin actions' },
+  { value: 'auth', label: 'Sign-In' },
+  { value: 'audit', label: 'Admin Actions' },
   { value: 'system', label: 'System' }
 ];
 
@@ -146,7 +146,7 @@ export default function ActivityPage() {
         <div>
           <div className="activity-filters">
             <Select value={filter.result} onChange={v => setFilter({ ...filter, result: v })}
-              placeholder="All results" options={RESULT_OPTS} />
+              placeholder="All Results" options={RESULT_OPTS} />
             <input
               placeholder="Filter by email..."
               value={filter.email}
@@ -192,7 +192,7 @@ export default function ActivityPage() {
         <div>
           <div className="activity-filters">
             <Select value={eventCategory} onChange={setEventCategory}
-              placeholder="All categories" options={CATEGORY_OPTS} />
+              placeholder="All Categories" options={CATEGORY_OPTS} />
             <input value={q} onChange={(e) => setQ(e.target.value)}
               placeholder="Search events, apps, people…" />
           </div>

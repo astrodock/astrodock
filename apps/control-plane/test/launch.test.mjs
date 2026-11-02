@@ -127,7 +127,7 @@ try {
     assert.strictEqual((await post(t)).status, 303);
     const again = await post(t);
     assert.strictEqual(again.status, 401);
-    assert.match(await again.text(), /already used/);
+    assert.match(await again.text(), /Already Used/);
   });
 
   await test('a pass posted from another page is refused', async () => {
@@ -155,7 +155,7 @@ try {
       { algorithm: 'HS256', issuer: ISSUER, audience: 'astrodock-launch' });
     const res = await post(expired);
     assert.strictEqual(res.status, 401);
-    assert.match(await res.text(), /expired/);
+    assert.match(await res.text(), /Has Expired/);
   });
 
   await test('a pass with no id is refused', async () => {

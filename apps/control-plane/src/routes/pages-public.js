@@ -255,19 +255,19 @@ button{padding:10px 16px;border:0;border-radius:8px;background:#5145e6;color:#ff
 .err{color:#c0392b;font-size:14px}</style>${body}`;
 }
 function passkeyPromptHtml(page, err) {
-  return shell('Protected page', `<h1>This page is protected</h1>
+  return shell('Protected Page', `<h1>This Page Is Protected</h1>
 ${err ? `<p class=err>${esc(err)}</p>` : ''}
 <form method="POST" action="/${page.pageId}/_unlock"><input name="key" type="password" placeholder="Passkey" autofocus required>
 <button type="submit">Unlock</button></form>`);
 }
 function loginFormHtml(page, err, { email = '', needsCode = false } = {}) {
-  return shell('Sign in', `<h1>Sign in to view this page</h1>
+  return shell('Sign In', `<h1>Sign In to View This Page</h1>
 ${err ? `<p class=err>${esc(err)}</p>` : ''}
 <form method="POST" action="/${page.pageId}/_login"><input name="email" type="email" placeholder="Email" value="${esc(email)}"${email ? '' : ' autofocus'} required>
 <input name="password" type="password" placeholder="Password"${email ? ' autofocus' : ''} required>
 ${needsCode ? '<input name="code" inputmode="numeric" autocomplete="one-time-code" placeholder="Authenticator or recovery code" required>' : ''}
-<button type="submit">Sign in</button></form>`);
+<button type="submit">Sign In</button></form>`);
 }
-function notFoundHtml() { return shell('Not found', '<h1>404 — not found</h1><p>This page doesn’t exist or isn’t available.</p>'); }
+function notFoundHtml() { return shell('Not Found', '<h1>404: Not Found</h1><p>This page doesn’t exist or isn’t available.</p>'); }
 
 module.exports = router;

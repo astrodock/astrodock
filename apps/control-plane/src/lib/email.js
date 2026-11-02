@@ -91,7 +91,7 @@ async function sendTestEmail(to) {
   await sendEmail({
     to,
     subject: '[Astrodock] Test message',
-    html: '<h2 style="color:#0e9e6e">Email is working</h2>'
+    html: '<h2 style="color:#0e9e6e">Email Is Working</h2>'
       + `<p style="color:#475569">Sent from your Astrodock instance via <b>${cfg.provider}</b>. `
       + 'If you can read this, alerts will reach you.</p>'
   });

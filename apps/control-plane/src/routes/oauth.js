@@ -61,12 +61,12 @@ router.get('/authorize', async (req, res) => {
   const { app_id: appId, redirect_uri: redirectUri, state = '', nonce = '' } = req.query;
 
   const app = await appBySlug(appId);
-  if (!app) return res.status(400).type('html').send(errorPage('Unknown app', 'That application is not registered on this server.'));
+  if (!app) return res.status(400).type('html').send(errorPage('Unknown App', 'That application is not registered on this server.'));
 
   // Validate the redirect BEFORE anything else can bounce a user to it.
   if (!await oauth.isAllowedRedirect(app.id, redirectUri)) {
     return res.status(400).type('html').send(errorPage(
-      'Redirect URL not allowed',
+      'Redirect URL Not Allowed',
       'This app has not registered that redirect URL. An administrator can add it in the app\'s settings.'
     ));
   }
@@ -126,7 +126,7 @@ router.get('/logout', async (req, res) => {
   // registered a redirect URI on. Any other URL made this an open redirect that
   // starts on the auth host, which is what a phishing link wants.
   if (back && await isPlatformOrigin(String(back)).catch(() => false)) return res.redirect(String(back));
-  res.type('html').send(errorPage('Signed out',
+  res.type('html').send(errorPage('Signed Out',
     'You have been signed out of Astrodock, so apps will ask who you are again. '
     + 'Any app you are still signed into keeps its own session until you sign out of it.',
   { icon: 'log-out' }));
@@ -222,10 +222,10 @@ router.post('/login', pageLoginLimiter, express.json(), async (req, res) => {
 router.get('/login/google/start', pageLoginLimiter, async (req, res) => {
   try {
     const app = await appBySlug(req.query.app_id);
-    if (!app) return res.type('html').send(errorPage('Unknown app', 'That application is not registered here.'));
+    if (!app) return res.type('html').send(errorPage('Unknown App', 'That application is not registered here.'));
     const redirectUri = String(req.query.redirect_uri || '');
     if (!await oauth.isAllowedRedirect(app.id, redirectUri)) {
-      return res.type('html').send(errorPage('Redirect URL not allowed',
+      return res.type('html').send(errorPage('Redirect URL Not Allowed',
         'That return address is not registered for this app.'));
     }
     const { url } = await google.begin({
@@ -234,7 +234,7 @@ router.get('/login/google/start', pageLoginLimiter, async (req, res) => {
     });
     res.redirect(url);
   } catch (err) {
-    res.type('html').send(errorPage('Google sign-in unavailable', err.message));
+    res.type('html').send(errorPage('Google Sign-In Unavailable', err.message));
   }
 });
 
@@ -253,7 +253,7 @@ router.get('/login/google/callback', pageLoginLimiter, async (req, res) => {
     if (ctx.surface === 'link') return completeLink({ req, res, identity, ctx });
 
     const app = await appBySlug(ctx.appSlug);
-    if (!app) return res.type('html').send(errorPage('Unknown app', 'That application is not registered here.'));
+    if (!app) return res.type('html').send(errorPage('Unknown App', 'That application is not registered here.'));
 
     // Back to this app's sign-in form, asking afresh. The redirect was checked
     // against the app's allowlist when this Google round trip started.
@@ -262,17 +262,17 @@ router.get('/login/google/callback', pageLoginLimiter, async (req, res) => {
     const { user, error } = await googleAccounts.resolveEndUser(identity, app);
     if (error) {
       logAttempt(identity.email, app.slug, 'NO_ACCESS', req.ip || '');
-      return res.type('html').send(errorPage('Cannot sign you in', error,
-        { action: { href: retry, label: 'Try another way' } }));
+      return res.type('html').send(errorPage('Cannot Sign You In', error,
+        { action: { href: retry, label: 'Try Another Way' } }));
     }
 
     // Identity is settled; access is still its own question.
     const access = Array.isArray(user.appAccess) ? user.appAccess : [];
     if (!access.includes(app.slug)) {
       logAttempt(user.email, app.slug, 'NO_ACCESS', req.ip || '');
-      return res.type('html').send(errorPage('No access',
+      return res.type('html').send(errorPage('No Access',
         `Your Google account signed in, but it has not been given access to ${app.name}. Whoever manages ${app.name} can add you.`,
-        { icon: 'lock', action: { href: retry, label: 'Use another account' } }));
+        { icon: 'lock', action: { href: retry, label: 'Use Another Account' } }));
     }
 
     // An end user with TOTP set up is still asked for it, because Google's
@@ -281,9 +281,9 @@ router.get('/login/google/callback', pageLoginLimiter, async (req, res) => {
     // back to the form they already know.
     const f = await factors.factorsFor(user.id);
     if (f.totp) {
-      return res.type('html').send(errorPage('Use your password',
+      return res.type('html').send(errorPage('Use Your Password',
         'This account has two-step sign-in, so it signs in with its password and code rather than Google.',
-        { icon: 'key', action: { href: retry, label: 'Sign in with your password' } }));
+        { icon: 'key', action: { href: retry, label: 'Sign In with Your Password' } }));
     }
 
     userSession.set(res, user);
@@ -295,7 +295,7 @@ router.get('/login/google/callback', pageLoginLimiter, async (req, res) => {
     if (ctx.state) back.searchParams.set('state', ctx.state);
     res.redirect(back.toString());
   } catch (err) {
-    res.type('html').send(errorPage('Google sign-in failed', err.message));
+    res.type('html').send(errorPage('Google Sign-In Failed', err.message));
   }
 });
 
@@ -313,20 +313,20 @@ router.get('/login/google/callback', pageLoginLimiter, async (req, res) => {
 // would leave them with two accounts and access on the wrong one.
 async function completeInvite({ req, res, identity, ctx }) {
   const { invite, user: invited, app, error } = await invites.resolve(ctx.inviteToken);
-  if (error) return res.status(400).type('html').send(errorPage('That invite cannot be used', error));
+  if (error) return res.status(400).type('html').send(errorPage('That Invite Cannot Be Used', error));
 
   let target = await googleAccounts.findLinked(identity.sub);
   if (!target) {
     // Unverified at Google is not an identity: anyone can put any address on an
     // account they have not proven they control.
     if (!identity.emailVerified) {
-      return res.type('html').send(errorPage('Google has not verified that address',
+      return res.type('html').send(errorPage('Google Has Not Verified That Address',
         'Verify the address with Google first, or set a password on the invite instead.'));
     }
     const byEmail = await googleAccounts.findByEmail(identity.email);
     const existing = byEmail && byEmail.id !== invited.id ? byEmail : null;
     if (existing && existing.googleSub && existing.googleSub !== identity.sub) {
-      return res.type('html').send(errorPage('Already linked elsewhere',
+      return res.type('html').send(errorPage('Already Linked Elsewhere',
         'An account here already uses that address with a different Google account.'));
     }
     // The invited account already signs in some other way. Attaching whatever
@@ -335,7 +335,7 @@ async function completeInvite({ req, res, identity, ctx }) {
     if (!existing && invited.email !== String(identity.email || '').toLowerCase()) {
       const f = await factors.factorsFor(invited.id);
       if (f.password || f.passkeys || invited.googleSub) {
-        return res.type('html').send(errorPage('Use the account you already have',
+        return res.type('html').send(errorPage('Use the Account You Already Have',
           `This invite is for ${invited.email}, which already has a way to sign in. Sign in with that instead.`));
       }
     }
@@ -344,7 +344,7 @@ async function completeInvite({ req, res, identity, ctx }) {
   }
 
   if (!target.isActive) {
-    return res.type('html').send(errorPage('That account is disabled',
+    return res.type('html').send(errorPage('That Account Is Disabled',
       'Ask whoever runs this server to turn it back on.'));
   }
 
@@ -368,13 +368,13 @@ async function completeInvite({ req, res, identity, ctx }) {
 async function completeLink({ req, res, identity, ctx }) {
   const session = userSession.read(req);
   if (!session || (ctx.userId && session.sub !== ctx.userId)) {
-    return res.status(401).type('html').send(errorPage('Sign in first',
+    return res.status(401).type('html').send(errorPage('Sign In First',
       'That sign-in session has ended. Sign in again and retry from your account page.'));
   }
   try {
     await googleAccounts.linkToUser({ userId: session.sub, identity });
   } catch (err) {
-    return res.status(400).type('html').send(errorPage('Could not attach that account', err.message));
+    return res.status(400).type('html').send(errorPage('Could Not Attach That Account', err.message));
   }
   logAttempt(identity.email, 'account', 'GOOGLE_LINKED', req.ip || '');
   return res.redirect('/account?linked=1');
@@ -416,24 +416,24 @@ function loginPage({ appName, appId, redirectUri, state, nonce, brandColor, logo
   // code in its place) appears only when the server says the account has one,
   // and the email and password are held in memory to send with it: /login is
   // stateless, so the code alone proves nothing.
-  return shell(`Sign in to ${appName}`, `
+  return shell(`Sign In to ${appName}`, `
 ${brandMark(logoUrl, appName)}
-<div class="heading"><h1 id="title">Sign in to ${esc(appName)}</h1><p class="sub" id="lead" hidden></p></div>
+<div class="heading"><h1 id="title">Sign In to ${esc(appName)}</h1><p class="sub" id="lead" hidden></p></div>
 ${errorLine()}
 <form id="f">
   <div class="field"><label for="email">Email</label><input id="email" type="email" autocomplete="username webauthn" required></div>
   ${passwordField('password', 'Password')}
-  <button type="submit" id="go">Sign in</button>
+  <button type="submit" id="go">Sign In</button>
 </form>
 <form id="f2" hidden>
-  <div class="field" id="totpField"><label for="totp">Authenticator code</label><input id="totp" class="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000"></div>
-  <div class="field" id="recoveryField" hidden><label for="recovery">Recovery code</label><input id="recovery" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="xxxxx-xxxxx"><p class="hint">Each recovery code works once.</p></div>
+  <div class="field" id="totpField"><label for="totp">Authenticator Code</label><input id="totp" class="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000"></div>
+  <div class="field" id="recoveryField" hidden><label for="recovery">Recovery Code</label><input id="recovery" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="xxxxx-xxxxx"><p class="hint">Each recovery code works once.</p></div>
   <button type="submit" id="go2">Verify</button>
-  <div class="split"><button class="quiet" type="button" id="back">Back</button><button class="quiet" type="button" id="swap">Use a recovery code</button></div>
+  <div class="split"><button class="quiet" type="button" id="back">Back</button><button class="quiet" type="button" id="swap">Use a Recovery Code</button></div>
 </form>
 <div class="alt" id="alt">
   <div class="or"><span>or</span></div>
-  <button class="secondary" id="pk" type="button">${icon('key')}Sign in with a passkey</button>
+  <button class="secondary" id="pk" type="button">${icon('key')}Sign In with a Passkey</button>
   ${googleEnabled ? googleButton(`/login/google/start?app_id=${encodeURIComponent(appId)}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state || '')}`) : ''}
 </div>
 ${signedInAs ? `<p class="muted">Signed in as ${esc(signedInAs)}. Sign in again to continue.</p>` : ''}
@@ -461,7 +461,7 @@ function codeMode(recovery) {
   useRecovery = recovery;
   el('totpField').hidden = recovery;
   el('recoveryField').hidden = !recovery;
-  el('swap').textContent = recovery ? 'Use the authenticator code' : 'Use a recovery code';
+  el('swap').textContent = recovery ? 'Use the Authenticator Code' : 'Use a Recovery Code';
   el('lead').textContent = recovery
     ? 'Enter one of the recovery codes you saved when you set up two-step sign-in.'
     : 'Enter the 6-digit code from your authenticator app.';
@@ -470,7 +470,7 @@ function codeMode(recovery) {
 function step(two) {
   el('f').hidden = two; el('alt').hidden = two;
   el('f2').hidden = !two; el('lead').hidden = !two;
-  el('title').textContent = two ? 'Two-step sign-in' : ${scriptJson(`Sign in to ${appName}`)};
+  el('title').textContent = two ? 'Two-Step Sign-In' : ${scriptJson(`Sign In to ${appName}`)};
   clear();
   if (two) codeMode(false); else el('password').focus();
 }

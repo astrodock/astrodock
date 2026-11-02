@@ -213,7 +213,7 @@ export default function PageFiles({ page, pageId, onChanged, onEdit, onError, fl
       </div>
 
       <div className="crumbs">
-        <button className={`crumb ${cwd ? '' : 'here'}`} onClick={() => setCwd('')}>All files</button>
+        <button className={`crumb ${cwd ? '' : 'here'}`} onClick={() => setCwd('')}>All Files</button>
         {crumbs.map((c, i) => {
           const path = crumbs.slice(0, i + 1).join('/');
           return (
@@ -224,7 +224,7 @@ export default function PageFiles({ page, pageId, onChanged, onEdit, onError, fl
           );
         })}
         <button className="link-btn" style={{ marginLeft: 'auto' }} onClick={() => dirRef.current?.click()}>
-          Upload a whole folder
+          Upload a Whole Folder
         </button>
       </div>
 
@@ -236,7 +236,7 @@ export default function PageFiles({ page, pageId, onChanged, onEdit, onError, fl
       >
         {dragging && (
           <div className="drop-hint">
-            <b>Drop to upload</b>
+            <b>Drop to Upload</b>
             <span>{cwd ? `into ${cwd}/` : 'into the top level'}</span>
           </div>
         )}
@@ -250,7 +250,7 @@ export default function PageFiles({ page, pageId, onChanged, onEdit, onError, fl
             <tbody>
               {cwd && (
                 <tr className="row-up" onClick={() => setCwd(dirOf(cwd))}>
-                  <td colSpan={5}><span className="fname">↰ up one level</span></td>
+                  <td colSpan={5}><span className="fname">↰ Up One Level</span></td>
                 </tr>
               )}
               {dirs.map((d) => {
@@ -280,7 +280,7 @@ export default function PageFiles({ page, pageId, onChanged, onEdit, onError, fl
                   <td className="text-muted">{fmtSize(f.size)}</td>
                   <td>
                     {page.entryFile === f.name
-                      ? <span className="chip ok">entry</span>
+                      ? <span className="chip ok">Entry</span>
                       : <button className="link-btn" onClick={() => onChanged({ entryFile: f.name }, 'Entry file set.')}>Make Entry</button>}
                   </td>
                   <td className="actions">
@@ -289,7 +289,7 @@ export default function PageFiles({ page, pageId, onChanged, onEdit, onError, fl
                     <button className="link-btn danger" onClick={() => ask({
                       title: 'Delete this file?',
                       danger: true,
-                      confirmLabel: 'Delete file',
+                      confirmLabel: 'Delete File',
                       body: (
                         <>
                           <p><code>{f.name}</code> is removed from this page. Any link pointing

@@ -14,38 +14,38 @@
 const { shell, icon, errorLine, passwordField, REVEAL_JS } = require('./auth-pages');
 
 function accountPage() {
-  return shell('Your account', `
+  return shell('Your Account', `
 <span class="tile">${icon('lock')}</span>
-<div class="heading"><h1 id="title">Change your password</h1><p class="sub" id="who" hidden>Signed in as <b id="acctEmail"></b></p></div>
+<div class="heading"><h1 id="title">Change Your Password</h1><p class="sub" id="who" hidden>Signed in as <b id="acctEmail"></b></p></div>
 ${errorLine()}
 <div class="ok" id="ok" role="status" hidden><span></span></div>
 
 <div id="signedIn" hidden>
   <div class="sec" id="googleSec">
-    <h2>Sign in with Google</h2>
+    <h2>Sign In with Google</h2>
     <div class="state"><span class="dot" id="gDot"></span><span id="gState"></span></div>
     <p id="gHelp"></p>
-    <a class="btn secondary" id="gLink" href="/account/google/link">Attach my Google account</a>
-    <button class="secondary" type="button" id="gUnlink" hidden>Detach it</button>
+    <a class="btn secondary" id="gLink" href="/account/google/link">Attach My Google Account</a>
+    <button class="secondary" type="button" id="gUnlink" hidden>Detach It</button>
   </div>
   <form class="sec" id="emailForm">
-    <h2>Sign-in address</h2>
+    <h2>Sign-In Address</h2>
     <p>Changing it sends a link to the new address. Nothing changes until you follow it.</p>
-    <div class="field"><label for="newEmail">New address</label><input type="email" id="newEmail" autocomplete="email"></div>
-    <div id="emailPwField" hidden>${passwordField('emailPassword', 'Current password')}</div>
-    <div class="field" id="emailCodeField" hidden><label for="emailCode">Authenticator code</label><input id="emailCode" class="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000"></div>
-    <button class="secondary" type="submit" id="emailBtn">Send the confirmation link</button>
+    <div class="field"><label for="newEmail">New Address</label><input type="email" id="newEmail" autocomplete="email"></div>
+    <div id="emailPwField" hidden>${passwordField('emailPassword', 'Current Password')}</div>
+    <div class="field" id="emailCodeField" hidden><label for="emailCode">Authenticator Code</label><input id="emailCode" class="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000"></div>
+    <button class="secondary" type="submit" id="emailBtn">Send the Confirmation Link</button>
   </form>
-  <div class="sec"><h2>Change password</h2></div>
+  <div class="sec"><h2>Change Password</h2></div>
 </div>
 
 <form id="form">
   <div class="field"><label for="email">Email</label><input type="email" id="email" autocomplete="username" required></div>
-  ${passwordField('currentPassword', 'Current password', { required: true })}
-  ${passwordField('newPassword', 'New password', { autocomplete: 'new-password', required: true, minlength: 8, hint: 'At least 8 characters.' })}
-  ${passwordField('confirmPassword', 'Confirm new password', { autocomplete: 'new-password', required: true, minlength: 8 })}
-  <div class="field" id="codeField" hidden><label for="code">Authenticator code</label><input id="code" class="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000"><p class="hint">This account has two-step sign-in.</p></div>
-  <button type="submit" id="submitBtn">Change password</button>
+  ${passwordField('currentPassword', 'Current Password', { required: true })}
+  ${passwordField('newPassword', 'New Password', { autocomplete: 'new-password', required: true, minlength: 8, hint: 'At least 8 characters.' })}
+  ${passwordField('confirmPassword', 'Confirm New Password', { autocomplete: 'new-password', required: true, minlength: 8 })}
+  <div class="field" id="codeField" hidden><label for="code">Authenticator Code</label><input id="code" class="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000"><p class="hint">This account has two-step sign-in.</p></div>
+  <button type="submit" id="submitBtn">Change Password</button>
 </form>
 <script>
 const el = (id) => document.getElementById(id);
@@ -66,7 +66,7 @@ ${REVEAL_JS}
 
   el('signedIn').hidden = false;
   el('who').hidden = false;
-  el('title').textContent = 'Your account';
+  el('title').textContent = 'Your Account';
   el('acctEmail').textContent = me.email;
   el('email').value = me.email;
   el('email').readOnly = true;
@@ -81,7 +81,7 @@ ${REVEAL_JS}
   if (me.pendingEmail) say('success', 'Waiting for ' + me.pendingEmail + ' to confirm. Until then you sign in as ' + me.email + '.');
 
   if (!me.googleAvailable) {
-    el('gState').textContent = 'Not set up on this server';
+    el('gState').textContent = 'Not Set Up on This Server';
     el('gHelp').textContent = 'An administrator has to configure Google sign-in before this can be used.';
     el('gLink').hidden = true;
     return;
@@ -95,7 +95,7 @@ ${REVEAL_JS}
     el('gLink').hidden = true;
     el('gUnlink').hidden = false;
   } else {
-    el('gState').textContent = 'Not attached';
+    el('gState').textContent = 'Not Attached';
     el('gHelp').textContent = 'It does not have to be the same address as above. Whichever Google account you pick becomes a way in.';
   }
 })();

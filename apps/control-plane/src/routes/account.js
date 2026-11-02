@@ -145,7 +145,7 @@ function googleCallbackUrl(req) {
 router.get('/google/link', accountLimiter, async (req, res) => {
   const user = await sessionUser(req);
   if (!user) {
-    return res.status(401).type('html').send(errorPage('Sign in first',
+    return res.status(401).type('html').send(errorPage('Sign In First',
       'Open one of your apps and sign in, then come back to this page.'));
   }
   try {
@@ -157,7 +157,7 @@ router.get('/google/link', accountLimiter, async (req, res) => {
     });
     res.redirect(url);
   } catch (err) {
-    res.type('html').send(errorPage('Google sign-in unavailable', err.message));
+    res.type('html').send(errorPage('Google Sign-In Unavailable', err.message));
   }
 });
 
@@ -209,13 +209,13 @@ router.get('/email/confirm/:token', accountLimiter, async (req, res) => {
     // The session carries the old address in its claims, so it is cleared: the
     // next sign-in mints one that matches the account.
     userSession.clear(res);
-    res.type('html').send(shell('Address confirmed', `
+    res.type('html').send(shell('Address Confirmed', `
 <span class="tile success">${icon('check')}</span>
-<div class="heading"><h1>That is your address now</h1>
+<div class="heading"><h1>That Is Your Address Now</h1>
 <p class="sub">This account signs in as <b>${esc(to)}</b> instead of ${esc(from)}.</p></div>
 <p class="muted">Sign in again to continue.</p>`));
   } catch (err) {
-    res.status(400).type('html').send(errorPage('That link cannot be used', err.message, { icon: 'link' }));
+    res.status(400).type('html').send(errorPage('That Link Cannot Be Used', err.message, { icon: 'link' }));
   }
 });
 

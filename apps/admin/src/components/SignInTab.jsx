@@ -51,7 +51,7 @@ export default function SignInTab({ app }) {
     ask({
       title: 'Stop allowing this address?',
       danger: true,
-      confirmLabel: 'Stop allowing it',
+      confirmLabel: 'Stop Allowing It',
       body: (
         <>
           <p>
@@ -128,7 +128,7 @@ const user = await r.json();   // { userId, email, name }`;
                 disabled={savingSignup}
                 onChange={(e) => saveSignup(e.target.checked)}
               />
-              <span>Anyone with a Google account can sign up for this app</span>
+              <span>Anyone with a Google Account Can Sign Up for This App</span>
             </label>
           </div>
         </div>
@@ -167,7 +167,7 @@ const user = await r.json();   // { userId, email, name }`;
       <div className="field-panel" style={{ marginTop: 14 }}>
         <div className="field">
           <div className="lab">
-            <b>Add a return address</b>
+            <b>Add a Return Address</b>
             <span className="desc">
               Add every address your app actually uses, including
               <code> http://localhost:…</code> while you are developing. Must start with
@@ -198,7 +198,7 @@ const user = await r.json();   // { userId, email, name }`;
 
       <div className="code-block">
         <div className="code-head">
-          <span>Your server</span>
+          <span>Your Server</span>
           <button type="button" onClick={async () => {
             try { await navigator.clipboard.writeText(code); setCopied(true); setTimeout(() => setCopied(false), 1400); }
             catch { /* clipboard blocked — the code is on screen to select */ }

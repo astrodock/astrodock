@@ -92,14 +92,14 @@ export default function UserModal({ user, onClose, onSave }) {
 
         <div className="field" style={{ display: 'block', padding: '14px 0' }}>
           <div className="lab" style={{ marginBottom: 8 }}>
-            <b>Dashboard access</b>
+            <b>Dashboard Access</b>
             <span className="desc">
-              Separate from which apps they can sign in to. "App user" means they can use apps you
+              Separate from which apps they can sign in to. "App User" means they can use apps you
               grant them, but cannot open this dashboard.
             </span>
           </div>
           <div className="seg">
-            {[['', 'App user'], ['viewer', 'Viewer'], ['operator', 'Operator'], ['admin', 'Admin'], ['owner', 'Owner']]
+            {[['', 'App User'], ['viewer', 'Viewer'], ['operator', 'Operator'], ['admin', 'Admin'], ['owner', 'Owner']]
               .map(([v, label]) => (
                 <button type="button" key={label} className={(form.operatorRole || '') === v ? 'sel' : ''}
                   onClick={() => setForm({ ...form, operatorRole: v })}>{label}</button>

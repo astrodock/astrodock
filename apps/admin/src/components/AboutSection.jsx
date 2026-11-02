@@ -64,7 +64,7 @@ export default function AboutSection({ diagnostics }) {
           <span className="led warn" />
           <span>
             <b>{info.latest} is available.</b> You are on {String(current).replace(/^v/, '')}.{' '}
-            <a className="link" href={info.url} target="_blank" rel="noopener">See what changed ↗</a>
+            <a className="link" href={info.url} target="_blank" rel="noopener">See What Changed ↗</a>
           </span>
           {canUpdate?.ok && (
             <button className="primary" style={{ marginLeft: 'auto', flexShrink: 0 }}
@@ -83,10 +83,10 @@ export default function AboutSection({ diagnostics }) {
         <Row label="Version">
           <code className="mono">{current ? String(current).replace(/^v/, '') : 'unknown'}</code>
           {state && <span className={`chip ${tone}`}>{
-            state === 'behind' ? 'update available'
-              : state === 'current' ? 'up to date'
-                : state === 'disabled' ? 'checking off'
-                  : state === 'error' ? 'check failed' : 'unknown'
+            state === 'behind' ? 'Update Available'
+              : state === 'current' ? 'Up to Date'
+                : state === 'disabled' ? 'Checking Off'
+                  : state === 'error' ? 'Check Failed' : 'Unknown'
           }</span>}
         </Row>
 
@@ -108,7 +108,7 @@ export default function AboutSection({ diagnostics }) {
       {(state === 'behind' || state === 'current') && (
         <div className="opt-group" style={{ marginTop: 18 }}>
           <header>
-            <h4>{canUpdate?.ok ? 'Or Update From The Server' : 'How To Update'}</h4>
+            <h4>{canUpdate?.ok ? 'Or Update from the Server' : 'How to Update'}</h4>
             <p>
               Run this on the server, in the directory holding your{' '}
               <code>docker-compose.yml</code>. Astrodock applies its own database
