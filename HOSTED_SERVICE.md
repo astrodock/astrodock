@@ -25,7 +25,7 @@ Decided by Paul, 2026-11-01 and 2026-11-02.
 | Approval | Actions beyond one app need approval in the browser with a passkey or authenticator code, every time |
 | Factors | Passkey strongly encouraged and shown first. Authenticator app (TOTP) allowed |
 | Runtime limits | Per-app CPU and memory caps, and outbound traffic monitoring. Required before launch |
-| Billing | Charge at signup. Full refund within 14 days. One instance per card. Stripe Radar on |
+| Billing | Charge at signup. Full refund within 14 days. One instance per card. Stripe subscriptions (Billing), kept over charging cards ourselves. Radar Standard, pay as you go |
 | D1 | Node apps run in a container of their own. `ASTRODOCK_NODE_RUNTIME=container`; new installs and hosted instances get it, an existing install keeps PM2 until it opts in |
 | D2 | A customer domain on the Public Suffix List; certificates per hostname over HTTP-01 |
 | D3 | A new domain, separate from astrodock.ai. Name not chosen |
