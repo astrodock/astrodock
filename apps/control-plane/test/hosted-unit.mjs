@@ -34,6 +34,14 @@ test('an app\'s own values are clamped to the maximum', () => {
   assert.strictEqual(l.memoryMb, config.limits.memoryMbMax);
   assert.strictEqual(l.cpuMillis, config.limits.cpuMillisMax);
 });
+test('unset maximums follow the machine: half the memory, every CPU', () => {
+  const gb = 1024 ** 3;
+  // DigitalOcean's 2 GB droplet reports a little under 2 GB.
+  assert.deepStrictEqual(config.machineLimits(1.94 * gb, 1), { memoryMbMax: 993, cpuMillisMax: 1000 });
+  assert.deepStrictEqual(config.machineLimits(4 * gb, 2), { memoryMbMax: 2048, cpuMillisMax: 2000 });
+  assert.deepStrictEqual(config.machineLimits(32 * gb, 10), { memoryMbMax: 4096, cpuMillisMax: 4000 });
+  assert.deepStrictEqual(config.machineLimits(256 * 1048576, 1), { memoryMbMax: 256, cpuMillisMax: 1000 });
+});
 test('docker gets memory with no swap, and CPUs as a decimal', () => {
   const args = iso.dockerLimitArgs({ memoryMb: 768, cpuMillis: 1500 });
   assert.deepStrictEqual(args, ['--memory', '768m', '--memory-swap', '768m', '--cpus', '1.50']);

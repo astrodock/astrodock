@@ -31,7 +31,7 @@ Decided by Paul, 2026-11-01 and 2026-11-02.
 | D3 | A new domain, separate from astrodock.ai. Name not chosen |
 | D4 | A separate private repository: `astrodock-cloud` |
 | D5 | The service is an app on its own dedicated Astrodock instance |
-| D6 | Plans are configuration (`CLOUD_PLANS`): name, price, Stripe price, droplet size. Sizes and prices not set |
+| D6 | Plans are configuration (`CLOUD_PLANS`): name, price, Stripe price, droplet size. Small $25 (2 GB, 1 vCPU), Medium $50 (4 GB, 2 vCPU), Large $100 (8 GB, 4 vCPU). Plans differ by RAM and CPU; every instance keeps the disk of the pool size |
 | D7 | 60 days of retention after cancel, as a snapshot; restore by choosing a plan again |
 | D8 | One region at launch (`DO_REGION`) |
 
@@ -116,6 +116,9 @@ In `SECURITY.md`, "Hosted mode": what is enforced and what is not.
 | 4.4 | Off-box backups to Spaces while running | Not built. Cancelled instances are kept as snapshots (4.7); a running instance's backups stay on the droplet |
 | 4.5 | Outbound bandwidth abuse signal; suspend and resume | Testing |
 | 4.6 | Plan change: Stripe price and a CPU/RAM resize | Testing |
+| 4.6a | Plan size at sign-up: the pool holds the default plan's size; a bigger plan is resized before the claim | Testing |
+| 4.6b | Restore at the pool size, then resize to the plan paid for, so the disk never grows | Testing |
+| 4.6c | Per-app and build memory maximums follow the machine (half its memory, up to 4,096 MB); CPU maximum is its CPU count | Testing |
 | 4.7 | Lifecycle: cancel, snapshot, 60 days, reminder a week before, delete; restore from snapshot | Testing |
 
 ## Phase 5: Launch
@@ -133,5 +136,5 @@ In `SECURITY.md`, "Hosted mode": what is enforced and what is not.
 |---|---|
 | Customer domain (D3) | The name. Then its DNS on DigitalOcean and a Public Suffix List request |
 | Service address | The CLI's default is `https://cloud.astrodock.ai` (`packages/cli/src/login.js`), a placeholder until the service's own address is chosen |
-| Plans (D6) | Droplet sizes and prices, after measuring the stack's idle memory |
+| Plans (D6) | Prices set. Measure the stack's idle memory on a Small droplet before launch; the Stripe prices and `CLOUD_PLANS` value are pending setup |
 | Legal | Company name, address, governing law, contact email, and counsel's review |

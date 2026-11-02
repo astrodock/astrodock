@@ -19,6 +19,17 @@ function int(v, def) {
   const n = parseInt(v, 10);
   return Number.isFinite(n) ? n : def;
 }
+// The largest caps that make sense on this machine. One app (or one build) may
+// have half the memory, with the rest left to the platform and the other apps,
+// and as many CPUs as there are: Docker refuses `--cpus` above that. Inside a
+// container these read the host's memory and CPUs.
+function machineLimits(totalBytes = require('os').totalmem(), cpus = require('os').cpus().length) {
+  const halfMb = Math.floor(totalBytes / 1048576 / 2);
+  return {
+    memoryMbMax: Math.min(4096, Math.max(256, halfMb)),
+    cpuMillisMax: Math.min(4000, Math.max(1, cpus) * 1000)
+  };
+}
 function parseSize(v, def) {
   if (v == null || v === '') return def;
   const m = String(v).trim().match(/^(\d+(?:\.\d+)?)\s*(b|kb|mb|gb)?$/i);
@@ -163,12 +174,14 @@ const config = {
 
   // Caps for apps that run in a container (Dockerfile apps, and Node apps when
   // nodeRuntime is `container`). A per-app value set in the dashboard overrides
-  // the default, up to the maximum.
+  // the default, up to the maximum. Unset maximums follow the machine
+  // (machineLimits below), so a hosted instance gets the right ones for its
+  // plan after a resize without being told.
   limits: {
     memoryMbDefault: int(process.env.ASTRODOCK_APP_MEMORY_MB, 512),
-    memoryMbMax: int(process.env.ASTRODOCK_APP_MEMORY_MB_MAX, 4096),
+    memoryMbMax: int(process.env.ASTRODOCK_APP_MEMORY_MB_MAX, machineLimits().memoryMbMax),
     cpuMillisDefault: int(process.env.ASTRODOCK_APP_CPU_MILLIS, 1000),
-    cpuMillisMax: int(process.env.ASTRODOCK_APP_CPU_MILLIS_MAX, 4000)
+    cpuMillisMax: int(process.env.ASTRODOCK_APP_CPU_MILLIS_MAX, machineLimits().cpuMillisMax)
   },
 
   // The hosted service's credential for this instance (routes/fleet.js). Unset
@@ -274,5 +287,7 @@ config.isCredentialedOrigin = function isCredentialedOrigin(origin) {
   const hosts = [`${config.adminSubdomain}.${config.baseDomain}`, config.authHost].map((h) => h.toLowerCase());
   return hosts.some((h) => origin.toLowerCase() === `${scheme}://${h}`);
 };
+
+config.machineLimits = machineLimits;
 
 module.exports = config;
