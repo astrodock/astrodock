@@ -78,8 +78,13 @@ jobs:
       # required, so `docker compose config` cannot run on a bare checkout at all —
       # which is why both steps below have been failing since they were written.
       # An installed box always has a .env; make one, the way install.sh does.
+      # ASTRODOCK_RUNNER_TOKEN is required too (no shared default since the
+      # runner hardening); install.sh and setup.sh generate one.
       - name: seed a throwaway .env so compose can be evaluated
-        run: sed 's/^ASTRODOCK_PG_PASSWORD=$/ASTRODOCK_PG_PASSWORD=ci-not-a-real-password/' .env.example > .env
+        run: |
+          sed -e 's/^ASTRODOCK_PG_PASSWORD=$/ASTRODOCK_PG_PASSWORD=ci-not-a-real-password/' \
+              -e 's/^ASTRODOCK_RUNNER_TOKEN=$/ASTRODOCK_RUNNER_TOKEN=ci-not-a-real-token/' .env.example > .env
+          grep -q '^ASTRODOCK_RUNNER_TOKEN=.' .env || echo 'ASTRODOCK_RUNNER_TOKEN=ci-not-a-real-token' >> .env
 
       - name: compose keeps per-project network isolation
         run: |
