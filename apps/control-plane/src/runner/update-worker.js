@@ -187,9 +187,11 @@ async function main() {
   const health = await waitForApi(TO);
   if (health.ok) {
     console.log(`[update] up on ${health.version}`);
+    const removed = await pruneOldImages([TO, health.version, FROM]);
     await record('update.succeeded', 'info',
-      `Updated to ${health.version || TO || 'the latest release'}`,
-      { from: FROM, to: health.version, backup: backupFile });
+      `Updated to ${health.version || TO || 'the latest release'}` +
+        (removed.length ? `. Removed ${removed.length} older version image(s) to free disk space.` : ''),
+      { from: FROM, to: health.version, backup: backupFile, removedImages: removed });
     return;
   }
 
@@ -202,6 +204,40 @@ async function main() {
       : `Update to ${TO || 'the latest release'} did not come up, and neither did the rollback. Restore ${backupFile} and start the stack by hand.`,
     { from: FROM, to: TO, backup: backupFile, rollbackHealthy: back.ok });
   process.exit(back.ok ? 1 : 2);
+}
+
+// Every update pulled a new platform image and kept every old one, so a server
+// that had been updated twenty times held twenty copies of Astrodock (16 GB on a
+// 48 GB droplet, which is what tripped "Disk Almost Full"). After an update has
+// come up healthy, keep the version now running, the one it replaced (the
+// rollback target) and `latest`, and remove the rest. Images a container still
+// uses are refused by `docker rmi`, which is the safety net, not an error.
+// Which tags go. Pure, so the keep rule is tested without Docker.
+function tagsToRemove(tags, keepVersions) {
+  const norm = (v) => String(v || '').trim().replace(/^v/, '');
+  const keep = new Set(keepVersions.map(norm).filter(Boolean));
+  return tags.filter((t) => t && t !== '<none>' && t !== 'latest' && !keep.has(norm(t)));
+}
+
+async function pruneOldImages(keepVersions) {
+  const image = process.env.ASTRODOCK_IMAGE || 'ghcr.io/astrodock/astrodock';
+  let tags = [];
+  try {
+    const out = await run('docker', ['images', image, '--format', '{{.Tag}}'], { timeout: 60 * 1000 });
+    tags = String(out || '').split('\n').map((t) => t.trim()).filter((t) => t && t !== '<none>');
+  } catch (err) {
+    console.error('[update] could not list images:', err.message);
+    return [];
+  }
+  const removed = [];
+  for (const tag of tagsToRemove(tags, keepVersions)) {
+    try { await run('docker', ['rmi', `${image}:${tag}`], { timeout: 2 * 60 * 1000 }); removed.push(tag); }
+    catch { /* still in use, or already gone */ }
+  }
+  // Layers no tag points at any more.
+  try { await run('docker', ['image', 'prune', '-f'], { timeout: 5 * 60 * 1000 }); } catch { /* best effort */ }
+  if (removed.length) console.log(`[update] removed old images: ${removed.join(', ')}`);
+  return removed;
 }
 
 // Put the platform back on the version it was running, and wait for it to answer.
@@ -234,4 +270,4 @@ if (require.main === module) {
 
 // pinVersion is the part that edits a file on the operator's disk, so it is
 // exported to be tested directly rather than only through a container.
-module.exports = { pinVersion, ENV_FILE };
+module.exports = { pinVersion, ENV_FILE, tagsToRemove };

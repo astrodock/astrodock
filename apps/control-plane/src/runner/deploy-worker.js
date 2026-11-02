@@ -182,6 +182,11 @@ async function run() {
       await appendLog(`Process online (pid ${proc.pid}, ${proc.restarts || 0} restart(s))`);
     }
 
+    if (app.runtimeType === 'docker') {
+      const removed = pruneAppImages(app.slug, 2);
+      if (removed.length) await appendLog(`Removed ${removed.length} older image(s) of this app: ${removed.join(', ')}`);
+    }
+
     await appendLog('Deploy complete');
     await db.update(schema.deployments).set({
       status: 'success', log, commitHash, commitMessage, finishedAt: new Date()
@@ -391,6 +396,29 @@ function canUseradd() {
 }
 
 // ── Dockerfile (sibling container) ─────────────────────────────────────────────
+
+// Every Dockerfile deploy builds a new image tagged with its commit, and nothing
+// ever removed the old ones, so a frequently deployed app slowly filled the disk.
+// Keep the newest `keep` (the one now running and the one before it); a rollback
+// rebuilds from its commit, so older images are only ever disk. Called after a
+// deploy has succeeded, never before. A failure here is logged, not fatal: the
+// deploy itself has already worked.
+function pruneAppImages(slug, keep) {
+  let rows;
+  try {
+    rows = exec(`docker images "app-${slug}" --format '{{.Tag}}\t{{.CreatedAt}}'`)
+      .split('\n').map((l) => l.trim()).filter(Boolean)
+      .map((l) => { const [tag, created] = l.split('\t'); return { tag, created }; })
+      .filter((r) => r.tag && r.tag !== '<none>')
+      .sort((a, b) => (a.created < b.created ? 1 : -1));
+  } catch { return []; }
+  const removed = [];
+  for (const r of rows.slice(keep)) {
+    try { exec(`docker rmi "app-${slug}:${r.tag}" 2>&1`); removed.push(r.tag); }
+    catch { /* in use, or already gone */ }
+  }
+  return removed;
+}
 async function deployDocker(app, deployRoot, env, { appendLog, setStatus, commitHash }) {
   await setStatus('building');
   const tag = `app-${app.slug}:${commitHash || 'latest'}`;

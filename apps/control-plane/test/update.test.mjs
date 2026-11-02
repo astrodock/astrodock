@@ -16,7 +16,7 @@ const ENV = path.join(dir, '.env');
 process.env.ASTRODOCK_UPDATE_ENV_FILE = ENV;
 
 const require = createRequire(import.meta.url);
-const { pinVersion } = require('../src/runner/update-worker.js');
+const { pinVersion, tagsToRemove } = require('../src/runner/update-worker.js');
 
 let passed = 0, failed = 0;
 function test(name, fn) {
@@ -250,6 +250,26 @@ await atest('the token is a secret setting and the username is not', async () =>
   assert.ok(settings.REGISTRY['registry.token'].secret,
     'an unmasked token would be readable by anyone who can open the settings page');
   assert.ok(!settings.REGISTRY['registry.user'].secret);
+});
+
+
+console.log('self-update: removing old platform images');
+
+test('keeps the new version, the previous one and latest; removes the rest', () => {
+  const tags = ['latest', 'v0.0.11', 'v0.0.26', 'v0.0.29', 'v0.0.31', 'v0.0.32'];
+  assert.deepStrictEqual(tagsToRemove(tags, ['v0.0.32', '0.0.32', 'v0.0.31']), ['v0.0.11', 'v0.0.26', 'v0.0.29']);
+});
+
+test('matches versions with or without the leading v', () => {
+  assert.deepStrictEqual(tagsToRemove(['0.0.31', 'v0.0.32', 'v0.0.30'], ['v0.0.31', '0.0.32']), ['v0.0.30']);
+});
+
+test('an install that tracks latest (no TO, no FROM) keeps the running version', () => {
+  assert.deepStrictEqual(tagsToRemove(['latest', 'v0.0.31', 'v0.0.32'], ['', '0.0.32', '']), ['v0.0.31']);
+});
+
+test('dangling <none> tags are left to docker image prune', () => {
+  assert.deepStrictEqual(tagsToRemove(['<none>', 'v0.0.1'], ['v0.0.2']), ['v0.0.1']);
 });
 
 console.log(`\n${passed} passed, ${failed} failed`);
