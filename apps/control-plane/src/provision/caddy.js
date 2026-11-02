@@ -115,7 +115,8 @@ function setupGlobalOptions() {
 // in this list AND client-side routes, so hard-loading /login — a refresh, a
 // bookmark, a new tab — reached Express instead of the app and answered
 // "Cannot GET /login". Same for Your Account and Health.
-const ADMIN_PATHS = ['/setup/*', '/admin/*', '/whoami', '/webhooks/*', '/healthz', '/_auth/*', '/cli/*', '/fleet/*'];
+const ADMIN_PATHS = ['/setup/*', '/admin/*', '/whoami', '/webhooks/*', '/healthz', '/_auth/*', '/cli/*', '/fleet/*',
+  '/.well-known/webauthn'];
 
 // End-user surfaces. These belong to auth.<domain> and nothing on that host
 // serves an SPA, so there is nothing for them to collide with. The mobile app

@@ -329,6 +329,30 @@ test('every control-plane path is proxied, in BOTH routing modes', () => {
   }
 });
 
+test('passkeys: the hosted sign-in origin is related to the admin RP', () => {
+  // App sign-in lives on auth.<domain>, passkeys are bound to admin.<domain>.
+  // The browser allows it only if the admin host serves /.well-known/webauthn
+  // listing the auth origin, and the server must accept assertions from it.
+  const saved = config.baseDomain;
+  try {
+    config.applyRuntimeDomain({ baseDomain: 'apps.example.com' });
+    const passkeys = require('../src/lib/passkeys.js');
+    assert.strictEqual(passkeys.rpId(), 'admin.apps.example.com');
+    assert.deepStrictEqual(passkeys.relatedOrigins(), ['https://auth.apps.example.com']);
+    assert.deepStrictEqual(passkeys.signInOrigins(), ['https://admin.apps.example.com', 'https://auth.apps.example.com']);
+    const cfg = generateCaddyfile([]);
+    const adminIdx = cfg.indexOf('admin.apps.example.com {');
+    const authIdx = cfg.indexOf('auth.apps.example.com {');
+    const wk = cfg.indexOf('handle /.well-known/webauthn', adminIdx);
+    const spaIdx = cfg.indexOf('try_files {path} /index.html', adminIdx);
+    assert.ok(wk > adminIdx && wk < spaIdx, '/.well-known/webauthn must be proxied on the admin host, before the SPA');
+    const authEnd = cfg.indexOf('}\n}', authIdx);
+    assert.ok(!cfg.slice(authIdx, authEnd).includes('/.well-known/webauthn'), 'the auth host does not serve it');
+  } finally {
+    config.applyRuntimeDomain({ baseDomain: saved });
+  }
+});
+
 test('setting a domain at runtime re-keys routing and the pages host', () => {
   const saved = config.baseDomain;
   try {

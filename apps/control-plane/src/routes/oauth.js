@@ -60,6 +60,15 @@ async function appBySlug(slug) {
   return rows[0] || null;
 }
 
+// ── /.well-known/webauthn ─────────────────────────────────────────────────────
+// Served on the admin host (the RP ID). Lists the hosted sign-in's origin so a
+// browser lets the login page on auth.<domain> use passkeys bound to the admin
+// host. Public, and must not redirect.
+router.get('/.well-known/webauthn', (req, res) => {
+  res.set('Cache-Control', 'public, max-age=300');
+  res.json({ origins: passkeys.relatedOrigins() });
+});
+
 // ── /authorize ────────────────────────────────────────────────────────────────
 // Validates the request, then serves the hosted login page. Everything the page
 // needs is embedded server-side; nothing sensitive is in the query string.

@@ -56,6 +56,22 @@ function origin() {
   return `${scheme}://${rpId()}`;
 }
 
+/**
+ * Other origins allowed to use passkeys bound to the admin host. The hosted
+ * sign-in moved to auth.<domain>, and a browser refuses a passkey for a host
+ * that is not the page's own unless the RP lists the page's origin in
+ * /.well-known/webauthn (WebAuthn related origin requests). The RP ID stays
+ * the admin host, so no app subdomain can ask for these credentials.
+ */
+function relatedOrigins() {
+  return [config.authBaseUrl()];
+}
+
+/** Where a sign-in assertion may come from: the admin host, or the hosted sign-in. */
+function signInOrigins() {
+  return [origin(), ...relatedOrigins()];
+}
+
 function rpName() {
   return 'Astrodock';
 }
@@ -147,7 +163,7 @@ async function finishAuthentication({ handle, response }) {
   const verification = await verifyAuthenticationResponse({
     response,
     expectedChallenge,
-    expectedOrigin: origin(),
+    expectedOrigin: signInOrigins(),
     expectedRPID: rpId(),
     requireUserVerification: true,
     credential: {
@@ -202,7 +218,7 @@ async function remove(userId, id) {
 }
 
 module.exports = {
-  rpId, origin, beginRegistration, finishRegistration,
+  rpId, origin, relatedOrigins, signInOrigins, beginRegistration, finishRegistration,
   beginAuthentication, finishAuthentication,
   credentialsAtRisk, listForUser, remove
 };
