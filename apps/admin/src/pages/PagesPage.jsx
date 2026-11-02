@@ -66,7 +66,7 @@ export default function PagesPage() {
       <PageHeader
         title="Pages"
         description="Lightweight documents and mini-sites hosted without a full app — docs, notes, a landing page."
-        action={<button onClick={() => setShowCreate(true)}>New Page</button>}
+        action={<button className="primary" onClick={() => setShowCreate(true)}>New Page</button>}
       />
 
       <p className="hint">
@@ -79,7 +79,7 @@ export default function PagesPage() {
       {!loaded ? <SkeletonRows rows={3} cols={4} /> : pages.length === 0 ? (
         <EmptyState icon="pages" title="No Pages Yet"
           body="Create one here, or push a folder with astrodock pages push ./dir"
-          action={<button onClick={() => setShowCreate(true)}>New Page</button>} />
+          action={<button className="primary" onClick={() => setShowCreate(true)}>New Page</button>} />
       ) : (
         <table className="data-table clickable">
           <thead>

@@ -712,7 +712,7 @@ button.secondary, .cancel-btn { background:var(--surface-2); color:var(--text-2)
 .pillbtn.sel { border-color:var(--accent); color:var(--accent); background:var(--accent-dim); }
 .preview-box { background:var(--field); border:1px solid var(--line-soft); border-radius:var(--r-sm); padding:13px 15px; display:flex; flex-direction:column; gap:8px; }
 .prow { display:flex; align-items:center; gap:9px; font-size:13.5px; color:var(--text-2); }
-.mini-toggle { width:38px; height:22px; border-radius:0; background:var(--field); border:1px solid var(--line); position:relative; cursor:pointer; display:inline-block; transition:.2s; }
+.mini-toggle { width:38px; height:22px; border-radius:999px; background:var(--field); border:1px solid var(--line); position:relative; cursor:pointer; display:inline-block; transition:.2s; }
 .mini-toggle::after { content:""; position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:var(--text-3); transition:.2s; }
 .mini-toggle.on { background:var(--accent); border-color:var(--accent); }
 .mini-toggle.on::after { transform:translateX(16px); background:var(--accent-ink); }
@@ -829,7 +829,7 @@ button.secondary, .cancel-btn { background:var(--surface-2); color:var(--text-2)
 .setup-step, .src, .kv-src { border-radius: 0; }
 .chip { padding: 3px 9px; }
 /* Round stays where round is the meaning: a switch, an LED, an avatar. */
-.mini-toggle { border-radius: 0; }
+.mini-toggle { border-radius: 999px; }
 .mini-toggle::after, .led, .setup-step-num, .avatar, .dot { border-radius: 50%; }
 
 /* ── permission / option rows ────────────────────────────────── */
@@ -1422,8 +1422,7 @@ body { font-size:14px; letter-spacing:0; }
 
 /* ── controls ── */
 button { font-weight:500; }
-button.primary, .page-header > button, .tab-header > button, .page-header button[type],
-.pagehead-action > button:not(.secondary):not(.danger) { background:var(--accent); color:var(--accent-ink); border-color:var(--accent); }
+button.primary, .page-header > button, .tab-header > button, .page-header button[type] { background:var(--accent); color:var(--accent-ink); border-color:var(--accent); }
 .tabs { margin:0 -32px 1.6rem; padding:0 22px; }
 .tab { padding:.7rem 10px; font-weight:500; color:var(--text-3); }
 .tab.active { color:var(--text); border-bottom-color:var(--accent); }

@@ -142,7 +142,7 @@ export default function AppsPage() {
       <PageHeader
         title="Apps"
         description="Apps are Git repos Astrodock builds, runs and serves, each at its own web address."
-        action={<button onClick={() => setShowCreate(true)}>Register App</button>}
+        action={<button className="primary" onClick={() => setShowCreate(true)}>Register App</button>}
       />
 
       {apps.length > 0 && (
@@ -171,7 +171,7 @@ export default function AppsPage() {
       {!loaded ? <SkeletonRows rows={3} cols={4} /> : apps.length === 0 ? (
         <EmptyState icon="apps" title="No Apps Yet"
           body="Register one to build, run and serve it."
-          action={<button onClick={() => setShowCreate(true)}>Register App</button>} />
+          action={<button className="primary" onClick={() => setShowCreate(true)}>Register App</button>} />
       ) : (
         <div className="app-grid">
           {sorted.map((app) => {

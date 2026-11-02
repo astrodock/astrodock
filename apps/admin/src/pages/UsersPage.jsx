@@ -39,7 +39,7 @@ export default function UsersPage() {
       <PageHeader
         title="Users"
         description="People who can sign in — to the apps you grant them, and to this dashboard if you give them a role."
-        action={<button onClick={() => setShowCreate(true)}>Add User</button>}
+        action={<button className="primary" onClick={() => setShowCreate(true)}>Add User</button>}
       />
 
       {error && <div className="error">{error}</div>}
@@ -47,7 +47,7 @@ export default function UsersPage() {
       {!loaded ? <SkeletonRows rows={4} cols={5} /> : users.length === 0 ? (
         <EmptyState icon="users" title="No People Yet"
           body="Add someone to give them access to your apps."
-          action={<button onClick={() => setShowCreate(true)}>Add User</button>} />
+          action={<button className="primary" onClick={() => setShowCreate(true)}>Add User</button>} />
       ) : (
       <table className="data-table clickable">
         <thead>

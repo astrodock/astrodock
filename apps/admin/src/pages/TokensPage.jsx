@@ -64,7 +64,7 @@ export default function TokensPage() {
       <PageHeader
         title="Access Keys"
         description="A key lets a tool or an AI agent do things here on your behalf — deploy an app, read its logs, change a setting. You decide what each key is allowed to do, and everything it does is recorded under your name."
-        action={<button onClick={() => { setOpen(true); setCreated(null); }}>New Key</button>}
+        action={<button className="primary" onClick={() => { setOpen(true); setCreated(null); }}>New Key</button>}
       />
 
       {error && <div className="error">{error}</div>}
@@ -177,7 +177,7 @@ export default function TokensPage() {
           icon="key"
           title="No Access Keys Yet"
           body="A key lets the astrodock CLI or an AI agent act on your behalf, with only the permissions you choose. Nothing can use the API until you create one."
-          action={<button onClick={() => { setOpen(true); setCreated(null); }}>+ New Key</button>}
+          action={<button className="primary" onClick={() => { setOpen(true); setCreated(null); }}>+ New Key</button>}
         />
       )}
       {reauth && (
