@@ -735,7 +735,7 @@ button.secondary, .cancel-btn { background:var(--surface-2); color:var(--text-2)
 .adh-sub .ac-host:hover { text-decoration:underline; }
 .adh-desc { color:var(--text-3); font-size:13.5px; margin-top:10px; max-width:640px; line-height:1.55; }
 .adh-actions { display:flex; gap:8px; flex-shrink:0; align-items:center; }
-.adh-actions a { display:inline-flex; align-items:center; padding:.55rem 1rem; border:1px solid var(--line); border-radius:var(--r-sm); font-size:13px; font-weight:600; color:var(--text); background:var(--surface-2); }
+.adh-actions a { display:inline-flex; align-items:center; padding:.55rem 1rem; border:1px solid var(--line); border-radius:var(--r-sm); font-size:13px; font-weight:500; line-height:normal; letter-spacing:normal; color:var(--text); background:var(--surface-2); }
 .adh-actions a:hover { background:var(--hover); text-decoration:none; }
 .adh-stats { display:flex; gap:24px; flex-wrap:wrap; margin-top:16px; padding:12px 18px; background:var(--surface); border:1px solid var(--line-soft); border-radius:var(--r); }
 .adh-stat { font-family:var(--mono); font-size:12px; color:var(--text-3); } .adh-stat b { color:var(--text); font-weight:600; }
