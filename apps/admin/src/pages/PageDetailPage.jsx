@@ -158,7 +158,7 @@ export default function PageDetailPage() {
         {page.accessMode === 'passkey' && (
           <>
             <div className="kv"><span>Passkey</span><code>{page.passkey}</code>
-              <button className="link-btn" onClick={() => copy(page.passkey, 'Passkey copied.')}>Copy</button>
+              <button onClick={() => copy(page.passkey, 'Passkey copied.')}>Copy</button>
               <button onClick={() => api.generatePagePasskey(pageId).then(load).then(() => flash('Rotated — old links invalid.'))}>Rotate</button>
             </div>
             <div className="kv"><span>Set Custom</span>

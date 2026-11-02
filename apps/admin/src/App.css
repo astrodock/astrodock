@@ -192,8 +192,8 @@ button {
 }
 button:hover { background:var(--hover); border-color:color-mix(in srgb, var(--text) 22%, transparent); }
 button:disabled { opacity:.45; cursor:not-allowed; }
-button.primary, .page-header > button, .tab-header > button, .page-header button[type] { background:var(--accent); color:var(--accent-ink); border-color:transparent; }
-button.primary:hover, .page-header > button:hover, .tab-header > button:hover { background:var(--accent-2); }
+button.primary, .page-header > button:not(.danger):not(.secondary):not(.link-btn), .tab-header > button:not(.danger):not(.secondary):not(.link-btn), .page-header button[type]:not(.danger):not(.secondary):not(.link-btn) { background:var(--accent); color:var(--accent-ink); border-color:transparent; }
+button.primary:hover, .page-header > button:not(.danger):not(.secondary):not(.link-btn):hover, .tab-header > button:not(.danger):not(.secondary):not(.link-btn):hover { background:var(--accent-2); }
 button.danger { background:var(--danger-dim); color:var(--danger); border-color:transparent; }
 button.danger:hover { background:color-mix(in srgb, var(--danger) 22%, transparent); }
 button.secondary, .cancel-btn { background:var(--surface-2); color:var(--text-2); }
@@ -1456,7 +1456,7 @@ body { font-size:14px; letter-spacing:0; }
 
 /* ── controls ── */
 button { font-weight:500; }
-button.primary, .page-header > button, .tab-header > button, .page-header button[type] { background:var(--accent); color:var(--accent-ink); border-color:var(--accent); }
+button.primary, .page-header > button:not(.danger):not(.secondary):not(.link-btn), .tab-header > button:not(.danger):not(.secondary):not(.link-btn), .page-header button[type]:not(.danger):not(.secondary):not(.link-btn) { background:var(--accent); color:var(--accent-ink); border-color:var(--accent); }
 .tabs { margin:0 -32px 1.6rem; padding:0 22px; }
 .tab { padding:.7rem 10px; font-weight:500; color:var(--text-3); }
 .tab.active { color:var(--text); border-bottom-color:var(--accent); }
@@ -1583,3 +1583,21 @@ label.radio-field { margin-bottom:0; font-size:inherit; font-weight:400; color:i
 .approvals-history td { vertical-align:top; }
 .approvals-history .statusbadge { white-space:nowrap; }
 .approvals-kind { font-size:12px; color:var(--text-3); margin-top:2px; }
+
+/* ── Buttons that sit beside other controls (2026-11) ──
+   A button's label never wraps; a row of input + button lines up at one
+   height; links dressed as buttons take the buttons' type, not the page's. */
+.reset-pw-form, .reset-form, .env-edit-row, .env-add-form, .repo-select-row { align-items:stretch; }
+.reset-pw-form > input, .reset-form > input, .env-edit-row > input, .env-add-form > input, .repo-select-row > select { margin-top:0; }
+.reset-pw-form > button, .reset-form > button, .env-edit-row > button, .env-add-form > button, .repo-select-row > button,
+.pagehead-action button, .adh-actions button, .sec-head button, .linkbar button, .kv button { white-space:nowrap; flex-shrink:0; }
+.btnlike { font-family:var(--font); font-size:13px; line-height:normal; letter-spacing:normal; color:var(--text); }
+.linkbar button, .linkbar .btnlike { padding:5px 11px; font-size:12px; }
+.btnlike:hover { border-color:color-mix(in srgb, var(--text) 22%, transparent); color:var(--text); background:var(--hover); }
+.kv button, .kv input { height:30px; }
+.kv button { padding:0 11px; font-size:12px; }
+.kv input { width:200px; margin:0; padding:0 10px; background:var(--field); border:1px solid var(--line); border-radius:0;
+  font-family:var(--mono); font-size:12.5px; color:var(--text); outline:none; }
+.kv input:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-dim); }
+.kv code { height:30px; display:inline-flex; align-items:center; }
+.crumbs .link-btn { padding:3px 7px; font-size:13px; }
