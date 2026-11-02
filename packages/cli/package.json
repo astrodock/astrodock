@@ -1,6 +1,6 @@
 {
   "name": "@astrodock/cli",
-  "version": "0.0.33",
+  "version": "0.0.34",
   "description": "Thin CLI for driving an Astrodock platform: login, apply, deploy, status, logs, deploy:watch, set-secret.",
   "license": "MIT",
   "bin": {
