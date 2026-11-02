@@ -7,7 +7,7 @@
 // decision (lib/strong-factor), not a recent sign-in.
 
 const express = require('express');
-const { and, eq, desc, gt } = require('drizzle-orm');
+const { and, or, eq, ne, lte, desc, gt, inArray } = require('drizzle-orm');
 const { db, schema } = require('../db');
 const { resolveAuth, callerHasScope, welcomeRefused } = require('../middleware/auth');
 const { reauthLimiter } = require('../middleware/rateLimiter');
@@ -35,14 +35,38 @@ async function me(req) {
   return user || null;
 }
 
+// Who decided each approval, by email, for the people looking at the list.
+async function withDeciders(rows) {
+  const ids = [...new Set(rows.map((r) => r.decidedByUserId).filter(Boolean))];
+  const people = ids.length
+    ? await db.select({ id: schema.users.id, email: schema.users.email, name: schema.users.name })
+      .from(schema.users).where(inArray(schema.users.id, ids))
+    : [];
+  const byId = new Map(people.map((p) => [p.id, p]));
+  return rows.map((r) => {
+    const p = byId.get(r.decidedByUserId);
+    return { ...approvals.serialize(r), decidedBy: p ? { email: p.email, name: p.name } : null };
+  });
+}
+
+// A key sees its own approvals. A person sees what is waiting, or with
+// ?view=history everything that is no longer waiting: approved, used,
+// declined, or left to expire.
 router.get('/', async (req, res) => {
   try {
-    const where = req.auth.type === 'token'
-      ? eq(schema.approvals.tokenId, req.auth.id)
-      : and(eq(schema.approvals.status, 'pending'), gt(schema.approvals.expiresAt, new Date()));
+    if (req.auth.type === 'token') {
+      const rows = await db.select().from(schema.approvals).where(eq(schema.approvals.tokenId, req.auth.id))
+        .orderBy(desc(schema.approvals.createdAt)).limit(50);
+      return res.json({ approvals: rows.map(approvals.serialize) });
+    }
+    const now = new Date();
+    const history = req.query.view === 'history';
+    const where = history
+      ? or(ne(schema.approvals.status, 'pending'), lte(schema.approvals.expiresAt, now))
+      : and(eq(schema.approvals.status, 'pending'), gt(schema.approvals.expiresAt, now));
     const rows = await db.select().from(schema.approvals).where(where)
-      .orderBy(desc(schema.approvals.createdAt)).limit(50);
-    res.json({ approvals: rows.map(approvals.serialize) });
+      .orderBy(desc(schema.approvals.createdAt)).limit(history ? 200 : 50);
+    res.json({ approvals: await withDeciders(rows) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -53,7 +77,8 @@ router.get('/:id', async (req, res) => {
   if (!row || (req.auth.type === 'token' && row.tokenId !== req.auth.id)) {
     return res.status(404).json({ error: 'Approval not found' });
   }
-  res.json({ approval: approvals.serialize(row) });
+  if (req.auth.type === 'token') return res.json({ approval: approvals.serialize(row) });
+  res.json({ approval: (await withDeciders([row]))[0] });
 });
 
 router.post('/:id/approve', personOnly, reauthLimiter, async (req, res) => {
@@ -71,7 +96,7 @@ router.post('/:id/approve', personOnly, reauthLimiter, async (req, res) => {
       return res.status(401).json({ error: 'Confirm with your passkey or a code from your authenticator app.', code: 'proof_required' });
     }
     const updated = await approvals.decide(row, { approve: true, user });
-    res.json({ approval: approvals.serialize(updated) });
+    res.json({ approval: (await withDeciders([updated]))[0] });
   } catch (err) { res.status(err.status || 500).json({ error: err.message }); }
 });
 
@@ -82,7 +107,7 @@ router.post('/:id/deny', personOnly, async (req, res) => {
     const user = await me(req);
     if (!user) return res.status(401).json({ error: 'Account not found' });
     const updated = await approvals.decide(row, { approve: false, user });
-    res.json({ approval: approvals.serialize(updated) });
+    res.json({ approval: (await withDeciders([updated]))[0] });
   } catch (err) { res.status(err.status || 500).json({ error: err.message }); }
 });
 

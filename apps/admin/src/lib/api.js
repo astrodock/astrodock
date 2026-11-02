@@ -213,6 +213,7 @@ export const denyCliLogin = (code) => request(`/cli-logins/${encodeURIComponent(
 
 // What an access key asked to do beyond one app.
 export const getApprovals = () => request('/approvals');
+export const getApprovalHistory = () => request('/approvals?view=history');
 export const getApproval = (id) => request(`/approvals/${encodeURIComponent(id)}`);
 export const approveApproval = (id, proof) =>
   request(`/approvals/${encodeURIComponent(id)}/approve`, { method: 'POST', body: JSON.stringify(proof), verifiesCredential: true });
