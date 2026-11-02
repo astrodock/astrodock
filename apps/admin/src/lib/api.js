@@ -246,10 +246,24 @@ export const getAppExecEnabled = (slug) => request(`/apps/${slug}/exec/enabled`)
 // SSE over POST, so it cannot use EventSource. Reads the stream by hand and
 // hands each event to the caller as it arrives, which is the point of a
 // terminal: watching output rather than waiting for it.
-export async function execStream(slug, command, signal, onEvent) {
+export function execStream(slug, command, signal, onEvent) {
+  return commandStream(`/apps/${slug}/exec`, command, signal, onEvent);
+}
+
+// The Server page: disk, freeing space, and the server terminal.
+export const getServerDisk = () => request('/server/disk');
+export const freeServerSpace = () => request('/server/free-space', { method: 'POST' });
+export const getServerExecEnabled = () => request('/server/exec/enabled');
+export function serverExecStream(command, signal, onEvent) {
+  return commandStream('/server/exec', command, signal, onEvent);
+}
+
+// POST a command and read the reply as server-sent events, handing each one to
+// onEvent(event, data) as it arrives.
+async function commandStream(path, command, signal, onEvent) {
   const headers = { 'Content-Type': 'application/json' };
   if (getToken()) headers['Authorization'] = `Bearer ${getToken()}`;
-  const res = await fetch(`${API_BASE}/apps/${slug}/exec`, {
+  const res = await fetch(`${API_BASE}${path}`, {
     method: 'POST', headers, body: JSON.stringify({ command }), signal
   });
   if (!res.ok) {

@@ -15,7 +15,9 @@ import * as api from '../lib/api';
 
 const MAX_LINES = 2000;
 
-export default function TerminalTab({ app }) {
+// Also the Server page's terminal: pass `stream`, `hint`, `idle` and
+// `timeoutText` to point it somewhere other than one app.
+export default function TerminalTab({ app, stream, hint, idle, timeoutText = 'timed out after 5 minutes' }) {
   const [command, setCommand] = useState('');
   const [lines, setLines] = useState([]);
   const [running, setRunning] = useState(false);
@@ -51,11 +53,12 @@ export default function TerminalTab({ app }) {
     const ctl = new AbortController();
     abortRef.current = ctl;
     try {
-      await api.execStream(app.slug, cmd, ctl.signal, (event, data) => {
+      const send = stream || ((c, sig, on) => api.execStream(app.slug, c, sig, on));
+      await send(cmd, ctl.signal, (event, data) => {
         if (event === 'stdout' || event === 'stderr') push(event, data);
         else if (event === 'exit') {
           push('exit', data.timedOut
-            ? 'timed out after 5 minutes'
+            ? timeoutText
             : `exit ${data.code ?? ''}${data.signal ? ` (${data.signal})` : ''}`.trim());
         } else if (event === 'error') push('stderr', String(data));
       });
@@ -89,13 +92,15 @@ export default function TerminalTab({ app }) {
   return (
     <div className="terminal-tab">
       <p className="hint">
-        Commands run inside <code>/data/apps/{app.slug}</code> as the app's own user, with the app's
-        own configuration. Output has secret values masked. Every command is recorded in History.
+        {hint || (
+          <>Commands run inside <code>/data/apps/{app.slug}</code> as the app's own user, with the app's
+          own configuration. Output has secret values masked. Every command is recorded in History.</>
+        )}
       </p>
 
       <pre className="log-viewer terminal-out" ref={outRef}>
         {lines.length === 0
-          ? <span className="term-idle">Nothing run yet. Try `ls -la` or `cat package.json`.</span>
+          ? <span className="term-idle">{idle || 'Nothing run yet. Try `ls -la` or `cat package.json`.'}</span>
           : lines.map((l, i) => <span key={i} className={`term-${l.stream}`}>{l.text}</span>)}
       </pre>
 

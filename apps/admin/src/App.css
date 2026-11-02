@@ -1523,3 +1523,9 @@ button.primary, .page-header > button, .tab-header > button, .page-header button
   .pagehead, .hero, .attn-block, .telemetry, .ov-lower, .app-grid, .tabs, .adh-stats { margin-left:-20px; margin-right:-20px; }
   .topbar .sys-ver { display:none; }
 }
+
+/* ── Server page ── */
+.server-disk { margin-top:0; }
+.server-section { margin-top:32px; }
+.server-result { margin:0 0 20px; font-size:14px; color:var(--text-2); }
+.server-result b { color:var(--accent); font-weight:600; }

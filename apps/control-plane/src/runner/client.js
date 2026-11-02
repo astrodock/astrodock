@@ -49,6 +49,12 @@ const runner = {
     body: JSON.stringify({ command }), headers: { 'Content-Type': 'application/json' }
   }),
   remove: (slug) => call('POST', `/apps/${slug}/remove`),
+  serverDisk: () => call('GET', '/server/disk'),
+  serverFreeSpace: () => call('POST', '/server/free-space', { json: {} }),
+  serverExecEnabled: () => call('GET', '/server/exec/enabled'),
+  serverExecStream: (command) => callStream('POST', '/server/exec', {
+    body: JSON.stringify({ command }), headers: { 'Content-Type': 'application/json' }
+  }),
   logs: (slug, lines) => call('GET', `/apps/${slug}/logs`, { query: { lines: lines || 100 } }),
   backup: (trigger = 'manual') => call('POST', '/backup', { json: { trigger } }),
   backupFile: (id) => callStream('GET', `/backup/${id}/file`),

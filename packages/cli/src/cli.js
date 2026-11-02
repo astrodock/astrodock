@@ -9,6 +9,7 @@ const { makeClient } = require('./client');
 const { cmdPages } = require('./pages');
 const { cmdFeedback, cmdWork } = require('./feedback');
 const { filesToUpload } = require('./upload-files');
+const { cmdServer } = require('./server');
 
 const USAGE = `astrodock — drive an Astrodock platform from an app repo
 
@@ -28,6 +29,10 @@ Commands:
   pages rm <pageId>                    Delete a page
   feedback <sub> <app> …               User feedback: list, show, note, reply, send, status, link
   work <sub> <app> …                   Work items: list, show, new, status, relate
+  server disk                          What the server's disk holds
+  server free-space                    Remove old images and build cache
+  server run "<command>"               Run a command as root on the server (needs a
+                                       server:exec key: owner-made, 24-hour)
   help                                 Show this help
   version                              Print the CLI version
 
@@ -301,6 +306,7 @@ async function main(argv) {
       case 'pages': return await cmdPages(client, positional, flags);
       case 'feedback': return await cmdFeedback(client, positional, flags);
       case 'work': return await cmdWork(client, positional, flags);
+      case 'server': return await cmdServer(client, positional, die);
       default: die(`unknown command "${command}" (try: astrodock help)`);
     }
   } catch (e) {

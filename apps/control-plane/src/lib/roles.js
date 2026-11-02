@@ -16,20 +16,21 @@ const { ALL } = require('./scopes');
 const ROLES = {
   owner: {
     label: 'Owner',
-    description: 'Full control, including ownership and access keys. Cannot be locked out.',
+    description: 'Full control, including ownership, access keys and the server terminal. Cannot be locked out.',
     scopes: ALL
   },
   admin: {
     label: 'Admin',
-    description: 'Everything except transferring ownership.',
-    scopes: ALL
+    description: 'Everything except transferring ownership and running commands on the server.',
+    // server:exec is root on the host, which is the one thing beyond an admin.
+    scopes: ALL.filter((s) => s !== 'server:exec')
   },
   operator: {
     label: 'Operator',
     description: 'Apps, deploys, configuration, runtime and logs. No user or key management, and no backups.',
     // backups:write is withheld because a restore runs arbitrary SQL and a backup
     // file holds every password hash: either one is a path to owner.
-    scopes: ALL.filter((s) => !['users:write', 'tokens:write', 'platform:write', 'settings:write', 'backups:write', 'apps:delete', 'exec']
+    scopes: ALL.filter((s) => !['users:write', 'tokens:write', 'platform:write', 'settings:write', 'backups:write', 'apps:delete', 'exec', 'server:exec']
       .includes(s))
   },
   viewer: {

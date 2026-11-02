@@ -18,6 +18,7 @@ import SettingsPage from './pages/SettingsPage';
 import NotFoundPage from './pages/NotFoundPage';
 import Footer from './components/Footer';
 import AccountPage from './pages/AccountPage';
+import ServerPage from './pages/ServerPage';
 import './App.css';
 
 // What the footer dot is allowed to claim.
@@ -45,7 +46,7 @@ function platformState(platform) {
 const SECTIONS = {
   overview: 'Overview', apps: 'Apps', pages: 'Pages', users: 'Users',
   domains: 'Domains', tokens: 'Access Keys', activity: 'Activity', health: 'Health',
-  account: 'Your Account', settings: 'Settings', setup: 'Setup'
+  account: 'Your Account', settings: 'Settings', server: 'Server', setup: 'Setup'
 };
 
 function Crumbs({ pathname }) {
@@ -250,6 +251,12 @@ export default function App() {
               Settings
             </NavLink>
           </li>
+          <li>
+            <NavLink to="/server" className={({ isActive }) => isActive ? 'active' : ''}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2.2" y="2.4" width="11.6" height="4.6" stroke="currentColor" strokeWidth="1.4"/><rect x="2.2" y="9" width="11.6" height="4.6" stroke="currentColor" strokeWidth="1.4"/><path d="M4.6 4.7h1.2M4.6 11.3h1.2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>
+              Server
+            </NavLink>
+          </li>
         </ul>
         <div className="sidebar-footer">
           {/* Who you are, pinned. It was an item in the middle of the Manage
@@ -283,6 +290,7 @@ export default function App() {
           <Route path="/activity" element={<ActivityPage />} />
           <Route path="/health" element={<HealthPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/server" element={<ServerPage />} />
           <Route path="/account" element={<AccountPage theme={theme} onToggleTheme={toggleTheme} onSignOut={handleLogout} />} />
           {/* Reachable after setup so a deferred domain can still be finished. */}
           <Route path="/setup" element={<SetupPage status={setup} />} />

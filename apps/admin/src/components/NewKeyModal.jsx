@@ -37,6 +37,10 @@ export default function NewKeyModal({ options, apps, onCancel, onCreated, onReau
   const chosen = presets.find((p) => p.key === preset);
   const effective = custom || chosen?.scopes || [];
   const groups = options.groups || [];
+  // A key that runs server commands is root on the host: the server caps it at
+  // 24 hours and refuses an app limit, so the form says so instead of letting
+  // someone pick options that will be overridden.
+  const serverKey = effective.includes('server:exec');
 
   const toggle = (s) => {
     const base = custom || chosen?.scopes || [];
@@ -50,8 +54,8 @@ export default function NewKeyModal({ options, apps, onCancel, onCreated, onReau
       onCreated(await api.createToken({
         name: name.trim(),
         ...(custom ? { scopes: custom } : { preset }),
-        apps: appScope,
-        expiresInDays: expiryDays
+        apps: serverKey ? [] : appScope,
+        expiresInDays: serverKey ? 1 : expiryDays
       }));
     } catch (err) {
       setBusy(false);
@@ -85,23 +89,30 @@ export default function NewKeyModal({ options, apps, onCancel, onCreated, onReau
     >
         {error && <div className="error">{error}</div>}
 
-      <Field label="Name" hint="Something you will recognise in six months.">
+      <Field label="Name" hint="Something you will recognize in six months.">
         <input value={name} onChange={(e) => setName(e.target.value)} autoFocus
           placeholder="e.g. Invoices deploy key" />
       </Field>
 
-      <FieldGroup label="Expires" hint="A key that never expires is one you will forget you issued.">
-        <div className="seg seg-fit">
-          {EXPIRY_CHOICES.map((c) => (
-            <button type="button" key={c.label} className={expiryDays === c.days ? 'sel' : ''}
-              onClick={() => setExpiryDays(c.days)}>{c.label}</button>
-          ))}
-        </div>
-      </FieldGroup>
+      {serverKey ? (
+        <FieldGroup label="Expires"
+          hint="This key can run commands as root on the server, so it expires 24 hours after you create it and covers the whole server.">
+          <div className="seg seg-fit"><button type="button" className="sel">24 Hours</button></div>
+        </FieldGroup>
+      ) : (
+        <FieldGroup label="Expires" hint="A key that never expires is one you will forget you issued.">
+          <div className="seg seg-fit">
+            {EXPIRY_CHOICES.map((c) => (
+              <button type="button" key={c.label} className={expiryDays === c.days ? 'sel' : ''}
+                onClick={() => setExpiryDays(c.days)}>{c.label}</button>
+            ))}
+          </div>
+        </FieldGroup>
+      )}
 
       {/* Only worth asking once there is something to limit it to. With no apps
           the question read as a broken control rather than an option. */}
-      {apps.length > 0 && (
+      {apps.length > 0 && !serverKey && (
         <FieldGroup label="Limit to Certain Apps"
           hint="Leave them all off and the key covers every app, including ones you add later.">
           <div className="opt-list">

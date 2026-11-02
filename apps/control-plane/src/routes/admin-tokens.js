@@ -34,10 +34,13 @@ router.get('/options', (req, res) => {
       description: meta.description,
       // A key cannot grant what it does not hold, so grey those out rather than
       // letting someone build a request that will be refused.
-      grantable: req.auth.type !== 'token' ? key !== 'tokens:write' : (mine.includes(key) && key !== 'tokens:write')
+      grantable: req.auth.type !== 'token'
+        ? key !== 'tokens:write' && (key !== 'server:exec' || req.auth.role === 'owner')
+        : (mine.includes(key) && key !== 'tokens:write' && key !== 'server:exec')
     })),
     presets: Object.entries(scopes.PRESETS).map(([key, p]) => ({ key, ...p })),
     defaultExpiryDays: DEFAULT_TTL_DAYS,
+    serverKeyMaxHours: SERVER_KEY_TTL_MS / 3600000,
     delegating: req.auth.type === 'token'
   });
 });
@@ -64,6 +67,9 @@ router.get('/', async (req, res) => {
   });
 });
 
+// Keys carrying server:exec expire within this, whatever was asked for.
+const SERVER_KEY_TTL_MS = 24 * 60 * 60 * 1000;
+
 router.post('/', requireRecentAuth, async (req, res) => {
   const { name, scopes: requested, apps, preset, expiresInDays } = req.body || {};
   try {
@@ -87,6 +93,21 @@ router.post('/', requireRecentAuth, async (req, res) => {
 
     // The delegation check is a no-op for a person and the whole point for a key.
     const minter = req.auth.type === 'token' ? req.auth : null;
+
+    // A key that runs server commands is root on the host. Only an owner may make
+    // one, it covers the whole platform (an app limit would be meaningless on the
+    // host), and it lives at most a day: long enough for an agent's session, short
+    // enough that a key left in a file stops working.
+    if (expanded.includes('server:exec')) {
+      if (minter || req.auth.role !== 'owner') {
+        return res.status(403).json({ error: 'Only an owner can create a key that runs server commands.' });
+      }
+      if (appScope.length) {
+        return res.status(400).json({ error: 'A key that runs server commands cannot be limited to apps. Turn the app limit off.' });
+      }
+      const cap = new Date(Date.now() + SERVER_KEY_TTL_MS);
+      if (!expiresAt || expiresAt > cap) expiresAt = cap;
+    }
 
     // Cap a delegated key at its parent's expiry rather than refusing. Without
     // this the DEFAULT is already a refusal: a child minted from a 90-day key gets

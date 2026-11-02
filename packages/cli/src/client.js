@@ -78,7 +78,48 @@ function makeClient({ url, token } = {}) {
     return { status: res.status, json };
   }
 
-  return { base, hasToken: !!token, request, uploadRaw, postForm };
+  // POST JSON and read the reply as server-sent events, calling
+  // onEvent(event, data) for each as it arrives. Used by `astrodock server run`.
+  async function stream(path, body, onEvent) {
+    let res;
+    try {
+      res = await fetch(`${base}${path}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify(body)
+      });
+    } catch (err) {
+      throw new Error(`Cannot reach ${base}: ${err.message}`);
+    }
+    if (!res.ok) {
+      const text = await res.text();
+      let json = null;
+      try { json = JSON.parse(text); } catch { /* not json */ }
+      return { status: res.status, json };
+    }
+    const decoder = new TextDecoder();
+    let buffer = '';
+    for await (const chunk of res.body) {
+      buffer += decoder.decode(chunk, { stream: true });
+      const parts = buffer.split('\n\n');
+      buffer = parts.pop();
+      for (const part of parts) {
+        let event = 'message';
+        let data = '';
+        for (const line of part.split('\n')) {
+          if (line.startsWith('event: ')) event = line.slice(7).trim();
+          else if (line.startsWith('data: ')) data += line.slice(6);
+        }
+        if (!data) continue;
+        let parsed = data;
+        try { parsed = JSON.parse(data); } catch { /* raw */ }
+        onEvent(event, parsed);
+      }
+    }
+    return { status: res.status, json: null };
+  }
+
+  return { base, hasToken: !!token, request, uploadRaw, postForm, stream };
 }
 
 module.exports = { makeClient };

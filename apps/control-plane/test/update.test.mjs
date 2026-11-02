@@ -17,6 +17,7 @@ process.env.ASTRODOCK_UPDATE_ENV_FILE = ENV;
 
 const require = createRequire(import.meta.url);
 const { pinVersion, tagsToRemove } = require('../src/runner/update-worker.js');
+const { appTagsToRemove } = require('../src/lib/images.js');
 
 let passed = 0, failed = 0;
 function test(name, fn) {
@@ -270,6 +271,17 @@ test('an install that tracks latest (no TO, no FROM) keeps the running version',
 
 test('dangling <none> tags are left to docker image prune', () => {
   assert.deepStrictEqual(tagsToRemove(['<none>', 'v0.0.1'], ['v0.0.2']), ['v0.0.1']);
+});
+
+
+test('a Dockerfile app keeps its two newest images', () => {
+  const rows = [
+    { tag: 'a41c9e2', created: '2026-11-02 05:00:00 +0000 UTC' },
+    { tag: '02d7e88', created: '2026-10-27 09:00:00 +0000 UTC' },
+    { tag: '7be03d1', created: '2026-11-01 12:00:00 +0000 UTC' },
+    { tag: '<none>', created: '2026-10-01 00:00:00 +0000 UTC' }
+  ];
+  assert.deepStrictEqual(appTagsToRemove(rows, 2), ['02d7e88']);
 });
 
 console.log(`\n${passed} passed, ${failed} failed`);

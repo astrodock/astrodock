@@ -183,6 +183,40 @@ app.post('/apps/:slug/exec', express.json(), async (req, res) => {
   }
 });
 
+// ── the server itself ────────────────────────────────────────────────────────
+// Disk, freeing space, and the server terminal. Gated and audited by the control
+// plane (`settings:read`, `platform:write`, `server:exec`); see server-ops.js.
+app.get('/server/disk', async (req, res) => {
+  try { res.json(await require('./server-ops').diskUsage()); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/server/free-space', express.json(), async (req, res) => {
+  try { res.json(await require('./server-ops').freeSpace()); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/server/exec/enabled', (req, res) => {
+  res.json({ enabled: require('./server-ops').terminalEnabled() });
+});
+
+app.post('/server/exec', express.json(), async (req, res) => {
+  const ops = require('./server-ops');
+  if (!ops.terminalEnabled()) return res.status(404).json({ error: 'The server terminal is switched off on this platform (ASTRODOCK_SERVER_TERMINAL=off).' });
+  const command = req.body && req.body.command;
+  if (!command || !String(command).trim()) return res.status(400).json({ error: 'command is required' });
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders();
+  try { await ops.runOnHost(String(command), res); }
+  catch (e) {
+    res.write(`event: error\ndata: ${JSON.stringify(e.message)}\n\n`);
+    res.end();
+  }
+});
+
 app.post('/apps/:slug/ops/run', express.json(), async (req, res) => {
   const a = await loadApp(req.params.slug); if (!a) return res.status(404).json({ error: 'App not found' });
   const vars = await db.select().from(schema.appEnvVars).where(eq(schema.appEnvVars.appId, a.id));

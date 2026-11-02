@@ -1,6 +1,8 @@
 # The per-app terminal
 
-A design note. Nothing here is built yet.
+A design note. The per-app terminal described here has since been built (`TerminalTab`,
+`POST /admin/apps/:slug/exec`). A separate **server terminal** (root on the host) was added on
+2026-11-02 at the owner's request; see `SECURITY.md` and `apps/control-plane/src/runner/server-ops.js`.
 
 ## The thing to know first
 

@@ -46,7 +46,7 @@ export default function OverviewPage() {
   const attention = [];
   down.forEach((a) => attention.push({ sev: 'crit', title: `${a.name} Is Down`, sub: `failed ${a.consecutiveFailures || 0} health checks`, to: `/apps/${a.slug}`, go: 'View →' }));
   degraded.forEach((a) => attention.push({ sev: 'warn', title: `${a.name} Is Degraded`, sub: 'responding slowly or intermittently', to: `/apps/${a.slug}`, go: 'View →' }));
-  if (diskPct >= 85) attention.push({ sev: 'warn', title: 'Disk Almost Full', sub: `${diskPct}% used`, to: '/settings', go: 'Settings →' });
+  if (diskPct >= 85) attention.push({ sev: 'warn', title: 'Disk Almost Full', sub: `${diskPct}% used`, to: '/server', go: 'Free Up Space →' });
   const isDegraded = attention.length > 0;
 
   const feed = events.map((ev) => ({

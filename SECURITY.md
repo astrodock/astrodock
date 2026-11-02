@@ -27,6 +27,17 @@ plainly rather than pretending they aren't there.
   app's secret values masked; every invocation is written to the audit trail with its text before
   it runs. That bounds it to the blast radius of the app itself rather than the platform, but a
   shell is still a shell. Leave it off unless you understand and accept this.
+- **The server terminal is root on the host, by design.** `POST /admin/server/exec` (the Server
+  page, and `astrodock server run`) starts a short-lived privileged container that enters the
+  host's namespaces with `nsenter` and runs the command as root, exactly as SSH would. It adds no
+  privilege the runner's Docker socket does not already hold; it makes that privilege usable from
+  the dashboard. It is on by default and can be switched off with `ASTRODOCK_SERVER_TERMINAL=off`
+  in `.env`. It needs the `server:exec` permission, which only the **owner** role holds (not
+  admin), which is in no key preset, and which a key can never pass on. A key that carries it can
+  only be created by an owner, cannot be limited to apps, and expires within **24 hours** whatever
+  was requested. Every command is written to the audit trail, with its text and who ran it
+  (person or key), before it runs. Output has the platform's own secret values masked. Commands
+  stop after 15 minutes or when the caller disconnects.
 - **GitHub PAT in clone URLs.** The runner clones with `https://x-access-token:<PAT>@…`. The token
   is not written to stored deploy logs, but treat the runner host as holding that credential.
 

@@ -137,6 +137,7 @@ app.use('/admin/activity', require('./src/routes/admin-activity'));
 app.use('/admin/settings', require('./src/routes/admin-settings'));
 app.use('/admin/notifications', require('./src/routes/admin-notifications'));
 app.use('/admin/backups', require('./src/routes/admin-backups'));
+app.use('/admin/server', require('./src/routes/admin-server'));
 app.use('/admin/feedback', require('./src/routes/admin-feedback'));
 app.use('/admin/work', require('./src/routes/admin-work'));
 

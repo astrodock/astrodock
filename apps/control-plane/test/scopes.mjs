@@ -178,6 +178,23 @@ console.log('\nread scopes must not grant writes');
   });
 }
 
+console.log('\nthe server terminal is the owner\'s');
+
+test('only the owner role holds server:exec', () => {
+  assert.ok(R.scopesFor('owner').includes('server:exec'));
+  for (const role of ['admin', 'operator', 'viewer']) assert.ok(!R.scopesFor(role).includes('server:exec'), role);
+});
+
+test('no preset and no legacy scope expands to server:exec', () => {
+  for (const [k, p] of Object.entries(S.PRESETS)) assert.ok(!p.scopes.includes('server:exec'), k);
+  assert.ok(!S.expand(['*']).includes('server:exec'));
+});
+
+test('a key can never pass server:exec on', () => {
+  const minter = { scopes: ['server:exec', 'tokens:write', 'apps:read'], appScope: [], expiresAt: null };
+  assert.throws(() => S.checkDelegation(minter, { scopes: ['server:exec'], appScope: [], expiresAt: null }), /server:exec/);
+});
+
 console.log('\nperson-only routers are held to the role');
 
 test('an operator cannot run, download or restore backups', () => {

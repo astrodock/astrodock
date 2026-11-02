@@ -408,13 +408,11 @@ function pruneAppImages(slug, keep) {
   try {
     rows = exec(`docker images "app-${slug}" --format '{{.Tag}}\t{{.CreatedAt}}'`)
       .split('\n').map((l) => l.trim()).filter(Boolean)
-      .map((l) => { const [tag, created] = l.split('\t'); return { tag, created }; })
-      .filter((r) => r.tag && r.tag !== '<none>')
-      .sort((a, b) => (a.created < b.created ? 1 : -1));
+      .map((l) => { const [tag, created] = l.split('\t'); return { tag, created }; });
   } catch { return []; }
   const removed = [];
-  for (const r of rows.slice(keep)) {
-    try { exec(`docker rmi "app-${slug}:${r.tag}" 2>&1`); removed.push(r.tag); }
+  for (const tag of require('../lib/images').appTagsToRemove(rows, keep)) {
+    try { exec(`docker rmi "app-${slug}:${tag}" 2>&1`); removed.push(tag); }
     catch { /* in use, or already gone */ }
   }
   return removed;

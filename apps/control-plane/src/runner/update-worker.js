@@ -212,12 +212,7 @@ async function main() {
 // come up healthy, keep the version now running, the one it replaced (the
 // rollback target) and `latest`, and remove the rest. Images a container still
 // uses are refused by `docker rmi`, which is the safety net, not an error.
-// Which tags go. Pure, so the keep rule is tested without Docker.
-function tagsToRemove(tags, keepVersions) {
-  const norm = (v) => String(v || '').trim().replace(/^v/, '');
-  const keep = new Set(keepVersions.map(norm).filter(Boolean));
-  return tags.filter((t) => t && t !== '<none>' && t !== 'latest' && !keep.has(norm(t)));
-}
+const { tagsToRemove } = require('../lib/images');
 
 async function pruneOldImages(keepVersions) {
   const image = process.env.ASTRODOCK_IMAGE || 'ghcr.io/astrodock/astrodock';

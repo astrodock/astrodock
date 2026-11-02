@@ -51,7 +51,11 @@ const SCOPES = {
   'work:read': { group: 'observe', label: 'View Work Items', description: 'View tracked work items' },
   'work:write': { group: 'apps', label: 'Manage Work Items', description: 'Create work items, change status, link and relate them' },
   'tokens:write': { group: 'sensitive', label: 'Create & Revoke Keys', description: 'Create and revoke access keys' },
-  exec: { group: 'sensitive', label: 'Run Commands in an App', description: 'Run commands inside an app' }
+  exec: { group: 'sensitive', label: 'Run Commands in an App', description: 'Run commands inside an app' },
+  // Root on the host. Held by the owner role only, in no preset, and a key that
+  // carries it must be minted by an owner, cover every app and expire within 24
+  // hours (routes/admin-tokens.js). A key can never pass it on.
+  'server:exec': { group: 'sensitive', label: 'Run Server Commands', description: 'Run commands as root on the server itself: disk, Docker, system updates' }
 };
 
 const ALL = Object.keys(SCOPES);
@@ -82,7 +86,7 @@ const PRESETS = {
   platform: {
     label: 'Platform Manager',
     description: 'Manage the whole platform. Excludes running commands and minting keys.',
-    scopes: ALL.filter((s) => s !== 'exec' && s !== 'tokens:write')
+    scopes: ALL.filter((s) => s !== 'exec' && s !== 'tokens:write' && s !== 'server:exec')
   },
   readonly: {
     label: 'Read-Only',
@@ -99,7 +103,7 @@ const PRESETS = {
 const LEGACY = {
   deploy: PRESETS.deployer.scopes,
   pages: ['pages:read', 'pages:write'],
-  '*': ALL.filter((s) => s !== 'exec' && s !== 'tokens:write')
+  '*': ALL.filter((s) => s !== 'exec' && s !== 'tokens:write' && s !== 'server:exec')
 };
 
 function isLegacy(scopes) {
@@ -150,6 +154,9 @@ function checkDelegation(minter, requested) {
   }
   if (want.includes('tokens:write')) {
     throw new Error('A key cannot grant tokens:write. Only a person can create a key that makes keys.');
+  }
+  if (want.includes('server:exec')) {
+    throw new Error('A key cannot grant server:exec. Only an owner can create a key that runs server commands.');
   }
 
   const excess = want.filter((s) => !mine.has(s));
