@@ -1,5 +1,8 @@
 # Multi-tenant & hosted-SaaS roadmap (deferred)
 
+> **2026-11-02:** mode 3 is now the active goal. The build plan and decisions are in
+> `HOSTED_SERVICE.md`. Items below that it does not cover remain deferred.
+
 Astrodock's locked threat model is a **single-tenant VPS run by a fully-trusted operator**
 (see `SECURITY.md`). The features below only earn their keep once there are *multiple,
 mutually-distrusting* operators or paying customers — i.e. deployment **mode 3** in
