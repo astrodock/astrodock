@@ -1,56 +1,49 @@
 /* Self-hosted typefaces.
  *
- * The dashboard pulls these two families from Google Fonts on every load, which
- * sits badly under a product that promises it doesn't depend on outside services
- * — the first thing a visitor's browser does is call a third party. These are the
- * same files, taken from the Fontsource packages on npm and served from here.
+ * Served from here rather than a font CDN, so a visitor's browser never calls a
+ * third party: this is a product that promises it doesn't depend on outside
+ * services. Files come from the Fontsource packages on npm
+ * (@fontsource/geist-sans and @fontsource/geist-mono, 5.3.0).
  *
  * Both are Open Font License; the licences ship alongside them in this directory.
- * Latin subset only, which is what keeps this to ~82KB for six weights.
+ * Latin subset only.
  */
 
-/* Saira — display and UI */
+/* Geist: display and UI */
 @font-face {
-  font-family: 'Saira';
-  font-style: normal;
-  font-weight: 300;
-  font-display: swap;
-  src: url('/fonts/saira-latin-300-normal.woff2') format('woff2');
-}
-@font-face {
-  font-family: 'Saira';
+  font-family: 'Geist';
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url('/fonts/saira-latin-400-normal.woff2') format('woff2');
+  src: url('/fonts/geist-sans-latin-400-normal.woff2') format('woff2');
 }
 @font-face {
-  font-family: 'Saira';
-  font-style: normal;
-  font-weight: 600;
-  font-display: swap;
-  src: url('/fonts/saira-latin-600-normal.woff2') format('woff2');
-}
-@font-face {
-  font-family: 'Saira';
-  font-style: normal;
-  font-weight: 800;
-  font-display: swap;
-  src: url('/fonts/saira-latin-800-normal.woff2') format('woff2');
-}
-
-/* IBM Plex Mono — code, logs, data */
-@font-face {
-  font-family: 'IBM Plex Mono';
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url('/fonts/ibm-plex-mono-latin-400-normal.woff2') format('woff2');
-}
-@font-face {
-  font-family: 'IBM Plex Mono';
+  font-family: 'Geist';
   font-style: normal;
   font-weight: 500;
   font-display: swap;
-  src: url('/fonts/ibm-plex-mono-latin-500-normal.woff2') format('woff2');
+  src: url('/fonts/geist-sans-latin-500-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/geist-sans-latin-600-normal.woff2') format('woff2');
+}
+
+/* Geist Mono: labels, code, logs, data */
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/geist-mono-latin-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/geist-mono-latin-500-normal.woff2') format('woff2');
 }

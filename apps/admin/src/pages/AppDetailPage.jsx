@@ -16,7 +16,7 @@ import WorkTab from '../components/WorkTab';
 import useConfirm from '../lib/useConfirm';
 
 const BASE_TABS = ['deploys', 'env', 'domains', 'signin', 'feedback', 'work', 'logs', 'history', 'operations', 'settings'];
-const TAB_LABELS = { deploys: 'Deploys', env: 'Variables', domains: 'Domains', signin: 'Sign-In', feedback: 'Feedback', work: 'Work', logs: 'Logs', operations: 'Operations', settings: 'Settings' };
+const TAB_LABELS = { deploys: 'Deploys', env: 'Variables', domains: 'Domains', signin: 'Sign-In', feedback: 'Feedback', work: 'Work', logs: 'Logs', history: 'History', operations: 'Operations', settings: 'Settings' };
 
 const STATUS_LABELS = {
   online: { label: 'Running', className: 'active' },

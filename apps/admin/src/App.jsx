@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate, NavLink, Link, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate, NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { getToken, clearToken, getSetupStatus, exchangeHandoff, setToken } from './lib/api';
 import * as api from './lib/api';
@@ -40,6 +40,28 @@ function platformState(platform) {
   };
 }
 
+// The top bar names where you are. Keyed by the first path segment, worded
+// exactly as the sidebar words it.
+const SECTIONS = {
+  overview: 'Overview', apps: 'Apps', pages: 'Pages', users: 'Users',
+  domains: 'Domains', tokens: 'Access Keys', activity: 'Activity', health: 'Health',
+  account: 'Your Account', settings: 'Settings', setup: 'Setup'
+};
+
+function Crumbs({ pathname }) {
+  const [first, second] = pathname.replace(/^\/+/, '').split('/');
+  const name = SECTIONS[first];
+  if (!name) return null;
+  if (!second) return <span className="tb-cur">{name}</span>;
+  return (
+    <>
+      <Link to={`/${first}`}>{name}</Link>
+      <span className="tb-sep">/</span>
+      <span className="tb-cur">{decodeURIComponent(second)}</span>
+    </>
+  );
+}
+
 export default function App() {
   const [isAuthed, setIsAuthed] = useState(!!getToken());
   // index.html always stamps data-theme before paint; 'light' here only matters if
@@ -54,6 +76,7 @@ export default function App() {
   const [me, setMe] = useState(null);
   const [platform, setPlatform] = useState(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
   function toggleTheme() {
     const next = theme === 'dark' ? 'light' : 'dark';
@@ -137,21 +160,31 @@ export default function App() {
 
   return (
     <div className="app">
-      <nav className="sidebar">
-        <div className="sidebar-header">
-          <div className="logo-mark">
-            <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
+      <header className="topbar">
+        <Link className="tb-brand" to="/overview">
+          <span className="logo-mark">
+            <svg width="26" height="26" viewBox="0 0 34 34" fill="none" aria-hidden="true">
               <circle cx="17" cy="17" r="15" stroke="var(--accent)" strokeWidth="1.4" opacity=".4"/>
               <circle cx="17" cy="17" r="9.5" stroke="var(--accent)" strokeWidth="1.4" opacity=".7"/>
               <circle cx="17" cy="17" r="3.6" fill="var(--accent)"/>
               <g className="orbit-dot"><circle cx="32" cy="17" r="2.3" fill="var(--text)"/></g>
             </svg>
-          </div>
-          <div className="logo-wrap">
-            <span className="logo-text">ASTRO<span className="logo-text-dim">DOCK</span></span>
-            <span className="logo-sub">Control Plane</span>
-          </div>
-        </div>
+          </span>
+          <span className="logo-text">ASTRO<span className="logo-text-dim">DOCK</span></span>
+        </Link>
+        <div className="tb-crumbs"><Crumbs pathname={location.pathname} /></div>
+        {/* What state the platform is in, and which version it is. Read from the
+            platform probe, so it can say no. */}
+        <Link className={`sys-line ${platformState(platform).tone}`} to="/settings"
+          title={platformState(platform).title}>
+          <span className="led" />
+          <span className="sys-text">{platformState(platform).label}</span>
+        </Link>
+        <span className="sys-ver">
+          {setup?.version ? `v${String(setup.version).replace(/^v/, '')}` : 'Version Unknown'}
+        </span>
+      </header>
+      <nav className="sidebar">
         <ul className="nav-links">
           <li className="nav-sec">Operate</li>
           <li>
@@ -231,19 +264,6 @@ export default function App() {
               <span>{me?.name && me?.email ? me.email : 'Account and Security'}</span>
             </div>
           </NavLink>
-
-          {/* One line: what state the platform is in, and which version it is.
-              Both used to be separate blocks, and the state was the string
-              "System nominal" beside a dot that was green in the markup. It is
-              read from the platform probe now, so it can say no. */}
-          <Link className={`sys-line ${platformState(platform).tone}`} to="/settings"
-            title={platformState(platform).title}>
-            <span className="led" />
-            <span className="sys-text">{platformState(platform).label}</span>
-            <span className="sys-ver">
-              {setup?.version ? `v${String(setup.version).replace(/^v/, '')}` : 'Version Unknown'}
-            </span>
-          </Link>
         </div>
       </nav>
       <main className="content">

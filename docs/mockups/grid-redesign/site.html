@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Astrodock Site: Grid Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Mockup only. Copy from the live astrodock.ai homepage.
+   Colors are the live site's existing tokens (assets/site.css): cool neutrals, one green accent, navy for dark. */
+:root {
+  --font: 'Geist', ui-sans-serif, system-ui, sans-serif;
+  --mono: 'Geist Mono', ui-monospace, Menlo, monospace;
+  --bg: #f4f6fa;
+  --surface: #ffffff;
+  --sunken: #eef1f6;
+  --ink: #121823;
+  --ink-2: #445064;
+  --ink-3: #626e7d;
+  --line: #dce2ec;
+  --line-strong: #b9c3d2;
+  --accent: #0b7c56;
+  --accent-2: #0a6a4a;
+  --accent-ink: #ffffff;
+  --accent-dim: rgba(11, 124, 86, .10);
+  --warn: #966213;
+  /* the dark band uses the live site's dark theme */
+  --navy: #0a0e15;
+  --navy-surface: #0f141d;
+  --navy-line: #222d3b;
+  --navy-ink: #f1f5fa;
+  --navy-ink-2: #b6c4d4;
+  --mint: #2fe6a8;
+  --max: 1200px;
+}
+[data-theme="dark"] {
+  --bg: #0a0e15; --surface: #0f141d; --sunken: #06090f;
+  --ink: #f1f5fa; --ink-2: #b6c4d4; --ink-3: #8595a8;
+  --line: #222d3b; --line-strong: #344256;
+  --accent: #2fe6a8; --accent-2: #13c98c; --accent-ink: #06120d; --accent-dim: rgba(47, 230, 168, .12);
+  --warn: #e0a84a;
+  --navy: #06090f; --navy-surface: #0c121b;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font); font-size: 15px; line-height: 1.55; color: var(--ink); background: var(--bg); -webkit-font-smoothing: antialiased; }
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+code, .mono { font-family: var(--mono); }
+.lbl { font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-3); }
+
+/* The rails: one centered column with side lines; sections divided by full-width rules */
+.rail { max-width: var(--max); margin: 0 auto; border-left: 1px solid var(--line); border-right: 1px solid var(--line); position: relative; }
+.band { border-bottom: 1px solid var(--line); }
+
+/* Crosshair ticks, used sparingly: hero corners only */
+.tk { position: absolute; width: 11px; height: 11px; pointer-events: none; z-index: 5; }
+.tk::before, .tk::after { content: ""; position: absolute; background: var(--line-strong); }
+.tk::before { width: 1px; top: 0; bottom: 0; left: 5px; }
+.tk::after { height: 1px; left: 0; right: 0; top: 5px; }
+.tk.bl { bottom: -6px; left: -6px; } .tk.br { bottom: -6px; right: -6px; }
+
+/* Nav: no cell dividers, just the rail */
+.nav { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(10px); }
+.nav .rail { display: flex; align-items: center; height: 56px; padding: 0 0 0 24px; gap: 28px; }
+.nav .brand { display: flex; align-items: center; gap: 10px; margin-right: 12px; }
+.nav .brand svg { width: 22px; height: 22px; color: var(--accent); }
+.nav .brand b { font-family: var(--mono); font-weight: 500; font-size: 12.5px; letter-spacing: .2em; }
+.nav .brand b span { color: var(--ink-3); }
+.nav .link { font-size: 14px; font-weight: 500; color: var(--ink-2); }
+.nav .link:hover { color: var(--ink); }
+.nav .grow { flex: 1; }
+.nav .theme { color: var(--ink-2); display: flex; }
+.nav .cta { align-self: stretch; display: flex; align-items: center; padding: 0 22px; background: var(--accent); color: var(--accent-ink); font-weight: 500; font-size: 14px; }
+.nav .cta:hover { background: var(--accent-2); }
+
+/* Buttons */
+.btn { height: 44px; padding: 0 20px; display: inline-flex; align-items: center; gap: 10px; border: 1px solid var(--line-strong); font-weight: 500; font-size: 14px; background: var(--surface); }
+.btn + .btn { margin-left: -1px; }
+.btn:hover { border-color: var(--ink-3); position: relative; }
+.btn.pri { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.pri:hover { background: var(--accent-2); border-color: var(--accent-2); }
+.btn .arr { font-family: var(--mono); }
+
+/* Hero */
+.hero { position: relative; overflow: hidden; }
+.hero::before { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 48px 48px; background-position: center top;
+  mask-image: radial-gradient(ellipse 50% 70% at 78% 45%, #000 10%, transparent 70%);
+  -webkit-mask-image: radial-gradient(ellipse 50% 70% at 78% 45%, #000 10%, transparent 70%); opacity: .8; }
+.hero-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); }
+.hero-copy { min-width: 0; padding: 88px 48px 72px; position: relative; z-index: 1; }
+.hero .kicker { color: var(--accent); }
+.hero h1 { font-size: 64px; font-weight: 600; letter-spacing: -.045em; line-height: .98; margin: 22px 0 24px; }
+.hero h1 em { font-style: normal; color: var(--accent); }
+.lede { font-size: 17px; color: var(--ink-2); max-width: 46ch; }
+.cta-row { display: flex; margin-top: 32px; }
+.install { margin-top: 28px; display: flex; flex-direction: column; gap: 8px; max-width: 520px; }
+.install small { color: var(--ink-3); font-size: 13px; }
+.cmd { display: flex; align-items: stretch; border: 1px solid var(--line); background: var(--surface); }
+.cmd code { flex: 1; padding: 10px 14px; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink-2); }
+.cmd code::before { content: "$ "; color: var(--accent); }
+.cmd button { border-left: 1px solid var(--line); padding: 0 14px; font-size: 12.5px; font-weight: 500; color: var(--ink-2); }
+.cmd button:hover { color: var(--accent); }
+
+/* Hero right: the agent session */
+.hero-side { position: relative; z-index: 1; padding: 64px 40px 64px 8px; display: flex; align-items: center; }
+.term { width: 100%; border: 1px solid var(--line-strong); background: var(--surface); }
+.term-h { display: flex; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid var(--line); }
+.term-b { padding: 16px 18px; font-family: var(--mono); font-size: 12.5px; line-height: 1.85; min-height: 270px; }
+.term-b .p { color: var(--ink-3); }
+.term-b .dim { color: var(--ink-3); }
+.term-b .ok { color: var(--accent); }
+.term-b .ln { opacity: 0; transform: translateY(3px); transition: opacity .25s, transform .25s; }
+.term-b .ln.in { opacity: 1; transform: none; }
+.term-f { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); }
+.term-f > div { padding: 10px 16px; border-right: 1px solid var(--line); display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: var(--ink-3); transition: color .2s; }
+.term-f > div:last-child { border-right: 0; }
+.term-f > div.on { color: var(--ink); }
+.sq { width: 7px; height: 7px; display: inline-block; background: var(--line-strong); flex: none; transition: background .2s; }
+.sq.ok, .on .sq { background: var(--accent); } .sq.warn { background: var(--warn); }
+
+/* Section header: one block, label over headline */
+.sec-h { padding: 72px 48px 40px; }
+.sec-h .lbl { color: var(--accent); }
+.sec-h h2 { font-size: 40px; font-weight: 600; letter-spacing: -.035em; line-height: 1.05; max-width: 22ch; margin-top: 14px; }
+.sec-h p { color: var(--ink-2); margin-top: 16px; max-width: 62ch; font-size: 16px; }
+
+.grid { display: grid; border-top: 1px solid var(--line); }
+.grid > * { border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.g3 { grid-template-columns: repeat(3, 1fr); }
+.g3 > :nth-child(3n) { border-right: 0; }
+.g3 > :nth-last-child(-n+3) { border-bottom: 0; }
+.g4 { grid-template-columns: repeat(4, 1fr); }
+.g4 > :nth-child(4n) { border-right: 0; }
+.g4 > * { border-bottom: 0; }
+
+/* App cells */
+.appcell { padding: 22px 24px; display: flex; flex-direction: column; gap: 6px; min-height: 132px; background: var(--surface); }
+.appcell .top { display: flex; align-items: center; gap: 10px; }
+.appcell .name { font-family: var(--mono); font-size: 14px; font-weight: 500; }
+.appcell p { color: var(--ink-2); font-size: 14px; }
+.appcell .host { margin-top: auto; font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+.appcell .st { margin-left: auto; font-size: 12px; color: var(--ink-3); }
+.appcell.deploying .st { color: var(--warn); }
+.after { padding: 18px 48px; border-top: 1px solid var(--line); color: var(--ink-2); font-size: 14.5px; }
+
+/* Feature cells */
+.fcell { padding: 28px 28px 26px; display: flex; flex-direction: column; gap: 10px; min-height: 196px; transition: background .12s linear; }
+.fcell h3 { font-size: 19px; font-weight: 600; letter-spacing: -.015em; }
+.fcell p { color: var(--ink-2); font-size: 14.5px; }
+.fcell .more { margin-top: auto; font-size: 13.5px; font-weight: 500; color: var(--accent); display: flex; gap: 6px; }
+a.fcell:hover { background: var(--surface); }
+a.fcell:hover .more span { transform: translateX(3px); }
+.fcell .more span { transition: transform .15s; }
+
+/* Agents band: the live site's navy */
+.dark { background: var(--navy); color: var(--navy-ink); border-bottom-color: var(--navy-line); }
+.dark .rail { border-color: var(--navy-line); }
+.dark .sec-h .lbl { color: var(--mint); }
+.agents { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid var(--navy-line); }
+.agents > :first-child { border-right: 1px solid var(--navy-line); }
+.agents .copy { padding: 36px 48px; color: var(--navy-ink-2); font-size: 15.5px; display: flex; flex-direction: column; gap: 16px; }
+.agents .copy code { color: var(--navy-ink); }
+.agents .copy a { color: var(--mint); font-weight: 500; font-size: 14px; margin-top: auto; }
+.doc-h { padding: 12px 24px; border-bottom: 1px solid var(--navy-line); color: var(--navy-ink-2); font-family: var(--mono); font-size: 12px; }
+.doc { padding: 20px 24px; font-family: var(--mono); font-size: 12.5px; line-height: 1.8; white-space: pre; color: var(--navy-ink-2); overflow: auto; background: var(--navy-surface); }
+.doc .h { color: var(--mint); }
+.key { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid var(--navy-line); }
+.key > div { padding: 16px 24px; font-size: 14px; color: var(--navy-ink); }
+.key > div:first-child { border-right: 1px solid var(--navy-line); }
+.key b { display: block; font-size: 12.5px; font-weight: 500; color: var(--mint); margin-bottom: 2px; }
+.key .no { color: var(--navy-ink-2); }
+.key .no b { color: var(--navy-ink-2); }
+
+/* Steps */
+.step { padding: 28px; display: flex; flex-direction: column; gap: 10px; min-height: 220px; }
+.step .num { font-family: var(--mono); font-size: 13px; font-weight: 500; color: var(--accent); }
+.step h3 { font-size: 19px; font-weight: 600; letter-spacing: -.015em; }
+.step p { color: var(--ink-2); font-size: 14.5px; }
+.step .cmd { margin-top: auto; }
+
+/* What it isn't */
+.isnt { padding: 28px; display: flex; flex-direction: column; gap: 8px; }
+.isnt h3 { font-size: 17px; font-weight: 600; letter-spacing: -.01em; }
+.isnt p { color: var(--ink-2); font-size: 14px; }
+
+/* Closing */
+.closing { display: grid; grid-template-columns: 1fr auto; align-items: end; padding: 80px 48px; gap: 32px; }
+.closing h2 { font-size: 52px; font-weight: 600; letter-spacing: -.045em; line-height: 1; max-width: 16ch; }
+.closing p { color: var(--ink-2); margin-top: 18px; font-size: 15px; }
+.closing p a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+
+/* Footer */
+.foot { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 24px; padding: 40px 48px 32px; }
+.foot > div { display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
+.foot .lbl { margin-bottom: 6px; }
+.foot a { color: var(--ink-2); }
+.foot a:hover { color: var(--accent); }
+.foot .about { color: var(--ink-2); max-width: 34ch; }
+.foot .logo { display: flex; gap: 10px; align-items: center; color: var(--ink); }
+.foot .logo svg { color: var(--accent); }
+.legal { display: flex; justify-content: space-between; padding: 14px 48px; border-top: 1px solid var(--line); color: var(--ink-3); font-size: 13px; }
+.wordmark { padding: 32px 48px 0; overflow: hidden; }
+.wordmark svg { display: block; width: 100%; height: auto; margin-bottom: -2.2%; }
+.wordmark text { font-family: var(--font); font-weight: 600; fill: var(--sunken); stroke: var(--line); stroke-width: 1; }
+.note { text-align: center; padding: 10px; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="mark" viewBox="0 0 34 34">
+    <circle cx="17" cy="17" r="15" stroke="currentColor" stroke-width="1.4" fill="none" opacity=".4"/>
+    <circle cx="17" cy="17" r="9.5" stroke="currentColor" stroke-width="1.4" fill="none" opacity=".7"/>
+    <circle cx="17" cy="17" r="3.6" fill="currentColor"/>
+    <circle cx="32" cy="17" r="2.3" fill="currentColor"/>
+  </symbol>
+</svg>
+
+<header class="nav band">
+  <div class="rail">
+    <a class="brand" href="#"><svg><use href="#mark"/></svg><b>ASTRO<span>DOCK</span></b></a>
+    <a class="link" href="#">Features</a>
+    <a class="link" href="#">Built for Agents</a>
+    <a class="link" href="#">Self-Hosting</a>
+    <a class="link" href="#">Docs</a>
+    <span class="grow"></span>
+    <a class="link" href="#">GitHub ↗</a>
+    <button class="theme" id="theme" title="Toggle Theme"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.4"/><path d="M8 2a6 6 0 0 0 0 12z" fill="currentColor"/></svg></button>
+    <a class="cta" href="#">Install</a>
+  </div>
+</header>
+
+<main>
+<!-- HERO -->
+<section class="hero band">
+  <div class="rail hero-grid">
+    <div class="hero-copy">
+      <span class="lbl kicker">Self-Hosted App Platform · Open Source</span>
+      <h1>The hard part was <em>never</em> the app.</h1>
+      <p class="lede">Your agent can write a working tool before lunch. Finding it a database, a domain, an HTTPS certificate and somewhere for people to log in is what eats the rest of the week. Astrodock is one install that has all of that ready, and hands your agent the keys.</p>
+      <div class="cta-row">
+        <a class="btn pri" href="#">Install Astrodock <span class="arr">→</span></a>
+        <a class="btn" href="#">Read the Docs</a>
+      </div>
+      <div class="install">
+        <div class="cmd"><code>curl -fsSL https://raw.githubusercontent.com/astrodock/astrodock/main/scripts/install.sh | sh</code><button>Copy</button></div>
+        <small>One command, one machine, ten minutes.</small>
+      </div>
+    </div>
+    <div class="hero-side">
+      <div class="term">
+        <div class="term-h"><span class="lbl">Agent · ~/oncall</span><span class="lbl" style="color:var(--accent)">Live</span></div>
+        <div class="term-b" id="term">
+          <div class="ln"><span class="p">you ›</span> Build an on-call tracker with sign-in and put it online.</div>
+          <div class="ln dim">reading AGENTS.md · app layout contract</div>
+          <div class="ln dim">writing app/, server/, app.json</div>
+          <div class="ln"><span class="p">$</span> astrodock apply</div>
+          <div class="ln dim">  app oncall · auth platform · db internal</div>
+          <div class="ln"><span class="p">$</span> astrodock deploy:watch</div>
+          <div class="ln dim">  fetch · install · build · start</div>
+          <div class="ln">  GET /health → <span class="ok">200</span></div>
+          <div class="ln"><span class="ok">✓ succeeded</span> · oncall.yourdomain.com</div>
+        </div>
+        <div class="term-f">
+          <div data-ready><span class="sq"></span>Sign-In</div>
+          <div data-ready><span class="sq"></span>Database</div>
+          <div data-ready><span class="sq"></span>Domain</div>
+          <div data-ready><span class="sq"></span>HTTPS</div>
+        </div>
+      </div>
+    </div>
+    <span class="tk bl"></span><span class="tk br"></span>
+  </div>
+</section>
+
+<!-- 01 -->
+<section class="band">
+  <div class="rail">
+    <div class="sec-h">
+      <span class="lbl">01 · What People Run</span>
+      <h2>The tools that never make it past localhost.</h2>
+      <p>Not startups. The small, specific, genuinely useful things: the ones that die on your laptop because putting them online was never worth an afternoon of DNS and a monthly bill. This is somebody's dock about a month in.</p>
+    </div>
+    <div class="grid g3">
+      <div class="appcell"><div class="top"><span class="sq ok"></span><span class="name">oncall</span><span class="st">Running</span></div><p>Who's on this week, and who's next</p><span class="host">oncall.yourdomain.com</span></div>
+      <div class="appcell"><div class="top"><span class="sq ok"></span><span class="name">invoices</span><span class="st">Running</span></div><p>Hours in, invoice out, chasing included</p><span class="host">invoices.yourdomain.com</span></div>
+      <div class="appcell"><div class="top"><span class="sq ok"></span><span class="name">standup</span><span class="st">Running</span></div><p>Six people, one page, no meeting</p><span class="host">standup.yourdomain.com</span></div>
+      <div class="appcell"><div class="top"><span class="sq ok"></span><span class="name">snap</span><span class="st">Running</span></div><p>Somewhere to put the family photos that isn't a cloud account</p><span class="host">snap.yourdomain.com</span></div>
+      <div class="appcell"><div class="top"><span class="sq ok"></span><span class="name">runbooks</span><span class="st">Running</span></div><p>The internal wiki you're not paying per seat for</p><span class="host">runbooks.yourdomain.com</span></div>
+      <div class="appcell deploying"><div class="top"><span class="sq warn"></span><span class="name">leads</span><span class="st">Deploying</span></div><p>A form on the website that lands somewhere useful</p><span class="host">leads.yourdomain.com</span></div>
+    </div>
+    <p class="after">Six apps, one machine, one bill. Adding the seventh costs a subdomain.</p>
+  </div>
+</section>
+
+<!-- 02 -->
+<section class="band">
+  <div class="rail">
+    <div class="sec-h">
+      <span class="lbl">02 · Sign-In You Don't Write</span>
+      <h2>Real accounts, on the first day.</h2>
+      <p>Any app you deploy can ask people to log in, and none of that is your code. Astrodock runs the sign-in page, keeps the accounts, and tells your app who just arrived, so the thing you built in an afternoon gets a login you'd put in front of a customer.</p>
+    </div>
+    <div class="grid g3">
+      <div class="fcell"><h3>You Don't Hold the Passwords</h3><p>People type them into Astrodock, never into your app. Passkeys and two-factor are already there if you want them on.</p></div>
+      <div class="fcell"><h3>One Login for Everything</h3><p>Sign in once and every tool you're allowed into is already open. Nobody keeps six sets of credentials.</p></div>
+      <div class="fcell"><h3>You Decide Who Gets In</h3><p>Give someone the rota and not the invoices. They don't get told the other one exists.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 03 dark -->
+<section class="band dark">
+  <div class="rail">
+    <div class="sec-h">
+      <span class="lbl">03 · Built to Be Handed Over</span>
+      <h2>Your agent already knows how to use it.</h2>
+    </div>
+    <div class="agents">
+      <div class="copy">
+        <p>Point Claude Code or Cursor at <code>AGENTS.md</code> and it has the rules: how to lay an app out, what it will be handed at runtime, and one command that streams the deploy until it can say succeeded or failed.</p>
+        <p>An agent that gets a straight answer can fix its own mistake instead of telling you it's probably fine.</p>
+        <a href="#">The Whole Agent Story →</a>
+      </div>
+      <div>
+        <div class="doc-h">AGENTS.md</div>
+<div class="doc"><span class="h">## 2. App layout contract</span>
+app/    frontend, builds to app/dist/
+server/ Express, entry server/server.js
+
+<span class="h">### Hard rules for the server</span>
+1. Bind ASTRODOCK_PORT
+2. Namespace routes under /api
+3. GET /health → 200
+4. Read config from injected env.
+   Never hardcode. Never commit secrets.</div>
+        <div class="key">
+          <div><b>Its Key Can</b>Ship apps and set secrets.</div>
+          <div class="no"><b>Its Key Cannot</b>Touch your users, or let itself do more.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 04 -->
+<section class="band">
+  <div class="rail">
+    <div class="sec-h">
+      <span class="lbl">04 · What Every App Gets</span>
+      <h2>Four vendors' worth of plumbing.</h2>
+      <p>You name what you want in one file. It exists the first time you deploy, and it's yours to swap for a service you pay for the day you outgrow it.</p>
+    </div>
+    <div class="grid g3">
+      <a class="fcell" href="#"><h3>Sign-In</h3><p>Real user accounts, and not one line of auth code in your app.</p><span class="more">How Sign-In Works <span>→</span></span></a>
+      <a class="fcell" href="#"><h3>Databases &amp; Storage</h3><p>Its own Postgres and its own bucket. Or point it at your Neon or R2.</p><span class="more">How Resources Work <span>→</span></span></a>
+      <a class="fcell" href="#"><h3>Deploys &amp; Runtimes</h3><p>Push, upload or let an agent do it. Node needs no config; anything else ships a Dockerfile.</p><span class="more">How Deploying Works <span>→</span></span></a>
+      <a class="fcell" href="#"><h3>Secrets &amp; Config</h3><p>Your repo holds names. The values live on the platform, encrypted.</p><span class="more">How Config Works <span>→</span></span></a>
+      <a class="fcell" href="#"><h3>Domains &amp; HTTPS</h3><p>A subdomain the moment an app exists, and certificates that renew themselves.</p><span class="more">How Addresses Work <span>→</span></span></a>
+      <a class="fcell" href="#"><h3>Monitoring &amp; Backups</h3><p>Live logs, health checks that email you, and nightly dumps to your disk.</p><span class="more">How Running It Works <span>→</span></span></a>
+    </div>
+  </div>
+</section>
+
+<!-- 05 -->
+<section class="band">
+  <div class="rail">
+    <div class="sec-h">
+      <span class="lbl">05 · From Bare Server to Live App</span>
+      <h2>Ten minutes, start to finish.</h2>
+    </div>
+    <div class="grid g3">
+      <div class="step"><span class="num">Step 1</span><h3>Install It</h3><p>On a fresh Linux box. It fetches the stack, generates every secret, and starts it.</p><div class="cmd"><code>curl -fsSL …/install.sh | sh</code><button>Copy</button></div></div>
+      <div class="step"><span class="num">Step 2</span><h3>Finish in the Browser</h3><p>Point a wildcard DNS record at the machine. Astrodock shows you the exact record to create, checks it for you, and turns on HTTPS when it lands.</p></div>
+      <div class="step"><span class="num">Step 3</span><h3>Hand It to Your Agent</h3><p>Make a scoped key, give it the docs, and ask for the thing you actually wanted.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 06 -->
+<section class="band">
+  <div class="rail">
+    <div class="sec-h">
+      <span class="lbl">06 · Being Straight with You</span>
+      <h2>What it isn't.</h2>
+      <p>You should know what you're taking on before you point an install script at a machine. Four things this is not.</p>
+    </div>
+    <div class="grid g4">
+      <div class="isnt"><h3>It Isn't Kubernetes</h3><p>One machine, one stack, no cluster. If you need to survive a region going dark, this is the wrong tool.</p></div>
+      <div class="isnt"><h3>It Isn't Built for Scale</h3><p>It's built for the dozens of small things a person or a team actually runs: internal tools, side projects, the thing your agent wrote on Tuesday.</p></div>
+      <div class="isnt"><h3>It Isn't a Plan You're On</h3><p>No per-seat price, no per-app price, nothing that grows with your traffic. If this project stopped tomorrow, the machine would keep running.</p></div>
+      <div class="isnt"><h3>It Isn't Magic</h3><p>The machine, the backups and the updates are still yours. Astrodock makes each of those one command.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- CLOSING -->
+<section class="band">
+  <div class="rail closing">
+    <div>
+      <h2>Give it a machine and ten minutes.</h2>
+      <p>Rather not run a server? <a href="#">Tell us</a> you want hosted Astrodock and we'll let you know when it's ready.</p>
+    </div>
+    <div class="cta-row" style="margin:0">
+      <a class="btn pri" href="#">Install Astrodock <span class="arr">→</span></a>
+      <a class="btn" href="#">See the Agent Story</a>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="rail">
+    <div class="foot">
+      <div><a class="logo" href="#"><svg width="22" height="22"><use href="#mark"/></svg><b class="mono" style="font-weight:500;font-size:12.5px;letter-spacing:.2em">ASTRODOCK</b></a><p class="about">An app platform you install once on a machine you control, with sign-in, a database, storage and HTTPS already connected.</p></div>
+      <div><span class="lbl">Product</span><a href="#">Features</a><a href="#">For Agents</a><a href="#">Self-Hosting</a></div>
+      <div><span class="lbl">Documentation</span><a href="#">Introduction</a><a href="#">Install &amp; Run</a><a href="#">Your First App</a><a href="#">CLI Reference</a></div>
+      <div><span class="lbl">Project</span><a href="#">Source on GitHub</a><a href="#">Issues</a><a href="#">Security</a><a href="#">Upgrading</a></div>
+    </div>
+    <div class="legal"><span>MIT Licensed · Self-Hosted · No Telemetry</span><span>Built on Astrodock</span></div>
+    <div class="wordmark" aria-hidden="true"><svg viewBox="0 0 1000 150"><text x="0" y="146" font-size="200" textLength="1000" lengthAdjust="spacingAndGlyphs">ASTRODOCK</text></svg></div>
+  </div>
+  <p class="note lbl">Mockup · Copy From astrodock.ai</p>
+</footer>
+
+<script>
+// Play the agent session once, then light the four resource squares.
+const lines = [...document.querySelectorAll('#term .ln')];
+lines.forEach((l, i) => setTimeout(() => l.classList.add('in'), 300 + i * 420));
+setTimeout(() => document.querySelectorAll('[data-ready]').forEach((s, i) => setTimeout(() => s.classList.add('on'), i * 140)), 300 + lines.length * 420);
+document.getElementById('theme').onclick = () => {
+  const d = document.documentElement;
+  d.dataset.theme = d.dataset.theme === 'dark' ? '' : 'dark';
+};
+</script>
+</body>
+</html>
