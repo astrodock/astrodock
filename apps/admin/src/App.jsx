@@ -95,6 +95,11 @@ export default function App() {
   // permanently green dot, which told you nothing and could not be wrong.
   const [me, setMe] = useState(null);
   const [meVersion, setMeVersion] = useState(0);
+  // Once the welcome page is up it stays until it says it is done: adding a
+  // password is its first step, and the account refresh would otherwise swap
+  // in the dashboard before the authenticator app is set up.
+  const [welcoming, setWelcoming] = useState(false);
+  useEffect(() => { if (needsSignInSetup(me)) setWelcoming(true); }, [me]);
   const [platform, setPlatform] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
@@ -140,6 +145,10 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    // Not until the first effect has finished: a welcome or handoff link is
+    // still being traded for a session, and sending the browser to /login
+    // first loses where it was going.
+    if (setup === null) return;
     if (setup && !setup.complete) return; // the wizard owns the screen
     if (!getToken() && window.location.pathname !== '/login') {
       rememberNext();
@@ -196,10 +205,10 @@ export default function App() {
   }
 
   // Nothing else until this account can sign in again on its own.
-  if (needsSignInSetup(me)) {
+  if (welcoming || needsSignInSetup(me)) {
     return (
       <div className="solo">
-        <WelcomePage email={me.email} onDone={() => { setMeVersion((v) => v + 1); navigate(takeNext() || '/overview'); }} />
+        <WelcomePage email={me?.email} onDone={() => { setWelcoming(false); setMeVersion((v) => v + 1); navigate(takeNext() || '/overview'); }} />
       </div>
     );
   }
