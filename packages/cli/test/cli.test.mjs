@@ -9,7 +9,7 @@ import assert from 'node:assert';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { execFile } from 'node:child_process';
+import { execFile, execFileSync } from 'node:child_process';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
@@ -48,7 +48,7 @@ async function test(name, fn) {
 }
 
 await migrate();
-for (const t of [schema.appEnvVars, schema.deployments, schema.apps, schema.apiTokens, schema.authLogs, schema.users]) await db.delete(t);
+for (const t of [schema.appEnvVars, schema.deployments, schema.apps, schema.apiTokens, schema.authLogs, schema.approvals, schema.cliLogins, schema.users]) await db.delete(t);
 await seedAdmin({ log: () => {} });
 
 const config = require(path.join(cpDir, 'src/config.js'));
@@ -71,6 +71,26 @@ const { token: adminJwt } = await api('POST', '/admin/login', { email: 'admin@ex
 const mk = await api('POST', '/admin/tokens', { name: 'cli', scopes: ['deploy'] }, adminJwt);
 const scoped = mk.token;
 
+// Approvals ask for an authenticator code (or a passkey), so the admin gets one.
+// Each code is spendable once, so the last spent step is cleared before each use.
+const totp = require(path.join(cpDir, 'src/lib/totp.js'));
+const { eq } = require('drizzle-orm');
+const { secret: totpSecret } = await api('POST', '/admin/account/totp/begin', {}, adminJwt);
+await api('POST', '/admin/account/totp/confirm', { code: totp.codeForStep(totpSecret, totp.stepFor()) }, adminJwt);
+async function freshCode() {
+  await db.update(schema.users).set({ totpLastStep: null }).where(eq(schema.users.email, 'admin@example.com'));
+  return totp.codeForStep(totpSecret, totp.stepFor());
+}
+async function waitFor(fn, ms = 20000) {
+  const end = Date.now() + ms;
+  while (Date.now() < end) {
+    const v = await fn();
+    if (v) return v;
+    await new Promise((r) => setTimeout(r, 200));
+  }
+  throw new Error('timed out waiting');
+}
+
 // temp app dir with app.json
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'astrodock-cli-'));
 fs.writeFileSync(path.join(dir, 'app.json'), JSON.stringify({
@@ -84,7 +104,7 @@ async function cli(args, { expectFail = false, cwd = dir } = {}) {
   try {
     const { stdout, stderr } = await pexec('node', [BIN, ...args], {
       cwd, encoding: 'utf8',
-      env: { ...process.env, ASTRODOCK_URL: url, ASTRODOCK_TOKEN: scoped }
+      env: { ...process.env, ASTRODOCK_URL: url, ASTRODOCK_TOKEN: scoped, ASTRODOCK_NO_BROWSER: '1' }
     });
     if (expectFail) throw new Error(`expected non-zero exit but got success:\n${stdout}`);
     return { code: 0, out: stdout + stderr };
@@ -102,11 +122,60 @@ try {
     assert.ok(stdout.includes('astrodock — drive an Astrodock platform'));
   });
 
-  await test('apply creates the app from app.json + provisions', async () => {
-    const { code, out } = await cli(['apply']);
+  await test('apply creates the app from app.json + provisions, once a person approves', async () => {
+    // A key creating an app needs approval. The CLI prints the link and waits.
+    const running = cli(['apply']);
+    const approval = await waitFor(async () => {
+      const r = await api('GET', '/admin/approvals', null, adminJwt);
+      return (r.approvals || []).find((a) => a.kind === 'app.create' && a.details.slug === 'cliapp');
+    });
+    const refused = await api('POST', `/admin/approvals/${approval.id}/approve`, { password: 'test-admin-password' }, adminJwt);
+    assert.strictEqual(refused.code, 'proof_required', 'a password is not enough to approve');
+    const ok = await api('POST', `/admin/approvals/${approval.id}/approve`, { totp: await freshCode() }, adminJwt);
+    assert.strictEqual(ok.approval.status, 'approved', JSON.stringify(ok));
+    const { code, out } = await running;
     assert.strictEqual(code, 0, out);
+    assert.ok(out.includes('needs your approval'), out);
     assert.ok(out.includes('Created "cliapp"'), out);
     assert.ok(out.includes('app secret (shown once)'), out);
+  });
+
+  await test('applying again to the app that now exists needs no approval', async () => {
+    const { code, out } = await cli(['apply']);
+    assert.strictEqual(code, 0, out);
+    assert.ok(out.includes('Updated "cliapp"'), out);
+    assert.ok(!out.includes('needs your approval'), out);
+  });
+
+  await test('login writes a key for this app to .env.astrodock and ignores it in git', async () => {
+    const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'astrodock-login-'));
+    execFileSync('git', ['init', '-q'], { cwd: repo });
+    fs.copyFileSync(path.join(dir, 'app.json'), path.join(repo, 'app.json'));
+    const env = { ...process.env, ASTRODOCK_NO_BROWSER: '1' };
+    delete env.ASTRODOCK_URL; delete env.ASTRODOCK_TOKEN;
+    const running = pexec('node', [BIN, 'login', '--url', url], { cwd: repo, encoding: 'utf8', env });
+    const row = await waitFor(async () => {
+      const [r] = await db.select().from(schema.cliLogins).where(eq(schema.cliLogins.status, 'pending'));
+      return r;
+    });
+    const code = `${row.userCode.slice(0, 4)}-${row.userCode.slice(4)}`;
+    const seen = await api('GET', `/admin/cli-logins/${code}`, null, adminJwt);
+    assert.strictEqual(seen.login.manifest.slug, 'cliapp');
+    assert.strictEqual(seen.login.client.folder, path.basename(repo));
+    const ok = await api('POST', `/admin/cli-logins/${code}/approve`, { kind: 'app', slug: 'cliapp', totp: await freshCode() }, adminJwt);
+    assert.strictEqual(ok.login.status, 'approved', JSON.stringify(ok));
+    const { stdout } = await running;
+    assert.ok(stdout.includes('works for "cliapp" only'), stdout);
+    const file = path.join(repo, '.env.astrodock');
+    assert.strictEqual(fs.statSync(file).mode & 0o777, 0o600);
+    const creds = fs.readFileSync(file, 'utf8');
+    assert.ok(creds.includes(`ASTRODOCK_URL=${url}`), creds);
+    const key = /ASTRODOCK_TOKEN=(tk_\S+)/.exec(creds)[1];
+    assert.ok(fs.readFileSync(path.join(repo, '.gitignore'), 'utf8').includes('.env.astrodock'));
+    const me = await api('GET', '/whoami', null, key);
+    assert.deepStrictEqual(me.apps, ['cliapp']);
+    assert.ok(!me.scopes.includes('pages:write'), 'a one-app key cannot publish pages');
+    fs.rmSync(repo, { recursive: true, force: true });
   });
 
   await test('apps lists the new app', async () => {

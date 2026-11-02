@@ -21,6 +21,8 @@ const { listRepos, createWebhook, deleteWebhook } = require('../lib/github');
 const domainsLib = require('../lib/domains');
 const { emitEvent, actorFromAuth } = require('../lib/events');
 const oauth = require('../lib/oauth');
+const { requireApproval } = require('../lib/approvals');
+const { manifestSummary } = require('../lib/cli-login');
 
 const { RESERVED_SUBDOMAINS, reservedReason, validSubdomain } = require('../lib/subdomains');
 
@@ -53,8 +55,26 @@ router.get('/status/all', async (req, res) => {
   res.json({ statuses });
 });
 
+// Creating an app reaches past the app a key was given for, so a key has to have
+// it approved (lib/approvals). Applying to an app that already exists does not.
+const approveNewApp = requireApproval({
+  kind: 'app.create',
+  scope: 'apps:write',
+  describe: async (req) => {
+    const m = req.path === '/apply' ? (req.body?.manifest || req.body) : null;
+    const slug = String((m ? m.slug : req.body?.slug) || '');
+    if (!slug) return null;
+    if (await getAppBySlug(slug)) return null;
+    const details = m ? manifestSummary(m) : {
+      slug, name: req.body?.name || slug, subdomain: req.body?.subdomain || '',
+      database: req.body?.databaseMode || 'none', storage: req.body?.storageMode || 'none'
+    };
+    return { summary: `Create the app "${slug}"`, details };
+  }
+});
+
 // ── apply a manifest (CLI `apply`) ──────────────────────────────────────────────
-router.post('/apply', requirePermission('apps:write'), async (req, res) => {
+router.post('/apply', requirePermission('apps:write'), approveNewApp, async (req, res) => {
   const manifest = req.body?.manifest || req.body;
   const prune = !!(req.body?.prune || req.query.prune);
   if (manifest && manifest.slug && !tokenAllowsApp(req.auth, manifest.slug)) {
@@ -108,7 +128,7 @@ router.get('/:slug', async (req, res) => {
 });
 
 // Manual create (admin UI) — builds a manifest from the body and applies it.
-router.post('/', requirePermission('apps:write'), async (req, res) => {
+router.post('/', requirePermission('apps:write'), approveNewApp, async (req, res) => {
   const b = req.body || {};
   if (b.slug && !tokenAllowsApp(req.auth, b.slug)) {
     return res.status(403).json({ error: `Token is not scoped to app "${b.slug}"` });
@@ -224,6 +244,46 @@ router.delete('/:slug', requirePermission('apps:delete'), async (req, res) => {
     console.log(`[delete] ${app.slug}: internal data retained (pass ?purge=true to drop the DB/storage too)`);
   }
   res.status(204).end();
+});
+
+// ── resources ─────────────────────────────────────────────────────────────────
+// A person's call, never a key's: the caps exist to stop one app taking the box,
+// and a key for that app raising its own cap would undo them.
+router.put('/:slug/limits', requirePermission('settings:write'), async (req, res) => {
+  if (req.auth.type === 'token') return res.status(403).json({ error: 'Access keys cannot change an app\'s resource caps.' });
+  const app = await getAppBySlug(req.params.slug);
+  if (!app) return res.status(404).json({ error: 'App not found' });
+  const { parseLimit } = require('../lib/isolation');
+  try {
+    const memoryMb = parseLimit(req.body?.memoryMb, { min: 64, max: config.limits.memoryMbMax, label: 'Memory (MB)' });
+    const cpuMillis = parseLimit(req.body?.cpuMillis, { min: 100, max: config.limits.cpuMillisMax, label: 'CPU (thousandths of a core)' });
+    const [updated] = await db.update(schema.apps).set({ memoryMb, cpuMillis, updatedAt: new Date() })
+      .where(eq(schema.apps.id, app.id)).returning();
+    const live = await runner.applyLimits(app.slug).catch(() => ({ body: {} }));
+    emitEvent({
+      category: 'audit', type: 'app.limits_changed', severity: 'info', ...actorFromAuth(req.auth), ip: req.ip,
+      appSlug: app.slug, targetType: 'app', targetId: app.slug,
+      message: `Resource caps for ${app.slug} set to ${memoryMb ?? 'default'} MB memory, ${cpuMillis ?? 'default'} CPU millis`
+    }).catch(() => {});
+    res.json({ app: serializeApp(updated), appliedNow: !!live.body?.applied });
+  } catch (err) { res.status(400).json({ error: err.message }); }
+});
+
+// Bytes in and out per hour, for apps in a container (runner/traffic.js).
+router.get('/:slug/traffic', async (req, res) => {
+  const { and: andOp, gt } = require('drizzle-orm');
+  const hours = Math.min(Math.max(parseInt(req.query.hours, 10) || 24, 1), 24 * 30);
+  const since = new Date(Date.now() - hours * 3600 * 1000);
+  const rows = await db.select().from(schema.appTraffic)
+    .where(andOp(eq(schema.appTraffic.appSlug, req.params.slug), gt(schema.appTraffic.hour, since)))
+    .orderBy(schema.appTraffic.hour);
+  const sum = (k) => rows.reduce((n, r) => n + Number(r[k] || 0), 0);
+  res.json({
+    hours,
+    rxBytes: sum('rxBytes'),
+    txBytes: sum('txBytes'),
+    series: rows.map((r) => ({ hour: r.hour, rxBytes: Number(r.rxBytes), txBytes: Number(r.txBytes) }))
+  });
 });
 
 router.post('/:slug/rotate-secret', requirePermission('apps:write'), async (req, res) => {
@@ -342,7 +402,19 @@ router.get('/:slug/domains', async (req, res) => {
   res.json({ domains: rows.map((d) => ({ ...d, records: domainsLib.dnsRecords(d) })), publicIp: config.publicIp || null });
 });
 
-router.post('/:slug/domains', requirePermission('domains:write'), async (req, res) => {
+// A custom domain puts the app at an address outside this platform's own names,
+// which is where a copy of someone's sign-in page would be most convincing.
+const approveDomain = requireApproval({
+  kind: 'domain.add',
+  scope: 'domains:write',
+  describe: async (req) => {
+    const hostname = domainsLib.normalizeHostname(req.body?.hostname);
+    if (!domainsLib.validHostname(hostname)) return null;
+    return { summary: `Put "${req.params.slug}" at ${hostname}`, details: { app: req.params.slug, hostname } };
+  }
+});
+
+router.post('/:slug/domains', requirePermission('domains:write'), approveDomain, async (req, res) => {
   const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
   const hostname = domainsLib.normalizeHostname(req.body?.hostname);

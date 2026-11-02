@@ -4,6 +4,7 @@ import * as api from '../lib/api';
 import { appHost } from '../lib/appUrl';
 import Select from './Select';
 import useConfirm from '../lib/useConfirm';
+import ResourcesSection from './ResourcesSection';
 
 // One settings idiom, not three.
 //
@@ -455,6 +456,8 @@ export default function SettingsTab({ app, onRefresh }) {
           </div>
         )}
       </section>
+
+      <ResourcesSection app={app} onRefresh={onRefresh} />
 
       {/* App secret */}
       <section className="set-section">

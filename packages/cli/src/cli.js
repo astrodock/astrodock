@@ -9,6 +9,8 @@ const { makeClient } = require('./client');
 const { cmdPages } = require('./pages');
 const { cmdFeedback, cmdWork } = require('./feedback');
 const { filesToUpload } = require('./upload-files');
+const { requestWithApproval } = require('./approval');
+const { cmdLogin } = require('./login');
 const { cmdServer } = require('./server');
 
 const USAGE = `astrodock — drive an Astrodock platform from an app repo
@@ -17,6 +19,7 @@ Usage:
   astrodock <command> [options]
 
 Commands:
+  login [--url URL] [--no-browser]     Get a key for this repo: opens a page to approve it, saves .env.astrodock
   apply [--file app.json] [--prune]   Create/update the app from app.json, connect repo, provision
   deploy [slug] [--local]              Trigger a deploy (--local uploads the working dir, no GitHub)
   deploy:watch [slug] [--local] [--id <id>]  Trigger (or attach to) a deploy and stream its log until done
@@ -58,6 +61,13 @@ feedback and work:
   work status <app> I-45 done          open|in_progress|done|wont_do
   work relate <app> I-45 I-12 [--kind blocks]
 
+login:
+  With --url, or with ASTRODOCK_URL already set, signs in to that platform.
+  With neither, starts at the hosted service (sign up or sign in there).
+  A person approves the key in the browser with a passkey or authenticator code.
+  Creating an app, giving an app someone who already has an account, and adding
+  a custom domain also ask for that approval; the CLI prints the link and waits.
+
 Environment:
   ASTRODOCK_URL     Base URL of the admin host, e.g. https://admin.example.com
   ASTRODOCK_TOKEN   A scoped API token (tk_...) or an admin JWT
@@ -76,7 +86,7 @@ app.json is read from the current directory (or --file). Secret VALUES never go 
 // value to take, so say so.
 const BOOLEAN_FLAGS = new Set([
   'local', 'prune', 'quiet', 'generate-passkey', 'help', 'h', 'version', 'v',
-  'draft', 'remove'
+  'draft', 'remove', 'no-browser'
 ]);
 
 function parseFlags(args) {
@@ -124,7 +134,9 @@ function die(msg, code = 1) { console.error(`error: ${msg}`); process.exit(code)
 
 async function cmdApply(client, flags) {
   const manifest = readManifest(flags.file);
-  const { status, json } = await client.request('POST', '/admin/apps/apply', { manifest, prune: !!flags.prune });
+  // Creating an app may need a person's approval; this prints the link and waits.
+  const { status, json } = await requestWithApproval(client, 'POST', '/admin/apps/apply', { manifest, prune: !!flags.prune },
+    { browser: !flags['no-browser'] });
   if (status >= 400) {
     if (json?.errors) die(`${json.error}\n  - ${json.errors.join('\n  - ')}`);
     die(json?.error || `apply failed (${status})`);
@@ -288,6 +300,12 @@ async function main(argv) {
   if (!command || command === 'help' || command === '--help' || command === '-h' || flags.help || flags.h) {
     console.log(USAGE);
     return;
+  }
+
+  // Before the client: login is how you get the credentials the client needs.
+  if (command === 'login') {
+    try { await cmdLogin(flags); return; }
+    catch (e) { die(e.message); }
   }
 
   let client;

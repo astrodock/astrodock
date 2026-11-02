@@ -21,7 +21,8 @@ async function reloadCaddyFromDb() {
     hostname: schema.customDomains.hostname,
     isPrimary: schema.customDomains.isPrimary,
     redirectToCanonical: schema.customDomains.redirectToCanonical,
-    appSlug: schema.apps.slug, runtimeType: schema.apps.runtimeType, port: schema.apps.port
+    appSlug: schema.apps.slug, runtimeType: schema.apps.runtimeType, port: schema.apps.port,
+    nodeIsolation: schema.apps.nodeIsolation
   }).from(schema.customDomains)
     .innerJoin(schema.apps, eq(schema.customDomains.appId, schema.apps.id))
     .where(and(eq(schema.customDomains.status, 'active'), eq(schema.apps.provisioned, true)));

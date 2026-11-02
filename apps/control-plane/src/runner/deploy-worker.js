@@ -147,10 +147,19 @@ async function run() {
 
     const env = computeEnv(app, envVars);
 
+    // A Node app in a container of its own, when the platform is set to build
+    // them that way (runner/node-container.js). Null for the other two paths.
+    let containerNode = null;
+    const wasContainer = app.nodeIsolation === 'container';
     if (app.runtimeType === 'docker') {
       await deployDocker(app, deployRoot, env, { appendLog, setStatus, commitHash });
+    } else if (config.deploy.nodeRuntime === 'container') {
+      containerNode = await require('./node-container').deployNodeContainer(app, deployRoot, env, { appendLog, setStatus, commitHash });
+      // Status and the probe below look at the container from here on.
+      app.nodeIsolation = 'container';
     } else {
       await deployNode(app, deployRoot, env, { appendLog, setStatus });
+      app.nodeIsolation = 'pm2';
     }
 
     // Health probe, then the question the probe cannot answer.
@@ -169,7 +178,7 @@ async function run() {
       ? 'Health probe: app is responding'
       : `Health probe: no response after ${PROBE_ATTEMPTS}s — the app may still be starting, or it is not listening on ASTRODOCK_PORT`);
 
-    if (app.runtimeType !== 'docker') {
+    if (app.runtimeType !== 'docker' && !(containerNode && !containerNode.hasServer)) {
       const proc = await settledStatus(app);
       const state = proc && proc.status;
       if (state !== 'online') {
@@ -182,7 +191,10 @@ async function run() {
       await appendLog(`Process online (pid ${proc.pid}, ${proc.restarts || 0} restart(s))`);
     }
 
-    if (app.runtimeType === 'docker') {
+    if (containerNode) await require('./node-container').promote(app, appendLog);
+    else if (app.runtimeType !== 'docker' && wasContainer) await require('./node-container').demote(app, appendLog);
+
+    if (app.runtimeType === 'docker' || containerNode) {
       const removed = pruneAppImages(app.slug, 2);
       if (removed.length) await appendLog(`Removed ${removed.length} older image(s) of this app: ${removed.join(', ')}`);
     }
@@ -448,6 +460,7 @@ async function deployDocker(app, deployRoot, env, { appendLog, setStatus, commit
     // no-new-privileges stops setuid binaries in the image from raising privileges;
     // the pid cap stops a fork bomb from taking the host down with it.
     `docker run -d --name ${name} --network ${network} --restart unless-stopped`
+    + ` ${require('../lib/isolation').dockerLimitArgs(app).join(' ')}`
     + ` --security-opt no-new-privileges --pids-limit 1024 --env-file "${envFile}" "${tag}" 2>&1`
   ) || 'container started');
 }
@@ -499,7 +512,7 @@ const PROBE_GAP_MS = 1000;
 
 function probeOnce(app) {
   const http = require('http');
-  const host = app.runtimeType === 'docker' ? `app-${app.slug}` : 'localhost';
+  const host = require('../lib/isolation').inContainer(app) ? `app-${app.slug}` : 'localhost';
   return new Promise((resolve) => {
     const req = http.get({ host, port: app.port, path: '/health', timeout: 3000 }, (res) => {
       res.resume();

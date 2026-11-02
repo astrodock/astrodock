@@ -39,6 +39,12 @@ function runnerHost() {
   try { return new URL(config.runnerUrl).hostname; } catch { return 'runner'; }
 }
 
+// Where a Node app's /api/* goes: its own container once a deploy has put it in
+// one (lib/isolation), otherwise PM2 in the runner.
+function nodeUpstream(app) {
+  return app.nodeIsolation === 'container' ? `app-${app.slug || app.appSlug}` : runnerHost();
+}
+
 // Site address for a host, honoring the TLS mode.
 function site(host) {
   return config.tlsMode === 'off' ? `http://${host}` : host;
@@ -109,7 +115,7 @@ function setupGlobalOptions() {
 // in this list AND client-side routes, so hard-loading /login — a refresh, a
 // bookmark, a new tab — reached Express instead of the app and answered
 // "Cannot GET /login". Same for Your Account and Health.
-const ADMIN_PATHS = ['/setup/*', '/admin/*', '/whoami', '/webhooks/*', '/healthz', '/_auth/*'];
+const ADMIN_PATHS = ['/setup/*', '/admin/*', '/whoami', '/webhooks/*', '/healthz', '/_auth/*', '/cli/*', '/fleet/*'];
 
 // End-user surfaces. These belong to auth.<domain> and nothing on that host
 // serves an SPA, so there is nothing for them to collide with. The mobile app
@@ -163,7 +169,7 @@ function customDomainBlock(d, accessLogs, onDemand, canonicalHost) {
     return `\n${site(host)} {\n${tlsLine}${logLine}\treverse_proxy app-${d.appSlug}:${d.port}\n}\n`;
   }
   const dir = `${config.paths.caddyStatic}/${d.appSlug}`;
-  return `\n${site(host)} {\n${tlsLine}${logLine}\thandle /api/* {\n\t\treverse_proxy ${runnerHost()}:${d.port}\n\t}\n\thandle {\n${staticRoot(dir, d.spa)}\t}\n${staticErrors(dir, d.spa)}}\n`;
+  return `\n${site(host)} {\n${tlsLine}${logLine}\thandle /api/* {\n\t\treverse_proxy ${nodeUpstream(d)}:${d.port}\n\t}\n\thandle {\n${staticRoot(dir, d.spa)}\t}\n${staticErrors(dir, d.spa)}}\n`;
 }
 
 // The hosted sign-in, on auth.<domain>.
@@ -212,7 +218,7 @@ function nodeAppBlock(app, accessLogs) {
   return `
 ${site(host)} {
 ${appLog(app, accessLogs)}\thandle /api/* {
-\t\treverse_proxy ${runnerHost()}:${app.port}
+\t\treverse_proxy ${nodeUpstream(app)}:${app.port}
 \t}
 \thandle {
 ${staticRoot(dir, app.spa)}\t}
@@ -283,7 +289,7 @@ function apexBlock(app, accessLogs, includeWww) {
     return out;
   }
   const dir = `${config.paths.caddyStatic}/${app.slug}`;
-  out += `\n${site(host)} {\n${appLog(app, accessLogs)}\thandle /api/* {\n\t\treverse_proxy ${runnerHost()}:${app.port}\n\t}\n\thandle {\n${staticRoot(dir, app.spa)}\t}\n${staticErrors(dir, app.spa)}}\n`;
+  out += `\n${site(host)} {\n${appLog(app, accessLogs)}\thandle /api/* {\n\t\treverse_proxy ${nodeUpstream(app)}:${app.port}\n\t}\n\thandle {\n${staticRoot(dir, app.spa)}\t}\n${staticErrors(dir, app.spa)}}\n`;
   return out;
 }
 

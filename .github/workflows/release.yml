@@ -90,3 +90,33 @@ jobs:
             -e "require('/app/apps/control-plane/server.js');
                 require('/app/apps/control-plane/src/runner/server.js');
                 console.log('image OK: control plane + runner both load')"
+
+  # The CLI and the app.json schema it validates against, so `npx @astrodock/cli`
+  # works on a machine with no checkout. Off until an NPM_TOKEN secret exists:
+  # the job then says so and stops, rather than failing the release.
+  npm:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+      - name: Publish @astrodock/schema and @astrodock/cli
+        run: |
+          set -eu
+          if [ -z "$NPM_TOKEN" ]; then
+            echo "::notice::NPM_TOKEN is not set, so nothing was published to npm."
+            exit 0
+          fi
+          # Schema first: the CLI depends on it.
+          npm publish -w @astrodock/schema --access public --provenance
+          npm publish -w @astrodock/cli --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

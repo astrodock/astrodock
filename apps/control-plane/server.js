@@ -89,6 +89,21 @@ app.get('/_caddy/ask', async (req, res) => {
   } catch { return res.status(500).send('error'); }
 });
 
+// The runner asks for routing to be republished when a Node app moves into a
+// container of its own (runner/node-container.js), since only this process can
+// reach Caddy's admin socket. Internal: Caddy routes nothing under /_internal,
+// and the runner token is required.
+app.post('/_internal/routing/reload', async (req, res) => {
+  const crypto = require('crypto');
+  const given = Buffer.from((req.headers.authorization || '').replace(/^Bearer /, ''));
+  const want = Buffer.from(String(config.runnerToken || ''));
+  if (!want.length || given.length !== want.length || !crypto.timingSafeEqual(given, want)) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  const ok = await require('./src/provision').reloadCaddyFromDb().catch(() => false);
+  res.status(ok ? 200 : 502).json({ ok });
+});
+
 // Hosted end-user account page, on the same shell as sign-in.
 const { accountPage } = require('./src/lib/account-page');
 app.get('/account', (req, res) => res.type('html').send(accountPage()));
@@ -118,6 +133,11 @@ app.use('/', require('./src/routes/mobile'));
 app.use('/invite', require('./src/routes/invites'));
 
 app.use('/verify', require('./src/routes/verify'));
+// `astrodock login` (lib/cli-login). Public: the CLI has no credential yet.
+app.use('/cli', require('./src/routes/cli-login'));
+// The hosted service's calls into this instance (routes/fleet.js). Off unless
+// ASTRODOCK_FLEET_TOKEN is set.
+app.use('/fleet', require('./src/routes/fleet'));
 // Feedback intake. The only route a stranger's browser reaches without an
 // operator credential, so it answers CORS for the app's own origins only and
 // hands nothing back but the key it just created.
@@ -133,6 +153,9 @@ app.use('/admin/users', require('./src/routes/admin-users'));
 app.use('/admin/apps', require('./src/routes/admin-apps'));
 app.use('/admin/domains', require('./src/routes/admin-domains'));
 app.use('/admin/tokens', require('./src/routes/admin-tokens'));
+app.use('/admin/approvals', require('./src/routes/admin-approvals'));
+app.use('/admin/cli-logins', require('./src/routes/admin-cli-logins'));
+app.use('/admin/proof', require('./src/routes/admin-proof'));
 app.use('/admin/activity', require('./src/routes/admin-activity'));
 app.use('/admin/settings', require('./src/routes/admin-settings'));
 app.use('/admin/notifications', require('./src/routes/admin-notifications'));

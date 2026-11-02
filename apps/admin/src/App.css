@@ -1529,3 +1529,14 @@ button.primary, .page-header > button, .tab-header > button, .page-header button
 .server-section { margin-top:32px; }
 .server-result { margin:0 0 20px; font-size:14px; color:var(--text-2); }
 .server-result b { color:var(--accent); font-weight:600; }
+
+/* ── Approvals, agent sign-in, welcome ── */
+.solo { min-height:100vh; padding:40px 20px; background:var(--frame); }
+.solo .settings-page { max-width:720px; margin:0 auto; }
+.field .ctl-text { flex-shrink:1; font-size:14px; color:var(--text); text-align:right; overflow-wrap:anywhere; }
+.code-lg { font-family:var(--mono); font-size:18px; letter-spacing:2px; }
+.radio-field { cursor:pointer; gap:14px; }
+.radio-field input[type="radio"] { flex:none; margin-top:4px; accent-color:var(--accent); }
+.proof { display:flex; flex-direction:column; align-items:flex-start; gap:12px; }
+.proof label { display:block; max-width:360px; }
+.proof-actions { display:flex; align-items:center; gap:16px; margin-top:12px; }

@@ -56,7 +56,7 @@ async function persistState(slug, s) {
 
 function probe(app) {
   return new Promise((resolve) => {
-    const host = app.runtimeType === 'docker' ? `app-${app.slug}` : 'localhost';
+    const host = require('../lib/isolation').inContainer(app) ? `app-${app.slug}` : 'localhost';
     const start = Date.now();
     const req = http.get({ host, port: app.port, path: '/health', timeout: HEALTH_TIMEOUT }, (res) => {
       res.resume();
@@ -113,6 +113,21 @@ async function checkAll() {
   const procs = pm2List();
   const active = new Set(apps.map((a) => a.slug));
   for (const slug of states.keys()) if (!active.has(slug)) states.delete(slug);
+
+  // A Node app the last deploy moved into a container, whose PM2 process is still
+  // running because routing had not moved yet when the deploy finished. Once the
+  // move is a few minutes old the reconciler has republished routing, so the old
+  // process is serving nobody.
+  for (const app of apps) {
+    if (app.nodeIsolation !== 'container' || app.runtimeType === 'docker') continue;
+    if (!procs.some((p) => p.name === app.slug)) continue;
+    if (Date.now() - new Date(app.updatedAt).getTime() < 5 * 60 * 1000) continue;
+    try {
+      execSync(`pm2 delete ${app.slug} 2>&1`, { timeout: 15000 });
+      execSync('pm2 save 2>&1', { timeout: 15000 });
+      console.log(`[health] stopped the leftover PM2 process for ${app.slug}`);
+    } catch { /* gone already */ }
+  }
 
   for (const app of apps) {
     const state = getState(app.slug);
@@ -237,6 +252,7 @@ function startHealthChecker() {
   setInterval(() => checkDisk(), 5 * 60 * 1000);
   setInterval(() => checkDomains().catch(() => {}), 30 * 60 * 1000);
   setInterval(() => pruneLogs(), 24 * 60 * 60 * 1000);
+  require('./traffic').start();
 }
 
 module.exports = { startHealthChecker, getHealthData, getServerMetrics };

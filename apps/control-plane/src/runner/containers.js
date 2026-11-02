@@ -63,4 +63,20 @@ function containerFor({ env, services, legacy }) {
   return legacy;
 }
 
-module.exports = { containerFor, findService, composeProject };
+let image;
+
+/**
+ * The image this runner was started from: the base for Node apps that run in a
+ * container of their own (runner/node-container.js). The same Node, Chromium and
+ * system libraries they had under PM2, and already on the box. Holds no secrets:
+ * those arrive as environment. ASTRODOCK_APP_BASE_IMAGE overrides.
+ */
+function selfImage() {
+  if (process.env.ASTRODOCK_APP_BASE_IMAGE) return process.env.ASTRODOCK_APP_BASE_IMAGE;
+  if (image !== undefined) return image;
+  try { image = docker(['inspect', os.hostname(), '--format', '{{.Image}}']) || null; }
+  catch { image = null; }
+  return image;
+}
+
+module.exports = { containerFor, findService, composeProject, selfImage };

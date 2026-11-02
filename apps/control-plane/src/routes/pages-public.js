@@ -159,7 +159,7 @@ router.post('/:pageId/_unlock', pageLoginLimiter, express.urlencoded({ extended:
 });
 
 router.post('/:pageId/_logout', (req, res) => {
-  res.clearCookie(P.SESSION_COOKIE, { path: '/' });
+  res.clearCookie(P.SESSION_COOKIE, { path: '/', secure: config.tlsMode !== 'off' });
   res.redirect(`/${req.params.pageId}/`);
 });
 

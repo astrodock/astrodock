@@ -329,6 +329,27 @@ router.post('/handoff', async (req, res) => {
   res.json({ token, user: { id: entry.user.id, email: entry.user.email } });
 });
 
+// The hosted service's welcome link (lib/owner-setup). Public: whoever follows
+// the link has no credential yet. The session it opens is fresh, so the welcome
+// page can add a passkey or password straight away.
+router.post('/owner-link/exchange', require('../middleware/rateLimiter').adminLoginLimiter, async (req, res) => {
+  try {
+    const user = await require('../lib/owner-setup').redeem(String((req.body || {}).token || ''));
+    if (!user) {
+      return res.status(401).json({ error: 'That link has expired or has already been used. Open your dashboard from your Astrodock account to get a new one.' });
+    }
+    const { token } = await sessions.create(user, { ip: req.ip, userAgent: req.get('user-agent') || '' });
+    await emitEvent({
+      category: 'audit', type: 'owner.setup_link_used', severity: 'info',
+      message: `${user.email} opened their welcome link`,
+      actorType: 'admin', actor: user.email, targetType: 'user', targetId: user.id, ip: req.ip || ''
+    }).catch(() => {});
+    res.json({ token, user: { id: user.id, email: user.email } });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Skip the domain step for now. Nothing is configured — this only records that the
 // operator made the choice, so the wizard stops blocking the dashboard. Setting a
 // domain later clears it.
@@ -434,4 +455,6 @@ module.exports = router;
 module.exports.initSetup = initSetup;
 module.exports.adminExists = adminExists;
 module.exports.validatePresetToken = validatePresetToken;
+module.exports.tokenMatches = tokenMatches;
+module.exports.clearSetupToken = clearSetupToken;
 module.exports.MIN_PRESET_TOKEN_LENGTH = MIN_PRESET_TOKEN_LENGTH;

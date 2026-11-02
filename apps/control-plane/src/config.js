@@ -152,8 +152,28 @@ const config = {
   // Deploy build timeouts (per command). A hung build fails instead of wedging the runner.
   deploy: {
     buildTimeoutMs: int(process.env.ASTRODOCK_BUILD_TIMEOUT_MS, 300000),
-    dockerBuildTimeoutMs: int(process.env.ASTRODOCK_DOCKER_BUILD_TIMEOUT_MS, 600000)
+    dockerBuildTimeoutMs: int(process.env.ASTRODOCK_DOCKER_BUILD_TIMEOUT_MS, 600000),
+    // How Node buildpack apps run. `pm2`: as processes inside the runner, under
+    // a user of their own. `container`: each app is built into an image and run
+    // in a container of its own, with the caps below. Unset keeps pm2, so an
+    // existing install does not change under its apps on upgrade; setup.sh
+    // writes `container` for new ones.
+    nodeRuntime: (process.env.ASTRODOCK_NODE_RUNTIME || 'pm2').toLowerCase() === 'container' ? 'container' : 'pm2'
   },
+
+  // Caps for apps that run in a container (Dockerfile apps, and Node apps when
+  // nodeRuntime is `container`). A per-app value set in the dashboard overrides
+  // the default, up to the maximum.
+  limits: {
+    memoryMbDefault: int(process.env.ASTRODOCK_APP_MEMORY_MB, 512),
+    memoryMbMax: int(process.env.ASTRODOCK_APP_MEMORY_MB_MAX, 4096),
+    cpuMillisDefault: int(process.env.ASTRODOCK_APP_CPU_MILLIS, 1000),
+    cpuMillisMax: int(process.env.ASTRODOCK_APP_CPU_MILLIS_MAX, 4000)
+  },
+
+  // The hosted service's credential for this instance (routes/fleet.js). Unset
+  // turns the fleet API off entirely.
+  fleetToken: process.env.ASTRODOCK_FLEET_TOKEN || '',
 
   // base port for app processes (control plane is on `port`)
   basePort: int(process.env.ASTRODOCK_BASE_PORT, 3101),

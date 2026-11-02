@@ -17,6 +17,22 @@ export function clearToken() {
   sessionStorage.removeItem(TOKEN_KEY);
 }
 
+// Where to go after signing in. An approval link opened while signed out has to
+// land back on the approval, not on the overview.
+const NEXT_KEY = 'astrodock_next';
+const safePath = (p) => (typeof p === 'string' && p.startsWith('/') && !p.startsWith('//') && !p.startsWith('/login') ? p : '');
+
+export function rememberNext(path = window.location.pathname + window.location.search) {
+  const p = safePath(path);
+  if (p && p !== '/') sessionStorage.setItem(NEXT_KEY, p);
+}
+
+export function takeNext() {
+  const p = safePath(sessionStorage.getItem(NEXT_KEY) || '');
+  sessionStorage.removeItem(NEXT_KEY);
+  return p;
+}
+
 // Error subclass that preserves the structured body (status + JSON payload)
 // so callers can react to e.g. the 422 missing-required-vars deploy response.
 export class ApiError extends Error {
@@ -40,6 +56,7 @@ async function request(path, options = {}) {
   // look broken. Those pass verifiesCredential and get a normal error instead.
   if (res.status === 401 && path !== '/login' && !options.verifiesCredential) {
     clearToken();
+    rememberNext();
     window.location.href = '/login';
     throw new ApiError('Session expired', { status: 401 });
   }
@@ -183,6 +200,30 @@ export const getAppLogs = (slug, lines = 100) =>
 
 // Your own account: factors, sessions, step-up
 export const getAccount = () => request('/account');
+
+// Approving an agent: a passkey or an authenticator code, every time.
+export const proofOptions = () => request('/proof');
+export const proofPasskeyOptions = () => request('/proof/passkey/options', { method: 'POST' });
+
+// `astrodock login`, the person's side.
+export const getCliLogin = (code) => request(`/cli-logins/${encodeURIComponent(code)}`);
+export const approveCliLogin = (code, body) =>
+  request(`/cli-logins/${encodeURIComponent(code)}/approve`, { method: 'POST', body: JSON.stringify(body), verifiesCredential: true });
+export const denyCliLogin = (code) => request(`/cli-logins/${encodeURIComponent(code)}/deny`, { method: 'POST' });
+
+// What an access key asked to do beyond one app.
+export const getApprovals = () => request('/approvals');
+export const getApproval = (id) => request(`/approvals/${encodeURIComponent(id)}`);
+export const approveApproval = (id, proof) =>
+  request(`/approvals/${encodeURIComponent(id)}/approve`, { method: 'POST', body: JSON.stringify(proof), verifiesCredential: true });
+export const denyApproval = (id) => request(`/approvals/${encodeURIComponent(id)}/deny`, { method: 'POST' });
+
+// The hosted service's welcome link.
+export const exchangeOwnerLink = (token) => setupRequest('/owner-link/exchange', { method: 'POST', body: JSON.stringify({ token }) });
+
+// Resource caps and traffic for one app.
+export const setAppLimits = (slug, body) => request(`/apps/${slug}/limits`, { method: 'PUT', body: JSON.stringify(body) });
+export const getAppTraffic = (slug, hours = 24) => request(`/apps/${slug}/traffic?hours=${hours}`);
 export const reauth = (proof) =>
   request('/account/reauth', { method: 'POST', body: JSON.stringify(proof), verifiesCredential: true });
 export const setPassword = (password, currentPassword) =>

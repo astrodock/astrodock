@@ -28,14 +28,15 @@ function makeClient({ url, token } = {}) {
     throw new Error(`ASTRODOCK_URL must use https (got ${parsed.protocol}//${parsed.host})`);
   }
 
-  async function request(method, path, body) {
+  async function request(method, path, body, { headers = {} } = {}) {
     let res;
     try {
       res = await fetch(`${base}${path}`, {
         method,
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...headers
         },
         body: body !== undefined ? JSON.stringify(body) : undefined
       });

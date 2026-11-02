@@ -112,6 +112,19 @@ app.post('/apps/:slug/remove', async (req, res) => {
   try { pc.remove(a); } catch { /* gone */ }
   res.json({ ok: true });
 });
+// New caps take effect on a running container at once; the next deploy starts
+// it with them anyway. PM2 apps have no caps to update.
+app.post('/apps/:slug/limits', async (req, res) => {
+  const a = await loadApp(req.params.slug);
+  if (!a) return res.status(404).json({ error: 'App not found' });
+  if (!require('../lib/isolation').inContainer(a)) return res.json({ ok: true, applied: false });
+  try {
+    require('child_process').execFileSync('docker', ['update', ...require('../lib/isolation').dockerLimitArgs(a), `app-${a.slug}`],
+      { stdio: 'ignore', timeout: 15000 });
+    res.json({ ok: true, applied: true });
+  } catch (e) { res.json({ ok: true, applied: false, error: e.message }); }
+});
+
 app.get('/apps/:slug/logs', async (req, res) => {
   const a = await loadApp(req.params.slug); if (!a) return res.status(404).json({ error: 'App not found' });
   res.json({ logs: pc.readLogs(a, parseInt(req.query.lines, 10) || 100) });
@@ -135,7 +148,7 @@ app.get('/exposure', async (req, res) => {
 // files and process actually are; the API container never had them.
 app.get('/apps/:slug/ops/list', async (req, res) => {
   const a = await loadApp(req.params.slug); if (!a) return res.status(404).json({ error: 'App not found' });
-  try { res.json({ entries: require('./app-ops').listDirectory(a.slug, req.query.path || '.') }); }
+  try { res.json({ entries: require('./app-ops').listDirectory(a, req.query.path || '.') }); }
   catch (e) { res.status(400).json({ error: e.message }); }
 });
 app.get('/apps/:slug/ops/file', async (req, res) => {
@@ -143,7 +156,7 @@ app.get('/apps/:slug/ops/file', async (req, res) => {
   try {
     // The app's own secrets, so they can be masked out of whatever is served.
     const vars = await db.select().from(schema.appEnvVars).where(eq(schema.appEnvVars.appId, a.id));
-    res.json(require('./app-ops').readFile(a.slug, req.query.path, vars));
+    res.json(require('./app-ops').readFile(a, req.query.path, vars));
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 app.get('/apps/:slug/ops/env', async (req, res) => {

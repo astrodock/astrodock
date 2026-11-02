@@ -54,7 +54,63 @@ function resolveInApp(slug, relative) {
   return { root: realRoot, target: real };
 }
 
-function listDirectory(slug, relative = '.') {
+// ── Node apps in a container of their own ────────────────────────────────────
+// Their files are inside the container, not on the runner's disk. Reading them
+// runs this script there, as the app's own uid, with the same two containment
+// checks as resolveInApp: the resolved path, then the real one.
+const IN_CONTAINER_SCRIPT = `
+const fs = require('fs'), path = require('path');
+const [op, rel, max] = process.argv.slice(1);
+const within = (r, p) => p === r || p.startsWith(r + path.sep);
+const root = fs.realpathSync(process.cwd());
+const target = path.resolve(root, rel || '.');
+const out = (o) => process.stdout.write(JSON.stringify(o));
+if (!within(root, target)) { out({ error: 'That path is outside the app.' }); process.exit(0); }
+let real; try { real = fs.realpathSync(target); } catch { out({ error: op === 'list' ? 'No such directory in this app.' : 'No such file in this app.' }); process.exit(0); }
+if (!within(root, real)) { out({ error: 'That path is outside the app.' }); process.exit(0); }
+const st = fs.statSync(real);
+if (op === 'list') {
+  if (!st.isDirectory()) { out({ error: 'That is a file, not a directory.' }); process.exit(0); }
+  out({ entries: fs.readdirSync(real, { withFileTypes: true }).map((e) => {
+    let size = null; try { size = e.isFile() ? fs.statSync(path.join(real, e.name)).size : null; } catch {}
+    return { name: e.name, type: e.isDirectory() ? 'dir' : 'file', size };
+  }) });
+} else {
+  if (!st.isFile()) { out({ error: 'No such file in this app.' }); process.exit(0); }
+  if (st.size > Number(max)) { out({ error: 'too_big', size: st.size }); process.exit(0); }
+  out({ size: st.size, data: fs.readFileSync(real).toString('base64') });
+}
+`;
+
+function nodeInContainer(app) {
+  return app && typeof app === 'object' && app.runtimeType !== 'docker' && app.nodeIsolation === 'container';
+}
+
+function execInApp(app, args, { timeout = 15000 } = {}) {
+  const { execFileSync } = require('child_process');
+  return execFileSync('docker', ['exec', '-u', '1000', `app-${app.slug}`, ...args],
+    { encoding: 'utf8', timeout, maxBuffer: 4 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'] });
+}
+
+function inContainerOp(app, op, relative) {
+  let raw;
+  try { raw = execInApp(app, ['node', '-e', IN_CONTAINER_SCRIPT, op, relative || '.', String(MAX_FILE_BYTES)]); }
+  catch { throw new Error('The app is not running, so its files cannot be read.'); }
+  const res = JSON.parse(raw || '{}');
+  if (res.error === 'too_big') throw new Error(`That file is ${Math.round(res.size / 1024)}KB; the limit is ${MAX_FILE_BYTES / 1024}KB.`);
+  if (res.error) throw new Error(res.error);
+  return res;
+}
+
+const slugOf = (appOrSlug) => (typeof appOrSlug === 'string' ? appOrSlug : appOrSlug.slug);
+
+function listDirectory(appOrSlug, relative = '.') {
+  if (nodeInContainer(appOrSlug)) {
+    return inContainerOp(appOrSlug, 'list', relative).entries
+      .filter((e) => e.name !== 'node_modules' && !e.name.startsWith('.git'))
+      .sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name) : a.type === 'dir' ? -1 : 1));
+  }
+  const slug = slugOf(appOrSlug);
   const { target } = resolveInApp(slug, relative);
   if (!fs.existsSync(target)) throw new Error('No such directory in this app.');
   const stat = fs.statSync(target);
@@ -99,8 +155,16 @@ function maskSecrets(text, envVars) {
   return { text: out, masked: hits };
 }
 
-function readFile(slug, relative, envVars) {
+function readFile(appOrSlug, relative, envVars) {
   if (!relative) throw new Error('Which file?');
+  if (nodeInContainer(appOrSlug)) {
+    const res = inContainerOp(appOrSlug, 'read', relative);
+    const data = Buffer.from(res.data, 'base64');
+    if (data.includes(0)) throw new Error('That looks like a binary file.');
+    const { text, masked } = maskSecrets(data.toString('utf8'), envVars);
+    return { path: relative, size: res.size, content: text, secretsMasked: masked };
+  }
+  const slug = slugOf(appOrSlug);
   const { target } = resolveInApp(slug, relative);
   if (!fs.existsSync(target) || !fs.statSync(target).isFile()) throw new Error('No such file in this app.');
   // O_NOFOLLOW: a link swapped in after the check above is refused, not followed.
@@ -176,19 +240,28 @@ function runDeclared(app, envVars, name) {
   }
 
   const { computeEnv } = require('../lib/env-compute');
+  const inside = nodeInContainer(app);
   const cwd = path.resolve(config.paths.apps, app.slug);
-  if (!fs.existsSync(cwd)) throw new Error('This app has not been deployed yet.');
+  if (!inside && !fs.existsSync(cwd)) throw new Error('This app has not been deployed yet.');
+
+  // In a container of its own, the command runs there, as the app's uid, with
+  // the environment the container already has.
+  const [file, args, opts] = inside
+    ? ['docker', ['exec', '-u', '1000', `app-${app.slug}`, 'sh', '-c', command], {}]
+    : ['sh', ['-c', command], {
+      cwd,
+      env: { PATH: process.env.PATH, HOME: cwd, ...computeEnv(app, envVars) },
+      // As the app's own user, never as root: this container holds the Docker socket.
+      ...(appIds(app) || {})
+    }];
 
   return new Promise((resolve) => {
     // Still `sh -c`, but the string comes from the repository rather than the
     // request — the caller chooses WHICH declared command, never its text.
-    execFile('sh', ['-c', command], {
-      cwd,
-      env: { PATH: process.env.PATH, HOME: cwd, ...computeEnv(app, envVars) },
+    execFile(file, args, {
+      ...opts,
       timeout: COMMAND_TIMEOUT_MS,
-      maxBuffer: 4 * 1024 * 1024,
-      // As the app's own user, never as root: this container holds the Docker socket.
-      ...(appIds(app) || {})
+      maxBuffer: 4 * 1024 * 1024
     }, (err, stdout, stderr) => {
       resolve({
         name,
@@ -228,11 +301,12 @@ const EXEC_TIMEOUT_MS = 5 * 60 * 1000;
 function runInteractive(app, envVars, command, res) {
   const { spawn } = require('child_process');
   const { computeEnv } = require('../lib/env-compute');
+  const inside = nodeInContainer(app);
   const cwd = path.resolve(config.paths.apps, app.slug);
-  if (!fs.existsSync(cwd)) throw new Error('This app has not been deployed yet.');
+  if (!inside && !fs.existsSync(cwd)) throw new Error('This app has not been deployed yet.');
 
   // The app's own user, so a shell here is no more powerful than the app.
-  const ids = appIds(app);
+  const ids = inside ? null : appIds(app);
 
   const secrets = secretValues(envVars);
   const mask = (chunk) => {
@@ -241,12 +315,14 @@ function runInteractive(app, envVars, command, res) {
     return out;
   };
 
-  const child = spawn('sh', ['-c', command], {
-    cwd,
-    env: { PATH: process.env.PATH, HOME: cwd, ...computeEnv(app, envVars) },
-    timeout: EXEC_TIMEOUT_MS,
-    ...(ids || {})
-  });
+  const child = inside
+    ? spawn('docker', ['exec', '-u', '1000', `app-${app.slug}`, 'sh', '-c', command], { timeout: EXEC_TIMEOUT_MS })
+    : spawn('sh', ['-c', command], {
+      cwd,
+      env: { PATH: process.env.PATH, HOME: cwd, ...computeEnv(app, envVars) },
+      timeout: EXEC_TIMEOUT_MS,
+      ...(ids || {})
+    });
 
   const send = (event, data) => res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
 

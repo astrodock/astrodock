@@ -92,6 +92,22 @@ const PRESETS = {
     label: 'Read-Only',
     description: 'See everything, change nothing.',
     scopes: ALL.filter((s) => s.endsWith(':read'))
+  },
+  // What `astrodock login` hands out (lib/cli-login). One app, or every app.
+  // Pages are left out of the one-app key: a page is not part of any app, so a
+  // key that can publish them reaches past the app it was given for.
+  agent: {
+    label: 'Agent, One App',
+    description: 'What an agent gets from astrodock login for one app: build, deploy and configure it, and manage its end users, feedback and work items.',
+    scopes: ['apps:read', 'apps:write', 'deploys:write', 'runtime:write', 'env:read', 'env:write', 'logs:read',
+      'domains:write', 'users:read', 'users:write', 'feedback:read', 'feedback:write', 'work:read', 'work:write']
+  },
+  agentAccount: {
+    label: 'Agent, All Apps',
+    description: 'What an agent gets from astrodock login for the whole account: everything the one-app key can do, on every app, plus Pages.',
+    scopes: ['apps:read', 'apps:write', 'deploys:write', 'runtime:write', 'env:read', 'env:write', 'logs:read',
+      'domains:write', 'users:read', 'users:write', 'feedback:read', 'feedback:write', 'work:read', 'work:write',
+      'pages:read', 'pages:write']
   }
 };
 

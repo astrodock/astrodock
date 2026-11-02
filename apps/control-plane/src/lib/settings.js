@@ -151,6 +151,14 @@ const REGISTRY = {
     description: 'Every operator must hold a passkey or authenticator app before they can sign in. You need one yourself before this can be turned on.',
     values: ['off', 'on'], default: () => 'off'
   },
+  // lib/approvals.js. On by default: an agent working in someone else's
+  // repository can be told what to do with its key, and these are the actions
+  // that reach past the one app the key was given for.
+  'security.agent_approvals': {
+    label: 'Approve What Agents Do Beyond One App', type: 'enum',
+    description: 'An access key has to be approved by a person, with a passkey or authenticator code, before it creates an app, gives an app access to someone who already has an account, or adds a custom domain.',
+    values: ['on', 'off'], default: () => 'on'
+  },
   'updates.check': {
     label: 'Check for New Astrodock Releases', type: 'enum',
     description: 'Asks GitHub once every six hours whether a newer version has been tagged. This is the only request Astrodock makes to the internet on its own. It never installs anything.',
@@ -181,6 +189,11 @@ const REGISTRY = {
     description: 'One per line: a name on your domain, a space, then where it should send people. Lines starting with # are ignored.',
     placeholder: 'get   https://raw.githubusercontent.com/you/repo/main/install.sh',
     default: () => ''
+  },
+  'alerts.app_traffic_mb_per_hour': {
+    label: 'App Traffic Alert (MB Sent per Hour)', type: 'int',
+    description: 'Raise a warning when one app sends more than this in an hour. Counted for apps that run in a container of their own. 0 turns it off.',
+    default: () => 2048
   },
   'alerts.disk_threshold_percent': {
     label: 'Disk-Usage Alert Threshold (%)', type: 'int',

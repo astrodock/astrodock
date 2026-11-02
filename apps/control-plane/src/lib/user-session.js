@@ -18,8 +18,17 @@
 const jwt = require('jsonwebtoken');
 const config = require('../config');
 
-const COOKIE = 'ad_user_session';
+const BASE_NAME = 'ad_user_session';
 const TTL_DAYS = 7;
+
+// Over HTTPS the name carries the __Host- prefix. A browser refuses any cookie
+// with that prefix that names a Domain, so an app on a sibling subdomain cannot
+// plant its own session on the auth host and sign a visitor in as someone else.
+// Browsers accept the prefix only on Secure cookies, so plain HTTP keeps the
+// bare name. Changing it signs everyone out once.
+function cookieName() {
+  return config.tlsMode !== 'off' ? `__Host-${BASE_NAME}` : BASE_NAME;
+}
 
 function key() {
   // Same derivation the Pages session uses: the admin JWT secret is the one
@@ -36,7 +45,7 @@ function sign(user) {
 }
 
 function read(req) {
-  const raw = req.cookies?.[COOKIE];
+  const raw = req.cookies?.[cookieName()];
   if (!raw) return null;
   try { return jwt.verify(raw, key()); } catch { return null; }
 }
@@ -54,7 +63,14 @@ function options() {
   };
 }
 
-function set(res, user) { res.cookie(COOKIE, sign(user), options()); }
-function clear(res) { res.clearCookie(COOKIE, { path: '/' }); }
+function set(res, user) { res.cookie(cookieName(), sign(user), options()); }
+function clear(res) {
+  res.clearCookie(cookieName(), { path: '/', secure: config.tlsMode !== 'off' });
+  // A session from before the prefix, so signing out ends that one too.
+  if (cookieName() !== BASE_NAME) res.clearCookie(BASE_NAME, { path: '/' });
+}
 
-module.exports = { COOKIE, TTL_DAYS, sign, read, set, clear, options };
+module.exports = {
+  get COOKIE() { return cookieName(); },
+  TTL_DAYS, sign, read, set, clear, options
+};

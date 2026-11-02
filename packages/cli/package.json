@@ -1,7 +1,7 @@
 {
   "name": "@astrodock/cli",
   "version": "0.0.32",
-  "description": "Thin CLI for driving an Astrodock platform: apply, deploy, status, logs, deploy:watch, set-secret.",
+  "description": "Thin CLI for driving an Astrodock platform: login, apply, deploy, status, logs, deploy:watch, set-secret.",
   "license": "MIT",
   "bin": {
     "astrodock": "bin/astrodock.js",
@@ -16,5 +16,17 @@
   },
   "dependencies": {
     "@astrodock/schema": "*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/astrodock/astrodock.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://docs.astrodock.ai",
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

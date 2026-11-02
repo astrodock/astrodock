@@ -2,7 +2,7 @@
 
 const { sql } = require('drizzle-orm');
 const {
-  pgTable, uuid, text, integer, bigint, boolean, jsonb, timestamp, uniqueIndex, index
+  pgTable, uuid, text, integer, bigint, boolean, jsonb, timestamp, uniqueIndex, index, primaryKey
 } = require('drizzle-orm/pg-core');
 
 // ── users ──────────────────────────────────────────────────────────────────
@@ -97,6 +97,12 @@ const apps = pgTable('apps', {
   // From the app.json `feedback` block: { enabled, widget, anonymous, snapshot,
   // categories[], ai_mode, webhook }. See lib/feedback.js configFor().
   feedbackConfig: jsonb('feedback_config').notNull().default(sql`'{}'::jsonb`),
+  // pm2 | container. What the last successful deploy ran this Node app under, so
+  // routing follows what is running. Docker apps ignore it.
+  nodeIsolation: text('node_isolation').notNull().default('pm2'),
+  // Per-app caps for a containerised app. Null takes the platform default.
+  memoryMb: integer('memory_mb'),
+  cpuMillis: integer('cpu_millis'),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 }, (t) => ({
   slugUniq: uniqueIndex('apps_slug_uniq').on(t.slug),
@@ -582,4 +588,60 @@ const appCounters = pgTable('app_counters', {
   n: integer('n').notNull().default(0)
 });
 
-module.exports = { users, userInvites, emailChanges, webauthnCredentials, recoveryCodes, sessions, authorizationCodes, launchPasses, mobileDevices, mobileCodes, mobileTickets, userNotifications, appRedirectUris, apps, appEnvVars, deployments, authLogs, apiTokens, appHealth, pages, pageFiles, pageData, events, platformSettings, notificationRules, notificationDeliveries, pageViews, backups, customDomains, feedback, feedbackMessages, workItems, workItemRelations, feedbackWorkItems, appCounters };
+// ── agent sign-in and approvals ───────────────────────────────────────────────
+// See migrations/0019_hosted.sql for what each column is for.
+const cliLogins = pgTable('cli_logins', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  deviceCodeHash: text('device_code_hash').notNull(),
+  userCode: text('user_code').notNull(),
+  codeChallenge: text('code_challenge').notNull(),
+  client: jsonb('client').notNull().default(sql`'{}'::jsonb`),
+  manifest: jsonb('manifest'),
+  source: text('source').notNull().default('cli'),
+  status: text('status').notNull().default('pending'), // pending | approved | denied | consumed
+  kind: text('kind'), // app | account
+  appSlug: text('app_slug'),
+  approvedByUserId: uuid('approved_by_user_id'),
+  tokenId: uuid('token_id'),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  approvedAt: timestamp('approved_at', { withTimezone: true }),
+  consumedAt: timestamp('consumed_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+}, (t) => ({
+  deviceUniq: uniqueIndex('cli_logins_device_uniq').on(t.deviceCodeHash),
+  userCodeUniq: uniqueIndex('cli_logins_user_code_uniq').on(t.userCode)
+}));
+
+const approvals = pgTable('approvals', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  kind: text('kind').notNull(),
+  tokenId: uuid('token_id').notNull(),
+  tokenName: text('token_name').notNull().default(''),
+  requiredScope: text('required_scope').notNull(),
+  requestHash: text('request_hash').notNull(),
+  summary: text('summary').notNull().default(''),
+  details: jsonb('details').notNull().default(sql`'{}'::jsonb`),
+  status: text('status').notNull().default('pending'), // pending | approved | denied | used
+  decidedByUserId: uuid('decided_by_user_id'),
+  decidedAt: timestamp('decided_at', { withTimezone: true }),
+  usedAt: timestamp('used_at', { withTimezone: true }),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+}, (t) => ({ tokenIdx: index('approvals_token_idx').on(t.tokenId) }));
+
+const ownerSetupLinks = pgTable('owner_setup_links', {
+  tokenHash: text('token_hash').primaryKey(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  usedAt: timestamp('used_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+});
+
+const appTraffic = pgTable('app_traffic', {
+  appSlug: text('app_slug').notNull(),
+  hour: timestamp('hour', { withTimezone: true }).notNull(),
+  rxBytes: bigint('rx_bytes', { mode: 'number' }).notNull().default(0),
+  txBytes: bigint('tx_bytes', { mode: 'number' }).notNull().default(0)
+}, (t) => ({ pk: primaryKey({ columns: [t.appSlug, t.hour] }) }));
+
+module.exports = { cliLogins, approvals, ownerSetupLinks, appTraffic, users, userInvites, emailChanges, webauthnCredentials, recoveryCodes, sessions, authorizationCodes, launchPasses, mobileDevices, mobileCodes, mobileTickets, userNotifications, appRedirectUris, apps, appEnvVars, deployments, authLogs, apiTokens, appHealth, pages, pageFiles, pageData, events, platformSettings, notificationRules, notificationDeliveries, pageViews, backups, customDomains, feedback, feedbackMessages, workItems, workItemRelations, feedbackWorkItems, appCounters };

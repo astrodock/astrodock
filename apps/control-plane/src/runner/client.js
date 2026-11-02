@@ -49,6 +49,7 @@ const runner = {
     body: JSON.stringify({ command }), headers: { 'Content-Type': 'application/json' }
   }),
   remove: (slug) => call('POST', `/apps/${slug}/remove`),
+  applyLimits: (slug) => call('POST', `/apps/${slug}/limits`),
   serverDisk: () => call('GET', '/server/disk'),
   serverFreeSpace: () => call('POST', '/server/free-space', { json: {} }),
   serverExecEnabled: () => call('GET', '/server/exec/enabled'),

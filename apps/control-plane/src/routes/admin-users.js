@@ -11,6 +11,7 @@ const accountEmail = require('../lib/account-email');
 const sessions = require('../lib/sessions');
 const mobile = require('../lib/mobile');
 const { emitEvent, actorFromAuth } = require('../lib/events');
+const { requireApproval } = require('../lib/approvals');
 
 const router = express.Router();
 // Agent keys CAN manage end users now, but never operators — enforced per-request
@@ -51,17 +52,63 @@ function refuse(res, verdict) {
   return res.status(403).json({ error: verdict.reason });
 }
 
+/**
+ * Can this caller see this person? A key limited to some apps sees only the
+ * people who use one of them. Listing everyone handed any one-app key the name
+ * and address of every person on the platform, which is what someone who got
+ * their app installed here would want first.
+ */
+function visibleTo(auth, user) {
+  if (auth.type !== 'token') return true;
+  const scope = Array.isArray(auth.appScope) ? auth.appScope : [];
+  if (!scope.length) return true;
+  const access = Array.isArray(user.appAccess) ? user.appAccess : [];
+  return access.some((s) => scope.includes(s));
+}
+
 // List
 router.get('/', async (req, res) => {
   const users = await db.select().from(schema.users).orderBy(asc(schema.users.name));
-  res.json({ users: users.map(publicUser) });
+  res.json({ users: users.filter((u) => visibleTo(req.auth, u)).map(publicUser) });
 });
 
 // Get one
 router.get('/:id', async (req, res) => {
   const rows = await db.select().from(schema.users).where(eq(schema.users.id, req.params.id)).limit(1);
-  if (!rows[0]) return res.status(404).json({ error: 'User not found' });
+  if (!rows[0] || !visibleTo(req.auth, rows[0])) return res.status(404).json({ error: 'User not found' });
   res.json({ user: publicUser(rows[0]) });
+});
+
+// Giving an app someone who already has an account hands that app their identity
+// the next time they sign in, so a key has to have it approved (lib/approvals).
+// Inviting a new address does not: there is nobody there yet.
+async function existingByEmail(email) {
+  const addr = String(email || '').toLowerCase().trim();
+  if (!addr) return null;
+  const [row] = await db.select().from(schema.users).where(eq(schema.users.email, addr)).limit(1);
+  return row || null;
+}
+
+const approveAccess = requireApproval({
+  kind: 'user.access',
+  scope: 'users:write',
+  describe: async (req) => {
+    const app = req.params.appSlug || req.body?.appId;
+    const target = req.params.id
+      ? (await db.select().from(schema.users).where(eq(schema.users.id, req.params.id)).limit(1))[0]
+      : await existingByEmail(req.body?.email);
+    if (!target || !app) return null;
+    // Requests the route will refuse anyway do not get an approval to wait on.
+    if (!roles.keyCanManageUser(req.auth, target).ok) return null;
+    const scope = Array.isArray(req.auth.appScope) ? req.auth.appScope : [];
+    if (scope.length && !scope.includes(app)) return null;
+    const already = Array.isArray(target.appAccess) && target.appAccess.includes(app);
+    if (already) return null;
+    return {
+      summary: `Give "${app}" access to ${target.email}, who already has an account`,
+      details: { app, email: target.email, name: target.name, otherApps: (target.appAccess || []).length }
+    };
+  }
 });
 
 // Create
@@ -89,7 +136,7 @@ router.post('/', requirePermission('users:write'), async (req, res) => {
 // The link is returned rather than emailed. Sending it is the app's job: an
 // invite to Valise should arrive as an email from Valise, in Valise's voice,
 // not as a generic message from the platform the app happens to run on.
-router.post('/invite', requirePermission('users:write'), async (req, res) => {
+router.post('/invite', requirePermission('users:write'), approveAccess, async (req, res) => {
   const { email, name, appId, invitedByName, redirectTo, ttlDays } = req.body || {};
   if (!email || !appId) return res.status(400).json({ error: 'email and appId are required' });
 
@@ -237,7 +284,7 @@ router.post('/:id/reset-password', requirePermission('users:write'), async (req,
 });
 
 // Grant app access
-router.put('/:id/access/:appSlug', requirePermission('users:write'), async (req, res) => {
+router.put('/:id/access/:appSlug', requirePermission('users:write'), approveAccess, async (req, res) => {
   const [target] = await db.select().from(schema.users).where(eq(schema.users.id, req.params.id)).limit(1);
   if (!target) return res.status(404).json({ error: 'User not found' });
   const verdict = guardTarget(req, target, { appSlug: req.params.appSlug });

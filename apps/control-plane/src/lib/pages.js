@@ -48,7 +48,10 @@ function sessionKey() {
 }
 
 // ── passkey HMAC cookie (scoped to one page; rotating the passkey invalidates it) ──
-const PASSKEY_COOKIE = (pageId) => `ad_pk_${pageId}`;
+// Over HTTPS these names carry the __Host- prefix, for the reason given in
+// lib/user-session.js: an app on a sibling subdomain cannot plant them.
+const hostPrefix = () => (config.tlsMode !== 'off' ? '__Host-' : '');
+const PASSKEY_COOKIE = (pageId) => `${hostPrefix()}ad_pk_${pageId}`;
 function passkeyToken(pageId, passkey) {
   return crypto.createHmac('sha256', sessionKey()).update(`${pageId}:${passkey}`).digest('base64url');
 }
@@ -74,7 +77,7 @@ function passkeyValid(pageId, passkey, presented) {
 }
 
 // ── platform-login session cookie (httpOnly JWT) ──
-const SESSION_COOKIE = 'ad_pages_session';
+const SESSION_COOKIE_BASE = 'ad_pages_session';
 function signSession(user) {
   return jwt.sign({ sub: user.id, email: user.email, name: user.name }, sessionKey(), { expiresIn: '7d' });
 }
@@ -86,5 +89,6 @@ function verifySession(token) {
 module.exports = {
   generatePageId, validFileName, contentTypeFor, isTextFile,
   PASSKEY_COOKIE, passkeyToken, passkeyValid, constantTimeEqual,
-  SESSION_COOKIE, signSession, verifySession
+  get SESSION_COOKIE() { return `${hostPrefix()}${SESSION_COOKIE_BASE}`; },
+  signSession, verifySession
 };

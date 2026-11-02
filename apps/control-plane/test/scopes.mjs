@@ -216,7 +216,8 @@ test('a viewer reads settings and changes nothing', () => {
   const dir = new URL('../src/routes/', import.meta.url);
   const offenders = [];
   for (const name of fs.readdirSync(dir).filter((f) => f.endsWith('.js'))) {
-    if (name === 'admin-account.js') continue;
+    // A person's own account, and the proof options for their own factors.
+    if (name === 'admin-account.js' || name === 'admin-proof.js') continue;
     const src = fs.readFileSync(new URL(name, dir), 'utf8');
     const routerLevel = /router\.use\(requireAdmin\)/.test(src);
     const routerPermit = /router\.use\([^\n]*permit\(/.test(src);

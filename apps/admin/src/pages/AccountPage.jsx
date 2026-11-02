@@ -194,7 +194,7 @@ function Passkeys({ data, guarded }) {
   return (
     <Section
       title="Passkeys"
-      description="Sign in with Touch ID, Windows Hello or a security key. A passkey can't be phished — it only works on this exact site — and there's no shared secret stored here for a breach to leak."
+      description={`Sign in with Touch ID, Windows Hello or a security key. A passkey can't be phished — it only works on this exact site — and there's no shared secret stored here for a breach to leak.${list.length ? '' : ' Approving what your agents ask for takes a passkey or an authenticator code, and a passkey is the stronger of the two: a code can be read out to whoever asks for it, and a passkey cannot.'}`}
     >
       <div className="field-panel">
         {list.map((p) => (

@@ -46,6 +46,12 @@ function serializeApp(app) {
     repoConnected: !!app.githubRepo,
     webhookConnected: !!app.webhookId,
     provisioned: app.provisioned,
+    // Whether the app runs in a container of its own, and the caps on it. The
+    // caps apply only to a container (lib/isolation).
+    resources: {
+      container: require('./isolation').inContainer(app),
+      ...require('./isolation').limitsFor(app)
+    },
     internal: {
       dbName: app.databaseMode === 'internal' ? app.dbName : null,
       storagePrefix: app.storageMode === 'internal' ? app.storagePrefix : null

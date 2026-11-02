@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate, NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { getToken, clearToken, getSetupStatus, exchangeHandoff, setToken } from './lib/api';
+import { getToken, clearToken, getSetupStatus, exchangeHandoff, setToken, rememberNext, takeNext, exchangeOwnerLink } from './lib/api';
 import * as api from './lib/api';
 import LoginPage from './pages/LoginPage';
 import SetupPage from './pages/SetupPage';
@@ -18,6 +18,9 @@ import SettingsPage from './pages/SettingsPage';
 import NotFoundPage from './pages/NotFoundPage';
 import Footer from './components/Footer';
 import AccountPage from './pages/AccountPage';
+import ConnectPage from './pages/ConnectPage';
+import ApprovePage from './pages/ApprovePage';
+import WelcomePage from './pages/WelcomePage';
 import ServerPage from './pages/ServerPage';
 import './App.css';
 
@@ -46,8 +49,24 @@ function platformState(platform) {
 const SECTIONS = {
   overview: 'Overview', apps: 'Apps', pages: 'Pages', users: 'Users',
   domains: 'Domains', tokens: 'Access Keys', activity: 'Activity', health: 'Health',
-  account: 'Your Account', settings: 'Settings', server: 'Server', setup: 'Setup'
+  account: 'Your Account', settings: 'Settings', server: 'Server', setup: 'Setup',
+  connect: 'Approve an Agent', approve: 'Approvals'
 };
+
+// Signed out on a page that needs a session: remember it, so signing in lands
+// back here. An approval link opened in a fresh browser is the case that matters.
+function ToLogin() {
+  const location = useLocation();
+  rememberNext(location.pathname + location.search);
+  return <Navigate to="/login" />;
+}
+
+// An owner the hosted service created has no way to sign in until they set one
+// up (lib/owner-setup.js on the server).
+function needsSignInSetup(me) {
+  const f = me && me.factors;
+  return !!f && !f.password && !(f.passkeys || []).length;
+}
 
 function Crumbs({ pathname }) {
   const [first, second] = pathname.replace(/^\/+/, '').split('/');
@@ -75,6 +94,7 @@ export default function App() {
   // The footer used to assert "System nominal" from a hardcoded string next to a
   // permanently green dot, which told you nothing and could not be wrong.
   const [me, setMe] = useState(null);
+  const [meVersion, setMeVersion] = useState(0);
   const [platform, setPlatform] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
@@ -92,12 +112,26 @@ export default function App() {
     // us across the hostname change. Consume it before anything else decides we are
     // logged out, and strip it from the URL either way so a reload cannot replay it.
     const m = window.location.hash.match(/(?:^|[#&])handoff=([a-f0-9]+)/);
+    const owner = window.location.hash.match(/(?:^|[#&])owner=(os_[A-Za-z0-9_-]+)/);
     const finish = () => getSetupStatus().then(setSetup).catch(() => setSetup({ complete: true }));
-
-    if (!m) { finish(); return; }
 
     const clearHash = () =>
       window.history.replaceState(null, '', window.location.pathname + window.location.search);
+
+    // The hosted service's welcome link. Same shape as the handoff: a one-shot
+    // token in the fragment, traded for a session, then stripped from the URL.
+    // `next` is where to go once sign-in is set up, such as a waiting CLI sign-in.
+    if (owner) {
+      const next = new URLSearchParams(window.location.search).get('next');
+      if (next) rememberNext(next);
+      exchangeOwnerLink(owner[1])
+        .then((data) => { setToken(data.token); setIsAuthed(true); })
+        .catch(() => { /* expired or used: the login page explains */ })
+        .finally(() => { clearHash(); finish(); });
+      return;
+    }
+
+    if (!m) { finish(); return; }
 
     exchangeHandoff(m[1])
       .then((data) => { setToken(data.token); setIsAuthed(true); })
@@ -108,6 +142,7 @@ export default function App() {
   useEffect(() => {
     if (setup && !setup.complete) return; // the wizard owns the screen
     if (!getToken() && window.location.pathname !== '/login') {
+      rememberNext();
       navigate('/login');
     }
   }, [navigate, setup]);
@@ -124,14 +159,15 @@ export default function App() {
     load();
     const t = setInterval(load, 60000);
     return () => { alive = false; clearInterval(t); };
-  }, [isAuthed]);
+    // meVersion reloads the account after the welcome page sets up sign-in.
+  }, [isAuthed, meVersion]);
 
   function handleLogin() {
     setIsAuthed(true);
     // Signed out, /setup/status leaves out the version and domain the sidebar and
     // footer show, so ask again now that there is a session.
     getSetupStatus().then(setSetup).catch(() => {});
-    navigate('/overview');
+    navigate(takeNext() || '/overview');
   }
 
   function handleLogout() {
@@ -154,8 +190,17 @@ export default function App() {
     return (
       <Routes>
         <Route path="/login" element={<LoginPage onLogin={handleLogin} />} />
-        <Route path="*" element={<Navigate to="/login" />} />
+        <Route path="*" element={<ToLogin />} />
       </Routes>
+    );
+  }
+
+  // Nothing else until this account can sign in again on its own.
+  if (needsSignInSetup(me)) {
+    return (
+      <div className="solo">
+        <WelcomePage email={me.email} onDone={() => { setMeVersion((v) => v + 1); navigate(takeNext() || '/overview'); }} />
+      </div>
     );
   }
 
@@ -225,6 +270,12 @@ export default function App() {
               Access Keys
             </NavLink>
           </li>
+          <li>
+            <NavLink to="/approve" className={({ isActive }) => isActive ? 'active' : ''}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1.9 3.2 3.9v3.5c0 3 2 5.7 4.8 6.7 2.8-1 4.8-3.7 4.8-6.7V3.9L8 1.9z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"/><path d="M5.6 8h4.8M8 5.6v4.8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>
+              Approvals
+            </NavLink>
+          </li>
           <li className="nav-sec">Observe</li>
           <li>
             <NavLink to="/activity" className={({ isActive }) => isActive ? 'active' : ''}>
@@ -286,6 +337,10 @@ export default function App() {
           <Route path="/pages" element={<PagesPage />} />
           <Route path="/pages/:pageId" element={<PageDetailPage />} />
           <Route path="/tokens" element={<TokensPage />} />
+          <Route path="/connect" element={<ConnectPage />} />
+          <Route path="/connect/:code" element={<ConnectPage />} />
+          <Route path="/approve" element={<ApprovePage />} />
+          <Route path="/approve/:id" element={<ApprovePage />} />
           <Route path="/domains" element={<DomainsPage />} />
           <Route path="/activity" element={<ActivityPage />} />
           <Route path="/health" element={<HealthPage />} />

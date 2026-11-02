@@ -7,6 +7,8 @@
 
 const { execSync } = require('child_process');
 const config = require('../config');
+// Dockerfile apps, and Node apps the last deploy put in a container of their own.
+const { inContainer } = require('../lib/isolation');
 
 function sh(cmd, timeout = 5000) {
   return execSync(cmd, { encoding: 'utf8', timeout });
@@ -40,7 +42,7 @@ function dockerStatus(slug) {
 }
 
 function appStatus(app, procs) {
-  return app.runtimeType === 'docker' ? dockerStatus(app.slug) : nodeStatus(app.slug, procs);
+  return inContainer(app) ? dockerStatus(app.slug) : nodeStatus(app.slug, procs);
 }
 
 // slug → status string, for all apps (one pm2 jlist call).
@@ -52,18 +54,18 @@ function statusAll(apps) {
 }
 
 function restart(app) {
-  if (app.runtimeType === 'docker') sh(`docker restart app-${app.slug} 2>&1`, 15000);
+  if (inContainer(app)) sh(`docker restart app-${app.slug} 2>&1`, 15000);
   else sh(`pm2 restart ${app.slug} 2>&1`, 15000);
 }
 
 function stop(app) {
-  if (app.runtimeType === 'docker') sh(`docker stop app-${app.slug} 2>&1`, 15000);
+  if (inContainer(app)) sh(`docker stop app-${app.slug} 2>&1`, 15000);
   else sh(`pm2 stop ${app.slug} 2>&1`, 15000);
 }
 
 // Fully remove an app's process/container (used on delete).
 function remove(app) {
-  if (app.runtimeType === 'docker') { try { sh(`docker rm -f app-${app.slug} 2>&1`, 15000); } catch { /* gone */ } }
+  if (inContainer(app)) { try { sh(`docker rm -f app-${app.slug} 2>&1`, 15000); } catch { /* gone */ } }
   else { try { sh(`pm2 delete ${app.slug} 2>&1`, 15000); sh('pm2 save 2>&1', 10000); } catch { /* gone */ } }
 }
 
@@ -71,7 +73,7 @@ function remove(app) {
 function stripAnsi(s) { return s.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, ''); }
 
 function readLogs(app, lines = 100) {
-  if (app.runtimeType === 'docker') {
+  if (inContainer(app)) {
     try { return stripAnsi(sh(`docker logs --tail ${lines} app-${app.slug} 2>&1`, 8000)) || 'No logs available'; }
     catch { return 'No logs available'; }
   }

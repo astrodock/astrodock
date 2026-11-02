@@ -46,7 +46,12 @@ test('appStatus really does depend on the app object', () => {
   // If this ever stops being true the assertion above is worthless, so it is
   // checked rather than assumed.
   assert.match(pc, /function appStatus\(app, procs\)/);
-  assert.match(pc, /app\.runtimeType === 'docker'/);
+  // Through lib/isolation, which reads both the runtime type and where the last
+  // deploy put a Node app.
+  assert.match(pc, /inContainer\(app\)/);
+  const iso = fs.readFileSync(new URL('../src/lib/isolation.js', import.meta.url), 'utf8');
+  assert.match(iso, /app\.runtimeType === 'docker'/);
+  assert.match(iso, /app\.nodeIsolation === 'container'/);
 });
 
 test('a process not found reports stopped, which is why a slug was silent', () => {

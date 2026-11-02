@@ -18,6 +18,9 @@
 #
 # Flags: --domain D  --email E  --admin-email E  --admin-password P  --tls auto|internal|off
 #        --setup-token T (choose the first-run token instead of reading it from the logs)
+#        --node-runtime container|pm2 (how Node apps run; container is the default here)
+#        --fleet-token T (lets the hosted service manage this install; leave it out otherwise)
+#        --server-terminal on|off (the dashboard's root terminal on the host)
 #        --local  --up  --force (overwrite an existing .env)  -h/--help
 set -eu
 
@@ -27,6 +30,9 @@ TEMPLATE="$REPO/.env.example"
 OUT="$REPO/.env"
 
 DOMAIN=""; EMAIL=""; ADMIN_EMAIL=""; ADMIN_PASSWORD=""; TLS=""; LOCAL=0; FORCE=0; UP=0
+# New installs run each Node app in a container of its own, with caps. An
+# existing .env without the line keeps PM2 (see config.js).
+NODE_RUNTIME="container"; FLEET_TOKEN=""; SERVER_TERMINAL=""
 SETUP_TOKEN="${ASTRODOCK_SETUP_TOKEN:-}"
 
 while [ $# -gt 0 ]; do
@@ -37,14 +43,20 @@ while [ $# -gt 0 ]; do
     --admin-password) ADMIN_PASSWORD="$2"; shift 2 ;;
     --setup-token) SETUP_TOKEN="$2"; shift 2 ;;
     --tls) TLS="$2"; shift 2 ;;
+    --node-runtime) NODE_RUNTIME="$2"; shift 2 ;;
+    --fleet-token) FLEET_TOKEN="$2"; shift 2 ;;
+    --server-terminal) SERVER_TERMINAL="$2"; shift 2 ;;
     --local) LOCAL=1; shift ;;
     --up) UP=1; shift ;;
     --force) FORCE=1; shift ;;
     -y|--yes) shift ;;   # accepted for compatibility; there are no prompts to skip
-    -h|--help) sed -n '2,22p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,25p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "unknown option: $1" >&2; exit 2 ;;
   esac
 done
+
+case "$NODE_RUNTIME" in container|pm2) ;; *) echo "--node-runtime must be container or pm2" >&2; exit 2 ;; esac
+case "$SERVER_TERMINAL" in ''|on|off) ;; *) echo "--server-terminal must be on or off" >&2; exit 2 ;; esac
 
 [ -f "$TEMPLATE" ] || { echo "error: $TEMPLATE not found — run this from inside the Astrodock repo." >&2; exit 1; }
 
@@ -96,12 +108,23 @@ while IFS= read -r line || [ -n "$line" ]; do
     ASTRODOCK_RUNNER_TOKEN=*)           printf 'ASTRODOCK_RUNNER_TOKEN=%s\n' "$RUNNER" ;;
     ASTRODOCK_PG_PASSWORD=*)            printf 'ASTRODOCK_PG_PASSWORD=%s\n' "$PGPW" ;;
     ASTRODOCK_OBJECTSTORE_SECRET_KEY=*) printf 'ASTRODOCK_OBJECTSTORE_SECRET_KEY=%s\n' "$OBJ" ;;
+    ASTRODOCK_NODE_RUNTIME=*)           printf 'ASTRODOCK_NODE_RUNTIME=%s\n' "$NODE_RUNTIME" ;;
+    ASTRODOCK_FLEET_TOKEN=*)            printf 'ASTRODOCK_FLEET_TOKEN=%s\n' "$FLEET_TOKEN" ;;
+    ASTRODOCK_SERVER_TERMINAL=*)        [ -n "$SERVER_TERMINAL" ] && printf 'ASTRODOCK_SERVER_TERMINAL=%s\n' "$SERVER_TERMINAL" || printf '%s\n' "$line" ;;
     *)                                  printf '%s\n' "$line" ;;
   esac
 done < "$TEMPLATE" > "$tmp"
 # The compose file refuses to start without a runner token, so never depend on the
 # template having the line.
 grep -q '^ASTRODOCK_RUNNER_TOKEN=.' "$tmp" || printf 'ASTRODOCK_RUNNER_TOKEN=%s\n' "$RUNNER" >> "$tmp"
+# Nor on it having these, which are newer than most templates on disk.
+grep -q '^ASTRODOCK_NODE_RUNTIME=' "$tmp" || printf 'ASTRODOCK_NODE_RUNTIME=%s\n' "$NODE_RUNTIME" >> "$tmp"
+if [ -n "$FLEET_TOKEN" ]; then
+  grep -q '^ASTRODOCK_FLEET_TOKEN=' "$tmp" || printf 'ASTRODOCK_FLEET_TOKEN=%s\n' "$FLEET_TOKEN" >> "$tmp"
+fi
+if [ -n "$SERVER_TERMINAL" ]; then
+  grep -q '^ASTRODOCK_SERVER_TERMINAL=' "$tmp" || printf 'ASTRODOCK_SERVER_TERMINAL=%s\n' "$SERVER_TERMINAL" >> "$tmp"
+fi
 mv "$tmp" "$OUT"
 chmod 600 "$OUT"
 
