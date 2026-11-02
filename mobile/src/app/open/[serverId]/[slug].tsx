@@ -1,5 +1,5 @@
 import * as Haptics from 'expo-haptics';
-import { Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActionSheetIOS,
@@ -8,15 +8,17 @@ import {
   BackHandler,
   Linking,
   Platform,
+  Pressable,
   Share,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView, type WebViewMessageEvent, type WebViewNavigation } from 'react-native-webview';
 import type { ShouldStartLoadRequest, WebViewOpenWindowEvent } from 'react-native-webview/lib/WebViewTypes';
 
-import { Button, ErrorText, IconButton } from '@/components/ui';
+import { Button, ErrorText, Icon, IconButton } from '@/components/ui';
 import { ApiError } from '@/lib/api';
 import { appVersion, platform, SignInCancelled } from '@/lib/auth';
 import { bridgeScript, parseBridgeMessage, type HapticStyle } from '@/lib/bridge';
@@ -36,6 +38,8 @@ const AppWebView = WebView as unknown as React.ComponentType<
 
 export default function AppScreen() {
   const c = useColors();
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { serverId, slug, path, name } = useLocalSearchParams<Params>();
   const { ready, servers, client, signInAgain } = useServers();
   const server = servers.find((s) => s.id === serverId);
@@ -206,58 +210,86 @@ export default function AppScreen() {
     }
   };
 
+  // A solid bar above the page rather than the system header, which on iOS 26
+  // floats over the content and hides the top of every app. The page starts
+  // below it, so no app has to make room for it.
   const header = (
-    <Stack.Screen
-      options={{
-        title,
-        headerBackTitle: 'Apps',
-        // When the page can go back, the edge swipe goes to the page, not the stack.
-        gestureEnabled: !canGoBack,
-        headerRight: url
-          ? () => <IconButton ios="ellipsis.circle" android="more_vert" label="Menu" onPress={showMenu} />
-          : undefined,
-      }}
-    />
+    <>
+      <Stack.Screen
+        options={{
+          headerShown: false,
+          // When the page can go back, the edge swipe goes to the page, not the stack.
+          gestureEnabled: !canGoBack,
+        }}
+      />
+      <View style={[styles.bar, { paddingTop: insets.top, backgroundColor: c.surface, borderBottomColor: c.separator }]}>
+        <View style={styles.barRow}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Back to Apps"
+            hitSlop={8}
+            onPress={() => router.back()}
+            style={({ pressed }) => [styles.barSide, { opacity: pressed ? 0.5 : 1 }]}>
+            <Icon ios="chevron.left" android="arrow_back" size={18} color={c.tint} />
+            <Text style={[type.body, { color: c.tint }]}>Apps</Text>
+          </Pressable>
+          <Text style={[type.bodyStrong, styles.barTitle, { color: c.text }]} numberOfLines={1}>
+            {title}
+          </Text>
+          <View style={[styles.barSide, styles.barRight]}>
+            {url ? <IconButton ios="ellipsis.circle" android="more_vert" label="Menu" onPress={showMenu} /> : null}
+          </View>
+        </View>
+      </View>
+    </>
   );
 
   if (ready && !server) {
     return (
-      <View style={[styles.center, { backgroundColor: c.background }]}>
+      <View style={[styles.fill, { backgroundColor: c.background }]}>
         {header}
+        <View style={styles.center}>
         <Text style={[type.secondary, { color: c.secondary }]}>This server is no longer on this phone.</Text>
+        </View>
       </View>
     );
   }
 
   if (ready && server && !server.signedIn) {
     return (
-      <View style={[styles.center, { backgroundColor: c.background }]}>
+      <View style={[styles.fill, { backgroundColor: c.background }]}>
         {header}
+        <View style={styles.center}>
         <Text style={[type.heading, { color: c.text }]}>Signed Out</Text>
         <Text style={[type.secondary, { color: c.secondary, textAlign: 'center' }]}>
           Sign in to {server.name} again to open this app.
         </Text>
         <ErrorText message={error} />
         <Button title="Sign In Again" busy={busy} onPress={onSignIn} style={{ alignSelf: 'stretch' }} />
+        </View>
       </View>
     );
   }
 
   if (error) {
     return (
-      <View style={[styles.center, { backgroundColor: c.background }]}>
+      <View style={[styles.fill, { backgroundColor: c.background }]}>
         {header}
+        <View style={styles.center}>
         <ErrorText message={error} />
         <Button title="Try Again" kind="plain" onPress={open} />
+        </View>
       </View>
     );
   }
 
   if (!url) {
     return (
-      <View style={[styles.center, { backgroundColor: c.background }]}>
+      <View style={[styles.fill, { backgroundColor: c.background }]}>
         {header}
+        <View style={styles.center}>
         <ActivityIndicator />
+        </View>
       </View>
     );
   }
@@ -319,4 +351,9 @@ function haptic(style: HapticStyle) {
 const styles = StyleSheet.create({
   fill: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 32 },
+  bar: { borderBottomWidth: StyleSheet.hairlineWidth },
+  barRow: { height: 44, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8 },
+  barSide: { width: 96, flexDirection: 'row', alignItems: 'center', gap: 2 },
+  barRight: { justifyContent: 'flex-end', paddingRight: 8 },
+  barTitle: { flex: 1, textAlign: 'center' },
 });

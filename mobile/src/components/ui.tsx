@@ -182,15 +182,25 @@ export function ErrorText({ message }: { message: string | null | undefined }) {
   );
 }
 
-export function AppTile({ name, logoUrl, size = 44 }: { name: string; logoUrl?: string; size?: number }) {
+/**
+ * An app's icon: the first of `sources` that loads, else its initial. An app
+ * with no icon file answers with its index page, which fails to decode and
+ * moves on to the next.
+ */
+export function AppTile({ name, sources = [], size = 44 }: { name: string; sources?: string[]; size?: number }) {
   const c = useColors();
   const radius = Math.round(size * 0.22);
-  if (logoUrl) {
+  const key = sources.join('|');
+  const [index, setIndex] = React.useState(0);
+  React.useEffect(() => setIndex(0), [key]);
+  const uri = sources[index];
+  if (uri) {
     return (
       <Image
-        source={{ uri: logoUrl }}
+        source={{ uri }}
         style={{ width: size, height: size, borderRadius: radius, backgroundColor: c.tile }}
         contentFit="cover"
+        onError={() => setIndex((i) => i + 1)}
         accessibilityIgnoresInvertColors
       />
     );

@@ -1,15 +1,29 @@
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, RefreshControl, SectionList, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { AppTile, Button, ErrorText, Icon, IconButton, Row, ScreenTitle, SectionTitle } from '@/components/ui';
+import { AppTile, Button, ErrorText, Icon, IconButton, ScreenTitle, SectionTitle } from '@/components/ui';
 import type { AppsResponse, MobileApp } from '@/lib/api';
 import { SignInCancelled } from '@/lib/auth';
 import { ADMIN_SLUG } from '@/lib/paths';
 import { useServers } from '@/lib/servers';
 import type { StoredServer } from '@/lib/storage';
 import { type, useColors } from '@/lib/theme';
+
+const COLUMNS = 3;
+const PAD = 20;
+const GAP = 12;
+const ICON = 64;
 
 type Load = { status: 'loading' } | { status: 'ok'; data: AppsResponse } | { status: 'error'; message: string };
 
@@ -24,6 +38,7 @@ type Item =
 export default function AppsScreen() {
   const c = useColors();
   const router = useRouter();
+  const { width } = useWindowDimensions();
   const { ready, servers, client, signInAgain } = useServers();
   const [loads, setLoads] = useState<Record<string, Load>>({});
   const [refreshing, setRefreshing] = useState(false);
@@ -109,82 +124,90 @@ export default function AppsScreen() {
     );
   }
 
+  // Three across. The tile is a third of the row less the gaps; the icon sits
+  // centered in it with the name underneath.
+  const tileWidth = Math.floor((width - PAD * 2 - GAP * (COLUMNS - 1)) / COLUMNS);
+  // One server needs no heading: the grid is just the apps.
+  const showHeadings = sections.length > 1;
+
   return (
     <SafeAreaView edges={['top']} style={[styles.fill, { backgroundColor: c.background }]}>
-      <SectionList
-        sections={sections}
-        keyExtractor={(item, i) => `${item.server.id}:${item.kind}:${item.kind === 'app' ? item.app.slug : i}`}
-        stickySectionHeadersEnabled={false}
+      <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        ListHeaderComponent={<ScreenTitle title="Apps" action={addButton} />}
-        ListFooterComponent={<View style={{ height: 32 }} />}
-        renderSectionHeader={({ section }) => (
-          <SectionTitle
-            title={section.server.name}
-            detail={section.server.user?.email ?? hostOf(section.server.authUrl)}
-          />
-        )}
-        renderItem={({ item, index, section }) => {
-          const first = index === 0;
-          const last = index === section.data.length - 1;
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
+        <ScreenTitle title="Apps" action={addButton} />
+        {sections.map(({ server, data }) => {
+          const tiles = data.filter((i) => i.kind === 'app' || i.kind === 'admin');
+          const messages = data.filter((i) => i.kind !== 'app' && i.kind !== 'admin');
           return (
-            <View
-              style={[
-                styles.cell,
-                { backgroundColor: c.surface },
-                first && styles.cellFirst,
-                last && styles.cellLast,
-              ]}>
-              {!first ? <View style={[styles.separator, { backgroundColor: c.separator }]} /> : null}
-              {renderItem(item)}
+            <View key={server.id} style={styles.section}>
+              {showHeadings ? (
+                <SectionTitle title={server.name} detail={server.user?.email ?? hostOf(server.authUrl)} />
+              ) : null}
+              {messages.map((item, i) => (
+                <View key={i} style={[styles.messageBox, { backgroundColor: c.surface }]}>
+                  {renderMessage(item)}
+                </View>
+              ))}
+              {tiles.length ? (
+                <View style={styles.grid}>
+                  {tiles.map((item) => (
+                    <View key={item.kind === 'app' ? item.app.slug : 'admin'} style={{ width: tileWidth }}>
+                      {renderTile(item)}
+                    </View>
+                  ))}
+                </View>
+              ) : null}
             </View>
           );
-        }}
-      />
+        })}
+        <View style={{ height: 32 }} />
+      </ScrollView>
     </SafeAreaView>
   );
 
-  function renderItem(item: Item) {
+  function renderTile(item: Item) {
+    if (item.kind === 'app') {
+      return (
+        <Tile
+          label={item.app.name}
+          icon={<AppTile name={item.app.name} sources={iconSources(item.app)} size={ICON} />}
+          onPress={() =>
+            router.push({
+              pathname: '/open/[serverId]/[slug]',
+              params: { serverId: item.server.id, slug: item.app.slug, name: item.app.name },
+            })
+          }
+        />
+      );
+    }
+    if (item.kind === 'admin') {
+      return (
+        <Tile
+          label="Admin"
+          icon={
+            <View style={[styles.adminTile, { backgroundColor: c.tile }]}>
+              <Icon ios="slider.horizontal.3" android="tune" size={28} color={c.text} />
+            </View>
+          }
+          onPress={() =>
+            router.push({
+              pathname: '/open/[serverId]/[slug]',
+              params: { serverId: item.server.id, slug: ADMIN_SLUG, name: 'Admin' },
+            })
+          }
+        />
+      );
+    }
+    return null;
+  }
+
+  function renderMessage(item: Item) {
     switch (item.kind) {
-      case 'app':
-        return (
-          <Row
-            title={item.app.name}
-            detail={item.app.description || undefined}
-            leading={<AppTile name={item.app.name} logoUrl={item.app.logoUrl} />}
-            chevron
-            onPress={() =>
-              router.push({
-                pathname: '/open/[serverId]/[slug]',
-                params: { serverId: item.server.id, slug: item.app.slug, name: item.app.name },
-              })
-            }
-          />
-        );
-      case 'admin':
-        return (
-          <Row
-            title="Admin"
-            detail="Manage this server"
-            leading={
-              <View style={[styles.adminTile, { backgroundColor: c.tile }]}>
-                <Icon ios="slider.horizontal.3" android="tune" size={20} color={c.text} />
-              </View>
-            }
-            chevron
-            onPress={() =>
-              router.push({
-                pathname: '/open/[serverId]/[slug]',
-                params: { serverId: item.server.id, slug: ADMIN_SLUG, name: 'Admin' },
-              })
-            }
-          />
-        );
       case 'signedOut':
         return (
           <View style={styles.message}>
-            <Text style={[type.secondary, { color: c.secondary }]}>You are signed out of this server.</Text>
+            <Text style={[type.secondary, { color: c.secondary }]}>You are signed out of {item.server.name}.</Text>
             <ErrorText message={signInError[item.server.id]} />
             <Button
               title="Sign In Again"
@@ -212,8 +235,36 @@ export default function AppsScreen() {
             <Text style={[type.secondary, { color: c.secondary }]}>No apps are shared with you on this server yet.</Text>
           </View>
         );
+      default:
+        return null;
     }
   }
+}
+
+/** One icon in the grid: the icon, and the name under it. */
+function Tile({ label, icon, onPress }: { label: string; icon: React.ReactNode; onPress: () => void }) {
+  const c = useColors();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={({ pressed }) => [styles.tile, { opacity: pressed ? 0.6 : 1 }]}>
+      {icon}
+      <Text style={[type.caption, styles.tileLabel, { color: c.text }]} numberOfLines={2}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+// The logo set in the app's settings, then the icon most web apps ship for
+// iOS home screens. Static files are served without sign-in.
+function iconSources(app: MobileApp): string[] {
+  const out: string[] = [];
+  if (app.logoUrl) out.push(app.logoUrl);
+  if (app.url) out.push(`${app.url.replace(/\/+$/, '')}/apple-touch-icon.png`);
+  return out;
 }
 
 function hostOf(url: string) {
@@ -223,10 +274,11 @@ function hostOf(url: string) {
 const styles = StyleSheet.create({
   fill: { flex: 1 },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, paddingHorizontal: 32 },
-  cell: { marginHorizontal: 16 },
-  cellFirst: { borderTopLeftRadius: 12, borderTopRightRadius: 12 },
-  cellLast: { borderBottomLeftRadius: 12, borderBottomRightRadius: 12 },
-  separator: { height: StyleSheet.hairlineWidth, marginLeft: 72 },
+  section: { gap: 12 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: PAD, columnGap: GAP, rowGap: 20, paddingTop: 4 },
+  tile: { alignItems: 'center', gap: 6 },
+  tileLabel: { textAlign: 'center' },
+  messageBox: { marginHorizontal: 16, borderRadius: 12 },
   message: { padding: 16, gap: 10 },
-  adminTile: { width: 44, height: 44, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  adminTile: { width: ICON, height: ICON, borderRadius: Math.round(ICON * 0.22), alignItems: 'center', justifyContent: 'center' },
 });
