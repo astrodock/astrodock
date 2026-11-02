@@ -1253,22 +1253,56 @@ label > .sel { margin-top:.4rem; }
 .adh-action-result.bad { color: var(--warning); }
 .adh-stat-hint { color: var(--text-3); font-weight: 400; }
 
-/* ─── Per-app terminal ───
-   Command-and-stream, not a pty. Streams are told apart by colour rather than
-   by prefix, so output reads as output. */
+/* ─── Terminal (per app, and the Server page) ───
+   One dark panel in both themes: a bar, the scrollback, and the prompt on the
+   last line. Command-and-stream, not a pty. The panel is always dark, so it
+   takes the dark theme's values directly rather than the page's tokens. */
 .terminal-tab .hint { margin-bottom: 12px; }
-.terminal-out { display: flex; flex-direction: column; min-height: 280px; max-height: 52vh; }
-.term-idle { color: var(--text-3); }
-.term-cmd { color: var(--text-1); font-weight: 600; margin-top: 8px; }
-.term-cmd:first-child { margin-top: 0; }
-.term-stdout { color: var(--text-2); white-space: pre-wrap; }
-.term-stderr { color: var(--warning); white-space: pre-wrap; }
-.term-exit { color: var(--text-3); font-style: italic; margin-bottom: 4px; }
-.terminal-input { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
-.terminal-input input {
-  flex: 1; font-family: var(--font-mono, ui-monospace, monospace); font-size: 13px;
+.tty {
+  --tty-bg:#080b11; --tty-bar:#0f141d; --tty-line:#222d3b; --tty-ink:#c7d2e0; --tty-bright:#f1f5fa;
+  --tty-mute:#8595a8; --tty-green:#2fe6a8; --tty-err:#ff6573; --tty-warn:#ffbe5c;
+  background:var(--tty-bg); color:var(--tty-ink); border:1px solid var(--tty-line);
+  font-family:var(--mono); font-size:13px; line-height:1.6; cursor:text;
+  display:flex; flex-direction:column;
 }
-.term-prompt { color: var(--text-3); font-family: var(--font-mono, ui-monospace, monospace); }
+.tty-bar { display:flex; align-items:center; gap:12px; padding:7px 10px 7px 14px; background:var(--tty-bar);
+  border-bottom:1px solid var(--tty-line); cursor:default; font-size:12px; }
+.tty-title { color:var(--tty-bright); font-weight:500; }
+.tty-state { color:var(--tty-mute); text-transform:uppercase; letter-spacing:.06em; font-size:10.5px; }
+.tty-state.on { color:var(--tty-green); }
+.tty-state.on::before { content:''; display:inline-block; width:6px; height:6px; margin-right:6px; vertical-align:1px;
+  background:var(--tty-green); animation:blink 1s step-end infinite; }
+.tty-actions { margin-left:auto; display:flex; gap:6px; }
+.tty-btn { font-family:var(--mono); font-size:11.5px; line-height:1; padding:6px 9px; background:transparent;
+  color:var(--tty-ink); border:1px solid var(--tty-line); border-radius:0; cursor:pointer; }
+.tty .tty-btn:hover:not(:disabled) { color:var(--tty-bright); background:rgba(255,255,255,.06); border-color:var(--tty-mute); }
+.tty-btn:disabled { opacity:.4; cursor:default; }
+.tty-btn.stop { color:var(--tty-err); border-color:rgba(255,101,115,.5); }
+.tty .tty-btn.stop:hover { color:#fff; background:rgba(255,101,115,.18); border-color:var(--tty-err); }
+.tty-body { min-height:320px; max-height:60vh; overflow:auto; padding:12px 14px 14px; }
+.tty-idle { color:var(--tty-mute); margin-bottom:10px; }
+.tty-block { margin-bottom:12px; }
+.tty-cmdline { display:flex; align-items:flex-start; gap:10px; }
+.tty-cmdline .tty-btn { margin-left:auto; padding:3px 7px; font-size:10.5px; opacity:.5; transition:opacity .12s; }
+.tty-block:hover .tty-cmdline .tty-btn, .tty-cmdline .tty-btn:focus-visible { opacity:1; }
+.tty-ps { color:var(--tty-green); user-select:none; flex:none; font-weight:600; }
+.tty-cmd { color:var(--tty-bright); font-weight:600; white-space:pre-wrap; word-break:break-word; }
+.tty-out { margin:2px 0 0; padding:0; background:none; border:0; font:inherit; color:var(--tty-ink);
+  white-space:pre-wrap; word-break:break-word; }
+.tty-err { color:var(--tty-warn); }
+.tty-exit { color:var(--tty-mute); font-size:11.5px; margin-top:2px; }
+.tty-exit.bad { color:var(--tty-err); }
+.tty-prompt { display:flex; align-items:flex-start; gap:10px; }
+.tty-prompt.busy .tty-ps { color:var(--tty-mute); }
+.tty-prompt textarea { flex:1; min-width:0; resize:none; overflow-y:auto; margin:0; padding:0; border:0; outline:none;
+  background:transparent; box-shadow:none; color:var(--tty-bright); caret-color:var(--tty-green);
+  font:inherit; line-height:inherit; }
+.tty-prompt textarea:focus { border:0; box-shadow:none; }
+.tty-prompt textarea::placeholder { color:var(--tty-mute); }
+.tty-out::selection, .tty-out *::selection, .tty-cmd::selection, .tty-prompt textarea::selection { background:rgba(47,230,168,.28); color:#fff; }
+.tty-keys { display:flex; flex-wrap:wrap; gap:4px 16px; padding:7px 14px; border-top:1px solid var(--tty-line);
+  color:var(--tty-mute); font-size:11px; cursor:default; }
+.tty-keys kbd { font:inherit; color:var(--tty-ink); border:1px solid var(--tty-line); padding:0 4px; margin-right:3px; }
 
 /* A checkbox with its label on one line, for a setting that is a sentence. */
 .inline-check { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; }

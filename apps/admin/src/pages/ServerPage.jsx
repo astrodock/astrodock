@@ -132,6 +132,7 @@ export default function ServerPage() {
           <div className="tab-header"><h2>Terminal</h2></div>
           <TerminalTab
             stream={api.serverExecStream}
+            title="root@server"
             hint={<>Commands run on the server itself, <b>as root</b>, the same as over SSH. Output has the
               platform's secret values masked. Every command is recorded in Activity, with who ran it.
               Commands stop after 15 minutes or when you leave this page.</>}
