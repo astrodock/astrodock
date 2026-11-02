@@ -86,4 +86,27 @@ const reauthLimiter = rateLimit({
   legacyHeaders: false
 });
 
-module.exports = { reauthLimiter, launchLimiter, verifyLimiter, adminLoginLimiter, accountLimiter, deployLimiter, pageDataLimiter, pageLoginLimiter, feedbackLimiter };
+// Redeeming a mobile sign-in code. A code is 32 random bytes and dies on first
+// use, so this is about load, not guessing; the same budget as /verify.
+const mobileTokenLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 50,
+  message: { error: 'Too many sign-in attempts, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+// POST /notify: 60 per app per person per hour (MOBILE_DESIGN.md). Runs after
+// the app secret and the person are checked, which set req.notify, so a caller
+// without the secret cannot spend another app's budget. Only successes count.
+const notifyLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 60,
+  keyGenerator: (req) => `notify:${req.notify?.app?.id || 'unknown'}:${req.notify?.user?.id || 'unknown'}`,
+  skipFailedRequests: true,
+  message: { error: 'Too many notifications to this person from this app. Try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+module.exports = { mobileTokenLimiter, notifyLimiter, reauthLimiter, launchLimiter, verifyLimiter, adminLoginLimiter, accountLimiter, deployLimiter, pageDataLimiter, pageLoginLimiter, feedbackLimiter };

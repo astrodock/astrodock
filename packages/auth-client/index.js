@@ -127,6 +127,45 @@ class AstrodockAuth {
   }
 
   /**
+   * Send one of your app's users a notification.
+   *
+   * It lands in the inbox of the Astrodock mobile app, and as a push on every
+   * phone they have signed in with. Server-side only: it sends your app secret.
+   * The person must have access to your app. Limited to 60 per person per hour.
+   *
+   * `path` is where in your app a tap should open, e.g. "/tasks/12". The
+   * platform passes it to your sign-in path as `?next=`.
+   *
+   * @param {{userId?: string, email?: string, title: string, body?: string, path?: string}} n
+   * @returns {Promise<{id: string}>}
+   * @throws {AuthError} 400 bad input, 401 bad app secret, 403 no access, 429 rate limited
+   */
+  async notify({ userId, email, title, body, path } = {}) {
+    if (!userId && !email) throw new Error('userId or email is required');
+    let res;
+    try {
+      res = await fetch(`${this.authUrl}/notify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          app_id: this.appId,
+          app_secret: this.appSecret,
+          user_id: userId || undefined,
+          email: userId ? undefined : email,
+          title,
+          body: body || '',
+          path: path || undefined
+        })
+      });
+    } catch (err) {
+      throw new AuthError(`Auth service unavailable: ${err.message}`, 503);
+    }
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new AuthError(data.error || 'Could not send the notification', res.status);
+    return data;
+  }
+
+  /**
    * Verify end-user credentials. LEGACY — see the note at the top of this file.
    * @returns {Promise<{userId: string, email: string, name: string}>}
    * @throws {AuthError} 401 invalid credentials (also returned for no access to this app,

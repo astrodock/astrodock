@@ -70,6 +70,31 @@ const REGISTRY = {
     description: 'At least 32 characters, held by both systems and used to sign and check passes. Generate it with: openssl rand -hex 32',
     default: () => ''
   },
+  // The mobile app. See MOBILE_DESIGN.md. Off answers every /mobile/* route
+  // with 404, which signs every phone out at its next request.
+  'mobile.enabled': {
+    label: 'Mobile App Sign-In', type: 'enum',
+    description: 'Lets people sign in to this server from the Astrodock mobile app and open their apps there. Off signs every phone out.',
+    values: ['on', 'off'], default: () => 'on'
+  },
+  // The push relay. Apple and Google accept pushes for the app only from the
+  // app's publisher, so a self-hosted server sends through the publisher's relay.
+  // The id and secret are written by Register (lib/push.js register), not typed.
+  'push.relay_url': {
+    label: 'Push Relay', type: 'string',
+    description: 'The relay that delivers notifications to phones. It only ever sees encrypted text.',
+    default: () => 'https://push.astrodock.ai'
+  },
+  'push.server_id': {
+    label: 'Relay Server ID', type: 'string',
+    description: 'This server\'s id at the relay, set by registering.',
+    default: () => ''
+  },
+  'push.server_secret': {
+    label: 'Relay Server Secret', type: 'string', secret: true, encrypted: true,
+    description: 'What this server signs its pushes with, set by registering.',
+    default: () => ''
+  },
   // Feedback triage by model. Blank turns it off everywhere regardless of what
   // an app's ai_mode says, so one field is the whole off switch.
   'ai.anthropic_key': {

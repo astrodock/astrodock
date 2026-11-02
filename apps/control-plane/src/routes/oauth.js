@@ -6,6 +6,11 @@
 //   GET  /authorize   browser lands here from the app; we authenticate and bounce back
 //   POST /login       the hosted login page submits here (password, or passkey)
 //   POST /token       the app's SERVER exchanges the code, with its app secret
+//
+// The mobile app signs in through the same page and the same /login handler.
+// GET /mobile/authorize (routes/mobile.js) renders this page with a `mobile`
+// target in place of an app, and /login, Google and passkey sign-in each finish
+// that target by issuing a PKCE code for the app instead (finishMobile below).
 
 const express = require('express');
 const crypto = require('crypto');
@@ -19,6 +24,7 @@ const passkeys = require('../lib/passkeys');
 const google = require('../lib/google');
 const googleAccounts = require('../lib/google-accounts');
 const invites = require('../lib/invites');
+const mobile = require('../lib/mobile');
 
 // Registered once on the Google client and shared by every app: the app being
 // signed into travels in the sign-in's own context, not in the redirect URI.
@@ -150,13 +156,25 @@ async function isPlatformOrigin(url) {
 router.post('/login', pageLoginLimiter, express.json(), async (req, res) => {
   const { appId, redirectUri, email, password, totp, recoveryCode, passkeyResponse, handle } = req.body || {};
   const ip = req.ip || '';
+  // Signing in to the mobile app rather than to one app. Checked as strictly as
+  // an app's redirect: the challenge has to be one /mobile/authorize would take.
+  const mobileTarget = req.body && req.body.mobile ? req.body.mobile : null;
 
   try {
-    const app = await appBySlug(appId);
-    if (!app) return res.status(400).json({ error: 'Unknown app.' });
-    if (!await oauth.isAllowedRedirect(app.id, redirectUri)) {
-      return res.status(400).json({ error: 'Redirect URL not allowed.' });
+    let app = null;
+    if (mobileTarget) {
+      if (!await mobile.enabled()) return res.status(404).json({ error: 'Not found.' });
+      if (!mobile.validChallenge(mobileTarget.codeChallenge)) {
+        return res.status(400).json({ error: 'That sign-in request is not valid. Start again from the app.' });
+      }
+    } else {
+      app = await appBySlug(appId);
+      if (!app) return res.status(400).json({ error: 'Unknown app.' });
+      if (!await oauth.isAllowedRedirect(app.id, redirectUri)) {
+        return res.status(400).json({ error: 'Redirect URL not allowed.' });
+      }
     }
+    const logApp = app ? app.slug : 'mobile';
 
     let user = null;
 
@@ -171,7 +189,7 @@ router.post('/login', pageLoginLimiter, express.json(), async (req, res) => {
       // Uniform failure: never reveal whether the account exists, is inactive, or
       // simply has no password set.
       if (!candidate || !candidate.isActive || !await factors.checkPassword(candidate, password)) {
-        logAttempt(addr, app.slug, 'BAD_PASSWORD', ip);
+        logAttempt(addr, logApp, 'BAD_PASSWORD', ip);
         return res.status(401).json({ error: 'Those details are not right.' });
       }
 
@@ -184,11 +202,20 @@ router.post('/login', pageLoginLimiter, express.json(), async (req, res) => {
           ? await factors.consumeRecoveryCode(candidate.id, recoveryCode)
           : await factors.checkTotp(candidate, totp);
         if (!ok) {
-          logAttempt(addr, app.slug, 'BAD_2FA', ip);
+          logAttempt(addr, logApp, 'BAD_2FA', ip);
           return res.status(401).json({ error: 'That code is not right.', code: 'totp_required' });
         }
       }
       user = candidate;
+    }
+
+    // The mobile app is not an app with access of its own: it lists whichever
+    // apps the person has, which may be none, plus the dashboard for an operator.
+    if (mobileTarget) {
+      if (!user.isActive) return res.status(401).json({ error: 'Those details are not right.' });
+      userSession.set(res, user);
+      const redirect = await finishMobile(user, mobileTarget, ip);
+      return res.json({ redirect });
     }
 
     // Access is a separate question from identity, and stays that way: an operator
@@ -221,6 +248,18 @@ router.post('/login', pageLoginLimiter, express.json(), async (req, res) => {
 
 router.get('/login/google/start', pageLoginLimiter, async (req, res) => {
   try {
+    if (req.query.mobile === '1') {
+      if (!await mobile.enabled()) return res.status(404).type('html').send(errorPage('Not Found', 'There is nothing here.'));
+      const codeChallenge = String(req.query.code_challenge || '');
+      if (!mobile.validChallenge(codeChallenge)) {
+        return res.status(400).type('html').send(errorPage('Start Again from the App', 'That sign-in request is not valid.'));
+      }
+      const { url } = await google.begin({
+        redirectUri: googleCallbackUrl(req),
+        context: { surface: 'mobile', codeChallenge, state: String(req.query.state || '').slice(0, 512) }
+      });
+      return res.redirect(url);
+    }
     const app = await appBySlug(req.query.app_id);
     if (!app) return res.type('html').send(errorPage('Unknown App', 'That application is not registered here.'));
     const redirectUri = String(req.query.redirect_uri || '');
@@ -251,6 +290,9 @@ router.get('/login/google/callback', pageLoginLimiter, async (req, res) => {
     // Same reason: attaching a Google account from the account page ends here
     // too, and is told apart by its context rather than by its own URL.
     if (ctx.surface === 'link') return completeLink({ req, res, identity, ctx });
+
+    // And the mobile app's sign-in, for the same reason.
+    if (ctx.surface === 'mobile') return completeMobile({ req, res, identity, ctx });
 
     const app = await appBySlug(ctx.appSlug);
     if (!app) return res.type('html').send(errorPage('Unknown App', 'That application is not registered here.'));
@@ -380,6 +422,39 @@ async function completeLink({ req, res, identity, ctx }) {
   return res.redirect('/account?linked=1');
 }
 
+// The end of every mobile sign-in, whichever way the person proved who they
+// are: a PKCE code for the app, and where to send the browser sheet with it.
+async function finishMobile(user, target, ip) {
+  const code = await mobile.issueCode({ userId: user.id, codeChallenge: target.codeChallenge });
+  logAttempt(user.email, 'mobile', 'SUCCESS', ip);
+  return mobile.redirectFor(code, target.state ? String(target.state).slice(0, 512) : '');
+}
+
+// Finish a mobile sign-in that went through Google. The same rules as an app's:
+// an account is never created here (there is no app to opt in), and an account
+// with an authenticator code is sent back to the form.
+async function completeMobile({ req, res, identity, ctx }) {
+  if (!await mobile.enabled()) return res.status(404).type('html').send(errorPage('Not Found', 'There is nothing here.'));
+  const retry = `/mobile/authorize?${new URLSearchParams({
+    code_challenge: ctx.codeChallenge, code_challenge_method: 'S256',
+    state: ctx.state || '', redirect_uri: mobile.REDIRECT_URI, prompt: 'login'
+  })}`;
+  const { user, error } = await googleAccounts.resolveEndUser(identity, null);
+  if (error) {
+    logAttempt(identity.email, 'mobile', 'NO_ACCOUNT', req.ip || '');
+    return res.type('html').send(errorPage('Cannot Sign You In', error,
+      { action: { href: retry, label: 'Try Another Way' } }));
+  }
+  const f = await factors.factorsFor(user.id);
+  if (f.totp) {
+    return res.type('html').send(errorPage('Use Your Password',
+      'This account has two-step sign-in, so it signs in with its password and code rather than Google.',
+      { icon: 'key', action: { href: retry, label: 'Sign In with Your Password' } }));
+  }
+  userSession.set(res, user);
+  return res.redirect(await finishMobile(user, ctx, req.ip || ''));
+}
+
 // ── /token ────────────────────────────────────────────────────────────────────
 // Server-to-server. The app secret proves the caller is the app, which is why the
 // code alone is not enough to impersonate a user.
@@ -409,9 +484,15 @@ router.post('/login/passkey/options', pageLoginLimiter, express.json(), async (r
   }
 });
 
-function loginPage({ appName, appId, redirectUri, state, nonce, brandColor, logoUrl, signedInAs, googleEnabled }) {
+// `mobile` is { codeChallenge, state } when the mobile app is signing in, in
+// place of appId and redirectUri. The form is the same; /login answers with
+// where to go next instead of a code for the page to hand back.
+function loginPage({ appName, appId, redirectUri, state, nonce, brandColor, logoUrl, signedInAs, googleEnabled, mobile: mobileTarget = null }) {
   const accent = safeColor(brandColor);
-  const cfg = scriptJson({ appId, redirectUri, state, nonce });
+  const cfg = scriptJson({ appId, redirectUri, state, nonce, mobile: mobileTarget });
+  const googleHref = mobileTarget
+    ? `/login/google/start?${new URLSearchParams({ mobile: '1', code_challenge: mobileTarget.codeChallenge, state: mobileTarget.state || '' })}`
+    : `/login/google/start?app_id=${encodeURIComponent(appId)}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state || '')}`;
   // Two steps on one page. The second (the authenticator code, or a recovery
   // code in its place) appears only when the server says the account has one,
   // and the email and password are held in memory to send with it: /login is
@@ -434,7 +515,7 @@ ${errorLine()}
 <div class="alt" id="alt">
   <div class="or"><span>or</span></div>
   <button class="secondary" id="pk" type="button">${icon('key')}Sign In with a Passkey</button>
-  ${googleEnabled ? googleButton(`/login/google/start?app_id=${encodeURIComponent(appId)}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state || '')}`) : ''}
+  ${googleEnabled ? googleButton(googleHref) : ''}
 </div>
 ${signedInAs ? `<p class="muted">Signed in as ${esc(signedInAs)}. Sign in again to continue.</p>` : ''}
 <script>
@@ -445,9 +526,12 @@ const clear = () => { err.hidden = true; };
 const el = (id) => document.getElementById(id);
 let creds = null;
 let useRecovery = false;
-function handoff(code) {
+// Who this sign-in is for: an app, or the mobile app.
+const target = () => (CFG.mobile ? { mobile: CFG.mobile } : { appId: CFG.appId, redirectUri: CFG.redirectUri });
+function handoff(d) {
+  if (CFG.mobile) return window.location.assign(d.redirect);
   const u = new URL(CFG.redirectUri);
-  u.searchParams.set('code', code);
+  u.searchParams.set('code', d.code);
   if (CFG.state) u.searchParams.set('state', CFG.state);
   window.location.assign(u.toString());
 }
@@ -479,8 +563,8 @@ el('f').addEventListener('submit', async (e) => {
   creds = { email: el('email').value, password: el('password').value };
   el('go').disabled = true;
   try {
-    const d = await post('/login', { appId: CFG.appId, redirectUri: CFG.redirectUri, ...creds });
-    handoff(d.code);
+    const d = await post('/login', { ...target(), ...creds });
+    handoff(d);
   } catch (ex) {
     el('go').disabled = false;
     if (ex.code === 'totp_required') step(true); else show(ex.message);
@@ -493,8 +577,8 @@ el('f2').addEventListener('submit', async (e) => {
   el('go2').disabled = true;
   try {
     const extra = useRecovery ? { recoveryCode: value } : { totp: value };
-    const d = await post('/login', { appId: CFG.appId, redirectUri: CFG.redirectUri, ...creds, ...extra });
-    handoff(d.code);
+    const d = await post('/login', { ...target(), ...creds, ...extra });
+    handoff(d);
   } catch (ex) {
     el('go2').disabled = false;
     show(ex.message);
@@ -538,8 +622,8 @@ document.getElementById('pk').addEventListener('click', async () => {
         userHandle: cred.response.userHandle ? bufToB64u(cred.response.userHandle) : undefined
       }
     };
-    const d = await post('/login', { appId: CFG.appId, redirectUri: CFG.redirectUri, handle, passkeyResponse: resp });
-    handoff(d.code);
+    const d = await post('/login', { ...target(), handle, passkeyResponse: resp });
+    handoff(d);
   } catch (ex) { show(ex.message || 'Passkey sign-in failed.'); }
 });
 </script>`, { accent });

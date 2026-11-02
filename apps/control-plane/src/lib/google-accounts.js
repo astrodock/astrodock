@@ -93,7 +93,9 @@ async function resolveEndUser(identity, app) {
     return { user: { ...byEmail, googleSub: identity.sub }, linked: true, granted: await ensureAccess(byEmail, app) };
   }
 
-  if (!app || !app.allowGoogleSignup) {
+  // No app is the mobile app's sign-in, which never creates an account.
+  if (!app) return { error: 'There is no account for that Google address.' };
+  if (!app.allowGoogleSignup) {
     return { error: 'There is no account for that Google address, and this app does not create them automatically.' };
   }
 

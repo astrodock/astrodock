@@ -1,7 +1,7 @@
 'use strict';
 
 // Notification routing: given an event, find the matching rules and deliver to
-// their channels (email / webhook), logging every attempt for audit + dedup.
+// their channels (email / webhook / push), logging every attempt for audit + dedup.
 //
 // Out of the box (no rules configured) an IMPLICIT DEFAULT applies: email the
 // configured alert address for health + deploy events at warning+ severity. This
@@ -16,7 +16,7 @@ const config = require('../config');
 const { sendEmail } = require('./email');
 const netGuard = require('./net-guard');
 
-const CHANNELS = ['email', 'webhook'];
+const CHANNELS = ['email', 'webhook', 'push'];
 const SEVERITIES = ['info', 'warning', 'critical'];
 const CATEGORIES = ['health', 'deploy', 'pages', 'auth', 'audit', 'system'];
 const FORMATS = ['json', 'slack', 'discord'];
@@ -108,8 +108,26 @@ async function dispatchWebhook(rule, event) {
   if (!res.ok) return { status: 'failed', target: url, error: res.reason || 'delivery failed' };
   return { status: 'sent', target: url };
 }
+// To the mobile app: an inbox row for each person, and a push to their phones.
+// The relay only ever carries it encrypted (lib/push).
+async function dispatchPush(rule, event) {
+  const users = rule.target && rule.target.users;
+  const label = users === 'operators' ? 'operators' : `${Array.isArray(users) ? users.length : 0} people`;
+  try {
+    const n = await require('./push').alertUsers(users, {
+      title: 'Astrodock',
+      body: event.message || event.type
+    });
+    if (!n) return { status: 'skipped', target: label, error: 'nobody to notify' };
+    return { status: 'sent', target: label };
+  } catch (err) {
+    return { status: 'failed', target: label, error: err.message };
+  }
+}
 function dispatch(rule, event) {
-  return rule.channel === 'webhook' ? dispatchWebhook(rule, event) : dispatchEmail(rule, event);
+  if (rule.channel === 'webhook') return dispatchWebhook(rule, event);
+  if (rule.channel === 'push') return dispatchPush(rule, event);
+  return dispatchEmail(rule, event);
 }
 
 // ── delivery log + dedup ──
@@ -161,6 +179,18 @@ function normalizeRule(b, current) {
   if (channel === 'email') {
     if (!target.to || typeof target.to !== 'string') throw badReq('email rule needs target.to');
     out.target = { to: target.to.trim() };
+  } else if (channel === 'push') {
+    // Every operator, or named people. A list is checked for shape only: an id
+    // that no longer exists, or a person later deactivated, is skipped at send.
+    if (target.users === 'operators') {
+      out.target = { users: 'operators' };
+    } else if (Array.isArray(target.users) && target.users.length) {
+      const bad = target.users.filter((id) => !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(id)));
+      if (bad.length) throw badReq('push target.users must be "operators" or a list of user ids');
+      out.target = { users: [...new Set(target.users.map(String))] };
+    } else {
+      throw badReq('push rule needs target.users: "operators" or a list of user ids');
+    }
   } else {
     if (!target.url || !/^https?:\/\//i.test(target.url)) throw badReq('webhook rule needs an http(s) target.url');
     const checked = netGuard.checkUrl(target.url.trim());

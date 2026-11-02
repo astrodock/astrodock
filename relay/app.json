@@ -1,0 +1,70 @@
+{
+  "schemaVersion": "1",
+  "slug": "push-relay",
+  "name": "Push Relay",
+  "description": "Forwards encrypted notifications from Astrodock servers to Apple (APNs) and Google (FCM).",
+  "subdomain": "push",
+  "source": {
+    "branch": "main",
+    "repoPath": "relay"
+  },
+  "runtime": {
+    "type": "docker",
+    "dockerfile": "Dockerfile"
+  },
+  "auth": { "mode": "public" },
+  "database": { "mode": "internal" },
+  "storage": { "mode": "none" },
+  "env": [
+    {
+      "key": "RELAY_APNS_KEY",
+      "secret": true,
+      "required": false,
+      "description": "Contents of the APNs .p8 auth key. Leave unset to turn iOS push off."
+    },
+    {
+      "key": "RELAY_APNS_KEY_ID",
+      "secret": false,
+      "required": false,
+      "description": "Key ID of the APNs .p8 key (10 characters)"
+    },
+    {
+      "key": "RELAY_APNS_TEAM_ID",
+      "secret": false,
+      "required": false,
+      "description": "Apple Developer Team ID (10 characters)"
+    },
+    {
+      "key": "RELAY_APNS_TOPIC",
+      "secret": false,
+      "required": false,
+      "description": "The mobile app's bundle id, e.g. ai.astrodock.mobile"
+    },
+    {
+      "key": "RELAY_FCM_SERVICE_ACCOUNT",
+      "secret": true,
+      "required": false,
+      "description": "Firebase service account JSON. Leave unset to turn Android push off."
+    },
+    {
+      "key": "RELAY_REGISTRATION",
+      "secret": false,
+      "required": false,
+      "default": "code",
+      "description": "open: any server can register. code: registration needs RELAY_REGISTRATION_CODE."
+    },
+    {
+      "key": "RELAY_REGISTRATION_CODE",
+      "secret": true,
+      "required": false,
+      "description": "Code a server must send to register when RELAY_REGISTRATION is code. Unset means registration is closed."
+    },
+    {
+      "key": "RELAY_TRUST_PROXY",
+      "secret": false,
+      "required": false,
+      "default": "caddy",
+      "description": "Host name or IP of the reverse proxy whose X-Forwarded-For is trusted for per-IP rate limits"
+    }
+  ]
+}

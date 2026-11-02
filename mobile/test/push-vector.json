@@ -1,0 +1,29 @@
+{
+  "description": "Reference vector for Astrodock push encryption (MOBILE_DESIGN.md section 6). Written by apps/control-plane/src/lib/push.js and checked by test/mobile-unit.mjs. All binary values are standard base64 with padding. Private keys are raw 32-byte X25519 scalars (CryptoKit rawRepresentation); public keys are raw 32-byte X25519 points.",
+  "algorithm": {
+    "keyAgreement": "X25519(devicePrivateKey, ephemeralPublicKey) on the phone, X25519(ephemeralPrivateKey, devicePublicKey) on the server",
+    "kdf": "HKDF-SHA256",
+    "hkdfSalt": "the 32 raw bytes of the ephemeral public key (envelope.e, decoded)",
+    "info": "astrodock-push-v1",
+    "keyLength": 32,
+    "cipher": "AES-256-GCM, 12-byte nonce, no additional data",
+    "envelope": "{ v: 1, e: b64(ephemeralPublicKey), n: b64(nonce), c: b64(ciphertext || 16-byte tag) }",
+    "plaintext": "UTF-8 JSON { id, t: title, b: body, a: appSlug|null, an: appName|null, p: path|null }"
+  },
+  "info": "astrodock-push-v1",
+  "devicePrivateKey": "WvIZBAT0Ji+H7C2ilOkehKDx+X1z26E664XFPImnJ+o=",
+  "devicePublicKey": "JeYHrdbVsRWwVt8EauzzdBcxduILfXsKZdYjT3QudSA=",
+  "ephemeralPrivateKey": "mx/3rUi2RbsJ9xrVTKMAUxFw0HnbJMegvDz2QQBjBh8=",
+  "ephemeralPublicKey": "I4zumHVbeyVXCf/pthfdu7+pGfyIRjwQEwLjxiXnHRI=",
+  "nonce": "OeUFUciFumrW+xVB",
+  "sharedSecret": "HcCJ86g/UTTmwKm6DaQEIVs2hWEhhZyMnsx5hEQYuSU=",
+  "key": "U/DGphU3OIEyN3PVBvEo1pGIDTuddnIohX+d3MUcyIA=",
+  "plaintext": "{\"id\":\"5f0c2a3e-8b1d-4c7a-9e2f-1a2b3c4d5e6f\",\"t\":\"Task Due\",\"b\":\"Call the bank. Café at 3 — bring the forms ✓\",\"a\":\"assistant\",\"an\":\"Assistant\",\"p\":\"/tasks/12\"}",
+  "plaintextBase64": "eyJpZCI6IjVmMGMyYTNlLThiMWQtNGM3YS05ZTJmLTFhMmIzYzRkNWU2ZiIsInQiOiJUYXNrIER1ZSIsImIiOiJDYWxsIHRoZSBiYW5rLiBDYWbDqSBhdCAzIOKAlCBicmluZyB0aGUgZm9ybXMg4pyTIiwiYSI6ImFzc2lzdGFudCIsImFuIjoiQXNzaXN0YW50IiwicCI6Ii90YXNrcy8xMiJ9",
+  "envelope": {
+    "v": 1,
+    "e": "I4zumHVbeyVXCf/pthfdu7+pGfyIRjwQEwLjxiXnHRI=",
+    "n": "OeUFUciFumrW+xVB",
+    "c": "QjcA1sHDWg/IRv692eDh2mISh5lGs6zTa1szbMkzOabwhMs1CUy202hmTabwXmCSsn0Gl2vJS+a0VQ+fVYo3Zwt9oBr27rSMmkuWKaxvsbjnlVLDTPj461gwyc9X6NHjTNeeuZjMlG2SljfAqlkCoXdCgM912xmq1qke6Pup1954EYPUOhNHSD0d5UYzrfCKi2nPFgMQ94CD5GxnSybXFpOb4s0BNvTwVRF3AGDq2mOFSwj1dQ=="
+  }
+}

@@ -187,6 +187,38 @@ router.post('/update', permit('platform:write'), requireFreshAuth, async (req, r
   } catch (err) { res.status(err.status || 500).json({ error: err.message }); }
 });
 
+// ── Mobile app and the push relay ────────────────────────────────────────────
+// Registering is its own route rather than a settings PATCH: it calls out to
+// the relay, and what comes back (the server secret) is written here and never
+// typed by anyone. The registration code is passed through and not stored.
+
+const push = require('../lib/push');
+
+router.get('/mobile', async (req, res, next) => {
+  try {
+    res.json({
+      enabled: await require('../lib/mobile').enabled(),
+      ...(await push.status())
+    });
+  } catch (err) { next(err); }
+});
+
+router.post('/mobile/register', async (req, res) => {
+  const { relayUrl, registrationCode } = req.body || {};
+  try {
+    const r = await push.register({ relayUrl, registrationCode, actor: req.auth.email });
+    emitEvent({
+      category: 'audit', type: 'push.relay_registered', severity: 'info',
+      actorType: 'admin', actor: req.auth.email, ip: req.ip,
+      targetType: 'setting', targetId: 'push.server_id',
+      message: `registered with the push relay at ${r.relayUrl} as ${r.serverId}`
+    }).catch(() => {});
+    res.json({ enabled: await require('../lib/mobile').enabled(), ...(await push.status()) });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
 // ── Email provider ───────────────────────────────────────────────────────────
 // Kept off the generic settings PATCH: these carry credentials, so they are
 // written through email-config (which encrypts them) and never read back out.

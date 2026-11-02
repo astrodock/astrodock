@@ -9,6 +9,8 @@ const roles = require('../lib/roles');
 const invites = require('../lib/invites');
 const accountEmail = require('../lib/account-email');
 const sessions = require('../lib/sessions');
+const mobile = require('../lib/mobile');
+const { emitEvent, actorFromAuth } = require('../lib/events');
 
 const router = express.Router();
 // Agent keys CAN manage end users now, but never operators — enforced per-request
@@ -260,6 +262,31 @@ router.delete('/:id/access/:appSlug', requirePermission('users:write'), async (r
   if (!user) return res.status(404).json({ error: 'User not found' });
   const access = (Array.isArray(user.appAccess) ? user.appAccess : []).filter((s) => s !== req.params.appSlug);
   await db.update(schema.users).set({ appAccess: access, updatedAt: new Date() }).where(eq(schema.users.id, user.id));
+  res.status(204).end();
+});
+
+// Phones signed in to the mobile app. Revoking one signs it out at its next
+// request and stops its notifications.
+router.get('/:id/devices', async (req, res) => {
+  const [target] = await db.select().from(schema.users).where(eq(schema.users.id, req.params.id)).limit(1);
+  if (!target) return res.status(404).json({ error: 'User not found' });
+  res.json({ devices: await mobile.listDevices(target.id) });
+});
+
+router.delete('/:id/devices/:deviceId', requirePermission('users:write'), async (req, res) => {
+  const [target] = await db.select().from(schema.users).where(eq(schema.users.id, req.params.id)).limit(1);
+  if (!target) return res.status(404).json({ error: 'User not found' });
+  const verdict = guardTarget(req, target);
+  if (!verdict.ok) return refuse(res, verdict);
+  if (!/^[0-9a-f-]{36}$/i.test(req.params.deviceId)) return res.status(404).json({ error: 'Device not found' });
+  const device = await mobile.revokeDevice({ userId: target.id, deviceId: req.params.deviceId });
+  if (!device) return res.status(404).json({ error: 'Device not found' });
+  emitEvent({
+    category: 'auth', type: 'mobile.device_revoked', severity: 'info',
+    ...actorFromAuth(req.auth), ip: req.ip, targetType: 'user', targetId: target.id,
+    message: `signed ${target.email} out on ${device.name || 'a phone'}`,
+    meta: { deviceId: device.id, by: 'operator' }
+  }).catch(() => {});
   res.status(204).end();
 });
 

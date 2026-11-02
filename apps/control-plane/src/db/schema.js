@@ -267,6 +267,63 @@ const launchPasses = pgTable('launch_passes', {
   usedAt: timestamp('used_at', { withTimezone: true }).notNull().defaultNow()
 }, (t) => ({ expiresIdx: index('launch_passes_expires_idx').on(t.expiresAt) }));
 
+// ── mobile app ─────────────────────────────────────────────────────────────
+// See MOBILE_DESIGN.md and the 0018_mobile migration.
+const mobileDevices = pgTable('mobile_devices', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  name: text('name').notNull().default(''),
+  platform: text('platform').notNull(),                  // ios | android
+  appVersion: text('app_version').notNull().default(''),
+  tokenHash: text('token_hash').notNull(),
+  // The relay's handle, never the raw APNs/FCM token.
+  pushHandle: text('push_handle'),
+  pushPublicKey: text('push_public_key'),                // X25519, 32 bytes, base64
+  pushEnvironment: text('push_environment'),             // sandbox | production
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull().defaultNow(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  revokedAt: timestamp('revoked_at', { withTimezone: true })
+}, (t) => ({
+  tokenUniq: uniqueIndex('mobile_devices_token_uniq').on(t.tokenHash),
+  userIdx: index('mobile_devices_user_idx').on(t.userId)
+}));
+
+const mobileCodes = pgTable('mobile_codes', {
+  codeHash: text('code_hash').primaryKey(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  codeChallenge: text('code_challenge').notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  usedAt: timestamp('used_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+}, (t) => ({ expiresIdx: index('mobile_codes_expires_idx').on(t.expiresAt) }));
+
+const mobileTickets = pgTable('mobile_tickets', {
+  ticketHash: text('ticket_hash').primaryKey(),
+  deviceId: uuid('device_id').notNull().references(() => mobileDevices.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  appId: uuid('app_id').notNull().references(() => apps.id, { onDelete: 'cascade' }),
+  path: text('path'),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  usedAt: timestamp('used_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+}, (t) => ({ expiresIdx: index('mobile_tickets_expires_idx').on(t.expiresAt) }));
+
+// The inbox. app_id null = a platform notice (an operator alert).
+const userNotifications = pgTable('user_notifications', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  appId: uuid('app_id').references(() => apps.id, { onDelete: 'cascade' }),
+  title: text('title').notNull(),
+  body: text('body').notNull().default(''),
+  path: text('path'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  readAt: timestamp('read_at', { withTimezone: true })
+}, (t) => ({
+  userIdx: index('user_notifications_user_idx').on(t.userId, t.createdAt),
+  createdIdx: index('user_notifications_created_idx').on(t.createdAt)
+}));
+
 const appRedirectUris = pgTable('app_redirect_uris', {
   id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
   appId: uuid('app_id').notNull(),
@@ -356,8 +413,8 @@ const notificationRules = pgTable('notification_rules', {
   id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
   name: text('name').notNull().default(''),
   enabled: boolean('enabled').notNull().default(true),
-  channel: text('channel').notNull(),                    // email | webhook
-  target: jsonb('target').notNull().default(sql`'{}'::jsonb`), // email: {to}; webhook: {url, format}
+  channel: text('channel').notNull(),                    // email | webhook | push
+  target: jsonb('target').notNull().default(sql`'{}'::jsonb`), // email: {to}; webhook: {url, format}; push: {users}
   categories: jsonb('categories').notNull().default(sql`'[]'::jsonb`),
   minSeverity: text('min_severity').notNull().default('info'),
   appScope: jsonb('app_scope').notNull().default(sql`'[]'::jsonb`),
@@ -525,4 +582,4 @@ const appCounters = pgTable('app_counters', {
   n: integer('n').notNull().default(0)
 });
 
-module.exports = { users, userInvites, emailChanges, webauthnCredentials, recoveryCodes, sessions, authorizationCodes, launchPasses, appRedirectUris, apps, appEnvVars, deployments, authLogs, apiTokens, appHealth, pages, pageFiles, pageData, events, platformSettings, notificationRules, notificationDeliveries, pageViews, backups, customDomains, feedback, feedbackMessages, workItems, workItemRelations, feedbackWorkItems, appCounters };
+module.exports = { users, userInvites, emailChanges, webauthnCredentials, recoveryCodes, sessions, authorizationCodes, launchPasses, mobileDevices, mobileCodes, mobileTickets, userNotifications, appRedirectUris, apps, appEnvVars, deployments, authLogs, apiTokens, appHealth, pages, pageFiles, pageData, events, platformSettings, notificationRules, notificationDeliveries, pageViews, backups, customDomains, feedback, feedbackMessages, workItems, workItemRelations, feedbackWorkItems, appCounters };

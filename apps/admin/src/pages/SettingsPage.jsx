@@ -4,6 +4,7 @@ import EmptyState from '../components/EmptyState';
 import SettingsGroup from '../components/SettingsGroup';
 import EmailSetup from '../components/EmailSetup';
 import BackupsSection from '../components/BackupsSection';
+import MobileSection from '../components/MobileSection';
 import AboutSection from '../components/AboutSection';
 import PageHeader from '../components/PageHeader';
 import useConfirm from '../lib/useConfirm';
@@ -40,14 +41,28 @@ function previewEvents(categories, minSeverity) {
   return out;
 }
 
-const emptyRule = { name: '', enabled: true, channel: 'email', target: { to: '', url: '', format: 'json' }, categories: [], minSeverity: 'warning', appScope: [] };
+const emptyRule = { name: '', enabled: true, channel: 'email', target: { to: '', url: '', format: 'json', users: 'operators' }, categories: [], minSeverity: 'warning', appScope: [] };
+
+// Where a push rule sends: every operator, or the people it names.
+const pushWhere = (users) => (users === 'operators' ? 'Every operator' : `${(users || []).length} ${(users || []).length === 1 ? 'person' : 'people'}`);
 
 function RuleModal({ initial, onClose, onSaved }) {
   const [r, setR] = useState(() => ({ ...emptyRule, ...initial, target: { ...emptyRule.target, ...(initial?.target || {}) }, categories: initial?.categories || [], appScope: initial?.appScope || [] }));
   const [scopeText, setScopeText] = useState((initial?.appScope || []).join(', '));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [people, setPeople] = useState(null);
   const editing = !!initial?.id;
+  // The people a push rule can name, loaded only once someone picks Push.
+  useEffect(() => {
+    if (r.channel !== 'push' || people) return;
+    api.getUsers().then((d) => setPeople((d.users || []).filter((u) => u.isActive))).catch(() => setPeople([]));
+  }, [r.channel, people]);
+  const pushUsers = Array.isArray(r.target.users) ? r.target.users : null;
+  const togglePerson = (id) => setR((cur) => {
+    const list = Array.isArray(cur.target.users) ? cur.target.users : [];
+    return { ...cur, target: { ...cur.target, users: list.includes(id) ? list.filter((x) => x !== id) : [...list, id] } };
+  });
   const toggleCat = (c) => setR((cur) => ({ ...cur, categories: cur.categories.includes(c) ? cur.categories.filter((x) => x !== c) : [...cur.categories, c] }));
   const preview = previewEvents(r.categories, r.minSeverity);
 
@@ -56,7 +71,9 @@ function RuleModal({ initial, onClose, onSaved }) {
     setSaving(true); setError('');
     const payload = {
       name: r.name, enabled: r.enabled, channel: r.channel,
-      target: r.channel === 'email' ? { to: r.target.to.trim() } : { url: r.target.url.trim(), format: r.target.format },
+      target: r.channel === 'email' ? { to: r.target.to.trim() }
+        : r.channel === 'push' ? { users: r.target.users }
+          : { url: r.target.url.trim(), format: r.target.format },
       categories: r.categories, minSeverity: r.minSeverity,
       appScope: scopeText.split(',').map((s) => s.trim()).filter(Boolean)
     };
@@ -76,10 +93,31 @@ function RuleModal({ initial, onClose, onSaved }) {
         <div className="seg" style={{ marginBottom: 16 }}>
           <button type="button" className={r.channel === 'email' ? 'sel' : ''} onClick={() => setR({ ...r, channel: 'email' })}>Email</button>
           <button type="button" className={r.channel === 'webhook' ? 'sel' : ''} onClick={() => setR({ ...r, channel: 'webhook' })}>Webhook</button>
+          <button type="button" className={r.channel === 'push' ? 'sel' : ''} onClick={() => setR({ ...r, channel: 'push' })}>Push</button>
         </div>
 
         {r.channel === 'email' ? (
           <label>Email Address<input type="email" value={r.target.to} onChange={(e) => setR({ ...r, target: { ...r.target, to: e.target.value } })} placeholder="alerts@example.com" required /></label>
+        ) : r.channel === 'push' ? (
+          <>
+            <label style={{ marginBottom: 6 }}>Who Gets It <span style={{ fontWeight: 400, color: 'var(--text-3)' }}>— in the Astrodock app on their phones, and in its inbox</span></label>
+            <div className="seg" style={{ marginBottom: 12 }}>
+              <button type="button" className={!pushUsers ? 'sel' : ''} onClick={() => setR({ ...r, target: { ...r.target, users: 'operators' } })}>Every Operator</button>
+              <button type="button" className={pushUsers ? 'sel' : ''} onClick={() => setR({ ...r, target: { ...r.target, users: pushUsers || [] } })}>Specific People</button>
+            </div>
+            {pushUsers && (
+              <div className="opt-list" style={{ marginBottom: 16, maxHeight: 220, overflowY: 'auto' }}>
+                {people === null ? <span style={{ color: 'var(--text-3)', fontSize: 13 }}>Loading…</span> : people.map((u) => (
+                  <div className={`opt-row ${pushUsers.includes(u.id) ? 'on' : ''}`} key={u.id}>
+                    <span className="name">{u.name}<code>{u.email}</code></span>
+                    <span className={`mini-toggle ${pushUsers.includes(u.id) ? 'on' : ''}`} role="switch"
+                      aria-checked={pushUsers.includes(u.id)} aria-label={`Send to ${u.name}`}
+                      onClick={() => togglePerson(u.id)} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
         ) : (
           <>
             <label>Webhook URL<input value={r.target.url} onChange={(e) => setR({ ...r, target: { ...r.target, url: e.target.value } })} placeholder="https://hooks.slack.com/services/…" required /></label>
@@ -224,7 +262,7 @@ export default function SettingsPage() {
                 <tr key={rule.id || `implicit-${i}`}>
                   <td><strong>{rule.name || '—'}</strong>{rule.implicit && <span className="pill" style={{ marginLeft: 6 }}>Built-In</span>}</td>
                   <td>{cap(rule.channel)}</td>
-                  <td><code>{rule.channel === 'email' ? rule.target?.to : rule.target?.url}</code></td>
+                  <td><code>{rule.channel === 'email' ? rule.target?.to : rule.channel === 'push' ? pushWhere(rule.target?.users) : rule.target?.url}</code></td>
                   <td>{(rule.categories && rule.categories.length) ? rule.categories.map(cap).join(', ') : 'All'}</td>
                   <td>{cap(rule.minSeverity)}</td>
                   <td>{rule.implicit ? <span className="chip ok">Always</span> : <span className={`mini-toggle ${rule.enabled ? 'on' : ''}`} onClick={() => toggleRule(rule)} title="Turn On/Off" />}</td>
@@ -346,6 +384,8 @@ export default function SettingsPage() {
           </div>
         </div>
       </SettingsGroup>
+
+      <MobileSection settings={settings} onSaved={load} />
 
       <SettingsGroup
         title="Feedback Triage"

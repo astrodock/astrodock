@@ -184,6 +184,10 @@ async function pruneLogs() {
   // going back two months on the live platform, of which one was live.
   try { await require('../lib/sessions').pruneExpired(); }
   catch (err) { console.error('[health] session prune failed:', err.message); }
+
+  // Mobile sign-in codes and tickets once expired, and inbox rows after 90 days.
+  try { await require('../lib/mobile').pruneExpired(); }
+  catch (err) { console.error('[health] mobile prune failed:', err.message); }
 }
 
 // Re-check active custom domains' ownership TXT; alert on DNS drift (deduped).

@@ -196,6 +196,10 @@ button.quiet:hover{background:var(--hover);color:var(--ink)}
 .state{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2)}
 .dot{width:7px;height:7px;border-radius:999px;background:var(--ink-4)}
 .dot.on{background:#16a34a}
+.dev{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.dev div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.dev b{font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dev span{font-size:12px;color:var(--ink-3)}
 .foot{margin:0;color:var(--ink-4);font-size:12px;text-align:center}
 @media(max-width:480px){.card{padding:24px}input{font-size:16px}}
 </style></head><body><main class="card">${body}</main><p class="foot">Protected by Astrodock</p></body></html>`;

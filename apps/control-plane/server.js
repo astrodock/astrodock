@@ -31,7 +31,9 @@ const corsMiddleware = cors((req, cb) => {
 });
 // POST /launch is a top-level form post from a trusted launcher's origin, which
 // is not one of ours, so CORS would refuse it. It checks Origin itself.
-app.use((req, res, next) => (req.path === '/launch' ? next() : corsMiddleware(req, res, next)));
+// Discovery is public and answers every origin with CORS * (routes/mobile.js).
+const CORS_EXEMPT = new Set(['/launch', '/.well-known/astrodock.json']);
+app.use((req, res, next) => (CORS_EXEMPT.has(req.path) ? next() : corsMiddleware(req, res, next)));
 app.use(cookieParser());
 
 // Security headers.
@@ -108,6 +110,8 @@ app.use('/setup', require('./src/routes/setup'));
 app.use('/', require('./src/routes/oauth'));
 // Signing in from a trusted launcher (lib/launch.js).
 app.use('/', require('./src/routes/launch'));
+// The mobile app, discovery, and the Notify API (MOBILE_DESIGN.md).
+app.use('/', require('./src/routes/mobile'));
 
 // Invite redemption. Public by necessity — whoever follows the link has no
 // credential yet, which is the whole point of the link.

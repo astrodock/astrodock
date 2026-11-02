@@ -122,4 +122,56 @@ function postJson(value, payload, { timeoutMs = 8000, httpsOnly = false } = {}) 
   });
 }
 
-module.exports = { isPublicAddress, isInternalName, checkUrl, postJson };
+/**
+ * Send JSON and read a JSON answer, with the same guard as postJson. For an API
+ * whose reply matters (the push relay: registration hands back credentials, and
+ * a push can answer "gone"). Resolves to { ok, status, body, reason } and never
+ * throws. The reply is capped, since the other end is someone else's server.
+ */
+const MAX_REPLY_BYTES = 64 * 1024;
+function requestJson(method, value, payload, { headers = {}, timeoutMs = 8000, httpsOnly = false } = {}) {
+  const checked = checkUrl(value, { httpsOnly });
+  if (!checked.ok) return Promise.resolve({ ok: false, status: 0, body: null, reason: checked.reason });
+  const url = checked.url;
+  const body = payload === undefined ? null : Buffer.from(JSON.stringify(payload));
+  const lib = url.protocol === 'https:' ? https : http;
+  return new Promise((resolve) => {
+    const req = lib.request(url, {
+      method,
+      headers: {
+        Accept: 'application/json',
+        'User-Agent': 'Astrodock',
+        ...(body ? { 'Content-Type': 'application/json', 'Content-Length': body.length } : {}),
+        ...headers
+      },
+      lookup: guardedLookup,
+      timeout: timeoutMs
+    }, (res) => {
+      const status = res.statusCode || 0;
+      const chunks = [];
+      let size = 0;
+      res.on('data', (c) => {
+        size += c.length;
+        if (size > MAX_REPLY_BYTES) return res.destroy();
+        chunks.push(c);
+      });
+      res.on('close', () => {
+        let parsed = null;
+        try { parsed = JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { parsed = null; }
+        if (status >= 200 && status < 300) return resolve({ ok: true, status, body: parsed });
+        resolve({
+          ok: false, status, body: parsed,
+          reason: status >= 300 && status < 400 ? 'redirects are not followed' : ((parsed && parsed.error) || `HTTP ${status}`)
+        });
+      });
+    });
+    req.on('timeout', () => req.destroy(new Error('timed out')));
+    req.on('error', (err) => resolve({
+      ok: false, status: 0, body: null,
+      reason: err.code === 'EBLOCKED' ? 'destination is not a public address' : 'could not connect'
+    }));
+    req.end(body || undefined);
+  });
+}
+
+module.exports = { isPublicAddress, isInternalName, checkUrl, postJson, requestJson };

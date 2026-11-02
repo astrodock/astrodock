@@ -106,6 +106,10 @@ export const grantAccess = (userId, appSlug) =>
   request(`/users/${userId}/access/${appSlug}`, { method: 'PUT' });
 export const revokeAccess = (userId, appSlug) =>
   request(`/users/${userId}/access/${appSlug}`, { method: 'DELETE' });
+// Phones signed in to the mobile app.
+export const getUserDevices = (userId) => request(`/users/${userId}/devices`);
+export const revokeUserDevice = (userId, deviceId) =>
+  request(`/users/${userId}/devices/${deviceId}`, { method: 'DELETE' });
 
 // Apps
 export const getApps = () => request('/apps');
@@ -351,6 +355,11 @@ export const describeUpdate = () => request('/settings/update/describe');
 export const updateStatus = () => request('/settings/update/status');
 export const applyUpdate = (toVersion) =>
   request('/settings/update', { method: 'POST', body: JSON.stringify({ toVersion }) });
+// The mobile app and its push relay. The registration code is sent once and
+// not stored.
+export const getMobileSettings = () => request('/settings/mobile');
+export const registerPushRelay = (registrationCode) =>
+  request('/settings/mobile/register', { method: 'POST', body: JSON.stringify({ registrationCode }) });
 export const sendTestEmail = (to) =>
   request('/settings/email/test', { method: 'POST', body: JSON.stringify({ to }) });
 

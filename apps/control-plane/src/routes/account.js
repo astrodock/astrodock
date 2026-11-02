@@ -11,6 +11,8 @@ const userSession = require('../lib/user-session');
 const google = require('../lib/google');
 const googleAccounts = require('../lib/google-accounts');
 const accountEmail = require('../lib/account-email');
+const mobile = require('../lib/mobile');
+const { emitEvent } = require('../lib/events');
 const { shell, esc, errorPage, icon } = require('../lib/auth-pages');
 
 const router = express.Router();
@@ -131,8 +133,27 @@ router.get('/me', accountLimiter, requireSession(async (req, res, user) => {
     google: { linked: !!user.googleSub, email: user.googleEmail || '' },
     googleAvailable: await google.configured().catch(() => false),
     pendingEmail: pending[0] ? pending[0].newEmail : null,
-    apps: Array.isArray(user.appAccess) ? user.appAccess : []
+    apps: Array.isArray(user.appAccess) ? user.appAccess : [],
+    // Phones signed in to the mobile app, so a lost one can be signed out here.
+    mobileEnabled: await mobile.enabled(),
+    devices: (await mobile.listDevices(user.id)).map((d) => ({
+      id: d.id, name: d.name, platform: d.platform, lastSeenAt: d.lastSeenAt, createdAt: d.createdAt
+    }))
   });
+}));
+
+router.post('/devices/:id/revoke', accountLimiter, express.json(), requireSession(async (req, res, user) => {
+  if (!/^[0-9a-f-]{36}$/i.test(req.params.id)) return res.status(404).json({ error: 'That phone is not signed in.' });
+  const device = await mobile.revokeDevice({ userId: user.id, deviceId: req.params.id });
+  if (!device) return res.status(404).json({ error: 'That phone is not signed in.' });
+  logAttempt(user.email, 'DEVICE_REVOKED', req.ip || '');
+  emitEvent({
+    category: 'auth', type: 'mobile.device_revoked', severity: 'info',
+    actorType: 'user', actor: user.email, targetType: 'user', targetId: user.id, ip: req.ip || '',
+    message: `${user.email} signed out ${device.name || 'a phone'} from their account page`,
+    meta: { deviceId: device.id, by: 'account' }
+  }).catch(() => {});
+  res.json({ message: `${device.name || 'That phone'} is signed out.` });
 }));
 
 // ── attaching a Google account ───────────────────────────────────────────────

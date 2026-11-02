@@ -28,6 +28,11 @@ ${errorLine()}
     <a class="btn secondary" id="gLink" href="/account/google/link">Attach My Google Account</a>
     <button class="secondary" type="button" id="gUnlink" hidden>Detach It</button>
   </div>
+  <div class="sec" id="devSec" hidden>
+    <h2>Signed-In Devices</h2>
+    <p>Phones and tablets signed in to the Astrodock app. Revoking one signs it out and stops its notifications.</p>
+    <div id="devList"></div>
+  </div>
   <form class="sec" id="emailForm">
     <h2>Sign-In Address</h2>
     <p>Changing it sends a link to the new address. Nothing changes until you follow it.</p>
@@ -79,6 +84,7 @@ ${REVEAL_JS}
     history.replaceState(null, '', location.pathname);
   }
   if (me.pendingEmail) say('success', 'Waiting for ' + me.pendingEmail + ' to confirm. Until then you sign in as ' + me.email + '.');
+  if (me.mobileEnabled || (me.devices || []).length) renderDevices(me.devices || []);
 
   if (!me.googleAvailable) {
     el('gState').textContent = 'Not Set Up on This Server';
@@ -99,6 +105,49 @@ ${REVEAL_JS}
     el('gHelp').textContent = 'It does not have to be the same address as above. Whichever Google account you pick becomes a way in.';
   }
 })();
+
+// Built with textContent: a device's name is whatever the phone called itself.
+function renderDevices(list) {
+  el('devSec').hidden = false;
+  const box = el('devList');
+  box.textContent = '';
+  if (!list.length) {
+    const none = document.createElement('p');
+    none.textContent = 'No devices are signed in.';
+    box.appendChild(none);
+    return;
+  }
+  for (const d of list) {
+    const row = document.createElement('div');
+    row.className = 'dev';
+    const info = document.createElement('div');
+    const name = document.createElement('b');
+    name.textContent = d.name || 'Unnamed Device';
+    const meta = document.createElement('span');
+    meta.textContent = (d.platform === 'ios' ? 'iOS' : 'Android') + ', last used ' + new Date(d.lastSeenAt).toLocaleDateString();
+    info.append(name, meta);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'quiet';
+    btn.textContent = 'Revoke';
+    btn.addEventListener('click', async () => {
+      quiet(); btn.disabled = true;
+      try {
+        const r = await fetch('/account/devices/' + encodeURIComponent(d.id) + '/revoke', { method: 'POST' });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error);
+        say('success', data.message);
+        row.remove();
+        if (!box.children.length) renderDevices([]);
+      } catch (ex) {
+        say('error', ex.message || 'That did not work.');
+        btn.disabled = false;
+      }
+    });
+    row.append(info, btn);
+    box.appendChild(row);
+  }
+}
 
 el('gUnlink').addEventListener('click', async (e) => {
   quiet(); e.target.disabled = true;

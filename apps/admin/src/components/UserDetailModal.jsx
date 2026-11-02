@@ -17,6 +17,7 @@ const ROLE_TONE = { owner: 'role-owner', admin: 'role-admin', operator: 'role-op
 export default function UserDetailModal({ id, onClose }) {
   const [user, setUser] = useState(null);
   const [apps, setApps] = useState([]);
+  const [devices, setDevices] = useState([]);
   const [error, setError] = useState('');
   const [confirmNode, ask] = useConfirm();
   const [success, setSuccess] = useState('');
@@ -33,10 +34,12 @@ export default function UserDetailModal({ id, onClose }) {
 
   async function load() {
     try {
-      const [userData, appData] = await Promise.all([
+      const [userData, appData, deviceData] = await Promise.all([
         api.getUser(id),
-        api.getApps()
+        api.getApps(),
+        api.getUserDevices(id).catch(() => ({ devices: [] }))
       ]);
+      setDevices(deviceData.devices || []);
       setUser(userData.user);
       setName(userData.user.name);
       setEmail(userData.user.email);
@@ -128,6 +131,27 @@ export default function UserDetailModal({ id, onClose }) {
     } catch (err) {
       setError(err.message);
     }
+  }
+
+  function handleRevokeDevice(device) {
+    ask({
+      title: 'Sign out this device?',
+      danger: true,
+      confirmLabel: 'Revoke',
+      body: (
+        <p><b>{device.name || 'This device'}</b> is signed out of the Astrodock app at its next
+          request and stops receiving notifications. They can sign in again on it.</p>
+      ),
+      onConfirm: async () => {
+        setError('');
+        try {
+          await api.revokeUserDevice(id, device.id);
+          load();
+        } catch (err) {
+          setError(err.message);
+        }
+      }
+    });
   }
 
   async function handleToggleAccess(appSlug, hasAccess) {
@@ -245,6 +269,29 @@ export default function UserDetailModal({ id, onClose }) {
               );
             })}
           </div>
+        )}
+      </section>
+
+      {/* Mobile devices */}
+      <section className="set-section">
+        <div className="sec-head"><div><h2>Mobile Devices</h2><p>Phones and tablets signed in to the Astrodock app as this person.</p></div></div>
+        {devices.length === 0 ? (
+          <p className="text-muted">No devices are signed in.</p>
+        ) : (
+          <table className="data-table">
+            <thead><tr><th>Name</th><th>Platform</th><th>Notifications</th><th>Last Used</th><th></th></tr></thead>
+            <tbody>
+              {devices.map((d) => (
+                <tr key={d.id}>
+                  <td><strong>{d.name || 'Unnamed Device'}</strong>{d.appVersion && <code style={{ marginLeft: 6 }}>{d.appVersion}</code>}</td>
+                  <td>{d.platform === 'ios' ? 'iOS' : 'Android'}</td>
+                  <td>{d.push ? 'On' : 'Off'}</td>
+                  <td>{new Date(d.lastSeenAt).toLocaleString()}</td>
+                  <td className="actions"><button className="danger" onClick={() => handleRevokeDevice(d)}>Revoke</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
       </section>
 
