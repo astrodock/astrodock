@@ -148,12 +148,27 @@ async function deployNodeContainer(app, deployRoot, env, { appendLog, setStatus,
       } catch {
         await appendLog('WARNING: no dist/ after build');
       }
-      if (fs.existsSync(outDir)) {
+      // `docker cp` copies a link as a link, so a dist/ that is a symlink lands
+      // here as one, pointing into the runner's own disk: /data/apps holds every
+      // app's env file. Only a real directory, wholly inside the work folder, is
+      // published. Links inside it are dropped by rsync below.
+      let realDist = null;
+      try {
+        const st = fs.lstatSync(outDir);
+        if (st.isDirectory() && !st.isSymbolicLink()) {
+          const r = fs.realpathSync(outDir);
+          if (r.startsWith(fs.realpathSync(work) + path.sep)) realDist = r;
+        }
+      } catch { realDist = null; }
+      if (fs.existsSync(outDir) && !realDist) {
+        throw new Error('dist/ is a link, not a folder. Build output has to be a real folder inside the app.');
+      }
+      if (realDist) {
         const staticPath = path.join(config.paths.static, app.slug);
         const incoming = `${staticPath}.incoming`;
         fs.rmSync(incoming, { recursive: true, force: true });
         fs.mkdirSync(incoming, { recursive: true });
-        execFileSync('rsync', ['-a', '--no-links', '--no-owner', '--no-group', '--delete', `${outDir}/`, `${incoming}/`]);
+        execFileSync('rsync', ['-a', '--no-links', '--no-owner', '--no-group', '--delete', `${realDist}/`, `${incoming}/`]);
         publishFrontend = () => {
           const old = `${staticPath}.previous`;
           fs.rmSync(old, { recursive: true, force: true });

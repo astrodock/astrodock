@@ -103,13 +103,13 @@ export default function ConnectPage() {
   return (
     <div className="settings-page">
       <PageHeader title="Approve an Agent"
-        description="An agent ran astrodock login and is asking for an access key. Check that the code matches the one in your terminal." />
+        description="An agent ran astrodock login and is asking for an access key. Approve only if the check code below is the one in your terminal. If you did not run astrodock login just now, decline." />
 
       {error && <div className="error">{error}</div>}
 
       <div className="sec-head"><div><h2>Request</h2></div></div>
       <div className="field-panel">
-        <Row label="Code"><code className="code-lg">{login.userCode}</code></Row>
+        <Row label="Check Code"><code className="code-lg">{login.checkCode}</code></Row>
         <Row label="Computer">{c.hostname || 'Not given'}</Row>
         <Row label="Folder">{c.folder || 'Not given'}</Row>
         <Row label="Git Remote">{c.gitRemote || 'None'}</Row>
@@ -168,7 +168,7 @@ export default function ConnectPage() {
           </div>
 
           <div className="sec-head" style={{ marginTop: 26 }}><div><h2>Confirm</h2></div></div>
-          <ProofPrompt actionLabel="Approve" onProof={approve} disabled={!chosenOk} />
+          <ProofPrompt actionLabel="Approve" onProof={approve} disabled={!chosenOk} target={`cli:${login.userCode.replace('-', '')}`} />
           <p style={{ marginTop: 14 }}>
             <button type="button" className="link-btn" onClick={deny}>Decline This Request</button>
           </p>

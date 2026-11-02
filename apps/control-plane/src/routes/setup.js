@@ -338,7 +338,7 @@ router.post('/owner-link/exchange', require('../middleware/rateLimiter').adminLo
     if (!user) {
       return res.status(401).json({ error: 'That link has expired or has already been used. Open your dashboard from your Astrodock account to get a new one.' });
     }
-    const { token } = await sessions.create(user, { ip: req.ip, userAgent: req.get('user-agent') || '' });
+    const { token } = await sessions.create(user, { ip: req.ip, userAgent: req.get('user-agent') || '', purpose: 'welcome' });
     await emitEvent({
       category: 'audit', type: 'owner.setup_link_used', severity: 'info',
       message: `${user.email} opened their welcome link`,

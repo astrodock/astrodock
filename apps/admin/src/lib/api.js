@@ -203,7 +203,7 @@ export const getAccount = () => request('/account');
 
 // Approving an agent: a passkey or an authenticator code, every time.
 export const proofOptions = () => request('/proof');
-export const proofPasskeyOptions = () => request('/proof/passkey/options', { method: 'POST' });
+export const proofPasskeyOptions = (target) => request('/proof/passkey/options', { method: 'POST', body: JSON.stringify({ for: target }) });
 
 // `astrodock login`, the person's side.
 export const getCliLogin = (code) => request(`/cli-logins/${encodeURIComponent(code)}`);

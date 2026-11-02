@@ -80,10 +80,15 @@ if (form) form.addEventListener('submit', async (e) => {
 </script>`, { accent });
 }
 
-/** Whether this account can already sign in, or is starting from nothing. */
+/**
+ * Whether this account can already sign in, or is starting from nothing.
+ * `passwordless` counts: it is an account that signs in another way (a trusted
+ * launcher, Google). Without it, an invite to someone signed up through a
+ * launcher let whoever held the link choose their password.
+ */
 async function hasCredential(user) {
   const f = await factors.factorsFor(user.id);
-  return !!(f.password || f.passkeys || user.googleSub);
+  return !!(f.password || f.passkeys || user.googleSub || user.passwordless);
 }
 
 router.get('/:token', pageLoginLimiter, async (req, res) => {

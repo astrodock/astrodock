@@ -104,19 +104,24 @@ router.post('/claim', async (req, res) => {
       return res.status(400).json({ error: 'acmeEmail is required for automatic HTTPS.' });
     }
 
-    // No password and no passkey: the welcome link is how this person gets in,
-    // and it is the only thing that can open a session for an account like this.
-    const [user] = await db.insert(schema.users).values({
-      email, name: String(ownerName || '').trim() || 'Owner', passwordHash: null, isActive: true,
-      isAdmin: true, operatorRole: 'owner', appAccess: []
-    }).returning();
-    setup.clearSetupToken();
-    const rotated = { key: ROTATED_KEY, value: sha256(newFleetToken), updatedBy: 'hosted service', updatedAt: new Date() };
-    await db.insert(schema.platformSettings).values(rotated)
-      .onConflictDoUpdate({ target: schema.platformSettings.key, set: rotated });
-
+    // The domain first: it is safe to set twice. Then the owner and the new
+    // fleet token together, so an owner never exists without the token having
+    // been replaced; a retry after a failure part-way sees one state or the other.
     await setBootstrap({ baseDomain, tlsMode: mode, acmeEmail: contact }, 'hosted service');
     await setSetupDeferred(false, 'hosted service').catch(() => {});
+    const user = await db.transaction(async (tx) => {
+      // No password and no passkey: the welcome link is how this person gets in,
+      // and it is the only thing that can open a session for an account like this.
+      const [u] = await tx.insert(schema.users).values({
+        email, name: String(ownerName || '').trim() || 'Owner', passwordHash: null, isActive: true,
+        isAdmin: true, operatorRole: 'owner', appAccess: []
+      }).returning();
+      const rotated = { key: ROTATED_KEY, value: sha256(newFleetToken), updatedBy: 'hosted service', updatedAt: new Date() };
+      await tx.insert(schema.platformSettings).values(rotated)
+        .onConflictDoUpdate({ target: schema.platformSettings.key, set: rotated });
+      return u;
+    });
+    setup.clearSetupToken();
     const { reloadCaddyWithRetry } = require('../provision');
     const routed = await reloadCaddyWithRetry(2).catch(() => false);
 
@@ -144,8 +149,8 @@ router.post('/owner-link', async (req, res) => {
 // ── astrodock login, started for a customer's CLI ─────────────────────────────
 router.post('/cli-login', async (req, res) => {
   try {
-    const { codeChallenge, client, manifest } = req.body || {};
-    const out = await cliLogin.start({ codeChallenge, client, manifest, source: 'fleet' });
+    const { codeChallenge, clientPublicKey, client, manifest } = req.body || {};
+    const out = await cliLogin.start({ codeChallenge, clientPublicKey, client, manifest, source: 'fleet' });
     const o = await owner();
     res.status(201).json({ ...out, ownerNeedsSetup: o ? await ownerSetup.needsSetup(o.id) : true, adminUrl: adminUrl() });
   } catch (err) { res.status(err.status || 500).json({ error: err.message }); }
@@ -187,7 +192,12 @@ router.post('/update', async (req, res) => {
     const current = version.resolve();
     // Forward only. Moving an instance back to an older release would bring its
     // fixed bugs back with it, so that stays a person's decision on the box.
-    if (target && version.isSemver(current.version) && version.compare(target, current.version) < 0) {
+    // A build with no release version cannot be compared, so it is not updated
+    // from here at all.
+    if (!version.isSemver(current.version)) {
+      return res.status(409).json({ error: `This instance runs ${current.version}, which is not a release, so the fleet API does not update it.`, code: 'not_a_release' });
+    }
+    if (target && version.compare(target, current.version) < 0) {
       return res.status(409).json({ error: `This instance is on ${current.version}; the fleet API does not move it back to ${target}.`, code: 'downgrade' });
     }
     await emitEvent({

@@ -188,7 +188,25 @@ const PATCH_VALIDATORS = {
   allowGoogleSignup: (v) => v === 'true' || v === 'false'
 };
 
-router.patch('/:slug', requirePermission('apps:write'), async (req, res) => {
+// Turning on Google sign-up lets anyone who already has an account here join
+// this app by signing in with Google (lib/google-accounts), which is giving the
+// app existing people by another door. So a key needs approval for it too.
+const approveGoogleSignup = requireApproval({
+  kind: 'app.google_signup',
+  scope: 'users:write',
+  describe: async (req) => {
+    const v = req.body?.allowGoogleSignup;
+    if (v !== true && v !== 'true') return null;
+    const app = await getAppBySlug(req.params.slug);
+    if (!app || app.allowGoogleSignup) return null;
+    return {
+      summary: `Let anyone sign up to "${req.params.slug}" with Google, including people who already have an account`,
+      details: { app: req.params.slug, setting: 'allowGoogleSignup' }
+    };
+  }
+});
+
+router.patch('/:slug', requirePermission('apps:write'), approveGoogleSignup, async (req, res) => {
   const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
   const b = req.body || {};

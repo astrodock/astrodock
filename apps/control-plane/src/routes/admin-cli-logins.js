@@ -41,7 +41,7 @@ router.post('/:code/approve', reauthLimiter, async (req, res) => {
     const [user] = await db.select().from(schema.users).where(eq(schema.users.id, req.auth.sub)).limit(1);
     if (!user) return res.status(401).json({ error: 'Account not found' });
     const { kind, slug, passkeyResponse, totp } = req.body || {};
-    if (!await strongFactor.verify(user, { passkeyResponse, totp })) {
+    if (!await strongFactor.verify(user, { passkeyResponse, totp }, `cli:${row.userCode}`)) {
       return res.status(401).json({ error: 'Confirm with your passkey or a code from your authenticator app.', code: 'proof_required' });
     }
     const updated = await cliLogin.approve(row, {

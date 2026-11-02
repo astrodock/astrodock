@@ -168,6 +168,35 @@ await t('a one-app key sees only the people who use its app', async () => {
   A(r2.d.users.some((u) => u.email === 'end@hosted.test'), 'visible to the key for their app');
   A((await J('GET', `/admin/users/${enduser.id}`, null, KEY)).s === 404, 'one by id too');
 });
+await t('a key turning on Google sign-up for its app is asked', async () => {
+  const r = await J('PATCH', '/admin/apps/hs-one', { allowGoogleSignup: 'true' }, KEY);
+  A(r.s === 403 && r.d.code === 'approval_required' && r.d.approval.kind === 'app.google_signup', `${r.s} ${JSON.stringify(r.d)}`);
+});
+await t('a passkey challenge has to say what it is for', async () => {
+  const r = await J('POST', '/admin/proof/passkey/options', {}, OWN);
+  A(r.s === 400, 'got ' + r.s);
+});
+await t('an invite cannot set a password on an account that signs in another way', async () => {
+  await db.delete(schema.users).where(eq(schema.users.email, 'launched@hosted.test'));
+  await db.insert(schema.users).values({ email: 'launched@hosted.test', name: 'L', passwordHash: null, passwordless: true, isActive: true, appAccess: ['hs-one'] });
+  const inv = await J('POST', '/admin/users/invite', { email: 'launched@hosted.test', appId: 'hs-one' }, OWN);
+  A(inv.s === 201, `${inv.s} ${JSON.stringify(inv.d)}`);
+  const token = inv.d.url.split('/invite/')[1];
+  const r = await J('POST', `/invite/${token}/password`, { password: 'attacker-chosen-pw' });
+  A(r.s === 400, `${r.s} ${JSON.stringify(r.d)}`);
+  await db.delete(schema.users).where(eq(schema.users.email, 'launched@hosted.test'));
+});
+await t('a one-app key cannot change an account that is waiting on another app\'s invite', async () => {
+  const inv = await J('POST', '/admin/users/invite', { email: 'pending@hosted.test', appId: 'hs-two' }, OWN);
+  A(inv.s === 201);
+  const id = inv.d.user.id;
+  const r = await J('POST', `/admin/users/${id}/reset-password`, { newPassword: 'attacker-chosen-pw' }, KEY);
+  A(r.s === 403, `a key for hs-one got ${r.s}`);
+  A((await J('DELETE', `/admin/users/${id}`, null, KEY)).s === 403, 'nor delete it');
+  const ok = await J('POST', `/admin/users/${id}/reset-password`, { newPassword: 'a-fine-password' }, KEY2);
+  A(ok.s === 204, `the key for hs-two can: ${ok.s}`);
+  await db.delete(schema.users).where(eq(schema.users.id, id));
+});
 await t('turning approvals off lets a key act alone', async () => {
   const off = await J('PATCH', '/admin/settings', { updates: { 'security.agent_approvals': 'off' } }, OWN);
   A(off.s === 200, `${off.s} ${JSON.stringify(off.d)}`);
@@ -178,10 +207,14 @@ await t('turning approvals off lets a key act alone', async () => {
 });
 
 console.log('\nastrodock login');
+const sealedLib = require(CP + '/src/lib/sealed.js');
 const pkce = () => {
   const verifier = crypto.randomBytes(32).toString('base64url');
-  return { verifier, challenge: crypto.createHash('sha256').update(verifier).digest('base64url') };
+  const { publicKey, privateKey } = crypto.generateKeyPairSync('x25519');
+  return { verifier, challenge: crypto.createHash('sha256').update(verifier).digest('base64url'), publicKey: sealedLib.rawPublicKey(publicKey), privateKey };
 };
+// What the CLI does with what it collects.
+const unseal = (d, k) => JSON.parse(sealedLib.open(d.sealed, k.privateKey, k.challenge));
 await t('starting needs a real challenge', async () => {
   const r = await J('POST', '/cli/login/start', { codeChallenge: 'short' });
   A(r.s === 400, 'got ' + r.s);
@@ -189,7 +222,7 @@ await t('starting needs a real challenge', async () => {
 let L, PK;
 await t('a start returns a device code, a user code and a page', async () => {
   PK = pkce();
-  const r = await J('POST', '/cli/login/start', { codeChallenge: PK.challenge, client: { hostname: 'laptop', folder: 'hs-new', gitRemote: 'https://github.com/x/y' }, manifest: manifest('hs-new') });
+  const r = await J('POST', '/cli/login/start', { codeChallenge: PK.challenge, clientPublicKey: PK.publicKey, client: { hostname: 'laptop', folder: 'hs-new', gitRemote: 'https://github.com/x/y' }, manifest: manifest('hs-new') });
   A(r.s === 201, `${r.s} ${JSON.stringify(r.d)}`);
   A(/^[A-Z]{4}-[A-Z]{4}$/.test(r.d.userCode), r.d.userCode);
   A(r.d.verificationUriComplete.endsWith(`/connect/${r.d.userCode}`));
@@ -222,10 +255,25 @@ await t('approving a key for the app.json\'s app creates the app', async () => {
   A(row, 'app created');
 });
 let LOGINKEY;
-await t('the CLI collects a key for that app only, once', async () => {
+await t('starting without the CLI\'s public key is refused: a key never travels in the clear', async () => {
+  const k = pkce();
+  const r = await J('POST', '/cli/login/start', { codeChallenge: k.challenge });
+  A(r.s === 400 && /clientPublicKey/.test(r.d.error), `${r.s} ${JSON.stringify(r.d)}`);
+});
+await t('the check code is derived from what the CLI sent', async () => {
+  A(L.checkCode === sealedLib.checkCode(PK.challenge, PK.publicKey));
+  const page = await J('GET', `/admin/cli-logins/${L.userCode}`, null, OWN);
+  A(page.d.login.checkCode === L.checkCode, 'the approval page shows the same code');
+});
+await t('the CLI collects a key for that app only, once, sealed to its own key', async () => {
   const r = await J('POST', '/cli/login/poll', { deviceCode: L.deviceCode, codeVerifier: PK.verifier });
-  A(r.s === 200 && r.d.token.startsWith('tk_') && r.d.kind === 'app' && r.d.app === 'hs-new', `${r.s} ${JSON.stringify(r.d)}`);
-  LOGINKEY = r.d.token;
+  A(r.s === 200 && !r.d.token && r.d.sealed && r.d.kind === 'app' && r.d.app === 'hs-new', `${r.s} ${JSON.stringify(r.d)}`);
+  const opened = unseal(r.d, PK);
+  A(opened.token.startsWith('tk_'), 'opens with the CLI\'s private key');
+  let wrong = false;
+  try { sealedLib.open(r.d.sealed, pkce().privateKey, PK.challenge); } catch { wrong = true; }
+  A(wrong, 'and with no other');
+  LOGINKEY = opened.token;
   const again = await J('POST', '/cli/login/poll', { deviceCode: L.deviceCode, codeVerifier: PK.verifier });
   A(again.s === 410 && again.d.status === 'consumed');
   const me = await J('GET', '/whoami', null, LOGINKEY);
@@ -237,23 +285,23 @@ await t('the one-app key can apply its own app without approval', async () => {
 });
 await t('an account key covers every app and Pages', async () => {
   const k = pkce();
-  const s = await J('POST', '/cli/login/start', { codeChallenge: k.challenge, client: { hostname: 'laptop' } });
+  const s = await J('POST', '/cli/login/start', { codeChallenge: k.challenge, clientPublicKey: k.publicKey, client: { hostname: 'laptop' } });
   await J('POST', `/admin/cli-logins/${s.d.userCode}/approve`, { kind: 'account', totp: await code() }, OWN);
   const r = await J('POST', '/cli/login/poll', { deviceCode: s.d.deviceCode, codeVerifier: k.verifier });
   A(r.s === 200 && r.d.kind === 'account', JSON.stringify(r.d));
-  const me = await J('GET', '/whoami', null, r.d.token);
+  const me = await J('GET', '/whoami', null, unseal(r.d, k).token);
   A(me.d.apps === 'all' && me.d.scopes.includes('pages:write') && !me.d.scopes.includes('tokens:write'), JSON.stringify(me.d));
 });
 await t('a declined sign-in tells the CLI so', async () => {
   const k = pkce();
-  const s = await J('POST', '/cli/login/start', { codeChallenge: k.challenge });
+  const s = await J('POST', '/cli/login/start', { codeChallenge: k.challenge, clientPublicKey: k.publicKey });
   A((await J('POST', `/admin/cli-logins/${s.d.userCode}/deny`, {}, OWN)).s === 200);
   const r = await J('POST', '/cli/login/poll', { deviceCode: s.d.deviceCode, codeVerifier: k.verifier });
   A(r.s === 403 && r.d.status === 'denied');
 });
 await t('an expired sign-in cannot be approved or collected', async () => {
   const k = pkce();
-  const s = await J('POST', '/cli/login/start', { codeChallenge: k.challenge });
+  const s = await J('POST', '/cli/login/start', { codeChallenge: k.challenge, clientPublicKey: k.publicKey });
   await db.update(schema.cliLogins).set({ expiresAt: new Date(Date.now() - 1000) }).where(eq(schema.cliLogins.userCode, s.d.userCode.replace('-', '')));
   const a = await J('POST', `/admin/cli-logins/${s.d.userCode}/approve`, { kind: 'account', totp: await code() }, OWN);
   A(a.s === 409, 'got ' + a.s);
@@ -350,11 +398,25 @@ await t('status reports an owner not yet set up', async () => {
   const r = await J('GET', '/fleet/status', null, NEWFLEET);
   A(r.s === 200 && r.d.claimed && !r.d.ownerReady && r.d.baseDomain === 'cust.example.test', JSON.stringify(r.d));
 });
+await t('a welcome session can set up sign-in and nothing else', async () => {
+  A((await J('GET', '/admin/account', null, WELCOME)).s === 200, 'its own account');
+  const apps = await J('GET', '/admin/apps', null, WELCOME);
+  A(apps.s === 403 && apps.d.code === 'welcome_only', `${apps.s} ${JSON.stringify(apps.d)}`);
+  A((await J('POST', '/admin/tokens', { name: 'x', preset: 'agent' }, WELCOME)).d.code === 'welcome_only', 'no keys');
+  A((await J('POST', '/admin/account/totp/begin', {}, WELCOME)).d.code === 'welcome_only', 'no authenticator before a password or passkey');
+  A((await J('GET', '/admin/approvals', null, WELCOME)).d.code === 'welcome_only', 'no approvals');
+});
+let WELCOME2;
 await t('a new welcome link can be had until the owner sets up sign-in', async () => {
+  const r2 = await J('POST', '/fleet/owner-link', {}, NEWFLEET);
+  WELCOME2 = (await J('POST', '/setup/owner-link/exchange', { token: r2.d.ownerSetupUrl.split('#owner=')[1] })).d.token;
+  A(WELCOME2, 'a second welcome session');
   const r = await J('POST', '/fleet/owner-link', {}, NEWFLEET);
   A(r.s === 201 && r.d.ownerSetupUrl.includes('#owner=os_'));
   const set = await J('PUT', '/admin/account/password', { password: 'a-good-password-here' }, WELCOME);
   A(set.s === 200, `${set.s} ${JSON.stringify(set.d)}`);
+  A((await J('GET', '/admin/apps', null, WELCOME)).s === 200, 'the session that set it up is now an ordinary one');
+  A((await J('GET', '/admin/account', null, WELCOME2)).s === 401, 'every other welcome session ends');
   const after = await J('POST', '/fleet/owner-link', {}, NEWFLEET);
   A(after.s === 409 && after.d.code === 'owner_ready', `${after.s} ${JSON.stringify(after.d)}`);
   const old = await J('POST', '/setup/owner-link/exchange', { token: r.d.ownerSetupUrl.split('#owner=')[1] });
@@ -362,7 +424,7 @@ await t('a new welcome link can be had until the owner sets up sign-in', async (
 });
 await t('the service can start a sign-in for a customer\'s CLI, and still cannot collect it', async () => {
   const k = pkce();
-  const r = await J('POST', '/fleet/cli-login', { codeChallenge: k.challenge, client: { hostname: 'laptop' } }, NEWFLEET);
+  const r = await J('POST', '/fleet/cli-login', { codeChallenge: k.challenge, clientPublicKey: k.publicKey, client: { hostname: 'laptop' } }, NEWFLEET);
   A(r.s === 201 && r.d.deviceCode && r.d.userCode, JSON.stringify(r.d));
   const [row] = await db.select().from(schema.cliLogins).where(eq(schema.cliLogins.userCode, r.d.userCode.replace('-', '')));
   A(row.source === 'fleet');

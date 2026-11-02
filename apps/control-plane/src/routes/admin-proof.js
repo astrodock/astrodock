@@ -25,7 +25,7 @@ router.get('/', async (req, res) => {
 });
 
 router.post('/passkey/options', async (req, res) => {
-  try { res.json(await strongFactor.passkeyOptions(await me(req))); }
+  try { res.json(await strongFactor.passkeyOptions(await me(req), String((req.body || {}).for || ''))); }
   catch (err) { res.status(400).json({ error: err.message }); }
 });
 

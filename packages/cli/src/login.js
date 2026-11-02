@@ -37,6 +37,37 @@ function pkce() {
   return { verifier, challenge };
 }
 
+// The key comes back sealed to a key pair made here for this sign-in, so it is
+// readable only by this process, whoever relays the sign-in. The platform's
+// copy of this scheme is apps/control-plane/src/lib/sealed.js: the two must
+// stay byte-for-byte the same.
+const SPKI_PREFIX = Buffer.from('302a300506032b656e032100', 'hex');
+const ALPHABET = 'BCDFGHJKLMNPQRSTVWXZ';
+
+function keyPair() {
+  const { publicKey, privateKey } = crypto.generateKeyPairSync('x25519');
+  const raw = publicKey.export({ format: 'der', type: 'spki' }).subarray(SPKI_PREFIX.length).toString('base64url');
+  return { publicKey: raw, privateKey };
+}
+
+function openSealed(sealedKey, privateKey, salt) {
+  const epk = crypto.createPublicKey({ key: Buffer.concat([SPKI_PREFIX, Buffer.from(sealedKey.epk, 'base64url')]), format: 'der', type: 'spki' });
+  const shared = crypto.diffieHellman({ privateKey, publicKey: epk });
+  const key = Buffer.from(crypto.hkdfSync('sha256', shared, Buffer.from(String(salt)), Buffer.from('astrodock-cli-login'), 32));
+  const d = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(sealedKey.iv, 'base64url'));
+  d.setAuthTag(Buffer.from(sealedKey.tag, 'base64url'));
+  return Buffer.concat([d.update(Buffer.from(sealedKey.ct, 'base64url')), d.final()]).toString('utf8');
+}
+
+// What the approval page has to show. Computed here from this sign-in's own
+// challenge and key, never taken from a server.
+function checkCode(challenge, publicKey) {
+  const h = crypto.createHash('sha256').update(`astrodock-check:${challenge}:${publicKey || ''}`).digest();
+  let out = '';
+  for (let i = 0; i < 12; i++) out += ALPHABET[h[i] % ALPHABET.length];
+  return `${out.slice(0, 4)}-${out.slice(4, 8)}-${out.slice(8)}`;
+}
+
 function checkUrl(url, label) {
   let u;
   try { u = new URL(url); } catch { throw new Error(`${label} is not a valid URL: ${url}`); }
@@ -183,10 +214,10 @@ async function pollCloud(cloudUrl, deviceCode, interval, log) {
   }
 }
 
-function show(log, { url, userCode, browser }) {
+function show(log, { url, check, browser }) {
   log('');
   log(`Open this page to continue: ${url}`);
-  if (userCode) log(`Check that it shows this code: ${userCode}`);
+  log(`Approve only if the page shows this check code: ${check}`);
   if (browser && openUrl(url)) log('Opened it in your browser.');
   log('Waiting for approval…');
 }
@@ -197,6 +228,8 @@ async function cmdLogin(flags, { cwd = process.cwd(), log = console.log } = {}) 
   }
   const browser = !flags['no-browser'];
   const { verifier, challenge } = pkce();
+  const keys = keyPair();
+  const check = checkCode(challenge, keys.publicKey);
   const client = clientInfo(cwd);
   const manifest = readManifestLoose(cwd);
 
@@ -209,23 +242,32 @@ async function cmdLogin(flags, { cwd = process.cwd(), log = console.log } = {}) 
   let approved;
   if (instanceGiven) {
     instanceUrl = checkUrl(String(instanceGiven), 'The Astrodock URL');
-    const { status, json } = await post(`${instanceUrl}/cli/login/start`, { codeChallenge: challenge, client, manifest });
+    const { status, json } = await post(`${instanceUrl}/cli/login/start`, { codeChallenge: challenge, clientPublicKey: keys.publicKey, client, manifest });
     if (status >= 400) throw new Error(json?.error || `Could not start sign-in (${status}).`);
-    show(log, { url: json.verificationUriComplete.startsWith('/') ? `${instanceUrl}${json.verificationUriComplete}` : json.verificationUriComplete, userCode: json.userCode, browser });
+    show(log, { url: json.verificationUriComplete.startsWith('/') ? `${instanceUrl}${json.verificationUriComplete}` : json.verificationUriComplete, check, browser });
     approved = await pollInstance(instanceUrl, json.deviceCode, verifier, json.interval, log);
   } else {
     const cloudUrl = checkUrl(String(flags.cloud || process.env.ASTRODOCK_CLOUD_URL || DEFAULT_CLOUD_URL), 'The Astrodock cloud URL');
-    const { status, json } = await post(`${cloudUrl}/api/cli/start`, { codeChallenge: challenge, client, manifest });
+    const { status, json } = await post(`${cloudUrl}/api/cli/start`, { codeChallenge: challenge, clientPublicKey: keys.publicKey, client, manifest });
     if (status >= 400) throw new Error(json?.error || `Could not start sign-in (${status}).`);
-    show(log, { url: json.verificationUriComplete, userCode: json.userCode, browser });
+    show(log, { url: json.verificationUriComplete, check, browser });
     const handed = await pollCloud(cloudUrl, json.deviceCode, json.interval, log);
     instanceUrl = checkUrl(handed.instanceUrl, 'The instance URL');
     approved = await pollInstance(instanceUrl, handed.deviceCode, verifier, handed.interval, log);
   }
 
-  // The address this sign-in actually went through, which is known to work from
-  // here. The instance's own idea of its address can differ behind a proxy.
-  const file = writeCredentials(cwd, instanceUrl, approved.token);
+  if (!approved.sealed) throw new Error('The platform sent the key unsealed. Update it before signing in.');
+  let opened;
+  try { opened = JSON.parse(openSealed(approved.sealed, keys.privateKey, challenge)); }
+  catch { throw new Error('The key could not be opened, so it was not meant for this sign-in. Run astrodock login again.'); }
+  const token = opened.token;
+  if (!/^tk_[A-Za-z0-9_-]+$/.test(String(token))) throw new Error('What came back is not an access key.');
+
+  // Given an address, keep it: it is the one known to work from here, and the
+  // instance's own idea of its address can differ behind a proxy. Through the
+  // hosted service, use the address sealed with the key, not the relay's word.
+  const savedUrl = instanceGiven || !opened.url ? instanceUrl : checkUrl(opened.url, 'The instance URL');
+  const file = writeCredentials(cwd, savedUrl, token);
   const ignored = ensureIgnored(cwd);
 
   log('');
@@ -242,4 +284,4 @@ async function cmdLogin(flags, { cwd = process.cwd(), log = console.log } = {}) 
   return approved;
 }
 
-module.exports = { cmdLogin, pkce, gitRemote, ensureIgnored, writeCredentials, DEFAULT_CLOUD_URL };
+module.exports = { cmdLogin, pkce, keyPair, openSealed, checkCode, gitRemote, ensureIgnored, writeCredentials, DEFAULT_CLOUD_URL };

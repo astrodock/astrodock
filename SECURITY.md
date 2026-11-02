@@ -29,13 +29,24 @@ What is enforced:
   (preset `agent`); a key for every app (`agentAccount`) is the person's explicit choice. Neither
   preset can mint keys, delete apps, run commands, change settings, run backups or reply to
   users.
-- **Reaching past one app needs a person.** A key that creates an app, adds a custom domain, or
-  gives an app access to someone who already has an account gets `approval_required` and a link
-  (`lib/approvals.js`). Approving needs a passkey or an authenticator code on every decision, not
+- **Reaching past one app needs a person.** A key that creates an app, adds a custom domain,
+  gives an app access to someone who already has an account, or turns on Google sign-up for an
+  app gets `approval_required` and a link (`lib/approvals.js`). Approving needs a passkey or an authenticator code on every decision, not
   a recent sign-in, so an agent driving the browser cannot click it through. A password does
   not count. Passkeys are offered first: a code can be read out to whoever asks for it in a
   chat; a passkey cannot.
-- **A one-app key sees only that app's people** in the user list.
+- **A one-app key sees only that app's people** in the user list, and can change an account with
+  no apps only when its pending invite is for the key's app. An invite never sets a password on an
+  account that already signs in some way (a password, a passkey, Google, or a trusted launcher).
+- **The CLI's key is sealed to the CLI.** `astrodock login` sends an X25519 public key with its
+  PKCE challenge; the key comes back sealed to it (`lib/sealed.js`), along with the address it is
+  saved for. The hosted service relays the sign-in and only ever holds ciphertext. A passkey
+  assertion is bound to the one approval or sign-in it was made for.
+- **A check code ties the approval to the terminal.** It is derived from the CLI's challenge and
+  public key, printed by the CLI, and shown on the service's page and the instance's approval
+  page. A relay that substituted its own sign-in would put a different code on the page.
+- **A welcome link opens a setup-only session.** For an hour it can add a passkey or a password and
+  nothing else; doing so makes it an ordinary session and ends every other welcome session.
 - **Node apps run in containers of their own** (`ASTRODOCK_NODE_RUNTIME=container`, set on every
   hosted instance and on new installs). The build runs in a throwaway container on Docker's
   default bridge network, as uid 1000, with the app's own environment read from a file that is
@@ -64,6 +75,14 @@ What is not:
 - An app can show a convincing fake of the sign-in page to its own visitors.
 - A hijacked agent on the customer's laptop can read every `.env.astrodock` on that disk and use
   those keys within their scope. The approval step is what stops it reaching further.
+- Someone can send a signed-in customer a link to their own `astrodock login`. Both pages warn
+  that the check code has to match a terminal the person is looking at, and approving still needs
+  their passkey or code, but a person who approves anyway gives that stranger a key. This is the
+  device-flow phishing risk (RFC 8628, section 5.4).
+- Until the owner first sets up sign-in, the service is trusted with the instance: it delivers the
+  welcome link, so it could use it first. Once the owner has a passkey or password, the fleet token
+  can no longer mint links. An owner who finds their link already used should treat it as that.
+- An authenticator code cannot be bound to one approval the way a passkey assertion is.
 - Customers share one domain until it is on the Public Suffix List; until then, cookies set by
   one customer's apps on the shared parent domain are visible to the others' apps, and all their
   certificates count against one Let's Encrypt limit.

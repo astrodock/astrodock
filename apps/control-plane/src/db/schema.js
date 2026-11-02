@@ -250,7 +250,10 @@ const sessions = pgTable('sessions', {
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
   revokedAt: timestamp('revoked_at', { withTimezone: true }),
   // Independent of session age: step-up actions require a RECENT factor check.
-  reauthAt: timestamp('reauth_at', { withTimezone: true })
+  reauthAt: timestamp('reauth_at', { withTimezone: true }),
+  // null for an ordinary session; 'welcome' for one opened by an owner's
+  // welcome link, which can only set up sign-in (lib/sessions).
+  purpose: text('purpose')
 }, (t) => ({ userIdx: index('sessions_user_idx').on(t.userId) }));
 
 // ── hosted login ───────────────────────────────────────────────────────────
@@ -595,6 +598,7 @@ const cliLogins = pgTable('cli_logins', {
   deviceCodeHash: text('device_code_hash').notNull(),
   userCode: text('user_code').notNull(),
   codeChallenge: text('code_challenge').notNull(),
+  clientPublicKey: text('client_public_key'),
   client: jsonb('client').notNull().default(sql`'{}'::jsonb`),
   manifest: jsonb('manifest'),
   source: text('source').notNull().default('cli'),

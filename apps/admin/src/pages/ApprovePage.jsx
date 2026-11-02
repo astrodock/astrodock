@@ -11,7 +11,8 @@ import ProofPrompt from '../components/ProofPrompt';
 const KINDS = {
   'app.create': 'Create an App',
   'domain.add': 'Add a Custom Domain',
-  'user.access': 'Give an App an Existing Person'
+  'user.access': 'Give an App an Existing Person',
+  'app.google_signup': 'Allow Sign-Up with Google'
 };
 
 function Row({ label, children }) {
@@ -52,6 +53,14 @@ function Details({ a }) {
         <Row label="Person">{d.name ? `${d.name}, ${d.email}` : d.email}</Row>
         <Row label="Their Other Apps">{d.otherApps || 0}</Row>
         <Row label="What This Means">The app learns who they are the next time they sign in to it.</Row>
+      </>
+    );
+  }
+  if (a.kind === 'app.google_signup') {
+    return (
+      <>
+        <Row label="App">{d.app}</Row>
+        <Row label="What This Means">Anyone with a Google account can sign up to this app, and anyone who already has an account here joins it by signing in with Google.</Row>
       </>
     );
   }
@@ -128,7 +137,7 @@ export default function ApprovePage() {
       {pending ? (
         <>
           <div className="sec-head" style={{ marginTop: 26 }}><div><h2>Confirm</h2><p>If you did not expect this, decline it, and look at what the agent is working on.</p></div></div>
-          <ProofPrompt actionLabel="Approve" onProof={approve} />
+          <ProofPrompt actionLabel="Approve" onProof={approve} target={`approval:${a.id}`} />
           <p style={{ marginTop: 14 }}>
             <button type="button" className="link-btn" onClick={deny}>Decline This Request</button>
           </p>

@@ -21,14 +21,32 @@ const SESSION_HOURS = 8;
 // laptop is not a platform takeover.
 const REAUTH_WINDOW_MS = 15 * 60 * 1000;
 
-async function create(user, { ip = '', userAgent = '', reauthed = true } = {}) {
-  const expiresAt = new Date(Date.now() + SESSION_HOURS * 3600 * 1000);
+// A session opened by an owner's welcome link (lib/owner-setup) can set up a
+// way to sign in and nothing else, for an hour. Adding a passkey or password
+// makes it an ordinary session and ends any other welcome sessions.
+const WELCOME_HOURS = 1;
+const WELCOME_PATHS = [
+  ['GET', /^\/admin\/account\/?$/],
+  ['POST', /^\/admin\/account\/passkeys\/options\/?$/],
+  ['POST', /^\/admin\/account\/passkeys\/?$/],
+  ['PUT', /^\/admin\/account\/password\/?$/]
+];
+
+function welcomeAllows(req) {
+  const path = String(req.originalUrl || '').split('?')[0];
+  return WELCOME_PATHS.some(([m, re]) => m === req.method && re.test(path));
+}
+
+async function create(user, { ip = '', userAgent = '', reauthed = true, purpose = null } = {}) {
+  const hours = purpose === 'welcome' ? WELCOME_HOURS : SESSION_HOURS;
+  const expiresAt = new Date(Date.now() + hours * 3600 * 1000);
   const [session] = await db.insert(schema.sessions).values({
     userId: user.id,
     ip: String(ip || '').slice(0, 64),
     userAgent: String(userAgent || '').slice(0, 300),
     expiresAt,
-    reauthAt: reauthed ? new Date() : null
+    reauthAt: reauthed ? new Date() : null,
+    purpose
   }).returning();
 
   const token = jwt.sign(
@@ -40,7 +58,7 @@ async function create(user, { ip = '', userAgent = '', reauthed = true } = {}) {
       sid: session.id
     },
     config.adminJwtSecret,
-    { expiresIn: `${SESSION_HOURS}h` }
+    { expiresIn: `${hours}h` }
   );
 
   await db.update(schema.users).set({ lastLoginAt: new Date() }).where(eq(schema.users.id, user.id));
@@ -114,8 +132,21 @@ function requireRecentAuth(req, res, next) {
   });
 }
 
+/**
+ * A welcome session has just added a way to sign in: from now on it is an
+ * ordinary session, and every other welcome session for this person ends, so
+ * a copy of the link used by someone else stops working.
+ */
+async function finishWelcome(auth) {
+  if (!auth || auth.purpose !== 'welcome' || !auth.sessionId) return;
+  await db.update(schema.sessions).set({ purpose: null }).where(eq(schema.sessions.id, auth.sessionId));
+  await db.update(schema.sessions).set({ revokedAt: new Date() })
+    .where(and(eq(schema.sessions.userId, auth.sub), eq(schema.sessions.purpose, 'welcome'), isNull(schema.sessions.revokedAt)));
+}
+
 module.exports = {
   create, listFor, revoke, revokeAllFor, markReauth, reauthIsFresh, requireRecentAuth,
+  welcomeAllows, finishWelcome, WELCOME_HOURS,
   pruneExpired,
   SESSION_HOURS, REAUTH_WINDOW_MS
 };

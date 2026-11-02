@@ -1,7 +1,7 @@
 'use strict';
 
 const express = require('express');
-const { eq, asc } = require('drizzle-orm');
+const { eq, asc, and, isNull, gt } = require('drizzle-orm');
 const { db, schema } = require('../db');
 const { requirePermission } = require('../middleware/auth');
 const { hashPassword } = require('../lib/passwords');
@@ -34,7 +34,7 @@ function publicUser(u) {
  *     can reach is one of them.
  *   • a PERSON is bound by role — only an owner may change an owner
  */
-function guardTarget(req, target, { appSlug = null } = {}) {
+async function guardTarget(req, target, { appSlug = null } = {}) {
   if (req.auth.type !== 'token') return roles.canManageUser({ role: req.auth.role }, target);
   const verdict = roles.keyCanManageUser(req.auth, target);
   if (!verdict.ok) return verdict;
@@ -44,6 +44,17 @@ function guardTarget(req, target, { appSlug = null } = {}) {
     return scope.includes(appSlug) ? verdict : { ok: false, reason: 'This key is not scoped to that app.' };
   }
   const access = Array.isArray(target.appAccess) ? target.appAccess : [];
+  // An account with no apps yet is someone's pending invite. It belongs to the
+  // app that invited them, so only that app's key may change it; an empty list
+  // would otherwise be inside every key's scope.
+  if (!access.length) {
+    const pending = await db.select({ slug: schema.apps.slug }).from(schema.userInvites)
+      .innerJoin(schema.apps, eq(schema.userInvites.appId, schema.apps.id))
+      .where(and(eq(schema.userInvites.userId, target.id), isNull(schema.userInvites.redeemedAt), gt(schema.userInvites.expiresAt, new Date())));
+    return pending.some((p) => scope.includes(p.slug))
+      ? verdict
+      : { ok: false, reason: 'This account is not waiting on an invite to this key\'s app, so the key cannot change it.' };
+  }
   if (access.every((s) => scope.includes(s))) return verdict;
   return { ok: false, reason: 'This person uses apps outside this key\'s scope, so the key cannot change their account.' };
 }
@@ -187,7 +198,7 @@ router.patch('/:id', requirePermission('users:write'), async (req, res) => {
   const [target] = await db.select().from(schema.users).where(eq(schema.users.id, req.params.id)).limit(1);
   if (!target) return res.status(404).json({ error: 'User not found' });
 
-  const verdict = guardTarget(req, target);
+  const verdict = await guardTarget(req, target);
   if (!verdict.ok) return refuse(res, verdict);
 
   const { name, isActive, operatorRole, email } = req.body || {};
@@ -261,7 +272,7 @@ router.patch('/:id', requirePermission('users:write'), async (req, res) => {
 router.delete('/:id', requirePermission('users:write'), async (req, res) => {
   const [target] = await db.select().from(schema.users).where(eq(schema.users.id, req.params.id)).limit(1);
   if (!target) return res.status(404).json({ error: 'User not found' });
-  const verdict = guardTarget(req, target);
+  const verdict = await guardTarget(req, target);
   if (!verdict.ok) return refuse(res, verdict);
   await sessions.revokeAllFor(target.id).catch(() => {});
   const rows = await db.delete(schema.users).where(eq(schema.users.id, req.params.id)).returning();
@@ -273,7 +284,7 @@ router.delete('/:id', requirePermission('users:write'), async (req, res) => {
 router.post('/:id/reset-password', requirePermission('users:write'), async (req, res) => {
   const [target] = await db.select().from(schema.users).where(eq(schema.users.id, req.params.id)).limit(1);
   if (!target) return res.status(404).json({ error: 'User not found' });
-  const verdict = guardTarget(req, target);
+  const verdict = await guardTarget(req, target);
   if (!verdict.ok) return refuse(res, verdict);
   const { newPassword } = req.body || {};
   if (!newPassword || newPassword.length < 8) return res.status(400).json({ error: 'newPassword must be at least 8 characters' });
@@ -287,7 +298,7 @@ router.post('/:id/reset-password', requirePermission('users:write'), async (req,
 router.put('/:id/access/:appSlug', requirePermission('users:write'), approveAccess, async (req, res) => {
   const [target] = await db.select().from(schema.users).where(eq(schema.users.id, req.params.id)).limit(1);
   if (!target) return res.status(404).json({ error: 'User not found' });
-  const verdict = guardTarget(req, target, { appSlug: req.params.appSlug });
+  const verdict = await guardTarget(req, target, { appSlug: req.params.appSlug });
   if (!verdict.ok) return refuse(res, verdict);
   const rows = await db.select().from(schema.users).where(eq(schema.users.id, req.params.id)).limit(1);
   const user = rows[0];
@@ -302,7 +313,7 @@ router.put('/:id/access/:appSlug', requirePermission('users:write'), approveAcce
 router.delete('/:id/access/:appSlug', requirePermission('users:write'), async (req, res) => {
   const [target] = await db.select().from(schema.users).where(eq(schema.users.id, req.params.id)).limit(1);
   if (!target) return res.status(404).json({ error: 'User not found' });
-  const verdict = guardTarget(req, target, { appSlug: req.params.appSlug });
+  const verdict = await guardTarget(req, target, { appSlug: req.params.appSlug });
   if (!verdict.ok) return refuse(res, verdict);
   const rows = await db.select().from(schema.users).where(eq(schema.users.id, req.params.id)).limit(1);
   const user = rows[0];
@@ -323,7 +334,7 @@ router.get('/:id/devices', async (req, res) => {
 router.delete('/:id/devices/:deviceId', requirePermission('users:write'), async (req, res) => {
   const [target] = await db.select().from(schema.users).where(eq(schema.users.id, req.params.id)).limit(1);
   if (!target) return res.status(404).json({ error: 'User not found' });
-  const verdict = guardTarget(req, target);
+  const verdict = await guardTarget(req, target);
   if (!verdict.ok) return refuse(res, verdict);
   if (!/^[0-9a-f-]{36}$/i.test(req.params.deviceId)) return res.status(404).json({ error: 'Device not found' });
   const device = await mobile.revokeDevice({ userId: target.id, deviceId: req.params.deviceId });

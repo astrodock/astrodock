@@ -139,6 +139,7 @@ router.put('/password', sessions.requireRecentAuth, async (req, res) => {
       if (!ok) return res.status(401).json({ error: 'That is not your current password.' });
     }
     await factors.setPassword(req.auth.sub, (req.body || {}).password);
+    await sessions.finishWelcome(req.auth);
     await audit(req, 'account.password_changed', `${req.auth.email} changed their password`);
     res.json({ ok: true });
   } catch (err) { res.status(400).json({ error: err.message }); }
@@ -164,6 +165,7 @@ router.post('/passkeys', sessions.requireRecentAuth, async (req, res) => {
     const user = await me(req);
     const { response, label } = req.body || {};
     const out = await passkeys.finishRegistration(user, response, label);
+    await sessions.finishWelcome(req.auth);
     await audit(req, 'account.passkey_added', `${user.email} added a passkey${label ? ` (${label})` : ''}`);
     res.status(201).json(out);
   } catch (err) { res.status(400).json({ error: err.message }); }

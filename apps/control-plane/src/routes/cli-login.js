@@ -35,8 +35,8 @@ function fail(res, err) {
 
 router.post('/login/start', startLimiter, async (req, res) => {
   try {
-    const { codeChallenge, client, manifest } = req.body || {};
-    res.status(201).json(await cliLogin.start({ codeChallenge, client, manifest }));
+    const { codeChallenge, clientPublicKey, client, manifest } = req.body || {};
+    res.status(201).json(await cliLogin.start({ codeChallenge, clientPublicKey, client, manifest }));
   } catch (err) { fail(res, err); }
 });
 

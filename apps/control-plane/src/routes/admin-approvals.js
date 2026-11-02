@@ -9,7 +9,7 @@
 const express = require('express');
 const { and, eq, desc, gt } = require('drizzle-orm');
 const { db, schema } = require('../db');
-const { resolveAuth, callerHasScope } = require('../middleware/auth');
+const { resolveAuth, callerHasScope, welcomeRefused } = require('../middleware/auth');
 const { reauthLimiter } = require('../middleware/rateLimiter');
 const approvals = require('../lib/approvals');
 const strongFactor = require('../lib/strong-factor');
@@ -20,6 +20,7 @@ router.use(async (req, res, next) => {
   try {
     const auth = await resolveAuth(req);
     if (!auth) return res.status(401).json({ error: 'Authentication required' });
+    if (welcomeRefused(req, res, auth)) return;
     req.auth = auth;
     next();
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -66,7 +67,7 @@ router.post('/:id/approve', personOnly, reauthLimiter, async (req, res) => {
     }
     const user = await me(req);
     if (!user) return res.status(401).json({ error: 'Account not found' });
-    if (!await strongFactor.verify(user, req.body || {})) {
+    if (!await strongFactor.verify(user, req.body || {}, `approval:${row.id}`)) {
       return res.status(401).json({ error: 'Confirm with your passkey or a code from your authenticator app.', code: 'proof_required' });
     }
     const updated = await approvals.decide(row, { approve: true, user });

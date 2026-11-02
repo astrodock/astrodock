@@ -12,7 +12,9 @@ import * as webauthn from '../lib/webauthn';
 //
 // `onProof(proof)` does the approving and throws on failure.
 
-export default function ProofPrompt({ actionLabel = 'Approve', onProof, disabled }) {
+// `target` names what is being approved ('approval:<id>' or 'cli:<code>'), so
+// the passkey challenge is for that and nothing else.
+export default function ProofPrompt({ actionLabel = 'Approve', onProof, disabled, target }) {
   const [avail, setAvail] = useState(null);
   const [mode, setMode] = useState('passkey');
   const [code, setCode] = useState('');
@@ -29,7 +31,7 @@ export default function ProofPrompt({ actionLabel = 'Approve', onProof, disabled
   async function withPasskey() {
     setError(''); setBusy(true);
     try {
-      const options = await api.proofPasskeyOptions();
+      const options = await api.proofPasskeyOptions(target);
       await onProof({ passkeyResponse: await webauthn.authenticate(options) });
     } catch (e) {
       setError(e.name === 'NotAllowedError' ? 'That was cancelled, or timed out.' : e.message);

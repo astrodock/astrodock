@@ -24,6 +24,7 @@ const { db, schema } = require('../db');
 const { generateApiToken, hashToken } = require('./ids');
 const { emitEvent } = require('./events');
 const scopes = require('./scopes');
+const sealed = require('./sealed');
 
 const TTL_MS = 15 * 60 * 1000;
 const POLL_INTERVAL_S = 3;
@@ -112,9 +113,14 @@ function manifestSummary(m) {
   };
 }
 
-async function start({ codeChallenge, client, manifest, source = 'cli' }) {
+async function start({ codeChallenge, clientPublicKey, client, manifest, source = 'cli' }) {
   if (!validChallenge(codeChallenge)) {
     throw new LoginError('code_challenge must be the base64url SHA-256 of a verifier (43 characters).');
+  }
+  // The key is only ever handed over sealed to this (lib/sealed), so it is
+  // required: there is no path where a key travels in the clear.
+  if (!sealed.validPublicKey(clientPublicKey)) {
+    throw new LoginError('clientPublicKey must be a base64url X25519 public key (43 characters). Update the CLI.');
   }
   const cleaned = cleanManifest(manifest);
   const deviceCode = `dc_${crypto.randomBytes(32).toString('base64url')}`;
@@ -128,6 +134,7 @@ async function start({ codeChallenge, client, manifest, source = 'cli' }) {
         deviceCodeHash: sha256(deviceCode),
         userCode,
         codeChallenge,
+        clientPublicKey,
         client: cleanClient(client),
         manifest: cleaned.manifest,
         source,
@@ -144,6 +151,7 @@ async function start({ codeChallenge, client, manifest, source = 'cli' }) {
   return {
     deviceCode,
     userCode: formatUserCode(row.userCode),
+    checkCode: sealed.checkCode(codeChallenge, clientPublicKey),
     verificationUri: origin ? `${origin}/connect` : '/connect',
     verificationUriComplete: origin ? `${origin}${path}` : path,
     expiresIn: Math.round(TTL_MS / 1000),
@@ -175,6 +183,9 @@ async function describe(row) {
   }
   return {
     userCode: formatUserCode(row.userCode),
+    // What the person compares with their terminal. Derived from what the CLI
+    // sent, so a relay that changed it cannot make the two match.
+    checkCode: sealed.checkCode(row.codeChallenge, row.clientPublicKey),
     status: statusOf(row),
     source: row.source,
     client: row.client || {},
@@ -296,7 +307,9 @@ async function poll({ deviceCode, codeVerifier }) {
 
   return {
     status: 'approved',
-    token: raw,
+    // The address goes inside the seal too: a relay that could change it would
+    // have the CLI send the key there on every request after this one.
+    sealed: sealed.seal(JSON.stringify({ token: raw, url: adminOrigin() }), taken.clientPublicKey, taken.codeChallenge),
     url: adminOrigin(),
     kind: taken.kind,
     app: taken.appSlug,

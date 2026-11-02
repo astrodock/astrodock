@@ -71,10 +71,20 @@ async function resolveAuth(req) {
     db.update(schema.sessions).set({ lastSeenAt: new Date() }).where(eq(schema.sessions.id, sess.id)).catch(() => {});
     return {
       type: 'admin', email: user.email, sub: user.id,
-      role: user.operatorRole, sessionId: sess.id, reauthAt: sess.reauthAt || null
+      role: user.operatorRole, sessionId: sess.id, reauthAt: sess.reauthAt || null,
+      purpose: sess.purpose || null
     };
   }
   return { type: 'admin', email: user.email, sub: user.id, role: user.operatorRole };
+}
+
+// A welcome session (lib/sessions) reaches only the routes that set up sign-in.
+// 403, not 401: the dashboard signs out on a 401, and this session is valid.
+function welcomeRefused(req, res, auth) {
+  if (!auth || auth.purpose !== 'welcome') return false;
+  if (require('../lib/sessions').welcomeAllows(req)) return false;
+  res.status(403).json({ error: 'Set up a passkey or password first.', code: 'welcome_only' });
+  return true;
 }
 
 function tokenHasScope(list, scope) {
@@ -101,6 +111,7 @@ function requireAdmin(req, res, next) {
   resolveAuth(req).then((auth) => {
     if (!auth) return res.status(401).json({ error: 'Authentication required' });
     if (auth.type !== 'admin') return res.status(403).json({ error: 'Admin access required (API tokens cannot manage users or tokens)' });
+    if (welcomeRefused(req, res, auth)) return;
     req.auth = auth;
     next();
   }).catch((err) => res.status(500).json({ error: err.message }));
@@ -119,6 +130,7 @@ function requireScope(scope) {
   return (req, res, next) => {
     resolveAuth(req).then((auth) => {
       if (!auth) return res.status(401).json({ error: 'Authentication required' });
+      if (welcomeRefused(req, res, auth)) return;
       // People are held to their role: a viewer holds every :read scope and
       // nothing else.
       if (auth.type === 'admin' && callerHasScope(auth, scope)) { req.auth = auth; return next(); }
@@ -142,6 +154,7 @@ function requirePermission(scope) {
   return (req, res, next) => {
     resolveAuth(req).then((auth) => {
       if (!auth) return res.status(401).json({ error: 'Authentication required' });
+      if (welcomeRefused(req, res, auth)) return;
       req.auth = auth;
       if (callerHasScope(auth, scope)) return next();
       return res.status(403).json({
@@ -170,6 +183,7 @@ function permit(scope) {
 }
 
 module.exports = {
+  welcomeRefused,
   resolveAuth, requireAdmin, requireScope, requirePermission, permit,
   tokenHasScope, tokenAllowsApp, grantedScopes, callerHasScope
 };

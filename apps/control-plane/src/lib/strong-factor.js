@@ -14,7 +14,15 @@
 const factors = require('./auth-factors');
 const passkeys = require('./passkeys');
 
-const handleFor = (user) => `strong:${user.id}`;
+// The challenge is held per person AND per thing being approved, so an
+// assertion made for one approval cannot be submitted for another. (A typed
+// code cannot be bound this way; that is one more reason passkeys come first.)
+const TARGET = /^(approval:[0-9a-f-]{36}|cli:[A-Z]{8})$/;
+const handleFor = (user, target) => `strong:${user.id}:${target}`;
+
+function validTarget(target) {
+  return typeof target === 'string' && TARGET.test(target);
+}
 
 /** Which of the two this account holds. */
 async function availableFor(user) {
@@ -22,18 +30,20 @@ async function availableFor(user) {
   return { passkey: f.passkeys > 0, totp: !!f.totp };
 }
 
-async function passkeyOptions(user) {
-  return passkeys.beginAuthentication({ user, handle: handleFor(user) });
+async function passkeyOptions(user, target) {
+  if (!validTarget(target)) throw new Error('Say what this passkey is approving.');
+  return passkeys.beginAuthentication({ user, handle: handleFor(user, target) });
 }
 
 /**
  * True only when `proof` is a passkey assertion or a TOTP code for this user.
  * A password or recovery code is refused: neither proves a person is here.
  */
-async function verify(user, proof = {}) {
+async function verify(user, proof = {}, target) {
   const { passkeyResponse, totp } = proof || {};
   if (passkeyResponse) {
-    const who = await passkeys.finishAuthentication({ handle: handleFor(user), response: passkeyResponse })
+    if (!validTarget(target)) return false;
+    const who = await passkeys.finishAuthentication({ handle: handleFor(user, target), response: passkeyResponse })
       .catch(() => null);
     return !!who && who.id === user.id;
   }
@@ -41,4 +51,4 @@ async function verify(user, proof = {}) {
   return false;
 }
 
-module.exports = { availableFor, passkeyOptions, verify };
+module.exports = { availableFor, passkeyOptions, verify, validTarget };
