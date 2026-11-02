@@ -338,8 +338,10 @@ test('passkeys: the hosted sign-in origin is related to the admin RP', () => {
     config.applyRuntimeDomain({ baseDomain: 'apps.example.com' });
     const passkeys = require('../src/lib/passkeys.js');
     assert.strictEqual(passkeys.rpId(), 'admin.apps.example.com');
-    assert.deepStrictEqual(passkeys.relatedOrigins(), ['https://auth.apps.example.com']);
-    assert.deepStrictEqual(passkeys.signInOrigins(), ['https://admin.apps.example.com', 'https://auth.apps.example.com']);
+    // CI runs with ASTRODOCK_TLS_MODE=off, which makes every origin http.
+    const scheme = config.tlsMode === 'off' ? 'http' : 'https';
+    assert.deepStrictEqual(passkeys.relatedOrigins(), [`${scheme}://auth.apps.example.com`]);
+    assert.deepStrictEqual(passkeys.signInOrigins(), [`${scheme}://admin.apps.example.com`, `${scheme}://auth.apps.example.com`]);
     const cfg = generateCaddyfile([]);
     const adminIdx = cfg.indexOf('admin.apps.example.com {');
     const authIdx = cfg.indexOf('auth.apps.example.com {');
