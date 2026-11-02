@@ -127,12 +127,31 @@ function writeCredentials(cwd, url, token) {
   return file;
 }
 
+// A server that is still starting, or a certificate still being issued, is a
+// reason to keep waiting rather than to give up. Polling stops at the
+// sign-in's own expiry instead.
+const GIVE_UP_MS = 20 * 60 * 1000;
+
+async function patientPost(url, body, state, log) {
+  try {
+    const out = await post(url, body);
+    state.unreachable = false;
+    return out;
+  } catch (err) {
+    if (Date.now() - state.started > GIVE_UP_MS) throw err;
+    if (!state.unreachable && log) log(`Waiting for ${new URL(url).host} to answer…`);
+    state.unreachable = true;
+    return { status: 0, json: { status: 'pending' } };
+  }
+}
+
 /** Poll an instance until the sign-in is approved, declined or expired. */
-async function pollInstance(instanceUrl, deviceCode, verifier, interval) {
+async function pollInstance(instanceUrl, deviceCode, verifier, interval, log) {
   let wait = Math.max(Number(interval) || 3, 2) * 1000;
+  const state = { started: Date.now() };
   while (true) {
     await sleep(wait);
-    const { status, json } = await post(`${instanceUrl}/cli/login/poll`, { deviceCode, codeVerifier: verifier });
+    const { status, json } = await patientPost(`${instanceUrl}/cli/login/poll`, { deviceCode, codeVerifier: verifier }, state, log);
     if (status === 429 || json?.code === 'slow_down') { wait += 2000; continue; }
     if (json?.status === 'pending') continue;
     if (json?.status === 'approved') return json;
@@ -147,9 +166,10 @@ async function pollInstance(instanceUrl, deviceCode, verifier, interval) {
 async function pollCloud(cloudUrl, deviceCode, interval, log) {
   let wait = Math.max(Number(interval) || 3, 2) * 1000;
   let said = false;
+  const state = { started: Date.now() };
   while (true) {
     await sleep(wait);
-    const { status, json } = await post(`${cloudUrl}/api/cli/poll`, { deviceCode });
+    const { status, json } = await patientPost(`${cloudUrl}/api/cli/poll`, { deviceCode }, state, log);
     if (status === 429 || json?.code === 'slow_down') { wait += 2000; continue; }
     if (json?.status === 'pending') continue;
     if (json?.status === 'provisioning') {
@@ -192,7 +212,7 @@ async function cmdLogin(flags, { cwd = process.cwd(), log = console.log } = {}) 
     const { status, json } = await post(`${instanceUrl}/cli/login/start`, { codeChallenge: challenge, client, manifest });
     if (status >= 400) throw new Error(json?.error || `Could not start sign-in (${status}).`);
     show(log, { url: json.verificationUriComplete.startsWith('/') ? `${instanceUrl}${json.verificationUriComplete}` : json.verificationUriComplete, userCode: json.userCode, browser });
-    approved = await pollInstance(instanceUrl, json.deviceCode, verifier, json.interval);
+    approved = await pollInstance(instanceUrl, json.deviceCode, verifier, json.interval, log);
   } else {
     const cloudUrl = checkUrl(String(flags.cloud || process.env.ASTRODOCK_CLOUD_URL || DEFAULT_CLOUD_URL), 'The Astrodock cloud URL');
     const { status, json } = await post(`${cloudUrl}/api/cli/start`, { codeChallenge: challenge, client, manifest });
@@ -200,7 +220,7 @@ async function cmdLogin(flags, { cwd = process.cwd(), log = console.log } = {}) 
     show(log, { url: json.verificationUriComplete, userCode: json.userCode, browser });
     const handed = await pollCloud(cloudUrl, json.deviceCode, json.interval, log);
     instanceUrl = checkUrl(handed.instanceUrl, 'The instance URL');
-    approved = await pollInstance(instanceUrl, handed.deviceCode, verifier, handed.interval);
+    approved = await pollInstance(instanceUrl, handed.deviceCode, verifier, handed.interval, log);
   }
 
   // The address this sign-in actually went through, which is known to work from

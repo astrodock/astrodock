@@ -26,6 +26,11 @@
 #                             what lets a cloud install skip SSH entirely
 #   ASTRODOCK_ADMIN_EMAIL     seed the admin account directly and skip the
 #   ASTRODOCK_ADMIN_PASSWORD  claim step (see the caveat in .env.example)
+#   ASTRODOCK_NODE_RUNTIME    container (default for new installs) or pm2: how Node
+#                             apps run. container gives each its own, with caps
+#   ASTRODOCK_FLEET_TOKEN     lets the hosted service manage this install (its
+#                             fleet API). Leave unset on a box you run yourself
+#   ASTRODOCK_SERVER_TERMINAL off turns off the dashboard's root terminal on the host
 #   ASTRODOCK_REGISTRY_USER   sign in to the image registry, for private images.
 #   ASTRODOCK_REGISTRY_TOKEN  Use these rather than a `docker login` line ahead of
 #                             this script: on a stock image Docker does not exist
@@ -287,6 +292,12 @@ grep -q '^ASTRODOCK_RUNNER_TOKEN=.' "$tmp" || printf 'ASTRODOCK_RUNNER_TOKEN=%s\
 printf 'ASTRODOCK_PROJECT=%s\n' "$PROJECT" >> "$tmp"
 [ -n "${ASTRODOCK_VERSION:-}" ] && printf 'ASTRODOCK_VERSION=%s\n' "$ASTRODOCK_VERSION" >> "$tmp"
 [ -n "${ASTRODOCK_IMAGE:-}" ] && printf 'ASTRODOCK_IMAGE=%s\n' "$ASTRODOCK_IMAGE" >> "$tmp"
+# Newer than most templates, so appended rather than substituted. A new install
+# runs Node apps in containers of their own; an existing .env without the line
+# keeps PM2 (see apps/control-plane/src/config.js).
+printf 'ASTRODOCK_NODE_RUNTIME=%s\n' "${ASTRODOCK_NODE_RUNTIME:-container}" >> "$tmp"
+[ -n "${ASTRODOCK_FLEET_TOKEN:-}" ] && printf 'ASTRODOCK_FLEET_TOKEN=%s\n' "$ASTRODOCK_FLEET_TOKEN" >> "$tmp"
+[ -n "${ASTRODOCK_SERVER_TERMINAL:-}" ] && printf 'ASTRODOCK_SERVER_TERMINAL=%s\n' "$ASTRODOCK_SERVER_TERMINAL" >> "$tmp"
 
 mv "$tmp" "$DIR/.env"
 chmod 600 "$DIR/.env"

@@ -4,8 +4,12 @@ The hosted service is deployment mode 3 from `OPEN_SOURCE.md`: a customer signs 
 and gets their own Astrodock instance on a DigitalOcean droplet. An AI agent can do the whole
 setup with one command and a browser page.
 
-This promotes items from `MULTI_TENANT.md` into a build plan. Status of everything here:
-**not built**, unless a row says otherwise.
+This promotes items from `MULTI_TENANT.md` into a build plan. The instance side is in this
+repository. The service itself (sign-up, billing, the fleet) is the separate private
+repository `astrodock-cloud`, next to this one; it has no remote yet.
+
+**Status words.** Testing: built, covered by tests, not yet verified by Paul. Pending sign-off:
+an outward step (money, a publish, DNS, a deploy) that waits for approval. Not built: not done.
 
 ## Decisions
 
@@ -14,131 +18,120 @@ Decided by Paul, 2026-11-01 and 2026-11-02.
 | Area | Decision |
 |---|---|
 | Hosting | One DigitalOcean droplet per customer, running the standard `docker compose` stack |
-| Cloud service | Runs on its own dedicated droplet. Holds signup, billing, the provisioner and the fleet admin |
+| Cloud service | Its own dedicated droplet, as an app on its own Astrodock instance (D5) |
 | Onboarding | `npx @astrodock/cli login`, the same command for new and existing accounts |
 | Pool | Warm pool of pre-booted droplets, assigned at payment. Min, max and auto-sizing set in the fleet admin |
 | Keys | The user chooses. A key for one app is the default; a key for the whole account is an option |
-| Approval | Actions beyond one app need approval in the browser with a second factor, every time |
+| Approval | Actions beyond one app need approval in the browser with a passkey or authenticator code, every time |
 | Factors | Passkey strongly encouraged and shown first. Authenticator app (TOTP) allowed |
 | Runtime limits | Per-app CPU and memory caps, and outbound traffic monitoring. Required before launch |
 | Billing | Charge at signup. Full refund within 14 days. One instance per card. Stripe Radar on |
+| D1 | Node apps run in a container of their own. `ASTRODOCK_NODE_RUNTIME=container`; new installs and hosted instances get it, an existing install keeps PM2 until it opts in |
+| D2 | A customer domain on the Public Suffix List; certificates per hostname over HTTP-01 |
+| D3 | A new domain, separate from astrodock.ai. Name not chosen |
+| D4 | A separate private repository: `astrodock-cloud` |
+| D5 | The service is an app on its own dedicated Astrodock instance |
+| D6 | Plans are configuration (`CLOUD_PLANS`): name, price, Stripe price, droplet size. Sizes and prices not set |
+| D7 | 60 days of retention after cancel, as a snapshot; restore by choosing a plan again |
+| D8 | One region at launch (`DO_REGION`) |
 
 ## The Flow
 
 1. The agent runs `npx @astrodock/cli login` in an app repo.
-2. The CLI starts a session with the cloud service and gets a URL and a short code. It opens
-   the URL in the browser and prints it for agents that cannot open one.
-3. The `/start` page shows plans, price and the 14-day refund terms. The user creates an
-   account (passkey first, authenticator app as the alternative) and pays in Stripe Checkout.
-4. The Stripe webhook tells the cloud service to assign a pool droplet. The page shows progress.
-5. The cloud service configures the instance: domain, DNS, and the owner account for the user's
-   email.
-6. The browser moves to the instance's own approval page. The user picks a key for this app or
-   for the account, and confirms with their factor.
-7. The instance mints the key. The CLI receives it once, writes `.env.astrodock`, and adds it to
-   `.gitignore`.
+2. The CLI starts a sign-in at the service with the S256 hash of a verifier it keeps, opens
+   `/start?code=…` and prints it.
+3. The person signs up (an invite from the service's own platform, emailed, which proves the
+   address) or signs in, sees the request (computer, folder, app), chooses a plan, and pays in
+   Stripe Checkout.
+4. The Stripe webhook assigns a ready pool droplet. The claim, step by step: start a CLI sign-in
+   on the instance with the same hash (`/fleet/cli-login`), create `*.name` and `name` DNS
+   records, claim (`/fleet/claim`: domain, owner by email, and a new fleet token), wait until
+   `https://admin.<name>.<domain>` answers.
+5. The browser goes to the instance's welcome link: add a passkey, or a password and an
+   authenticator app. It lands on `/connect/<code>`.
+6. The person approves a key for this app (default) or every app, with a passkey or code.
+7. The CLI is handed the instance's device code by the service, polls the instance with its
+   verifier, collects the key, writes `.env.astrodock` (0600) and adds it to `.gitignore`.
 8. The agent runs `astrodock apply` and `astrodock deploy:watch --local`.
 
-An existing user skips steps 3 to 5. A self-hosted user runs `astrodock login --url <admin URL>`
-and starts at step 6, so the login and approval pieces are part of the open-source product.
+The service never has the verifier, so it can never collect a key. A self-hosted user runs
+`astrodock login --url <admin URL>` and starts at step 6. An existing customer skips 3 to 5.
 
-Keys are minted by the instance and delivered to the CLI directly. They never pass through the
-cloud service.
+`astrodock-cloud/server/test/e2e.test.js` runs this flow with the real control plane as the
+instance and the real CLI, with DigitalOcean, Stripe, the platform and email faked.
 
-## Threat Model for Hosted Mode
+## Threat Model
 
-The case to stop: User A gets User B to install User A's app. Two risks:
-
-- **B's agent is hijacked.** Text in A's repo instructs B's agent to use any key it can reach.
-  A hijacked agent on B's laptop can read every `.env.astrodock` on that disk, and an agent
-  with browser control can click buttons. The factor prompt on each approval is the control
-  that holds: a passkey needs a person's touch, and a TOTP code comes from the person's phone.
-  TOTP is weaker here: a code can be passed along, so a hijacked agent can ask the user for
-  one in chat.
-- **A's code is hostile once it runs on B's instance.** It gets its own database, bucket, OS
-  user and env (see `SECURITY.md`). What it can still do, as of 2026-11-02:
-  - send its own data and its users' data anywhere (no outbound limits)
-  - use all of the box's CPU and memory (no caps on Node or Docker apps)
-  - show a fake sign-in page to its visitors
-  - as a Node app, it runs inside the runner container, which holds the Docker socket and the
-    GitHub PAT, separated only by Unix users
-
-The VM boundary separates customers from each other. Everything in this section is about one
-customer's instance.
-
-`SECURITY.md` states the single-trusted-operator model. Hosted mode adds untrusted app code
-from third parties, so `SECURITY.md` needs a hosted-mode section before launch.
+In `SECURITY.md`, "Hosted mode": what is enforced and what is not.
 
 ## Phase 1: Instance Work (Ships in the Open-Source Product)
 
-| # | Item | Notes |
+| # | Item | Status |
 |---|---|---|
-| 1.1 | Publish `@astrodock/cli` to npm | `npm view @astrodock/cli` returns 404 today. `npx` depends on it |
-| 1.2 | `astrodock login` | Device-style flow: start session, open browser, poll, write `.env.astrodock`, add to `.gitignore` |
-| 1.3 | Login sessions on the instance | Start, poll and complete endpoints. Single-use, short-lived codes |
-| 1.4 | Approval page | Shows the repo's git remote and what `app.json` asks for (database, storage, env names, who can sign in). App key or account key. Creates the app if it is new |
-| 1.5 | Factor on every approval | Not the 15-minute re-auth window (`REAUTH_WINDOW_MS`): each approval asks for its own factor. Passkey offered first |
-| 1.6 | Approval requests for agent keys | Today `requireRecentAuth` lets every key through (`sessions.js:109`). Actions beyond one app return an approval URL instead of running: create app, grant existing end users access, add a domain, issue an account key |
-| 1.7 | Account key preset | Deployer scopes across all apps. `users:write`, domains and the sensitive group go through approval requests (1.6) |
-| 1.8 | Per-app CPU and memory caps | Docker apps: `--memory` and `--cpus` on `docker run` (`deploy-worker.js:425`). Node apps: see decision D1 |
-| 1.9 | Per-app outbound traffic metering | Bytes out per app, shown in the instance admin and reported to the cloud service |
-| 1.10 | Passkey encouragement | Passkey is the default choice at account creation. A notice in the account page while only TOTP is set |
-| 1.11 | Cookie and origin check | Confirm no app subdomain can read or set cookies used by the admin or auth hosts. The hosted-login cookie is host-only (`oauth.js:121`); check the rest |
+| 1.1 | Publish `@astrodock/cli` and `@astrodock/schema` to npm | Release job built; skips without an `NPM_TOKEN` secret. Publishing: pending sign-off |
+| 1.2 | `astrodock login` | Testing |
+| 1.3 | Login sessions on the instance (`/cli/login/start`, `/cli/login/poll`, PKCE) | Testing |
+| 1.4 | Approval page `/connect/<code>` | Testing. Not looked at in a browser |
+| 1.5 | Passkey or authenticator code on every approval (`lib/strong-factor.js`) | Testing |
+| 1.6 | Approvals for keys: create app, existing person to an app, custom domain (`/approve/<id>`) | Testing |
+| 1.7 | Presets `agent` (one app) and `agentAccount` (every app, plus Pages) | Testing |
+| 1.8 | Per-app memory and CPU caps; Node apps in containers (D1) | Testing. The Docker paths have not run: there was no Docker here |
+| 1.9 | Per-app traffic metering and alert | Testing. The sampler has not run against Docker |
+| 1.10 | Passkey encouragement on Your Account and the welcome page | Testing |
+| 1.11 | Cookies: `__Host-` prefix over HTTPS for sign-in and Pages | Testing |
+| 1.12 | A one-app key lists only that app's people | Testing |
 
 ## Phase 2: Instance Image, Provisioning and Pool
 
-| # | Item | Notes |
+| # | Item | Status |
 |---|---|---|
-| 2.1 | Droplet image | Snapshot with Docker and the stack images pulled at a pinned `ASTRODOCK_VERSION` |
-| 2.2 | Pool boot | Cloud-init runs `setup.sh --setup-token <cloud-generated>`. Each droplet generates its own secrets. The instance waits in first-run setup |
-| 2.3 | Provisioning claim endpoint | Today `POST /setup/claim` requires a password (`setup.js:161`). Add a mode, gated by the setup token, that sets the domain and creates the owner by email with no password. The owner adds a passkey or TOTP on first visit |
-| 2.4 | DNS and certificates | Provisioner creates `*.<customer>.<domain>` records through the DO API. Certificate approach: see decision D2 |
-| 2.5 | Droplet firewall | DO Cloud Firewall on every droplet: inbound 80 and 443 only, outbound SMTP (25) blocked |
-| 2.6 | Pool manager | Refill on assignment. Min, max and auto-sizing from the recent sign-up rate. Rebuild pool droplets after a release |
-| 2.7 | Manual assignment | Fleet admin action to assign a pool droplet to an email, for testing before billing exists |
+| 2.1 | Image builder (no SSH; the image holds no secrets) | Testing, against a fake DigitalOcean |
+| 2.2 | Pool boot: stock installer with tokens in user-data; `install.sh` passes them into `.env` | Testing |
+| 2.3 | Claim endpoint (`/fleet/claim`), welcome link (`/fleet/owner-link`) | Testing |
+| 2.4 | DNS records per customer | Testing, against a fake. The domain (D3) and its PSL entry: pending sign-off |
+| 2.5 | Firewall: 80 and 443 in, SMTP out blocked | Testing, against a fake |
+| 2.6 | Pool manager with auto-sizing and the droplet limit | Testing |
+| 2.7 | Assigning without billing, from the fleet admin | Testing |
+| 2.8 | Fleet token replaced at the claim; containers cut off from the metadata address; no downgrades through the fleet API | Testing |
 
 ## Phase 3: Accounts, Billing and Signup
 
-| # | Item | Notes |
+| # | Item | Status |
 |---|---|---|
-| 3.1 | Cloud service accounts | Email plus passkey (default) or TOTP |
-| 3.2 | `/start` page | Plans, price, refund terms, account creation, then Stripe Checkout |
-| 3.3 | Stripe | Checkout in subscription mode, webhooks, Radar on |
-| 3.4 | One instance per card | Reject a card fingerprint that already has an instance |
-| 3.5 | Self-serve cancel and refund | Full refund within 14 days of signup. After that, cancel at period end |
-| 3.6 | Transactional email | Signup confirmation, receipt, cancel and refund notices |
-| 3.7 | End-to-end test | `npx @astrodock/cli login` from an empty repo with no account to a deployed app |
+| 3.1 | Customer accounts through the service's own platform (invite by email, then hosted sign-in) | Testing |
+| 3.2 | `/start` page | Testing. Not looked at in a browser |
+| 3.3 | Stripe Checkout, webhooks (signature checked, each event once), Radar | Testing, against a fake. A Stripe account and products: pending sign-off |
+| 3.4 | One instance per card (fingerprint) | Testing |
+| 3.5 | Cancel: full refund within 14 days; after that, at period end | Testing |
+| 3.6 | Email through Resend | Testing. Never sent for real |
+| 3.7 | End to end from an empty repo | Testing, simulated (e2e.test.js). For real: pending sign-off |
 
 ## Phase 4: Fleet Operations and Lifecycle
 
-| # | Item | Notes |
+| # | Item | Status |
 |---|---|---|
-| 4.1 | Fleet admin | Pool status (ready, booting, failed, image version), sign-ups per day and week, instances per plan, droplets used against the DO account limit |
-| 4.2 | Upgrades | Roll a version across instances in batches, using the existing self-update worker (`self-update.js`) |
-| 4.3 | Health rollup | Per-instance health from the instance health endpoint |
-| 4.4 | Off-box backups | `backup.sh` output pushed to DO Spaces per customer |
-| 4.5 | Abuse signals | Outbound bandwidth per droplet and per app, with alerts. Suspend action |
-| 4.6 | Plan changes | Upgrade through DO resize. CPU and RAM resize requires a power-off; a disk resize cannot be reversed |
-| 4.7 | Lifecycle | Cancel, suspend on failed payment, data export, then delete droplet, DNS records and backups |
+| 4.1 | Fleet admin `/staff`: pool, sign-ups per day, droplet limit, needs attention, image, upgrades, instances | Testing. Not looked at in a browser |
+| 4.2 | Rolling upgrades in batches | Testing |
+| 4.3 | Health checks per instance | Testing |
+| 4.4 | Off-box backups to Spaces while running | Not built. Cancelled instances are kept as snapshots (4.7); a running instance's backups stay on the droplet |
+| 4.5 | Outbound bandwidth abuse signal; suspend and resume | Testing |
+| 4.6 | Plan change: Stripe price and a CPU/RAM resize | Testing |
+| 4.7 | Lifecycle: cancel, snapshot, 60 days, reminder a week before, delete; restore from snapshot | Testing |
 
 ## Phase 5: Launch
 
-| # | Item | Notes |
+| # | Item | Status |
 |---|---|---|
-| 5.1 | `SECURITY.md` hosted-mode section | The threat model above, with what is enforced and what is not |
-| 5.2 | Terms of service, acceptable use policy, privacy policy | The acceptable use policy is the basis for suspending abusive instances |
-| 5.3 | Agent discovery | `llms.txt` and an agent getting-started page on astrodock.ai. Neither found in `astrodock-site` |
-| 5.4 | DO droplet limit | Raise the account limit with DO ahead of demand |
+| 5.1 | `SECURITY.md` hosted-mode section | Written |
+| 5.2 | Terms, acceptable use, privacy | Drafts in `astrodock-cloud/docs/legal/`, with bracketed open items. Need review by counsel |
+| 5.3 | Agent discovery (`llms.txt`) | Draft in `astrodock-cloud/docs/discovery/`; moves to the site at launch. The docs contract (`astrodock-docs/AGENTS.md`) now covers `astrodock login` and approvals. Deploying either: pending sign-off |
+| 5.4 | Higher DigitalOcean droplet limit | Pending sign-off |
 
-## Open Decisions
+## Open Items for Paul
 
-| # | Question | Recommendation |
-|---|---|---|
-| D1 | CPU and memory caps for Node apps. PM2 cannot cap CPU, and `max_memory_restart` only restarts. All Node apps share one runner container | Run each Node buildpack app in its own container. It keeps the buildpack (no Dockerfile needed), gives real caps and per-app traffic counts, and takes app code out of the container that holds the Docker socket and PAT. This changes the "PM2 inside a runner" locked decision |
-| D2 | Certificates. One cert per app hostname under one shared domain hits Let's Encrypt's 50 certificates per registered domain per week | A separate customer domain on the Public Suffix List, which also separates cookies between customers. The alternative is one wildcard cert per customer via DNS-01, which needs a Caddy build with the DigitalOcean DNS module |
-| D3 | Customer domain | A new domain, separate from astrodock.ai |
-| D4 | Where the cloud service code lives | A separate private repo. Astrodock stays open source |
-| D5 | Cloud service stack | An app on its own dedicated Astrodock instance, which gives it hosted login, a database and deploys |
-| D6 | Plans and prices | Measure the stack's idle memory on the live instance first. It sets the smallest droplet that can be sold |
-| D7 | Data retention after cancel | A fixed export window, then hard delete. Length is yours to set |
-| D8 | DO region | One region at launch |
+| Item | What Is Needed |
+|---|---|
+| Customer domain (D3) | The name. Then its DNS on DigitalOcean and a Public Suffix List request |
+| Service address | The CLI's default is `https://cloud.astrodock.ai` (`packages/cli/src/login.js`), a placeholder until the service's own address is chosen |
+| Plans (D6) | Droplet sizes and prices, after measuring the stack's idle memory |
+| Legal | Company name, address, governing law, contact email, and counsel's review |

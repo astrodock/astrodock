@@ -10,8 +10,63 @@ plainly rather than pretending they aren't there.
 - A single VPS / box, operated by a trusted person.
 - Admins are fully trusted. End-users (the people who log into the *apps* via `/verify`) are
   untrusted and isolated to app-level auth only — they never touch the control plane.
-- The future managed-SaaS mode is **orchestrated single-tenant instances**, never multi-tenancy
-  inside one control plane.
+- The hosted mode is **orchestrated single-tenant instances**, never multi-tenancy inside one
+  control plane. See "Hosted mode" below for what changes inside an instance.
+
+## Hosted mode
+
+The hosted service (`HOSTED_SERVICE.md`; the service itself is the separate `astrodock-cloud`
+repository) runs one instance per customer on its own DigitalOcean droplet. The droplet is the
+boundary between customers: nothing in one customer's instance can reach another's. What
+changes is inside one instance: the owner is a customer rather than the person who runs the
+box, and the apps on it may be code someone talked them into installing.
+
+The case it is built against: someone gets a customer to install their app, and text in that
+app's repository tells the customer's agent what to do with whatever key it can find.
+
+What is enforced:
+- **Keys are per app by default.** `astrodock login` mints a key for the one app in the folder
+  (preset `agent`); a key for every app (`agentAccount`) is the person's explicit choice. Neither
+  preset can mint keys, delete apps, run commands, change settings, run backups or reply to
+  users.
+- **Reaching past one app needs a person.** A key that creates an app, adds a custom domain, or
+  gives an app access to someone who already has an account gets `approval_required` and a link
+  (`lib/approvals.js`). Approving needs a passkey or an authenticator code on every decision, not
+  a recent sign-in, so an agent driving the browser cannot click it through. A password does
+  not count. Passkeys are offered first: a code can be read out to whoever asks for it in a
+  chat; a passkey cannot.
+- **A one-app key sees only that app's people** in the user list.
+- **Node apps run in containers of their own** (`ASTRODOCK_NODE_RUNTIME=container`, set on every
+  hosted instance and on new installs). The build runs in a throwaway container on Docker's
+  default bridge network, as uid 1000, with the app's own environment read from a file that is
+  deleted before any app code runs. The app runs with memory, CPU and process caps, no Linux
+  capabilities and `no-new-privileges`. Neither ever runs in the runner, which holds the Docker
+  socket and the GitHub PAT.
+- **Per-app traffic is counted** from each container's own counters, with a warning event above
+  `alerts.app_traffic_mb_per_hour`. The hosted service also watches each droplet's outbound
+  bandwidth and raises an abuse event for staff, who can suspend the instance.
+- **Outbound SMTP is blocked** by the hosted droplets' firewall (port 25), and inbound is 80 and
+  443 only.
+- **The fleet token is small and short-lived in its first form.** It can claim a fresh instance
+  once (together with the setup token), mint a welcome link only while the owner has no way to
+  sign in, start a CLI sign-in that a person still has to approve and that only the CLI's PKCE
+  verifier can collect, read status, and start an update, never a downgrade. The token the
+  droplet boots with arrives in user-data, which DigitalOcean serves to anything on the droplet
+  at `169.254.169.254`; the claim replaces it with one only the service knows, and hosted
+  droplets drop container traffic to that address at the host.
+- **The server terminal is off** on hosted instances (`ASTRODOCK_SERVER_TERMINAL=off`).
+- **Sign-in and Pages cookies carry the `__Host-` prefix** over HTTPS, so an app on a sibling
+  subdomain cannot plant one.
+
+What is not:
+- An app can still send its own data, and its users' data, anywhere. Traffic is counted, not
+  filtered.
+- An app can show a convincing fake of the sign-in page to its own visitors.
+- A hijacked agent on the customer's laptop can read every `.env.astrodock` on that disk and use
+  those keys within their scope. The approval step is what stops it reaching further.
+- Customers share one domain until it is on the Public Suffix List; until then, cookies set by
+  one customer's apps on the shared parent domain are visible to the others' apps, and all their
+  certificates count against one Let's Encrypt limit.
 
 ## Sharp edges (intentional)
 - **The runner executes code from your repos.** Deploys run `npm ci` (which can run postinstall

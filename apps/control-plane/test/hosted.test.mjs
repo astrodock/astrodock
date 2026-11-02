@@ -311,8 +311,13 @@ await t('claiming needs the setup token too', async () => {
   const r = await J('POST', '/fleet/claim', { setupToken: 'wrong-setup-token-123456', baseDomain: 'cust.example.test', ownerEmail: 'other@hosted.test', tlsMode: 'off' }, FLEET);
   A(r.s === 403, 'got ' + r.s);
 });
+const NEWFLEET = 'rotated-fleet-token-for-tests-abcdefghijklmnop';
+await t('a claim has to replace the fleet token the droplet booted with', async () => {
+  const r = await J('POST', '/fleet/claim', { setupToken: process.env.ASTRODOCK_SETUP_TOKEN, baseDomain: 'cust.example.test', ownerEmail: 'other@hosted.test', tlsMode: 'off' }, FLEET);
+  A(r.s === 400 && /newFleetToken/.test(r.d.error), `${r.s} ${JSON.stringify(r.d)}`);
+});
 await t('a claim sets the domain and creates an owner with no way in but the link', async () => {
-  const r = await J('POST', '/fleet/claim', { setupToken: process.env.ASTRODOCK_SETUP_TOKEN, baseDomain: 'cust.example.test', ownerEmail: 'other@hosted.test', ownerName: 'Other', tlsMode: 'off', next: '/connect/ABCD-EFGH' }, FLEET);
+  const r = await J('POST', '/fleet/claim', { setupToken: process.env.ASTRODOCK_SETUP_TOKEN, baseDomain: 'cust.example.test', ownerEmail: 'other@hosted.test', ownerName: 'Other', tlsMode: 'off', next: '/connect/ABCD-EFGH', newFleetToken: NEWFLEET }, FLEET);
   A(r.s === 201, `${r.s} ${JSON.stringify(r.d)}`);
   A(r.d.adminUrl === 'http://admin.cust.example.test');
   A(/\/welcome\?next=%2Fconnect%2FABCD-EFGH#owner=os_/.test(r.d.ownerSetupUrl), r.d.ownerSetupUrl);
@@ -320,9 +325,17 @@ await t('a claim sets the domain and creates an owner with no way in but the lin
   A(u.operatorRole === 'owner' && !u.passwordHash, 'owner, no password');
   CLAIM = r.d;
 });
+await t('after the claim, the token from user-data is refused and the new one works', async () => {
+  A((await J('GET', '/fleet/status', null, FLEET)).s === 401, 'old token refused');
+  A((await J('GET', '/fleet/status', null, NEWFLEET)).s === 200, 'new token accepted');
+});
 await t('a second claim is refused for good', async () => {
-  const r = await J('POST', '/fleet/claim', { setupToken: process.env.ASTRODOCK_SETUP_TOKEN, baseDomain: 'x.example.test', ownerEmail: 'x@hosted.test', tlsMode: 'off' }, FLEET);
+  const r = await J('POST', '/fleet/claim', { setupToken: process.env.ASTRODOCK_SETUP_TOKEN, baseDomain: 'x.example.test', ownerEmail: 'x@hosted.test', tlsMode: 'off', newFleetToken: NEWFLEET + 'x' }, NEWFLEET);
   A(r.s === 409, 'got ' + r.s);
+});
+await t('the fleet API will not move an instance back to an older version', async () => {
+  const r = await J('POST', '/fleet/update', { toVersion: '0.0.1' }, NEWFLEET);
+  A(r.s === 409 && r.d.code === 'downgrade', `${r.s} ${JSON.stringify(r.d)}`);
 });
 let WELCOME;
 await t('the welcome link opens a session, once', async () => {
@@ -334,22 +347,22 @@ await t('the welcome link opens a session, once', async () => {
   A(again.s === 401, 'spent');
 });
 await t('status reports an owner not yet set up', async () => {
-  const r = await J('GET', '/fleet/status', null, FLEET);
+  const r = await J('GET', '/fleet/status', null, NEWFLEET);
   A(r.s === 200 && r.d.claimed && !r.d.ownerReady && r.d.baseDomain === 'cust.example.test', JSON.stringify(r.d));
 });
 await t('a new welcome link can be had until the owner sets up sign-in', async () => {
-  const r = await J('POST', '/fleet/owner-link', {}, FLEET);
+  const r = await J('POST', '/fleet/owner-link', {}, NEWFLEET);
   A(r.s === 201 && r.d.ownerSetupUrl.includes('#owner=os_'));
   const set = await J('PUT', '/admin/account/password', { password: 'a-good-password-here' }, WELCOME);
   A(set.s === 200, `${set.s} ${JSON.stringify(set.d)}`);
-  const after = await J('POST', '/fleet/owner-link', {}, FLEET);
+  const after = await J('POST', '/fleet/owner-link', {}, NEWFLEET);
   A(after.s === 409 && after.d.code === 'owner_ready', `${after.s} ${JSON.stringify(after.d)}`);
   const old = await J('POST', '/setup/owner-link/exchange', { token: r.d.ownerSetupUrl.split('#owner=')[1] });
   A(old.s === 401, 'an unused link is worthless once sign-in exists');
 });
 await t('the service can start a sign-in for a customer\'s CLI, and still cannot collect it', async () => {
   const k = pkce();
-  const r = await J('POST', '/fleet/cli-login', { codeChallenge: k.challenge, client: { hostname: 'laptop' } }, FLEET);
+  const r = await J('POST', '/fleet/cli-login', { codeChallenge: k.challenge, client: { hostname: 'laptop' } }, NEWFLEET);
   A(r.s === 201 && r.d.deviceCode && r.d.userCode, JSON.stringify(r.d));
   const [row] = await db.select().from(schema.cliLogins).where(eq(schema.cliLogins.userCode, r.d.userCode.replace('-', '')));
   A(row.source === 'fleet');
@@ -358,7 +371,7 @@ await t('the service can start a sign-in for a customer\'s CLI, and still cannot
 });
 
 // Put the platform back the way the other test files expect it.
-await db.delete(schema.platformSettings).where(inArray(schema.platformSettings.key, ['platform.base_domain', 'platform.tls_mode', 'platform.acme_email', 'platform.setup_deferred']));
+await db.delete(schema.platformSettings).where(inArray(schema.platformSettings.key, ['platform.base_domain', 'platform.tls_mode', 'platform.acme_email', 'platform.setup_deferred', 'fleet.token_hash']));
 config.applyRuntimeDomain(before);
 for (const u of demoted) await db.update(schema.users).set({ operatorRole: u.role }).where(eq(schema.users.id, u.id));
 await cleanup();

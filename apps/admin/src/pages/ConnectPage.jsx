@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import * as api from '../lib/api';
 import PageHeader from '../components/PageHeader';
 import ProofPrompt from '../components/ProofPrompt';
+import Select from '../components/Select';
 
 // The person's side of `astrodock login`.
 //
@@ -149,11 +150,11 @@ export default function ConnectPage() {
               <div className="field">
                 <div className="lab"><b>Which App</b>{newApp && <span className="desc">Approving creates it.</span>}</div>
                 <div className="ctl">
-                  <select value={slug} onChange={(e) => setSlug(e.target.value)}>
-                    <option value="">Choose an App</option>
-                    {m && !login.existingApp && <option value={m.slug}>{m.name} (New)</option>}
-                    {apps.map((a) => <option key={a.slug} value={a.slug}>{a.name}</option>)}
-                  </select>
+                  <Select value={slug} onChange={setSlug} placeholder="Choose an App"
+                    options={[
+                      ...(m && !login.existingApp ? [{ value: m.slug, label: `${m.name} (New)`, description: 'Created when you approve' }] : []),
+                      ...apps.map((a) => ({ value: a.slug, label: a.name }))
+                    ]} />
                 </div>
               </div>
             )}

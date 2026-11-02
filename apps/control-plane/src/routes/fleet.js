@@ -13,8 +13,9 @@
 //   • start an `astrodock login` on behalf of a customer's CLI. A person still
 //     approves it with a passkey or authenticator code, and the key can only be
 //     collected with the CLI's verifier, which the service never sees
-//   • read a status summary, and start a version update
-// It cannot mint keys, read app data, or sign in as anyone.
+//   • read a status summary, and start a version update (never a downgrade)
+// It cannot mint keys, read app data, or sign in as anyone. The token the
+// droplet booted with is replaced at the claim (see tokenMatches).
 
 const crypto = require('crypto');
 const express = require('express');
@@ -30,8 +31,28 @@ const { emitEvent } = require('../lib/events');
 
 const router = express.Router();
 
-function tokenMatches(given) {
-  const a = Buffer.from(String(given || ''));
+const sha256 = (s) => crypto.createHash('sha256').update(String(s)).digest('hex');
+const ROTATED_KEY = 'fleet.token_hash';
+
+// The token in .env came in through the droplet's user-data, which the cloud
+// provider serves to anything on the box that asks its metadata address. So
+// the claim replaces it: the service sends a new token, only its hash is kept,
+// and from then on the one in user-data is refused.
+async function rotatedHash() {
+  const rows = await db.select().from(schema.platformSettings).where(eq(schema.platformSettings.key, ROTATED_KEY)).limit(1);
+  return rows[0] ? String(rows[0].value) : null;
+}
+
+async function tokenMatches(given) {
+  const g = String(given || '');
+  if (!g) return false;
+  const rotated = await rotatedHash();
+  if (rotated) {
+    const a = Buffer.from(sha256(g));
+    const b = Buffer.from(rotated);
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
+  }
+  const a = Buffer.from(g);
   const b = Buffer.from(String(config.fleetToken || ''));
   return a.length === b.length && b.length > 0 && crypto.timingSafeEqual(a, b);
 }
@@ -39,8 +60,10 @@ function tokenMatches(given) {
 router.use((req, res, next) => {
   if (!config.fleetToken) return res.status(404).json({ error: 'Not found' });
   const given = (req.headers.authorization || '').replace(/^Bearer /, '');
-  if (!tokenMatches(given)) return res.status(401).json({ error: 'unauthorized' });
-  next();
+  tokenMatches(given).then((ok) => {
+    if (!ok) return res.status(401).json({ error: 'unauthorized' });
+    next();
+  }).catch((err) => res.status(500).json({ error: err.message }));
 });
 
 const audit = (type, message, meta = {}) => emitEvent({
@@ -62,10 +85,13 @@ function adminUrl() {
 // tokens are needed, so the fleet token alone cannot re-claim an instance, and
 // once an owner exists this refuses for good.
 router.post('/claim', async (req, res) => {
-  const { setupToken, baseDomain: rawDomain, acmeEmail, ownerEmail, ownerName, tlsMode, next } = req.body || {};
+  const { setupToken, baseDomain: rawDomain, acmeEmail, ownerEmail, ownerName, tlsMode, next, newFleetToken } = req.body || {};
   try {
     if (await setup.adminExists()) return res.status(409).json({ error: 'This instance already has an owner.' });
     if (!setup.tokenMatches(setupToken)) return res.status(403).json({ error: 'Invalid setup token.' });
+    if (typeof newFleetToken !== 'string' || newFleetToken.length < 32) {
+      return res.status(400).json({ error: 'newFleetToken (32 characters or more) is required: the token from user-data stops working at the claim.' });
+    }
 
     const baseDomain = normalizeHostname(rawDomain);
     if (!validHostname(baseDomain)) return res.status(400).json({ error: 'baseDomain is not a valid domain.' });
@@ -85,6 +111,9 @@ router.post('/claim', async (req, res) => {
       isAdmin: true, operatorRole: 'owner', appAccess: []
     }).returning();
     setup.clearSetupToken();
+    const rotated = { key: ROTATED_KEY, value: sha256(newFleetToken), updatedBy: 'hosted service', updatedAt: new Date() };
+    await db.insert(schema.platformSettings).values(rotated)
+      .onConflictDoUpdate({ target: schema.platformSettings.key, set: rotated });
 
     await setBootstrap({ baseDomain, tlsMode: mode, acmeEmail: contact }, 'hosted service');
     await setSetupDeferred(false, 'hosted service').catch(() => {});
@@ -150,11 +179,17 @@ router.get('/status', async (req, res) => {
 // ── update ────────────────────────────────────────────────────────────────────
 router.post('/update', async (req, res) => {
   try {
+    const version = require('../lib/version');
     const target = String((req.body || {}).toVersion || '').trim() || null;
-    if (target && !require('../lib/version').isSemver(target)) {
+    if (target && !version.isSemver(target)) {
       return res.status(400).json({ error: 'toVersion must be a version like 0.0.33.' });
     }
-    const current = require('../lib/version').resolve();
+    const current = version.resolve();
+    // Forward only. Moving an instance back to an older release would bring its
+    // fixed bugs back with it, so that stays a person's decision on the box.
+    if (target && version.isSemver(current.version) && version.compare(target, current.version) < 0) {
+      return res.status(409).json({ error: `This instance is on ${current.version}; the fleet API does not move it back to ${target}.`, code: 'downgrade' });
+    }
     await emitEvent({
       category: 'audit', type: 'update.requested', severity: 'critical',
       actorType: 'system', actor: 'hosted service', targetType: 'platform', targetId: 'astrodock',
