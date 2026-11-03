@@ -51,5 +51,11 @@ The control-plane and CLI tests read `apps/control-plane/.env` for the Postgres 
   ([astrodock/astrodock-docs](https://github.com/astrodock/astrodock-docs): `AGENTS.md` and
   `building-apps.md`, served at docs.astrodock.ai).
 
+## License of Contributions
+The platform is licensed under the PolyForm Noncommercial License 1.0.0, and the packages in
+`packages/cli`, `packages/schema`, `packages/auth-client` and `packages/ui` under MIT. See
+`LICENSE`. [Contributor terms, so that contributions can also be used in Astrodock Cloud: for
+counsel.]
+
 ## Security
 See `SECURITY.md`. Please report vulnerabilities privately, not in public issues.

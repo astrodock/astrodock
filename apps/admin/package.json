@@ -3,7 +3,7 @@
   "version": "0.0.35",
   "private": true,
   "type": "module",
-  "license": "MIT",
+  "license": "PolyForm-Noncommercial-1.0.0",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

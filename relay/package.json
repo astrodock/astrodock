@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "Astrodock push relay: forwards encrypted notifications from Astrodock servers to APNs and FCM.",
-  "license": "MIT",
+  "license": "PolyForm-Noncommercial-1.0.0",
   "main": "server.js",
   "engines": {
     "node": ">=20"

@@ -1,6 +1,6 @@
 # Astrodock
 
-**A self-hostable, AI-native app platform.** Stand it up once on your own box, then point an AI
+**An AI-native app platform you can host yourself, or have hosted on Astrodock Cloud.** Stand it up once on your own box, then point an AI
 coding agent at it to **build, authenticate, and launch** small apps and tools on the open
 internet — with **end-user auth and user management included**, and **zero external dependencies**
 to boot.
@@ -140,4 +140,12 @@ what's verified vs. needs a real Docker host to exercise, and [`OPEN_SOURCE.md`]
 for the original fork-era plan (kept as a historical record).
 
 ## License
-[MIT](LICENSE).
+The platform is free for personal and noncommercial use under the
+[PolyForm Noncommercial License 1.0.0](LICENSE). For business use, choose Astrodock Cloud
+(https://astrodock.ai/pricing.html).
+
+The client packages your apps and agents use are MIT licensed: `packages/cli`,
+`packages/schema`, `packages/auth-client` and `packages/ui`. Each has its own `LICENSE`.
+
+Versions released before this change (v0.0.34 and earlier) were MIT licensed, and stay so for
+copies made under that license.
