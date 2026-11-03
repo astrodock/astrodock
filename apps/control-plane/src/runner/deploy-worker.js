@@ -15,6 +15,8 @@ const { computeEnv, computeMissingRequired } = require('../lib/env-compute');
 const { emitEvent } = require('../lib/events');
 const processControl = require('./process-control');
 const { maskSecrets } = require('./app-ops');
+const appUsers = require('./app-user');
+const { appConfigFile } = appUsers;
 
 function exec(cmd, opts = {}) {
   return execSync(cmd, { encoding: 'utf8', timeout: config.deploy.buildTimeoutMs, ...opts }).trim();
@@ -249,13 +251,18 @@ async function deployNode(app, deployRoot, env, { appendLog, setStatus }) {
   // Per-app non-root identity. Build, install (incl. npm lifecycle scripts), and the
   // runtime process ALL run as this user so a malicious app can neither read the
   // platform secrets nor reach another app's files. Created before any app code runs.
-  const appUser = `tsapp_${app.slug.replace(/[^a-z0-9]/g, '_')}`;
+  // Ids come from a high range that never includes the Docker socket's group
+  // (runner/app-user.js); an app still on an old id is moved, which stops it first.
+  const appUser = appUsers.nameFor(app.slug);
   const haveUseradd = canUseradd();
   let ids = null;
   if (haveUseradd) {
     try {
-      exec(`id -u ${appUser} >/dev/null 2>&1 || useradd -r -M -s /usr/sbin/nologin ${appUser}`);
-      ids = { uid: parseInt(exec(`id -u ${appUser}`), 10), gid: parseInt(exec(`id -g ${appUser}`), 10) };
+      const u = appUsers.ensureAppUser(app.slug, {
+        beforeMove: () => { try { exec(`pm2 delete ${app.slug} 2>&1`); } catch { /* not running */ } }
+      });
+      if (u.moved) await appendLog(`Moved ${appUser} to user id ${u.uid}. The app was stopped for the move and starts again at the end of this deploy.`);
+      ids = { uid: u.uid, gid: u.gid };
     } catch (e) { await appendLog(`(note) per-app user unavailable, building as runner user: ${e.message}`); }
   }
 
@@ -301,6 +308,13 @@ async function deployNode(app, deployRoot, env, { appendLog, setStatus }) {
   function runAsApp(cwd, command) {
     return execFileSync('sh', ['-c', command], { encoding: 'utf8', timeout: 300000, cwd, env: buildEnv, ...(ids || {}) });
   }
+  // Copies OUT of the app's tree run as the app user too. The app owns that tree
+  // and can swap a folder for a link between a check and a copy; as root, the
+  // copy would then pull in another app's files. As the app, it can only copy
+  // what the app could already read.
+  function rsyncAsApp(args) {
+    return execFileSync('rsync', args, { encoding: 'utf8', timeout: 300000, ...(ids || {}) });
+  }
 
   // the app user must own the build tree it writes into
   if (ids) { try { exec(`chown -R ${appUser}:${appUser} "${repoDir}"`); } catch { /* best effort */ } }
@@ -328,10 +342,19 @@ async function deployNode(app, deployRoot, env, { appendLog, setStatus }) {
       const incoming = `${staticPath}.incoming`;
       exec(`rm -rf "${incoming}"`);
       fs.mkdirSync(incoming, { recursive: true });
+      if (ids) fs.chownSync(incoming, ids.uid, ids.gid);
       await appendLog(`Staging frontend → ${staticPath}`);
       // --no-links: links inside dist/ are dropped. Caddy serves this folder from its
       // own container, where a link could point at its certificates and config.
-      exec(`rsync -a --no-links --delete "${distDir}/" "${incoming}/"`);
+      // Owned by root and not writable by anyone else: kept as the app user, the
+      // running app could add a link here later, after this copy, and Caddy would
+      // serve whatever it pointed at.
+      rsyncAsApp(['-a', '--no-links', '--delete', `${distDir}/`, `${incoming}/`]);
+      // Then root takes it over: owner first, so nothing the app runs can add to
+      // it any more, then modes, then any link that appeared in between is removed.
+      exec(`chown -R root:root "${incoming}"`);
+      exec(`chmod -R u=rwX,go=rX "${incoming}"`);
+      exec(`find "${incoming}" -type l -delete`);
       publishFrontend = () => {
         const old = `${staticPath}.previous`;
         exec(`rm -rf "${old}"`);
@@ -349,10 +372,11 @@ async function deployNode(app, deployRoot, env, { appendLog, setStatus }) {
     await setStatus('deploying');
     const apiPath = path.join(config.paths.apps, app.slug);
     fs.mkdirSync(apiPath, { recursive: true });
+    if (ids) fs.chownSync(apiPath, ids.uid, ids.gid);
     await appendLog(`Copying server → ${apiPath}`);
     const serverReal = realInside(serverSrc, repoDir, 'server/');
     // --safe-links: keep links that stay inside the tree, drop any that point out.
-    exec(`rsync -a --safe-links --delete --exclude='.env' --exclude='node_modules' "${serverReal}/" "${apiPath}/"`);
+    rsyncAsApp(['-a', '--safe-links', '--delete', '--exclude=.env', '--exclude=node_modules', `${serverReal}/`, `${apiPath}/`]);
     if (ids) { try { exec(`chown -R ${appUser}:${appUser} "${apiPath}"`); } catch { /* best effort */ } }
     await appendLog('Installing server deps…');
     await appendLog(runAsApp(apiPath, `${installCmd(apiPath, true)} 2>&1`) || 'server deps installed');
@@ -364,23 +388,23 @@ async function deployNode(app, deployRoot, env, { appendLog, setStatus }) {
       if (key.startsWith('ASTRODOCK_') && !(key in ecosystemEnv)) ecosystemEnv[key] = '';
     }
 
-    const pkg = JSON.parse(fs.readFileSync(path.join(apiPath, 'package.json'), 'utf8'));
-    const ext = pkg.type === 'module' ? '.cjs' : '.js';
-    const ecosystemPath = path.join(apiPath, `ecosystem.config${ext}`);
     const appCfg = { name: app.slug, script: 'server.js', cwd: apiPath, log_date_format: 'YYYY-MM-DD HH:mm:ss', env: ecosystemEnv };
     if (ids) { appCfg.uid = appUser; appCfg.gid = appUser; }
-    // The app user owns this directory and has just run `npm install` in it, so a
-    // file at this name may be a link it planted. Root writing through that link
-    // would put the env anywhere. Remove whatever is there and create it fresh.
+    // The PM2 config lives outside the app's tree, as JSON, owned by root. It used
+    // to be a .js file in the app's own directory, handed to the app user and then
+    // loaded by root's `pm2 start`, which runs a .js config as code: anything the
+    // app had running could rewrite it in between. JSON is read, never run, and
+    // the app cannot reach this folder at all.
+    const ecosystemPath = appConfigFile(app.slug, 'pm2.json');
     fs.rmSync(ecosystemPath, { force: true });
-    fs.writeFileSync(ecosystemPath, `module.exports = ${JSON.stringify({ apps: [appCfg] }, null, 2)};\n`, { flag: 'wx', mode: 0o600 });
+    fs.writeFileSync(ecosystemPath, JSON.stringify({ apps: [appCfg] }, null, 2) + '\n', { flag: 'wx', mode: 0o600 });
+    // The old in-tree config held the app's secrets in a file the app owns.
+    for (const old of ['ecosystem.config.js', 'ecosystem.config.cjs']) fs.rmSync(path.join(apiPath, old), { force: true });
 
     if (ids) {
-      // lock down: secrets file 600, dirs 700, all owned by the app user — no cross-app reads
+      // dirs 700, owned by the app user: no cross-app reads
       try {
-        exec(`chown ${appUser}:${appUser} "${ecosystemPath}"`);
         exec(`chmod 700 "${apiPath}" "${repoDir}"`);
-        exec(`chmod 600 "${ecosystemPath}"`);
       } catch (e) { await appendLog(`(note) could not lock down app dir: ${e.message}`); }
     }
 
@@ -444,7 +468,9 @@ async function deployDocker(app, deployRoot, env, { appendLog, setStatus, commit
   // env-file (contains secrets) — written to the app's apps-dir, locked down
   const apiPath = path.join(config.paths.apps, app.slug);
   fs.mkdirSync(apiPath, { recursive: true });
-  const envFile = path.join(apiPath, '.docker.env');
+  // Kept out of the app's folder, which the file browser reads.
+  const envFile = appConfigFile(app.slug, 'docker.env');
+  fs.rmSync(path.join(apiPath, '.docker.env'), { force: true });
   fs.rmSync(envFile, { force: true });
   const envText = Object.entries(env).map(([k, v]) => `${k}=${String(v).replace(/\n/g, ' ')}`).join('\n') + '\n';
   fs.writeFileSync(envFile, envText, { flag: 'wx', mode: 0o600 });

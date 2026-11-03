@@ -4,6 +4,9 @@ set -e
 if [ "$ASTRODOCK_ROLE" = "runner" ]; then
   # Runner container: owns the Docker socket, PAT, PM2, and the build volumes.
   mkdir -p "${ASTRODOCK_APPS_DIR:-/data/apps}" "${ASTRODOCK_REPOS_DIR:-/data/repos}" "${ASTRODOCK_STATIC_DIR:-/data/static}" "${PM2_HOME:-/data/pm2}"
+  # Per-app users and file ownership, before PM2 brings the apps back by user
+  # name; and the published static folders handed back to root (src/runner/boot.js).
+  node src/runner/boot.js || true
   # #5: bring back Node buildpack apps saved before the last restart.
   pm2 resurrect >/dev/null 2>&1 || pm2 ping >/dev/null 2>&1 || true
   exec node src/runner/server.js

@@ -82,6 +82,39 @@ if (op === 'list') {
 }
 `;
 
+// PM2 apps: the same script, run on the runner as the app's own user, so a link
+// the app swaps in between a check and a read can only reach what the app could
+// read anyway. Reading as root left a gap between checking a path and opening it.
+function asAppUserOp(app, ids, op, relative) {
+  const { execFileSync } = require('child_process');
+  const root = path.resolve(config.paths.apps, app.slug);
+  if (!fs.existsSync(root)) throw new Error('This app has not been deployed yet.');
+  let raw;
+  try {
+    raw = execFileSync(process.execPath, ['-e', IN_CONTAINER_SCRIPT, op, relative || '.', String(MAX_FILE_BYTES)], {
+      cwd: root, env: { PATH: process.env.PATH }, uid: ids.uid, gid: ids.gid,
+      encoding: 'utf8', timeout: 15000, maxBuffer: 4 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe']
+    });
+  } catch { throw new Error('The app\'s files could not be read.'); }
+  const res = JSON.parse(raw || '{}');
+  if (res.error === 'too_big') throw new Error(`That file is ${Math.round(res.size / 1024)}KB; the limit is ${MAX_FILE_BYTES / 1024}KB.`);
+  if (res.error) throw new Error(res.error);
+  return res;
+}
+
+// Which way this app's files and commands are reached. Never as root: the runner
+// holds the Docker socket, so root here is root on the host.
+//   container  a Node app in its own container (docker exec, uid 1000)
+//   docker     a Dockerfile app (docker exec into its container, as the image's user)
+//   user       a PM2 app with its own user, on safe ids
+function accessFor(app) {
+  if (nodeInContainer(app)) return { kind: 'container' };
+  if (app && typeof app === 'object' && app.runtimeType === 'docker') return { kind: 'docker' };
+  const ids = appIds(app);
+  if (ids) return { kind: 'user', ids };
+  throw new Error('This app has no user of its own yet. Redeploy it, then try again.');
+}
+
 function nodeInContainer(app) {
   return app && typeof app === 'object' && app.runtimeType !== 'docker' && app.nodeIsolation === 'container';
 }
@@ -105,8 +138,10 @@ function inContainerOp(app, op, relative) {
 const slugOf = (appOrSlug) => (typeof appOrSlug === 'string' ? appOrSlug : appOrSlug.slug);
 
 function listDirectory(appOrSlug, relative = '.') {
-  if (nodeInContainer(appOrSlug)) {
-    return inContainerOp(appOrSlug, 'list', relative).entries
+  const access = typeof appOrSlug === 'object' ? accessFor(appOrSlug) : { kind: 'root' };
+  if (access.kind === 'container' || access.kind === 'user') {
+    const res = access.kind === 'user' ? asAppUserOp(appOrSlug, access.ids, 'list', relative) : inContainerOp(appOrSlug, 'list', relative);
+    return res.entries
       .filter((e) => e.name !== 'node_modules' && !e.name.startsWith('.git'))
       .sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name) : a.type === 'dir' ? -1 : 1));
   }
@@ -157,8 +192,9 @@ function maskSecrets(text, envVars) {
 
 function readFile(appOrSlug, relative, envVars) {
   if (!relative) throw new Error('Which file?');
-  if (nodeInContainer(appOrSlug)) {
-    const res = inContainerOp(appOrSlug, 'read', relative);
+  const access = typeof appOrSlug === 'object' ? accessFor(appOrSlug) : { kind: 'root' };
+  if (access.kind === 'container' || access.kind === 'user') {
+    const res = access.kind === 'user' ? asAppUserOp(appOrSlug, access.ids, 'read', relative) : inContainerOp(appOrSlug, 'read', relative);
     const data = Buffer.from(res.data, 'base64');
     if (data.includes(0)) throw new Error('That looks like a binary file.');
     const { text, masked } = maskSecrets(data.toString('utf8'), envVars);
@@ -208,16 +244,10 @@ function runtimeEnv(app, envVars) {
   });
 }
 
-// The app's per-app user (created by the deploy), or null if this host has none.
+// The app's per-app user (created by the deploy), or null if it has none or is
+// still on old ids that could share the Docker socket's group (runner/app-user).
 function appIds(app) {
-  const appUser = `tsapp_${app.slug.replace(/[^a-z0-9]/g, '_')}`;
-  try {
-    const { execSync } = require('child_process');
-    return {
-      uid: parseInt(execSync(`id -u ${appUser}`, { encoding: 'utf8' }), 10),
-      gid: parseInt(execSync(`id -g ${appUser}`, { encoding: 'utf8' }), 10)
-    };
-  } catch { return null; }
+  return require('./app-user').existingAppUser(app.slug);
 }
 
 /**
@@ -240,20 +270,21 @@ function runDeclared(app, envVars, name) {
   }
 
   const { computeEnv } = require('../lib/env-compute');
-  const inside = nodeInContainer(app);
+  const access = accessFor(app);
   const cwd = path.resolve(config.paths.apps, app.slug);
-  if (!inside && !fs.existsSync(cwd)) throw new Error('This app has not been deployed yet.');
+  if (access.kind === 'user' && !fs.existsSync(cwd)) throw new Error('This app has not been deployed yet.');
 
-  // In a container of its own, the command runs there, as the app's uid, with
-  // the environment the container already has.
-  const [file, args, opts] = inside
+  // In a container of its own, the command runs there, with the environment the
+  // container already has. On the runner, as the app's own user, never as root.
+  const [file, args, opts] = access.kind === 'container'
     ? ['docker', ['exec', '-u', '1000', `app-${app.slug}`, 'sh', '-c', command], {}]
-    : ['sh', ['-c', command], {
-      cwd,
-      env: { PATH: process.env.PATH, HOME: cwd, ...computeEnv(app, envVars) },
-      // As the app's own user, never as root: this container holds the Docker socket.
-      ...(appIds(app) || {})
-    }];
+    : access.kind === 'docker'
+      ? ['docker', ['exec', `app-${app.slug}`, 'sh', '-c', command], {}]
+      : ['sh', ['-c', command], {
+        cwd,
+        env: { PATH: process.env.PATH, HOME: cwd, ...computeEnv(app, envVars) },
+        ...access.ids
+      }];
 
   return new Promise((resolve) => {
     // Still `sh -c`, but the string comes from the repository rather than the
@@ -301,12 +332,9 @@ const EXEC_TIMEOUT_MS = 5 * 60 * 1000;
 function runInteractive(app, envVars, command, res) {
   const { spawn } = require('child_process');
   const { computeEnv } = require('../lib/env-compute');
-  const inside = nodeInContainer(app);
+  const access = accessFor(app);
   const cwd = path.resolve(config.paths.apps, app.slug);
-  if (!inside && !fs.existsSync(cwd)) throw new Error('This app has not been deployed yet.');
-
-  // The app's own user, so a shell here is no more powerful than the app.
-  const ids = inside ? null : appIds(app);
+  if (access.kind === 'user' && !fs.existsSync(cwd)) throw new Error('This app has not been deployed yet.');
 
   const secrets = secretValues(envVars);
   const mask = (chunk) => {
@@ -315,14 +343,19 @@ function runInteractive(app, envVars, command, res) {
     return out;
   };
 
-  const child = inside
+  // The app's own user, or its own container, so a shell here is no more
+  // powerful than the app. A Dockerfile app used to land here with no user of
+  // its own and ran as root on the runner.
+  const child = access.kind === 'container'
     ? spawn('docker', ['exec', '-u', '1000', `app-${app.slug}`, 'sh', '-c', command], { timeout: EXEC_TIMEOUT_MS })
-    : spawn('sh', ['-c', command], {
-      cwd,
-      env: { PATH: process.env.PATH, HOME: cwd, ...computeEnv(app, envVars) },
-      timeout: EXEC_TIMEOUT_MS,
-      ...(ids || {})
-    });
+    : access.kind === 'docker'
+      ? spawn('docker', ['exec', `app-${app.slug}`, 'sh', '-c', command], { timeout: EXEC_TIMEOUT_MS })
+      : spawn('sh', ['-c', command], {
+        cwd,
+        env: { PATH: process.env.PATH, HOME: cwd, ...computeEnv(app, envVars) },
+        timeout: EXEC_TIMEOUT_MS,
+        ...access.ids
+      });
 
   const send = (event, data) => res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
 
@@ -341,5 +374,5 @@ function runInteractive(app, envVars, command, res) {
 
 module.exports = {
   listDirectory, readFile, runtimeEnv, declaredCommands, runDeclared, resolveInApp,
-  maskSecrets, terminalEnabled, runInteractive, MAX_FILE_BYTES
+  maskSecrets, terminalEnabled, runInteractive, accessFor, MAX_FILE_BYTES
 };
