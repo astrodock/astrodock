@@ -248,6 +248,12 @@ function parseRedirects(text) {
       errors.push(`"${name}" is not a valid name. Use letters, numbers and hyphens.`);
       continue;
     }
+    // No braces: Caddy expands {…} placeholders inside the target, and {env.X}
+    // or {file.…} would put the platform's secrets in a Location header.
+    if (/[{}]/.test(target)) {
+      errors.push(`"${target}" cannot contain { or }`);
+      continue;
+    }
     if (!/^https?:\/\/[^\s]+$/i.test(target)) {
       errors.push(`"${target}" must start with http:// or https://`);
       continue;

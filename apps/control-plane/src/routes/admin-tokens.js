@@ -35,8 +35,8 @@ router.get('/options', (req, res) => {
       // A key cannot grant what it does not hold, so grey those out rather than
       // letting someone build a request that will be refused.
       grantable: req.auth.type !== 'token'
-        ? key !== 'tokens:write' && (key !== 'server:exec' || req.auth.role === 'owner')
-        : (mine.includes(key) && key !== 'tokens:write' && key !== 'server:exec')
+        ? key !== 'tokens:write' && key !== 'backups:restore' && (key !== 'server:exec' || req.auth.role === 'owner')
+        : (mine.includes(key) && key !== 'tokens:write' && !scopes.OWNER_ONLY.includes(key))
     })),
     presets: Object.entries(scopes.PRESETS).map(([key, p]) => ({ key, ...p })),
     defaultExpiryDays: DEFAULT_TTL_DAYS,

@@ -122,8 +122,30 @@ const approveAccess = requireApproval({
   }
 });
 
+// A person changing who can sign in, or as what, confirms it is them first. A
+// stolen session past its confirmation window used to be enough to plant a
+// permanent owner login. Keys are the credential themselves (lib/sessions).
+function confirmed(req, res) {
+  let ok = false;
+  sessions.requireRecentAuth(req, res, () => { ok = true; });
+  return ok;
+}
+
+// The owners who can still sign in. Counting deactivated ones let the last
+// active owner be removed.
+async function activeOwnerCount() {
+  const all = await db.select({ role: schema.users.operatorRole, active: schema.users.isActive }).from(schema.users);
+  return all.filter((u) => u.role === 'owner' && u.active).length;
+}
+
 // Create
 router.post('/', requirePermission('users:write'), async (req, res) => {
+  // A key limited to some apps cannot make accounts with a password it chose:
+  // it could claim someone's address before they ever sign up. It can invite.
+  if (req.auth.type === 'token' && Array.isArray(req.auth.appScope) && req.auth.appScope.length) {
+    return res.status(403).json({ error: 'A key limited to apps cannot create accounts. Use an invite instead.' });
+  }
+  if (!confirmed(req, res)) return;
   const { email, name, password } = req.body || {};
   if (!email || !name || !password) return res.status(400).json({ error: 'email, name, and password are required' });
   if (password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
@@ -202,28 +224,21 @@ router.patch('/:id', requirePermission('users:write'), async (req, res) => {
   if (!verdict.ok) return refuse(res, verdict);
 
   const { name, isActive, operatorRole, email } = req.body || {};
+  // Types first. A string "false" used to skip the checks below and still be
+  // stored as false by Postgres.
+  if (isActive !== undefined && typeof isActive !== 'boolean') return res.status(400).json({ error: 'isActive must be true or false' });
+  if (operatorRole !== undefined && operatorRole !== null && typeof operatorRole !== 'string') return res.status(400).json({ error: 'operatorRole must be a role name or null' });
+  if (name !== undefined && typeof name !== 'string') return res.status(400).json({ error: 'name must be text' });
+  if (email !== undefined && typeof email !== 'string') return res.status(400).json({ error: 'email must be text' });
+
+  const roleChanges = operatorRole !== undefined && operatorRole !== target.operatorRole;
+  const activeChanges = isActive !== undefined && isActive !== target.isActive;
+  const operatorEmailChanges = !!target.operatorRole && email !== undefined && accountEmail.normalize(email) !== target.email;
+  if ((roleChanges || activeChanges || operatorEmailChanges) && !confirmed(req, res)) return;
+
   const update = { updatedAt: new Date() };
   if (name !== undefined) update.name = name;
   if (isActive !== undefined) update.isActive = isActive;
-
-  // The sign-in address. Previously unchangeable here and everywhere else, which
-  // made a typo in an invite permanent — and the address is also what Google
-  // linking matches on for a first sign-in, so a wrong one locked someone out of
-  // the account they were invited to. Applied without a confirmation round trip
-  // on purpose: the address is wrong precisely because nobody can read mail
-  // there. A person changing their OWN address does have to prove it; that path
-  // is in lib/account-email.
-  if (email !== undefined && accountEmail.normalize(email) !== target.email) {
-    try {
-      await accountEmail.setByOperator({
-        userId: target.id,
-        newEmail: email,
-        actor: req.auth.type === 'token' ? (req.auth.name || 'key') : (req.auth.email || 'operator')
-      });
-    } catch (err) {
-      return res.status(400).json({ error: err.message });
-    }
-  }
 
   if (operatorRole !== undefined) {
     // Granting dashboard access is a privilege change, so it is a person's call —
@@ -239,24 +254,39 @@ router.patch('/:id', requirePermission('users:write'), async (req, res) => {
     }
     // Never remove the last owner: an install with none has nobody who can undo
     // anything, and no path back short of editing the database.
-    if (target.operatorRole === 'owner' && operatorRole !== 'owner') {
-      const all = await db.select({ role: schema.users.operatorRole }).from(schema.users);
-      if (all.filter((u) => u.role === 'owner').length <= 1) {
-        return res.status(400).json({ error: 'This is the only owner. Make someone else an owner first.' });
-      }
+    if (target.operatorRole === 'owner' && operatorRole !== 'owner' && target.isActive && await activeOwnerCount() <= 1) {
+      return res.status(400).json({ error: 'This is the only owner. Make someone else an owner first.' });
     }
     update.operatorRole = operatorRole;
     update.isAdmin = !!operatorRole; // keep the legacy flag consistent
   }
 
   // Same reasoning for deactivation as for demotion.
-  if (isActive === false && target.operatorRole === 'owner') {
-    const all = await db.select({ role: schema.users.operatorRole, active: schema.users.isActive })
-      .from(schema.users);
-    if (all.filter((u) => u.role === 'owner' && u.active).length <= 1) {
-      return res.status(400).json({ error: 'This is the only active owner.' });
+  if (isActive === false && target.operatorRole === 'owner' && target.isActive && await activeOwnerCount() <= 1) {
+    return res.status(400).json({ error: 'This is the only active owner.' });
+  }
+
+  // The sign-in address. Previously unchangeable here and everywhere else, which
+  // made a typo in an invite permanent — and the address is also what Google
+  // linking matches on for a first sign-in, so a wrong one locked someone out of
+  // the account they were invited to. Applied without a confirmation round trip
+  // on purpose: the address is wrong precisely because nobody can read mail
+  // there. A person changing their OWN address does have to prove it; that path
+  // is in lib/account-email.
+  // Applied after every check above passes, so a refused role change no longer
+  // leaves the address changed.
+  if (email !== undefined && accountEmail.normalize(email) !== target.email) {
+    try {
+      await accountEmail.setByOperator({
+        userId: target.id,
+        newEmail: email,
+        actor: req.auth.type === 'token' ? (req.auth.name || 'key') : (req.auth.email || 'operator')
+      });
+    } catch (err) {
+      return res.status(400).json({ error: err.message });
     }
   }
+
 
   const rows = await db.update(schema.users).set(update).where(eq(schema.users.id, req.params.id)).returning();
   // Losing the dashboard, or the account, ends the sessions that came with it.
@@ -274,6 +304,10 @@ router.delete('/:id', requirePermission('users:write'), async (req, res) => {
   if (!target) return res.status(404).json({ error: 'User not found' });
   const verdict = await guardTarget(req, target);
   if (!verdict.ok) return refuse(res, verdict);
+  if (target.operatorRole && !confirmed(req, res)) return;
+  if (target.operatorRole === 'owner' && target.isActive && await activeOwnerCount() <= 1) {
+    return res.status(400).json({ error: 'This is the only active owner. Make someone else an owner first.' });
+  }
   await sessions.revokeAllFor(target.id).catch(() => {});
   const rows = await db.delete(schema.users).where(eq(schema.users.id, req.params.id)).returning();
   if (!rows[0]) return res.status(404).json({ error: 'User not found' });
@@ -286,11 +320,14 @@ router.post('/:id/reset-password', requirePermission('users:write'), async (req,
   if (!target) return res.status(404).json({ error: 'User not found' });
   const verdict = await guardTarget(req, target);
   if (!verdict.ok) return refuse(res, verdict);
+  if (!confirmed(req, res)) return;
   const { newPassword } = req.body || {};
-  if (!newPassword || newPassword.length < 8) return res.status(400).json({ error: 'newPassword must be at least 8 characters' });
+  if (typeof newPassword !== 'string' || newPassword.length < 8) return res.status(400).json({ error: 'newPassword must be at least 8 characters' });
   const passwordHash = await hashPassword(newPassword);
   const rows = await db.update(schema.users).set({ passwordHash, updatedAt: new Date() }).where(eq(schema.users.id, req.params.id)).returning();
   if (!rows[0]) return res.status(404).json({ error: 'User not found' });
+  // Whoever was signed in with the old password is signed out.
+  await sessions.revokeAllFor(target.id).catch(() => {});
   res.status(204).end();
 });
 

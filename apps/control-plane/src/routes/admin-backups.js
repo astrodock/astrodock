@@ -27,6 +27,9 @@ router.use(requireAdmin);
 // applies a dump needs backups:write: a dump holds every password hash, and a
 // restore runs whatever SQL is in the file.
 const canWrite = permit('backups:write');
+// Download (every password hash and secret), upload and restore (any SQL, as the
+// database superuser) take permit('backups:restore'), which only the owner holds:
+// each of them is a way to owner.
 
 router.get('/', permit('settings:read'), async (req, res, next) => {
   try {
@@ -48,7 +51,7 @@ router.post('/', canWrite, async (req, res) => {
 });
 
 // Stream a dump out through the api, so the runner never has to be exposed.
-router.get('/:id/file', canWrite, requireRecentAuth, async (req, res) => {
+router.get('/:id/file', permit('backups:restore'), requireRecentAuth, async (req, res) => {
   try {
     const upstream = await runner.backupFile(req.params.id);
     if (!upstream.ok) {
@@ -75,7 +78,7 @@ router.get('/:id/file', canWrite, requireRecentAuth, async (req, res) => {
 
 // Bring a dump back onto the box. Not step-up on its own: uploading only adds a
 // row to the list. Doing anything WITH it is the guarded part.
-router.post('/upload', canWrite, express.raw({ type: '*/*', limit: '2gb' }), async (req, res) => {
+router.post('/upload', permit('backups:restore'), requireRecentAuth, express.raw({ type: '*/*', limit: '2gb' }), async (req, res) => {
   try {
     const r = await runner.backupUpload(req.body, req.auth.email);
     if (r.status !== 200) return res.status(r.status || 502).json(r.body || { error: 'runner error' });
@@ -83,7 +86,7 @@ router.post('/upload', canWrite, express.raw({ type: '*/*', limit: '2gb' }), asy
   } catch (err) { res.status(err.status || 500).json({ error: err.message }); }
 });
 
-router.post('/:id/restore', canWrite, requireRecentAuth, async (req, res) => {
+router.post('/:id/restore', permit('backups:restore'), requireRecentAuth, async (req, res) => {
   try {
     emitEvent({
       category: 'audit', type: 'restore.requested', severity: 'critical',

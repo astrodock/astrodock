@@ -24,6 +24,31 @@ function exec(cmd, opts = {}) {
 
 const within = (root, p) => p === root || p.startsWith(root + path.sep);
 
+// Values read from the database that reach git and docker command lines. The
+// API checks them on the way in, but a database can be written other ways (a
+// restored backup is arbitrary SQL), and this process runs them as root next to
+// the Docker socket. So they are checked again here, where they are used.
+const SAFE = {
+  slug: (v) => /^[a-z0-9-]{1,40}$/.test(v),
+  branch: (v) => /^[A-Za-z0-9._/-]{1,200}$/.test(v) && !v.startsWith('-') && !v.includes('..'),
+  githubRepo: (v) => /^[A-Za-z0-9_.-]{1,100}\/[A-Za-z0-9_.-]{1,100}$/.test(v) && !v.includes('..'),
+  path: (v) => /^[A-Za-z0-9._/-]{0,200}$/.test(v) && !v.includes('..') && !v.startsWith('-'),
+  commit: (v) => /^[0-9a-f]{7,40}$/.test(v)
+};
+
+function checkDeployInputs(app, deployment, targetCommit) {
+  const bad = [];
+  if (!SAFE.slug(String(app.slug || ''))) bad.push('slug');
+  if (app.branch != null && app.branch !== '' && !SAFE.branch(String(app.branch))) bad.push('branch');
+  if (app.githubRepo && !SAFE.githubRepo(String(app.githubRepo))) bad.push('repository');
+  if (app.repoPath && !SAFE.path(String(app.repoPath))) bad.push('repository path');
+  if (app.dockerfile && !SAFE.path(String(app.dockerfile))) bad.push('Dockerfile path');
+  if (targetCommit && !SAFE.commit(String(targetCommit))) bad.push('target commit');
+  const hash = deployment.commitHash;
+  if (hash && hash !== 'local' && !SAFE.commit(String(hash))) bad.push('commit');
+  if (bad.length) throw new Error(`Refusing to deploy: this app's ${bad.join(', ')} ${bad.length === 1 ? 'is' : 'are'} not in a valid format.`);
+}
+
 // The repo, its build output and app.repoPath are all controlled by the app, and
 // they are copied by root. A `dist` that is a symlink to /data/apps or
 // /data/backups got rsync'ed — contents and all — into the app's public static
@@ -77,6 +102,7 @@ async function run() {
   }
 
   try {
+    checkDeployInputs(app, deployment, targetCommit);
     // Re-run the gate defensively.
     const missing = computeMissingRequired(app, envVars);
     if (missing.length) throw new Error(`Missing required variables: ${missing.map((m) => m.key).join(', ')}`);
@@ -123,6 +149,7 @@ async function run() {
         exec(`git -C "${repoDir}" reset --hard "origin/${app.branch}"`);
       }
       if (!commitHash) commitHash = exec(`git -C "${repoDir}" rev-parse --short HEAD`);
+      if (commitHash !== 'local' && !SAFE.commit(String(commitHash).trim())) throw new Error('git returned an unexpected commit id.');
       if (!commitMessage) commitMessage = exec(`git -C "${repoDir}" log -1 --pretty=%s`);
     }
     await db.update(schema.deployments).set({ commitHash, commitMessage }).where(eq(schema.deployments.id, deploymentId));
@@ -557,4 +584,8 @@ async function probe(app) {
   return false;
 }
 
-run().catch((err) => { console.error('deploy worker crashed:', err); process.exit(1); });
+if (require.main === module) {
+  run().catch((err) => { console.error('deploy worker crashed:', err); process.exit(1); });
+}
+
+module.exports = { checkDeployInputs, SAFE };

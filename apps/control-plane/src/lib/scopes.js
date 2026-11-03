@@ -55,8 +55,16 @@ const SCOPES = {
   // Root on the host. Held by the owner role only, in no preset, and a key that
   // carries it must be minted by an owner, cover every app and expire within 24
   // hours (routes/admin-tokens.js). A key can never pass it on.
-  'server:exec': { group: 'sensitive', label: 'Run Server Commands', description: 'Run commands as root on the server itself: disk, Docker, system updates' }
+  'server:exec': { group: 'sensitive', label: 'Run Server Commands', description: 'Run commands as root on the server itself: disk, Docker, system updates' },
+  // A restore runs whatever SQL is in the file as the database superuser, and a
+  // download is every password hash and secret. Either is a way to owner, so
+  // both are the owner's alone, and no key can hold it (the backups routes
+  // refuse keys outright).
+  'backups:restore': { group: 'sensitive', label: 'Download & Restore Backups', description: 'Download a full copy of the database, or restore one. Owner only.' }
 };
+
+// Held by the owner role and nobody else: in no preset, never granted by a key.
+const OWNER_ONLY = ['server:exec', 'backups:restore'];
 
 const ALL = Object.keys(SCOPES);
 const describe = (k) => (SCOPES[k] ? SCOPES[k].description : k);
@@ -86,7 +94,7 @@ const PRESETS = {
   platform: {
     label: 'Platform Manager',
     description: 'Manage the whole platform. Excludes running commands and minting keys.',
-    scopes: ALL.filter((s) => s !== 'exec' && s !== 'tokens:write' && s !== 'server:exec')
+    scopes: ALL.filter((s) => s !== 'exec' && s !== 'tokens:write' && !OWNER_ONLY.includes(s))
   },
   readonly: {
     label: 'Read-Only',
@@ -119,7 +127,7 @@ const PRESETS = {
 const LEGACY = {
   deploy: PRESETS.deployer.scopes,
   pages: ['pages:read', 'pages:write'],
-  '*': ALL.filter((s) => s !== 'exec' && s !== 'tokens:write' && s !== 'server:exec')
+  '*': ALL.filter((s) => s !== 'exec' && s !== 'tokens:write' && !OWNER_ONLY.includes(s))
 };
 
 function isLegacy(scopes) {
@@ -174,6 +182,9 @@ function checkDelegation(minter, requested) {
   if (want.includes('server:exec')) {
     throw new Error('A key cannot grant server:exec. Only an owner can create a key that runs server commands.');
   }
+  if (want.includes('backups:restore')) {
+    throw new Error('A key cannot grant backups:restore. Backups are handled by the owner, in the dashboard.');
+  }
 
   const excess = want.filter((s) => !mine.has(s));
   if (excess.length) {
@@ -201,4 +212,4 @@ function checkDelegation(minter, requested) {
   }
 }
 
-module.exports = { SCOPES, GROUPS, ALL, PRESETS, LEGACY, expand, has, validate, checkDelegation, isLegacy, describe };
+module.exports = { SCOPES, GROUPS, ALL, OWNER_ONLY, PRESETS, LEGACY, expand, has, validate, checkDelegation, isLegacy, describe };

@@ -85,5 +85,34 @@ test('no dump means nothing to restore', () => {
   assert.deepStrictEqual(boot.pm2Apps(), []);
 });
 
+console.log('\ndeploy inputs from the database');
+const { checkDeployInputs } = require('../src/runner/deploy-worker.js');
+const okApp = { slug: 'web', branch: 'main', githubRepo: 'acme/web', repoPath: 'apps/web', dockerfile: 'Dockerfile' };
+test('ordinary values pass', () => {
+  checkDeployInputs(okApp, { commitHash: 'abc1234' }, null);
+  checkDeployInputs({ ...okApp, branch: 'feature/x-1.2' }, { commitHash: 'local' }, 'deadbeefcafe');
+});
+test('a branch with shell in it is refused', () => {
+  assert.throws(() => checkDeployInputs({ ...okApp, branch: 'main"; id; "' }, {}, null), /branch/);
+  assert.throws(() => checkDeployInputs({ ...okApp, branch: '--upload-pack=x' }, {}, null), /branch/);
+});
+test('a commit that is not hex is refused', () => {
+  assert.throws(() => checkDeployInputs(okApp, { commitHash: '$(id)' }, null), /commit/);
+  assert.throws(() => checkDeployInputs(okApp, {}, 'HEAD; id'), /target commit/);
+});
+test('paths cannot climb out or start a flag', () => {
+  assert.throws(() => checkDeployInputs({ ...okApp, dockerfile: '../../etc/x' }, {}, null), /Dockerfile/);
+  assert.throws(() => checkDeployInputs({ ...okApp, repoPath: '-x' }, {}, null), /repository path/);
+  assert.throws(() => checkDeployInputs({ ...okApp, githubRepo: 'a/b c' }, {}, null), /repository/);
+});
+
+console.log('\nredirect targets');
+const { parseRedirects } = require('../src/provision/caddy.js');
+test('a target with a Caddy placeholder is refused', () => {
+  const { redirects, errors } = parseRedirects('get https://evil.example/{env.ASTRODOCK_SECRET_KEY}\nok https://example.com');
+  assert.deepStrictEqual(redirects.map((r) => r.name), ['ok']);
+  assert.strictEqual(errors.length, 1);
+});
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

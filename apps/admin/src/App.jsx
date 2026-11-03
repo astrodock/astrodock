@@ -22,6 +22,7 @@ import ConnectPage from './pages/ConnectPage';
 import ApprovePage from './pages/ApprovePage';
 import WelcomePage from './pages/WelcomePage';
 import ServerPage from './pages/ServerPage';
+import ReauthModal from './components/ReauthModal';
 import './App.css';
 
 // What the footer dot is allowed to claim.
@@ -94,6 +95,12 @@ export default function App() {
   // The footer used to assert "System nominal" from a hardcoded string next to a
   // permanently green dot, which told you nothing and could not be wrong.
   const [me, setMe] = useState(null);
+  // One confirm-it-is-you prompt for the whole dashboard (lib/api onReauthNeeded).
+  const [reauthAsk, setReauthAsk] = useState(null);
+  useEffect(() => {
+    api.onReauthNeeded(() => new Promise((resolve) => setReauthAsk({ resolve })));
+    return () => api.onReauthNeeded(null);
+  }, []);
   const [meVersion, setMeVersion] = useState(0);
   // Once the welcome page is up it stays until it says it is done: adding a
   // password is its first step, and the account refresh would otherwise swap
@@ -215,6 +222,12 @@ export default function App() {
 
   return (
     <div className="app">
+      {reauthAsk && (
+        <ReauthModal
+          onConfirm={() => { reauthAsk.resolve(true); setReauthAsk(null); }}
+          onCancel={() => { reauthAsk.resolve(false); setReauthAsk(null); }}
+        />
+      )}
       <header className="topbar">
         <Link className="tb-brand" to="/overview">
           <span className="logo-mark">

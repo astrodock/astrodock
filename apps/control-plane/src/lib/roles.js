@@ -11,7 +11,7 @@
 // two are independent: an owner with no app_access cannot sign into an app, and an
 // end user with app_access has no dashboard at all. See AUTH_DESIGN.md.
 
-const { ALL } = require('./scopes');
+const { ALL, OWNER_ONLY } = require('./scopes');
 
 const ROLES = {
   owner: {
@@ -21,16 +21,17 @@ const ROLES = {
   },
   admin: {
     label: 'Admin',
-    description: 'Everything except transferring ownership and running commands on the server.',
-    // server:exec is root on the host, which is the one thing beyond an admin.
-    scopes: ALL.filter((s) => s !== 'server:exec')
+    description: 'Everything except transferring ownership, running commands on the server, and downloading or restoring backups.',
+    // server:exec is root on the host, and a restore runs any SQL as the database
+    // superuser (a way to owner). Both stay with the owner.
+    scopes: ALL.filter((s) => !OWNER_ONLY.includes(s))
   },
   operator: {
     label: 'Operator',
     description: 'Apps, deploys, configuration, runtime and logs. No user or key management, and no backups.',
     // backups:write is withheld because a restore runs arbitrary SQL and a backup
     // file holds every password hash: either one is a path to owner.
-    scopes: ALL.filter((s) => !['users:write', 'tokens:write', 'platform:write', 'settings:write', 'backups:write', 'apps:delete', 'exec', 'server:exec']
+    scopes: ALL.filter((s) => !['users:write', 'tokens:write', 'platform:write', 'settings:write', 'backups:write', 'backups:restore', 'apps:delete', 'exec', 'server:exec']
       .includes(s))
   },
   viewer: {

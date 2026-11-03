@@ -299,10 +299,12 @@ router.post('/dns/create', requireAdmin, permit('platform:write'), async (req, r
 const handoffs = new Map();
 const HANDOFF_TTL_MS = 5 * 60 * 1000;
 
-function mintHandoff(user) {
+// `until` is when the session that asked for the handoff ends. The new session
+// ends then too: a handoff carries a session across, it does not renew one.
+function mintHandoff(user, until) {
   for (const [k, v] of handoffs) if (v.expires < Date.now()) handoffs.delete(k);
   const nonce = crypto.randomBytes(24).toString('hex');
-  handoffs.set(nonce, { user, expires: Date.now() + HANDOFF_TTL_MS });
+  handoffs.set(nonce, { user, until, expires: Date.now() + HANDOFF_TTL_MS });
   return nonce;
 }
 
@@ -323,8 +325,12 @@ router.post('/handoff', async (req, res) => {
   // finished the first-run wizard got one of these and spent the next eight hours
   // unable to add a passkey, change a password or download a backup. It was also
   // invisible to "sign out everywhere else", since there was nothing to revoke.
+  //
+  // Not marked as freshly confirmed, and no longer than the session it came
+  // from. Setting the domain used to hand back a new 8-hour session that counted
+  // as just confirmed, which a stolen session could repeat to renew itself.
   const { token } = await sessions.create(entry.user, {
-    ip: req.ip, userAgent: req.get('user-agent') || ''
+    ip: req.ip, userAgent: req.get('user-agent') || '', reauthed: false, until: entry.until || null
   });
   res.json({ token, user: { id: entry.user.id, email: entry.user.email } });
 });
@@ -383,7 +389,12 @@ router.post('/domain/impact', requireAdmin, permit('platform:write'), async (req
 
 // Commit the domain. Persists it, applies it to the live config, and republishes
 // routing — after which the operator is redirected to the real admin host.
-router.post('/domain', requireAdmin, permit('platform:write'), async (req, res) => {
+// Changing the domain of a running platform moves every app and the dashboard,
+// so it asks the person to confirm it is them. The first-run wizard is exempt:
+// there is nothing published yet, and its DNS step can outlast the window.
+const confirmIfConfigured = (req, res, next) => (config.isConfigured() ? sessions.requireRecentAuth(req, res, next) : next());
+
+router.post('/domain', requireAdmin, permit('platform:write'), confirmIfConfigured, async (req, res) => {
   const { tlsMode, acmeEmail } = req.body || {};
   const baseDomain = normalizeHostname((req.body || {}).baseDomain);
   try {
@@ -432,7 +443,13 @@ router.post('/domain', requireAdmin, permit('platform:write'), async (req, res) 
     try {
       const rows = await db.select({ id: schema.users.id, email: schema.users.email })
         .from(schema.users).where(eq(schema.users.email, req.auth.email)).limit(1);
-      if (rows[0]) handoff = mintHandoff(rows[0]);
+      let until = null;
+      if (req.auth.sessionId) {
+        const [sess] = await db.select({ expiresAt: schema.sessions.expiresAt })
+          .from(schema.sessions).where(eq(schema.sessions.id, req.auth.sessionId)).limit(1);
+        until = sess ? sess.expiresAt : null;
+      }
+      if (rows[0]) handoff = mintHandoff(rows[0], until);
     } catch { /* a failed handoff just means one extra sign-in */ }
 
     res.json({

@@ -44,6 +44,13 @@ export class ApiError extends Error {
   }
 }
 
+// When the server asks the person to confirm it is them (reauth_required), the
+// dashboard shows one prompt and retries the request, wherever it came from.
+// Pages used to each catch this themselves, and the ones that did not showed
+// "Please confirm it is you" as an error with no way to do it.
+let reauthHandler = null;
+export function onReauthNeeded(fn) { reauthHandler = fn; }
+
 async function request(path, options = {}) {
   const headers = { 'Content-Type': 'application/json', ...options.headers };
   if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -65,6 +72,11 @@ async function request(path, options = {}) {
 
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
+    if (data.code === 'reauth_required' && reauthHandler && !options.reauthRetried) {
+      const confirmed = await reauthHandler();
+      if (confirmed) return request(path, { ...options, reauthRetried: true });
+      throw new ApiError('Not confirmed, so nothing was changed.', { status: res.status, body: { code: 'reauth_cancelled' } });
+    }
     throw new ApiError(data.error || 'Request failed', { status: res.status, body: data });
   }
   return data;

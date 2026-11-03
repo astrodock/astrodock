@@ -37,9 +37,14 @@ function welcomeAllows(req) {
   return WELCOME_PATHS.some(([m, re]) => m === req.method && re.test(path));
 }
 
-async function create(user, { ip = '', userAgent = '', reauthed = true, purpose = null } = {}) {
+async function create(user, { ip = '', userAgent = '', reauthed = true, purpose = null, until = null } = {}) {
   const hours = purpose === 'welcome' ? WELCOME_HOURS : SESSION_HOURS;
-  const expiresAt = new Date(Date.now() + hours * 3600 * 1000);
+  // `until` caps the session at an existing one's end, for a session that carries
+  // another over rather than starting a new sign-in.
+  const fullEnd = Date.now() + hours * 3600 * 1000;
+  const end = until ? Math.min(fullEnd, new Date(until).getTime()) : fullEnd;
+  const expiresAt = new Date(end);
+  const lifetimeS = Math.max(60, Math.floor((end - Date.now()) / 1000));
   const [session] = await db.insert(schema.sessions).values({
     userId: user.id,
     ip: String(ip || '').slice(0, 64),
@@ -58,7 +63,7 @@ async function create(user, { ip = '', userAgent = '', reauthed = true, purpose 
       sid: session.id
     },
     config.adminJwtSecret,
-    { expiresIn: `${hours}h` }
+    { expiresIn: lifetimeS }
   );
 
   await db.update(schema.users).set({ lastLoginAt: new Date() }).where(eq(schema.users.id, user.id));

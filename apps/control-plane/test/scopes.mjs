@@ -190,6 +190,13 @@ test('no preset and no legacy scope expands to server:exec', () => {
   assert.ok(!S.expand(['*']).includes('server:exec'));
 });
 
+test('only the owner role can download or restore backups', () => {
+  assert.ok(R.scopesFor('owner').includes('backups:restore'));
+  for (const role of ['admin', 'operator', 'viewer']) assert.ok(!R.scopesFor(role).includes('backups:restore'), role);
+  for (const [k, p] of Object.entries(S.PRESETS)) assert.ok(!p.scopes.includes('backups:restore'), k);
+  assert.ok(!S.expand(['*']).includes('backups:restore'));
+});
+
 test('a key can never pass server:exec on', () => {
   const minter = { scopes: ['server:exec', 'tokens:write', 'apps:read'], appScope: [], expiresAt: null };
   assert.throws(() => S.checkDelegation(minter, { scopes: ['server:exec'], appScope: [], expiresAt: null }), /server:exec/);

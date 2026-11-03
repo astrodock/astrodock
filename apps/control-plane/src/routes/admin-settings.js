@@ -50,6 +50,23 @@ router.patch('/', async (req, res, next) => {
     const body = req.body && typeof req.body === 'object' ? req.body : {};
     const updates = body.updates && typeof body.updates === 'object' ? body.updates : body;
 
+    // Switching off a protection is confirmed by the person, and recorded as
+    // critical. One approval needs a passkey or authenticator code; turning every
+    // approval off used to need nothing beyond a signed-in admin.
+    const weakening = [];
+    if (String(updates['security.agent_approvals'] ?? '') === 'off') weakening.push('security.agent_approvals');
+    if (String(updates['security.require_mfa'] ?? '') === 'off') weakening.push('security.require_mfa');
+    if (weakening.length) {
+      let ok = false;
+      require('../lib/sessions').requireRecentAuth(req, res, () => { ok = true; });
+      if (!ok) return;
+      emitEvent({
+        category: 'audit', type: 'settings.protection_off', severity: 'critical',
+        ...require('../lib/events').actorFromAuth(req.auth), ip: req.ip || '',
+        message: `Turned off: ${weakening.join(', ')}`, meta: { keys: weakening }
+      }).catch(() => {});
+    }
+
     // Pointing the base domain at an app that cannot serve it produces a hostname
     // that answers nothing, and the operator finds out by visiting their own site.
     if (updates['routing.apex_app']) {
