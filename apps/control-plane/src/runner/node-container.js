@@ -205,6 +205,8 @@ async function deployNodeContainer(app, deployRoot, env, { appendLog, setStatus,
       docker(['run', '-d', '--name', name, '--network', network, '--restart', 'unless-stopped', '--init',
         ...dockerLimitArgs(app),
         '--pids-limit', '1024', '--security-opt', 'no-new-privileges', '--cap-drop', 'ALL',
+        // Logs kept forever fill the disk for every app.
+        '--log-opt', 'max-size=10m', '--log-opt', 'max-file=3',
         '--label', `astrodock.app=${app.slug}`,
         '--env-file', envFile, tag]);
     }

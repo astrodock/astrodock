@@ -178,6 +178,7 @@ router.get('/google/link', accountLimiter, async (req, res) => {
   }
   try {
     const { url } = await google.begin({
+      res,
       redirectUri: googleCallbackUrl(req),
       // The session is re-read at the callback rather than trusted from here, so
       // a link cannot be aimed at somebody else's account.

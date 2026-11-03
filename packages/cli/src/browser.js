@@ -8,12 +8,26 @@
 
 const { spawn } = require('node:child_process');
 
-function openUrl(url) {
+// Only a plain http(s) address is opened. The URL comes from a server (an
+// approval link, a sign-in page), and `open` accepts any scheme or file path,
+// while Windows' `cmd /c start` reads & and | as the start of another command.
+function safeUrl(url) {
+  let u;
+  try { u = new URL(String(url)); } catch { return null; }
+  if (u.protocol !== 'https:' && !(u.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(u.hostname))) return null;
+  const href = u.href;
+  return /["'`<>\s]/.test(href) ? null : href;
+}
+
+function openUrl(raw) {
   if (process.env.ASTRODOCK_NO_BROWSER) return false;
+  const url = safeUrl(raw);
+  if (!url) return false;
   let cmd;
   let args;
   if (process.platform === 'darwin') { cmd = 'open'; args = [url]; }
-  else if (process.platform === 'win32') { cmd = 'cmd'; args = ['/c', 'start', '""', url]; }
+  // rundll32 hands the address to the default browser without a shell.
+  else if (process.platform === 'win32') { cmd = 'rundll32'; args = ['url.dll,FileProtocolHandler', url]; }
   else {
     // No display means no browser to open; xdg-open would fail or pick a text one.
     if (!process.env.DISPLAY && !process.env.WAYLAND_DISPLAY) return false;
@@ -29,4 +43,4 @@ function openUrl(url) {
   }
 }
 
-module.exports = { openUrl };
+module.exports = { openUrl, safeUrl };

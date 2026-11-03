@@ -93,7 +93,11 @@ router.use('/mobile', async (req, res, next) => {
 
 // ── sign-in ──────────────────────────────────────────────────────────────────
 
-router.get('/mobile/authorize', pageLoginLimiter, async (req, res, next) => {
+// The confirming second request (?confirm=) is not counted: it only works for a
+// browser already signed in, and counting it halved the sign-ins allowed.
+const authorizeLimiter = (req, res, next) => (req.query.confirm ? next() : pageLoginLimiter(req, res, next));
+
+router.get('/mobile/authorize', authorizeLimiter, async (req, res, next) => {
   try {
     const { code_challenge: codeChallenge, code_challenge_method: method, redirect_uri: redirectUri } = req.query;
     const state = String(req.query.state || '').slice(0, 512);
@@ -109,15 +113,29 @@ router.get('/mobile/authorize', pageLoginLimiter, async (req, res, next) => {
     }
     res.setHeader('Cache-Control', 'no-store');
 
-    // Already signed in to the platform: no new trust decision, so hand back a
-    // code straight away. prompt=login forces the form, as on /authorize.
+    // Already signed in to the platform: the person confirms once, then gets a
+    // code. This used to happen with no prompt, so any app on the phone that
+    // claimed astrodock:// and opened this page with its own PKCE challenge got
+    // a device credential for whoever was signed in to the browser.
+    // prompt=login forces the form, as on /authorize.
     const session = userSession.read(req);
     if (session && req.query.prompt !== 'login') {
       const [user] = await db.select().from(schema.users).where(eq(schema.users.id, session.sub)).limit(1);
       if (user && user.isActive) {
-        const code = await mobile.issueCode({ userId: user.id, codeChallenge });
-        logAttempt(user.email, 'mobile', 'SUCCESS_SSO', req.ip || '');
-        return res.redirect(mobile.redirectFor(code, state));
+        // The confirm value is bound to this person and this challenge, so it
+        // cannot be prepared in advance by whoever opened the page.
+        const confirm = crypto.createHmac('sha256', config.adminJwtSecret)
+          .update(`mobile-confirm:${user.id}:${codeChallenge}`).digest('base64url');
+        const given = String(req.query.confirm || '');
+        if (given.length === confirm.length && crypto.timingSafeEqual(Buffer.from(given), Buffer.from(confirm))) {
+          const code = await mobile.issueCode({ userId: user.id, codeChallenge });
+          logAttempt(user.email, 'mobile', 'SUCCESS_SSO', req.ip || '');
+          return res.redirect(mobile.redirectFor(code, state));
+        }
+        const params = new URLSearchParams({ ...req.query, confirm });
+        return res.type('html').send(errorPage('Sign In to the Astrodock App?',
+          `You are signed in as ${user.email}. Continue only if you opened the Astrodock app and asked to sign in just now.`,
+          { icon: 'key', action: { href: `/mobile/authorize?${params}`, label: `Continue as ${user.email}` } }));
       }
     }
 
@@ -215,6 +233,15 @@ router.get('/mobile/open', async (req, res, next) => {
   res.setHeader('Cache-Control', 'no-store');
   try {
     const { user, app, path } = await mobile.redeemTicket(req.query.ticket);
+    // Never replace a different person's session in this browser. A ticket is
+    // made by a signed-in device, so a link carrying someone else's ticket would
+    // otherwise sign this browser in as them.
+    const current = userSession.read(req);
+    if (current && current.sub !== user.id) {
+      return res.status(409).type('html').send(errorPage('Signed In as Someone Else',
+        'This browser is already signed in to a different account, so this link was not used. Sign out first if you meant to switch.',
+        { icon: 'lock' }));
+    }
     userSession.set(res, user);
     logAttempt(user.email, app.slug, 'SUCCESS_MOBILE', req.ip || '');
 

@@ -146,6 +146,7 @@ router.get('/:token/google', pageLoginLimiter, async (req, res) => {
   if (error) return res.status(400).type('html').send(errorPage('That Invite Cannot Be Used', error, { icon: 'mail' }));
   try {
     const { url } = await google.begin({
+      res,
       redirectUri: googleCallbackUrl(req),
       context: { surface: 'invite', inviteToken: req.params.token, appSlug: app.slug }
     });

@@ -515,7 +515,15 @@ async function deployDocker(app, deployRoot, env, { appendLog, setStatus, commit
     // the pid cap stops a fork bomb from taking the host down with it.
     `docker run -d --name ${name} --network ${network} --restart unless-stopped`
     + ` ${require('../lib/isolation').dockerLimitArgs(app).join(' ')}`
-    + ` --security-opt no-new-privileges --pids-limit 1024 --env-file "${envFile}" "${tag}" 2>&1`
+    + ` --security-opt no-new-privileges --pids-limit 1024`
+    // NET_RAW lets a process forge packets on the shared network (ARP spoofing
+    // toward the api and runner); MKNOD and AUDIT_WRITE are not needed by apps.
+    // The rest of Docker's defaults stay, since many images switch users at start.
+    + ' --cap-drop NET_RAW --cap-drop MKNOD --cap-drop AUDIT_WRITE'
+    // Container logs are otherwise kept forever, and an app that logs a lot fills
+    // the disk for everyone.
+    + ' --log-opt max-size=10m --log-opt max-file=3'
+    + ` --env-file "${envFile}" "${tag}" 2>&1`
   ) || 'container started');
 }
 

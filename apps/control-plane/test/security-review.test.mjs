@@ -206,6 +206,19 @@ await t('a key stops working when its maker is deactivated', async () => {
   A((await J('GET', '/admin/apps', null, key)).s === 401, 'refused after');
 });
 
+console.log('\nsign-in started in one browser, finished in another');
+await t('a Google sign-in callback from a browser that did not start it is refused', async () => {
+  const google = require('../src/lib/google.js');
+  const cookies = {};
+  const fakeRes = { cookie: (name, value) => { cookies[name] = value; } };
+  const cfg = { clientId: 'cid', clientSecret: 'secret', allowedDomains: [] };
+  const { state } = await google.begin({ res: fakeRes, redirectUri: 'http://x/cb', config: cfg });
+  let msg = '';
+  try { await google.complete({ code: 'c', state, config: cfg, req: { cookies: {} } }); } catch (e) { msg = e.message; }
+  A(/different browser/.test(msg), msg);
+  A(Object.keys(cookies).length === 1, 'a binding cookie was set');
+});
+
 console.log('\nsecret settings at rest');
 await t('a secret setting saved in plain text is encrypted at startup and still reads back', async () => {
   const settings = require('../src/lib/settings.js');

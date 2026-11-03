@@ -112,14 +112,30 @@ function sweep() {
  * `config` is resolved from settings unless supplied, which is how this is
  * tested without a database.
  */
-async function begin({ redirectUri, context = {}, loginHint, config }) {
+// The browser that started a sign-in has to be the one that finishes it. The
+// state alone did not say which browser: someone could start a sign-in with
+// their own Google account, stop at the callback, and send that link to
+// somebody else, whose browser would then be signed in as them. A short-lived
+// cookie set at the start, checked at the end, ties the two together.
+function bindingCookieName() {
+  return require('../config').tlsMode !== 'off' ? '__Host-ad_google' : 'ad_google';
+}
+
+async function begin({ redirectUri, context = {}, loginHint, config, res }) {
   const { clientId } = config || await settings();
   if (!clientId) throw new Error('Google sign-in is not configured');
   sweep();
 
   const state = crypto.randomBytes(24).toString('base64url');
   const nonce = crypto.randomBytes(24).toString('base64url');
-  pending.set(state, { nonce, redirectUri, context, at: Date.now() });
+  const binding = res ? crypto.randomBytes(24).toString('base64url') : null;
+  pending.set(state, { nonce, redirectUri, context, binding, at: Date.now() });
+  if (res) {
+    res.cookie(bindingCookieName(), binding, {
+      httpOnly: true, sameSite: 'lax', secure: require('../config').tlsMode !== 'off',
+      maxAge: PENDING_TTL_MS, path: '/'
+    });
+  }
 
   const params = new URLSearchParams({
     client_id: clientId,
@@ -137,11 +153,19 @@ async function begin({ redirectUri, context = {}, loginHint, config }) {
 }
 
 /** Finish it. Returns the verified identity plus the context passed to begin(). */
-async function complete({ code, state, config }) {
+async function complete({ code, state, config, req }) {
   sweep();
   const entry = state && pending.get(state);
   if (!entry) throw new Error('This sign-in expired or was already used. Try again.');
   pending.delete(state);                        // single use, always
+  if (entry.binding) {
+    const got = String((req && req.cookies && req.cookies[bindingCookieName()]) || '');
+    const a = Buffer.from(got);
+    const b = Buffer.from(entry.binding);
+    if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+      throw new Error('This sign-in was started in a different browser. Start it again here.');
+    }
+  }
   if (!code) throw new Error('Google did not return an authorization code');
 
   const { clientId, clientSecret, allowedDomains } = config || await settings();

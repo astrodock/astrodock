@@ -23,16 +23,32 @@ jobs:
   image:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
+      # The input reaches the shell through the environment, never pasted into
+      # the script, and must look like a version. A run started by hand must be
+      # on that version's tag, so `latest` only ever comes from a tagged commit.
       - name: Resolve version
         id: v
+        env:
+          EVENT: ${{ github.event_name }}
+          INPUT_TAG: ${{ inputs.tag }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "version=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          set -eu
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            VERSION="$INPUT_TAG"
+            if [ "$GITHUB_REF" != "refs/tags/$VERSION" ]; then
+              echo "::error::Run this from the tag $VERSION (Use workflow from: $VERSION), not from $GITHUB_REF."
+              exit 1
+            fi
           else
-            echo "version=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+            VERSION="${GITHUB_REF#refs/tags/}"
           fi
+          if ! printf '%s' "$VERSION" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::$VERSION is not a version tag like v1.2.3."
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       # The package versions drifted nine releases behind the tags before anyone
       # noticed, which meant `astrodock --version` and a source build both
@@ -50,17 +66,17 @@ jobs:
           fi
           echo "tag $TAG matches package.json $PKG"
 
-      - uses: docker/setup-qemu-action@v3
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
-      - uses: docker/login-action@v3
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
           file: apps/control-plane/Dockerfile
@@ -103,8 +119,8 @@ jobs:
     env:
       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org

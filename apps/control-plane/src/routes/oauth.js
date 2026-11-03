@@ -264,6 +264,7 @@ router.get('/login/google/start', pageLoginLimiter, async (req, res) => {
         return res.status(400).type('html').send(errorPage('Start Again from the App', 'That sign-in request is not valid.'));
       }
       const { url } = await google.begin({
+        res,
         redirectUri: googleCallbackUrl(req),
         context: { surface: 'mobile', codeChallenge, state: String(req.query.state || '').slice(0, 512) }
       });
@@ -277,6 +278,7 @@ router.get('/login/google/start', pageLoginLimiter, async (req, res) => {
         'That return address is not registered for this app.'));
     }
     const { url } = await google.begin({
+      res,
       redirectUri: googleCallbackUrl(req),
       context: { surface: 'app', appId: app.id, appSlug: app.slug, redirectUri, state: String(req.query.state || '') }
     });
@@ -288,7 +290,7 @@ router.get('/login/google/start', pageLoginLimiter, async (req, res) => {
 
 router.get('/login/google/callback', pageLoginLimiter, async (req, res) => {
   try {
-    const identity = await google.complete({ code: req.query.code, state: req.query.state });
+    const identity = await google.complete({ req, code: req.query.code, state: req.query.state });
     const ctx = identity.context || {};
 
     // An invite redeemed with Google comes back here rather than to a callback

@@ -131,7 +131,7 @@ router.get('/google/enabled', async (req, res) => {
 
 router.get('/google/start', adminLoginLimiter, async (req, res) => {
   try {
-    const { url } = await google.begin({ redirectUri: callbackUrl(req), context: { surface: 'operator' } });
+    const { url } = await google.begin({ res, redirectUri: callbackUrl(req), context: { surface: 'operator' } });
     res.redirect(url);
   } catch (err) {
     res.redirect(`/login?google_error=${encodeURIComponent(err.message)}`);
@@ -140,7 +140,7 @@ router.get('/google/start', adminLoginLimiter, async (req, res) => {
 
 router.get('/google/callback', adminLoginLimiter, async (req, res) => {
   try {
-    const identity = await google.complete({ code: req.query.code, state: req.query.state });
+    const identity = await google.complete({ req, code: req.query.code, state: req.query.state });
     const { user, error } = await googleAccounts.resolveOperator(identity);
     if (error) {
       // Recorded: a refused dashboard sign-in is worth seeing, and it is the

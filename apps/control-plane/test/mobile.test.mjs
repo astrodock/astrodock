@@ -104,9 +104,21 @@ const pkce = () => {
   return { verifier, challenge: crypto.createHash('sha256').update(verifier).digest('base64url') };
 };
 const sessionCookie = (u) => `${userSession.COOKIE}=${userSession.sign(u)}`;
-const authorize = (challenge, { cookie, state = 'st-1', extra = {} } = {}) => fetch(`${B}/mobile/authorize?${new URLSearchParams({
+const authorizeOnce = (challenge, { cookie, state = 'st-1', extra = {} } = {}) => fetch(`${B}/mobile/authorize?${new URLSearchParams({
   code_challenge: challenge, code_challenge_method: 'S256', state, redirect_uri: 'astrodock://auth', ...extra
 })}`, { redirect: 'manual', headers: cookie ? { Cookie: cookie } : {} });
+// With a session, the first answer is a "Continue as …" page; following its link
+// is the person confirming. That step is what stops another app on the phone
+// from getting a code for whoever is signed in.
+const authorize = async (challenge, opts = {}) => {
+  const first = await authorizeOnce(challenge, opts);
+  if (!opts.cookie || first.status !== 200) return first;
+  const html = await first.text();
+  const m = /href="(\/mobile\/authorize\?[^"]+)"/.exec(html);
+  if (!m) return new Response(html, { status: first.status });
+  const href = m[1].replace(/&amp;/g, '&');
+  return fetch(`${B}${href}`, { redirect: 'manual', headers: { Cookie: opts.cookie } });
+};
 const token = (body) => fetch(`${B}/mobile/token`, {
   method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
 });
