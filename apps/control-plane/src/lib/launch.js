@@ -95,6 +95,11 @@ async function redeemPass(token, { origin } = {}) {
   if (!claims.exp || !claims.iat || claims.exp - claims.iat > MAX_LIFETIME_S) {
     throw new LaunchError('That Pass Is Not Valid', `A pass must expire within ${MAX_LIFETIME_S} seconds of being issued.`, 401);
   }
+  // Issued in the future: a pass dated ahead stays inside the lifetime rule above
+  // for as long as the signer likes.
+  if (claims.iat > Math.floor(Date.now() / 1000) + CLOCK_TOLERANCE_S) {
+    throw new LaunchError('That Pass Is Not Valid', 'The pass is dated in the future.', 401);
+  }
   if (!claims.jti || typeof claims.jti !== 'string') {
     throw new LaunchError('That Pass Is Not Valid', 'The pass has no id.', 401);
   }
@@ -124,7 +129,8 @@ async function redeemPass(token, { origin } = {}) {
 
 /**
  * The end user the pass names, created if new, with access to the app added.
- * Never touches an operator role. A disabled account stays disabled.
+ * Never touches an operator role, and refuses operator accounts. A disabled
+ * account stays disabled.
  */
 async function resolveUser({ email, name }, app) {
   const rows = await db.select().from(schema.users).where(eq(schema.users.email, email)).limit(1);
@@ -151,6 +157,12 @@ async function resolveUser({ email, name }, app) {
   if (!user) throw new LaunchError('Cannot Sign You In', 'The account could not be created.', 500);
   if (!user.isActive) {
     throw new LaunchError('That Account Is Disabled', 'Ask whoever manages your apps to turn it back on.', 403);
+  }
+  // Never an operator. A pass names an account by email alone, so signing one in
+  // here gave whoever holds the launcher's secret that operator's app session,
+  // and from there a way toward the dashboard. Operators sign in themselves.
+  if (user.operatorRole) {
+    throw new LaunchError('Sign In Yourself', 'This account manages the platform, so it cannot be signed in by another system. Sign in to the app directly.', 403);
   }
 
   const access = Array.isArray(user.appAccess) ? user.appAccess : [];

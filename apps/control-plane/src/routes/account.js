@@ -169,6 +169,13 @@ router.get('/google/link', accountLimiter, async (req, res) => {
     return res.status(401).type('html').send(errorPage('Sign In First',
       'Open one of your apps and sign in, then come back to this page.'));
   }
+  // An app session alone is not enough to give an operator's account another way
+  // in: that session can come from a launcher, a phone or a shared browser, and
+  // a linked Google account then signs in to the dashboard.
+  if (user.operatorRole) {
+    return res.status(403).type('html').send(errorPage('Not From Here',
+      'This account manages the platform, so a Google account cannot be attached to it from an app.'));
+  }
   try {
     const { url } = await google.begin({
       redirectUri: googleCallbackUrl(req),
@@ -198,6 +205,12 @@ router.post('/email', accountLimiter, express.json(), requireSession(async (req,
   // session left open on a shared machine would otherwise be enough to take the
   // account over. The person proves it is them with the factor they have — the
   // password, or the authenticator code when there is no password.
+  // An operator's address is changed with a password or authenticator code, or
+  // by another operator in the dashboard. A passkey-only operator used to be able
+  // to move the account with nothing but an app session.
+  if (user.operatorRole && !user.passwordHash && !(user.totpSecret && user.totpConfirmedAt)) {
+    return res.status(403).json({ error: 'This account manages the platform. Ask another operator to change its address in the dashboard.' });
+  }
   if (user.passwordHash) {
     if (!await factors.checkPassword(user, req.body?.currentPassword)) {
       logAttempt(user.email, 'EMAIL_CHANGE_BAD_PASSWORD', req.ip || '');

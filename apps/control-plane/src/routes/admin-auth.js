@@ -190,6 +190,19 @@ router.post('/login/google', adminLoginLimiter, async (req, res) => {
           error: 'That code is not right.', code: 'totp_required', ticket: parkTicket(user.id)
         });
       }
+    } else if (f.passkeys > 0) {
+      // An account with a passkey and no authenticator app used to get in with
+      // Google alone, so whoever controlled the Google account (or had linked
+      // one to it) did not need the passkey. It signs in with the passkey.
+      await emitEvent({
+        category: 'audit', type: 'operator.google_denied', severity: 'warning',
+        message: `Google sign-in refused for ${user.email}: the account has a passkey`,
+        actorType: 'system', actor: user.email, ip: req.ip || ''
+      }).catch(() => {});
+      return res.status(401).json({
+        error: 'This account has a passkey, so it signs in with the passkey. Use "Sign In with a Passkey".',
+        code: 'passkey_required'
+      });
     }
 
     return issue(res, user, req);

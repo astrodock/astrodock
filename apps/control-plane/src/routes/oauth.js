@@ -385,19 +385,35 @@ async function completeInvite({ req, res, identity, ctx }) {
     // address add a way into it, so only the account's own address may link.
     if (!existing && invited.email !== String(identity.email || '').toLowerCase()) {
       const f = await factors.factorsFor(invited.id);
-      if (f.password || f.passkeys || invited.googleSub) {
+      // `passwordless` counts: an account a launcher made is in use even though
+      // it holds no credential here, so it is not an empty placeholder to claim.
+      if (f.password || f.passkeys || f.passwordless || invited.googleSub) {
         return res.type('html').send(errorPage('Use the Account You Already Have',
           `This invite is for ${invited.email}, which already has a way to sign in. Sign in with that instead.`));
       }
     }
     target = existing || invited;
-    await googleAccounts.link(target.id, identity);
+    target.pendingLink = true;
   }
 
   if (!target.isActive) {
     return res.type('html').send(errorPage('That Account Is Disabled',
       'Ask whoever runs this server to turn it back on.'));
   }
+  // An invite is for app access. It never signs in an account that manages the
+  // platform, and it does not skip a second factor: the app's own Google path
+  // already sends TOTP accounts back to their password, and this one did not.
+  if (target.operatorRole) {
+    return res.status(403).type('html').send(errorPage('Sign In Yourself',
+      'This account manages the platform, so an invite cannot sign it in. Sign in to the app directly.'));
+  }
+  if ((await factors.factorsFor(target.id)).totp) {
+    return res.type('html').send(errorPage('Use Your Password',
+      'This account has two-step sign-in, so it signs in with its password and code rather than Google.',
+      { icon: 'key' }));
+  }
+  // Linked only once every check has passed, so a refused invite leaves nothing behind.
+  if (target.pendingLink) await googleAccounts.link(target.id, identity);
 
   const signedIn = await invites.redeem({ invite, userId: target.id });
   // The invite made an account that nobody turned out to need. Removed rather
@@ -421,6 +437,11 @@ async function completeLink({ req, res, identity, ctx }) {
   if (!session || (ctx.userId && session.sub !== ctx.userId)) {
     return res.status(401).type('html').send(errorPage('Sign In First',
       'That sign-in session has ended. Sign in again and retry from your account page.'));
+  }
+  const [holder] = await db.select().from(schema.users).where(eq(schema.users.id, session.sub)).limit(1);
+  if (!holder || !holder.isActive || holder.operatorRole) {
+    return res.status(403).type('html').send(errorPage('Not From Here',
+      'A Google account cannot be attached to this account from an app.'));
   }
   try {
     await googleAccounts.linkToUser({ userId: session.sub, identity });
