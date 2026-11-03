@@ -10,7 +10,7 @@ const crypto = require('crypto');
 const { eq, and, desc } = require('drizzle-orm');
 const config = require('../config');
 const { db, schema } = require('../db');
-const { requireScope, requirePermission } = require('../middleware/auth');
+const { requireScope, requirePermission, callerHasScope } = require('../middleware/auth');
 const { encryptSecret, decryptSecret } = require('../lib/crypto');
 const { emitEvent, actorFromAuth } = require('../lib/events');
 const pages = require('../lib/pages');
@@ -119,7 +119,9 @@ router.get('/', async (req, res) => {
 router.get('/:pageId', async (req, res) => {
   const page = await loadPage(req.params.pageId);
   if (!page) return res.status(404).json({ error: 'Page not found' });
-  res.json({ page: serialize(page, await listFiles(page.id), { includePasskey: true }) });
+  // The passkey opens the page for writing too (its saved data), so it goes to
+  // callers who may change pages, not to every reader.
+  res.json({ page: serialize(page, await listFiles(page.id), { includePasskey: callerHasScope(req.auth, 'pages:write') }) });
 });
 
 // Access analytics for a page (from the page_views log + the lifetime counter).

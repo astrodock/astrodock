@@ -25,6 +25,17 @@ async function resolveAuth(req) {
     if (!tok) return null;
     if (tok.revokedAt) return null;
     if (tok.expiresAt && new Date(tok.expiresAt) <= new Date()) return null;
+    // A key acts for the person who made it, and is worth no more than they are
+    // now. Deactivating, deleting or demoting someone used to leave every key
+    // they had made working at full strength, some of them with no expiry.
+    let expanded = scopes.expand(tok.scopes || []);
+    if (tok.authorizedByUserId) {
+      const [person] = await db.select({ isActive: schema.users.isActive, operatorRole: schema.users.operatorRole })
+        .from(schema.users).where(eq(schema.users.id, tok.authorizedByUserId)).limit(1);
+      if (!person || !person.isActive || !roles.isOperator(person)) return null;
+      const allowed = new Set(roles.scopesFor(person.operatorRole));
+      expanded = expanded.filter((sc) => allowed.has(sc));
+    }
     // best-effort last-used stamp (don't block on it)
     db.update(schema.apiTokens).set({ lastUsedAt: new Date() }).where(eq(schema.apiTokens.id, tok.id)).catch(() => {});
     return {
@@ -32,8 +43,8 @@ async function resolveAuth(req) {
       id: tok.id,
       name: tok.name,
       // Expanded once here, so every caller sees the current vocabulary and legacy
-      // tokens behave identically to reissued ones.
-      scopes: scopes.expand(tok.scopes || []),
+      // tokens behave identically to reissued ones. Capped to the maker's role.
+      scopes: expanded,
       rawScopes: tok.scopes || [],
       appScope: tok.appScope || [],
       expiresAt: tok.expiresAt || null,

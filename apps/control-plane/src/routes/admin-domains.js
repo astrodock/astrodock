@@ -7,7 +7,7 @@ const express = require('express');
 const { eq, desc } = require('drizzle-orm');
 const config = require('../config');
 const { db, schema } = require('../db');
-const { requireScope } = require('../middleware/auth');
+const { requireScope, tokenAllowsApp } = require('../middleware/auth');
 const domainsLib = require('../lib/domains');
 
 const router = express.Router();
@@ -27,12 +27,14 @@ router.get('/', async (req, res, next) => {
     const apps = await db.select({ slug: schema.apps.slug, name: schema.apps.name, subdomain: schema.apps.subdomain })
       .from(schema.apps).where(eq(schema.apps.provisioned, true));
 
+    // A key limited to some apps sees only theirs, like every other app list.
+    const mine = (slug) => tokenAllowsApp(req.auth, slug);
     res.json({
       baseDomain: config.baseDomain,
       publicIp: config.publicIp || null,
       tlsMode: config.tlsMode,
-      custom: rows.map((d) => ({ ...d, records: domainsLib.dnsRecords(d) })),
-      subdomains: apps.map((a) => ({ host: `${a.subdomain}.${config.baseDomain}`, app: a.name, slug: a.slug })),
+      custom: rows.filter((d) => mine(d.appSlug)).map((d) => ({ ...d, records: domainsLib.dnsRecords(d) })),
+      subdomains: apps.filter((a) => mine(a.slug)).map((a) => ({ host: `${a.subdomain}.${config.baseDomain}`, app: a.name, slug: a.slug })),
       platform: [
         { host: `${config.adminSubdomain}.${config.baseDomain}`, label: 'Your dashboard' },
         { host: config.pages.host, label: 'Your Pages' }

@@ -169,7 +169,20 @@ router.post('/', requirePermission('users:write'), async (req, res) => {
 // The link is returned rather than emailed. Sending it is the app's job: an
 // invite to Valise should arrive as an email from Valise, in Valise's voice,
 // not as a generic message from the platform the app happens to run on.
-router.post('/invite', requirePermission('users:write'), approveAccess, async (req, res) => {
+// Text fields only. A list as appId used to pass the approval check (the list
+// is not in the key's app scope, so no approval was asked for) and then be
+// turned into the app's slug by the handler.
+function textFields(...keys) {
+  return (req, res, next) => {
+    for (const k of keys) {
+      const v = req.body?.[k];
+      if (v !== undefined && v !== null && typeof v !== 'string') return res.status(400).json({ error: `"${k}" must be text` });
+    }
+    next();
+  };
+}
+
+router.post('/invite', requirePermission('users:write'), textFields('email', 'name', 'appId', 'invitedByName', 'redirectTo'), approveAccess, async (req, res) => {
   const { email, name, appId, invitedByName, redirectTo, ttlDays } = req.body || {};
   if (!email || !appId) return res.status(400).json({ error: 'email and appId are required' });
 
@@ -364,7 +377,9 @@ router.delete('/:id/access/:appSlug', requirePermission('users:write'), async (r
 // request and stops its notifications.
 router.get('/:id/devices', async (req, res) => {
   const [target] = await db.select().from(schema.users).where(eq(schema.users.id, req.params.id)).limit(1);
-  if (!target) return res.status(404).json({ error: 'User not found' });
+  // Same visibility as the person themselves: a key cannot list an operator's
+  // devices, or those of someone outside its apps.
+  if (!target || !visibleTo(req.auth, target)) return res.status(404).json({ error: 'User not found' });
   res.json({ devices: await mobile.listDevices(target.id) });
 });
 

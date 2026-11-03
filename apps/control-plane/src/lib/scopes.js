@@ -32,6 +32,9 @@ const SCOPES = {
   'logs:read': { group: 'observe', label: 'Read Logs', description: 'Read runtime, build and HTTP access logs' },
   'env:read': { group: 'config', label: 'View Configuration', description: 'List configuration keys (secret values stay hidden)' },
   'env:write': { group: 'config', label: 'Change Configuration', description: 'Set and remove configuration values' },
+  // Its own permission, outside every :read set. Revealing used to need only
+  // env:read, which the viewer role and the Read-Only preset both hold.
+  'env:reveal': { group: 'config', label: 'See Secret Values', description: 'Reveal the value of a secret configuration key' },
   'domains:write': { group: 'config', label: 'Manage Custom Domains', description: 'Add, verify and remove custom domains' },
   'pages:read': { group: 'pages', label: 'View Pages', description: 'View published pages' },
   'pages:write': { group: 'pages', label: 'Create & Edit Pages', description: 'Create, edit and delete pages' },

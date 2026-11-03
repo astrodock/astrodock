@@ -27,9 +27,10 @@ const t = async (n, fn) => { try { await fn(); console.log('  ok  ' + n); p++; }
 const A = (c, m) => { if (!c) throw new Error(m || 'failed'); };
 
 const EMAILS = ['own@review.test', 'adm@review.test', 'target@review.test', 'end@review.test', 'made@review.test'];
-const SLUGS = ['rv-one'];
+const SLUGS = ['rv-one', 'rv-two'];
 async function cleanup() {
   await db.delete(schema.apps).where(inArray(schema.apps.slug, SLUGS));
+  await db.delete(schema.apiTokens).where(inArray(schema.apiTokens.name, ['rv-agent', 'rv-agent2', 'rv-adm-key']));
   await db.delete(schema.users).where(inArray(schema.users.email, EMAILS));
   await db.delete(schema.platformSettings).where(inArray(schema.platformSettings.key,
     ['launch.issuer', 'launch.origin', 'launch.secret', 'security.agent_approvals']));
@@ -163,6 +164,46 @@ await t('a pass dated in the future is refused', async () => {
     SECRET, { algorithm: 'HS256', issuer: 'rv-launcher', audience: 'astrodock-launch', subject: 's' });
   const r = await launch(token);
   A(r.status === 401, String(r.status));
+});
+
+console.log('\napprovals and key limits');
+const fresh2 = await login('own@review.test');
+const AGENT = (await J('POST', '/admin/tokens', { name: 'rv-agent2', preset: 'agent', apps: ['rv-one'] }, fresh2)).d.token;
+await t('a list where an app id belongs is refused before the approval check', async () => {
+  const r = await J('POST', '/admin/users/invite', { email: endUser.email, appId: ['rv-one'] }, AGENT);
+  A(r.s === 400, `${r.s} ${JSON.stringify(r.d)}`);
+});
+await t('a list where a setting belongs is refused before the approval check', async () => {
+  const r = await J('PATCH', '/admin/apps/rv-one', { allowGoogleSignup: ['true'] }, AGENT);
+  A(r.s === 400, `${r.s} ${JSON.stringify(r.d)}`);
+  const [a] = await db.select().from(schema.apps).where(eq(schema.apps.slug, 'rv-one'));
+  A(!a.allowGoogleSignup, 'still off');
+});
+await t('a key connecting its app to a new repository needs approval', async () => {
+  const r = await J('POST', '/admin/apps/rv-one/connect-repo', { githubRepo: 'someone/private-repo' }, AGENT);
+  A(r.s === 403 && r.d.code === 'approval_required', `${r.s} ${JSON.stringify(r.d)}`);
+});
+await t('a key cannot reveal secret values without env:reveal', async () => {
+  const r = await J('POST', '/admin/apps/rv-one/env/X/reveal', {}, AGENT);
+  A(r.s === 403, `${r.s} ${JSON.stringify(r.d)}`);
+});
+await t('a work item lands in the app in the URL, whatever the body says', async () => {
+  const other = (await db.insert(schema.apps).values({ slug: 'rv-two', name: 'rv-two', subdomain: 'rv-two', port: 39778, appSecret: 's', appJwtSecret: 'j' }).returning())[0];
+  const r = await J('POST', '/admin/work/rv-one', { appId: other.id, title: 'planted' }, AGENT);
+  if (r.s === 201) A(r.d.item.appId !== other.id, 'went to the other app');
+  await db.delete(schema.apps).where(eq(schema.apps.id, other.id));
+});
+
+console.log('\nkeys follow the person who made them');
+await t('a key stops working when its maker is deactivated', async () => {
+  const fresh = await login('own@review.test');
+  const theirs = await login('adm@review.test');
+  const key = (await J('POST', '/admin/tokens', { name: 'rv-adm-key', scopes: ['apps:read'] }, theirs)).d.token;
+  A((await J('GET', '/admin/apps', null, key)).s === 200, 'works before');
+  const [adm] = await db.select().from(schema.users).where(eq(schema.users.email, 'adm@review.test'));
+  const r = await J('PATCH', `/admin/users/${adm.id}`, { isActive: false }, fresh);
+  A(r.s === 200, `${r.s} ${JSON.stringify(r.d)}`);
+  A((await J('GET', '/admin/apps', null, key)).s === 401, 'refused after');
 });
 
 await cleanup();

@@ -43,7 +43,17 @@ const scheme = () => (config.tlsMode === 'off' ? 'http' : 'https');
 // ── must come before /:slug ───────────────────────────────────────────────────
 router.get('/github/repos', async (req, res) => {
   if (!config.github.pat) return res.status(422).json({ error: 'GitHub PAT not configured (ASTRODOCK_GITHUB_PAT)' });
-  try { res.json({ repos: await listRepos() }); }
+  try {
+    let repos = await listRepos();
+    // A key limited to some apps sees only the repositories those apps use, not
+    // everything the platform's GitHub token can read.
+    if (req.auth.type === 'token' && Array.isArray(req.auth.appScope) && req.auth.appScope.length) {
+      const mine = new Set((await db.select({ slug: schema.apps.slug, repo: schema.apps.githubRepo }).from(schema.apps))
+        .filter((a) => tokenAllowsApp(req.auth, a.slug) && a.repo).map((a) => a.repo.toLowerCase()));
+      repos = repos.filter((r) => mine.has(String(r.fullName || r.full_name || r.name || '').toLowerCase()));
+    }
+    res.json({ repos });
+  }
   catch (err) { res.status(500).json({ error: `Failed to list repos: ${err.message}` }); }
 });
 
@@ -73,8 +83,29 @@ const approveNewApp = requireApproval({
   }
 });
 
+// Pointing an app at a repository clones it with the platform's GitHub token,
+// which can read every repository that token can. A key limited to one app could
+// connect it to any of them and read the source. A key needs a person's approval
+// to connect a repository the app does not already use.
+const approveRepo = requireApproval({
+  kind: 'app.connect_repo',
+  scope: 'apps:write',
+  describe: async (req) => {
+    const m = req.path === '/apply' ? (req.body?.manifest || req.body) : null;
+    const repo = m ? m?.source?.githubRepo : req.body?.githubRepo;
+    const slug = req.params.slug || (m && m.slug);
+    if (!repo || typeof repo !== 'string' || !slug) return null;
+    const app = await getAppBySlug(String(slug));
+    if (!app || app.githubRepo === repo) return null; // a new app's repo is in its own approval
+    return {
+      summary: `Connect "${app.slug}" to the GitHub repository ${repo}`,
+      details: { app: app.slug, repo, current: app.githubRepo || '' }
+    };
+  }
+});
+
 // ── apply a manifest (CLI `apply`) ──────────────────────────────────────────────
-router.post('/apply', requirePermission('apps:write'), approveNewApp, async (req, res) => {
+router.post('/apply', requirePermission('apps:write'), approveNewApp, approveRepo, async (req, res) => {
   const manifest = req.body?.manifest || req.body;
   const prune = !!(req.body?.prune || req.query.prune);
   if (manifest && manifest.slug && !tokenAllowsApp(req.auth, manifest.slug)) {
@@ -206,7 +237,17 @@ const approveGoogleSignup = requireApproval({
   }
 });
 
-router.patch('/:slug', requirePermission('apps:write'), approveGoogleSignup, async (req, res) => {
+// Every field here is a single value. A list used to slip past the approval
+// check (["true"] is not === 'true') and then be stored by the handler, which
+// turns it into "true" with String(). Refused before either looks at it.
+function scalarBody(req, res, next) {
+  for (const [k, v] of Object.entries(req.body || {})) {
+    if (v !== null && typeof v === 'object') return res.status(400).json({ error: `"${k}" must be a single value` });
+  }
+  next();
+}
+
+router.patch('/:slug', requirePermission('apps:write'), scalarBody, approveGoogleSignup, async (req, res) => {
   const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
   const b = req.body || {};
@@ -336,7 +377,7 @@ async function connectRepoInternal(app, githubRepo, branch, repoPath) {
   }).where(eq(schema.apps.id, app.id));
 }
 
-router.post('/:slug/connect-repo', requirePermission('apps:write'), async (req, res) => {
+router.post('/:slug/connect-repo', requirePermission('apps:write'), approveRepo, async (req, res) => {
   const { githubRepo, branch, repoPath } = req.body || {};
   if (!githubRepo) return res.status(400).json({ error: 'githubRepo is required (e.g. "owner/repo")' });
   // these get interpolated into shell (git clone) on the runner — keep them metachar-free
@@ -576,7 +617,7 @@ router.put('/:slug/env/:key', requirePermission('env:write'), async (req, res) =
 // the actual value — to check it against the provider that issued it, most often
 // — and "you can never see what you set" makes people store a second copy
 // somewhere worse. So: deliberate, one at a time, step-up re-auth, and recorded.
-router.post('/:slug/env/:key/reveal', requirePermission('env:read'), requireRecentAuth, async (req, res) => {
+router.post('/:slug/env/:key/reveal', requirePermission('env:reveal'), requireRecentAuth, async (req, res) => {
   const app = await getAppBySlug(req.params.slug);
   if (!app) return res.status(404).json({ error: 'App not found' });
   const rows = await db.select().from(schema.appEnvVars)

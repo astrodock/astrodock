@@ -104,6 +104,10 @@ router.post('/:id/deny', personOnly, async (req, res) => {
   try {
     const row = await approvals.find(req.params.id);
     if (!row) return res.status(404).json({ error: 'Approval not found' });
+    // Deciding either way is for someone who could do the thing themselves.
+    if (!callerHasScope(req.auth, row.requiredScope)) {
+      return res.status(403).json({ error: `Deciding this needs the "${row.requiredScope}" permission.`, code: 'insufficient_scope' });
+    }
     const user = await me(req);
     if (!user) return res.status(401).json({ error: 'Account not found' });
     const updated = await approvals.decide(row, { approve: false, user });

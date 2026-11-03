@@ -235,10 +235,14 @@ async function addMessage(feedbackId, visibility, { authorKind, authorId, body, 
 }
 
 /** Send a held AI draft. The only way a pending message becomes visible. */
-async function approveDraft(messageId) {
+// `feedbackId` binds the send to the item it was asked for, in the same update:
+// checking afterwards meant another app's draft had already been sent.
+async function approveDraft(messageId, feedbackId) {
+  const conds = [eq(schema.feedbackMessages.id, messageId), eq(schema.feedbackMessages.pending, true)];
+  if (feedbackId) conds.push(eq(schema.feedbackMessages.feedbackId, feedbackId));
   const [row] = await db.update(schema.feedbackMessages)
     .set({ pending: false })
-    .where(and(eq(schema.feedbackMessages.id, messageId), eq(schema.feedbackMessages.pending, true)))
+    .where(and(...conds))
     .returning();
   if (row) await touch(row.feedbackId);
   return row || null;

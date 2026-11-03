@@ -142,7 +142,7 @@ router.post('/:slug/:key/reply', requirePermission('feedback:write'), async (req
 router.post('/:slug/:key/messages/:id/send', requirePermission('feedback:reply'), async (req, res) => {
   const item = await itemByKey(req.app_.id, req.params.key);
   if (!item) return res.status(404).json({ error: 'Unknown feedback' });
-  const row = await fb.approveDraft(req.params.id);
+  const row = await fb.approveDraft(req.params.id, item.id);
   if (!row || row.feedbackId !== item.id) return res.status(404).json({ error: 'No such draft' });
   emitEvent({
     category: 'audit', type: 'feedback.replied', severity: 'info', ...actorFromAuth(req.auth),

@@ -12,7 +12,8 @@ const KINDS = {
   'app.create': 'Create an App',
   'domain.add': 'Add a Custom Domain',
   'user.access': 'Give an App an Existing Person',
-  'app.google_signup': 'Allow Sign-Up with Google'
+  'app.google_signup': 'Allow Sign-Up with Google',
+  'app.connect_repo': 'Connect a Repository'
 };
 
 function Row({ label, children }) {
@@ -53,6 +54,16 @@ function Details({ a }) {
         <Row label="Person">{d.name ? `${d.name}, ${d.email}` : d.email}</Row>
         <Row label="Their Other Apps">{d.otherApps || 0}</Row>
         <Row label="What This Means">The app learns who they are the next time they sign in to it.</Row>
+      </>
+    );
+  }
+  if (a.kind === 'app.connect_repo') {
+    return (
+      <>
+        <Row label="App">{d.app}</Row>
+        <Row label="Repository">{d.repo}</Row>
+        <Row label="Connected Now">{d.current || 'None'}</Row>
+        <Row label="What This Means">The app is built from that repository, using the platform's GitHub access, so its code can be read through the app.</Row>
       </>
     );
   }

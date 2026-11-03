@@ -76,7 +76,9 @@ router.get('/:slug/:key', async (req, res) => {
 
 router.post('/:slug', requirePermission('work:write'), async (req, res) => {
   try {
-    const row = await fb.createWorkItem({ appId: req.app_.id, ...req.body });
+    // The app comes from the URL, after the body: a body appId used to override
+    // it and put the item in another app's queue.
+    const row = await fb.createWorkItem({ ...req.body, appId: req.app_.id });
     res.status(201).json({ item: row });
   } catch (err) { res.status(400).json({ error: err.message }); }
 });
