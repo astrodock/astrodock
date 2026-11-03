@@ -13,7 +13,9 @@ const { decryptSecret } = require('../lib/crypto');
 const factors = require('../lib/auth-factors');
 const roles = require('../lib/roles');
 const { getSetting } = require('../lib/settings');
-const { pageDataLimiter, pageLoginLimiter } = require('../middleware/rateLimiter');
+const { pageDataLimiter, pageLoginLimiter, pageKeyLimiter } = require('../middleware/rateLimiter');
+// Applied wherever a ?key= can be tried.
+const keyGuard = (req, res, next) => (req.query && req.query.key !== undefined ? pageKeyLimiter(req, res, next) : next());
 const P = require('../lib/pages');
 
 // strict routing so "/:pageId" (no slash) redirects, while "/:pageId/" serves the entry
@@ -164,7 +166,7 @@ router.post('/:pageId/_logout', (req, res) => {
 });
 
 // ── per-page JSON data blob ──
-router.get('/:pageId/_data', withPage, async (req, res) => {
+router.get('/:pageId/_data', keyGuard, withPage, async (req, res) => {
   const page = req.page;
   if (page.dataMode === 'none') return res.status(404).json({ error: 'this page has no data store' });
   const g = await gate(page, req, res, { json: true });
@@ -174,7 +176,7 @@ router.get('/:pageId/_data', withPage, async (req, res) => {
   res.json({ data: row ? row.data : {}, version: row ? row.version : 0 });
 });
 
-router.put('/:pageId/_data', pageDataLimiter, withPage, express.json({ limit: config.pages.dataMax }), async (req, res) => {
+router.put('/:pageId/_data', keyGuard, pageDataLimiter, withPage, express.json({ limit: config.pages.dataMax }), async (req, res) => {
   const page = req.page;
   if (page.dataMode === 'none') return res.status(404).json({ error: 'this page has no data store' });
   const g = await gate(page, req, res, { json: true });
@@ -209,7 +211,7 @@ function loadData(pageUuid, userId) {
 // ── serve files (entry on "/", any file on "/*") ──
 router.get('/:pageId', (req, res) => res.redirect(301, `/${req.params.pageId}/`));
 
-router.get('/:pageId/*', withPage, async (req, res) => {
+router.get('/:pageId/*', keyGuard, withPage, async (req, res) => {
   const page = req.page;
   const rest = req.params[0] || '';
   const isEntry = rest === '' || rest === page.entryFile;

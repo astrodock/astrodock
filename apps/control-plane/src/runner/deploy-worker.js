@@ -14,7 +14,7 @@ const { db, schema, close } = require('../db');
 const { computeEnv, computeMissingRequired } = require('../lib/env-compute');
 const { emitEvent } = require('../lib/events');
 const processControl = require('./process-control');
-const { maskSecrets } = require('./app-ops');
+const { maskSecrets, platformSecretValues } = require('./app-ops');
 const appUsers = require('./app-user');
 const { appConfigFile } = appUsers;
 
@@ -80,8 +80,9 @@ async function run() {
   // Never let the GitHub token reach the stored log (raw, in a URL, or base64 in an
   // auth header), nor this app's own secret values: build output that echoes one
   // would otherwise be stored and readable with apps:read.
+  const platformSecrets = platformSecretValues(app, envVars);
   function redact(s) {
-    let out = maskSecrets(String(s), envVars).text;
+    let out = maskSecrets(String(s), envVars, platformSecrets).text;
     if (config.github.pat) {
       out = out.split(config.github.pat).join('***');
       const b64 = Buffer.from(`x-access-token:${config.github.pat}`).toString('base64');

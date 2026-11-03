@@ -209,6 +209,7 @@ async function start() {
   // Load the persisted base domain / TLS mode over the env defaults BEFORE anything
   // renders a hostname (Caddy generation, health probes, env injection all read it).
   await require('./src/lib/settings').applyBootstrapSettings();
+  await require('./src/lib/settings').sealPlaintextSecrets().catch((err) => console.error('[settings] could not encrypt stored secrets:', err.message));
 
   await seedAdmin();        // idempotent admin seed (no-op unless ADMIN_EMAIL/PASSWORD are set)
   // Mint + print a setup token when no admin exists yet, so a fresh install can be

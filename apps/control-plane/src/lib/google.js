@@ -74,10 +74,10 @@ async function keyFor(kid) {
 // ── configuration ────────────────────────────────────────────────────────────
 
 async function settings() {
-  const { getSetting } = require('./settings');
+  const { getSetting, getSecretSetting } = require('./settings');
   const [clientId, clientSecret, domains] = await Promise.all([
     getSetting('google.client_id', ''),
-    getSetting('google.client_secret', ''),
+    getSecretSetting('google.client_secret', ''),
     getSetting('google.allowed_domains', '')
   ]);
   return {

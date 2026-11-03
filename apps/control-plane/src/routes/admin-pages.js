@@ -30,6 +30,7 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: con
 const scheme = () => (config.tlsMode === 'off' ? 'http' : 'https');
 
 const ACCESS = ['public', 'passkey', 'platform'];
+const MIN_PASSKEY = 8;
 const DATA = ['none', 'shared', 'per-user'];
 function genPasskey() { return crypto.randomBytes(9).toString('base64url'); }
 
@@ -74,8 +75,10 @@ function accessFields(body, current) {
   // passkey handling
   if (accessMode === 'passkey') {
     if (body.generatePasskey) set.passkey = encryptSecret(genPasskey());
-    else if (typeof body.passkey === 'string' && body.passkey.length >= 4) set.passkey = encryptSecret(body.passkey);
-    else if (body.passkey === null || body.passkey === '') { const e = new Error('passkey must be at least 4 chars'); e.status = 400; throw e; }
+    // Eight at least: a passkey is the whole lock on the page, and a short one
+    // falls to guessing.
+    else if (typeof body.passkey === 'string' && body.passkey.length >= MIN_PASSKEY) set.passkey = encryptSecret(body.passkey);
+    else if (body.passkey === null || typeof body.passkey === 'string') { const e = new Error(`passkey must be at least ${MIN_PASSKEY} characters`); e.status = 400; throw e; }
     else if (!current || current.accessMode !== 'passkey' || !current.passkey) set.passkey = encryptSecret(genPasskey());
   } else {
     set.passkey = null; // leaving passkey mode clears it

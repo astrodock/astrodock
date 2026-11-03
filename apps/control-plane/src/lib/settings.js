@@ -44,7 +44,7 @@ const REGISTRY = {
     default: () => ''
   },
   'google.client_secret': {
-    label: 'Google Client Secret', type: 'string', secret: true,
+    label: 'Google Client Secret', type: 'string', secret: true, encrypted: true,
     description: 'The client secret for that OAuth client.',
     default: () => ''
   },
@@ -98,7 +98,7 @@ const REGISTRY = {
   // Feedback triage by model. Blank turns it off everywhere regardless of what
   // an app's ai_mode says, so one field is the whole off switch.
   'ai.anthropic_key': {
-    label: 'Anthropic API Key', type: 'string', secret: true,
+    label: 'Anthropic API Key', type: 'string', secret: true, encrypted: true,
     description: 'Used to triage incoming feedback: an internal note about what is likely wrong, and a draft reply for the person who reported it. Blank turns triage off for every app.',
     default: () => ''
   },
@@ -120,7 +120,7 @@ const REGISTRY = {
     default: () => process.env.ASTRODOCK_REGISTRY_USER || ''
   },
   'registry.token': {
-    label: 'Image Registry Token', type: 'string', secret: true,
+    label: 'Image Registry Token', type: 'string', secret: true, encrypted: true,
     description: 'Access token for that registry, used only to download platform updates. A GitHub token must be a classic personal access token with read:packages; fine-grained tokens do not cover GHCR reads. Blank uses ASTRODOCK_REGISTRY_TOKEN from the environment.',
     // Reads the env var so the page can say whether a credential exists at all.
     // effective() masks any secret on the way out, so the value never leaves.
@@ -268,6 +268,29 @@ async function getSetting(key, fallback) {
 async function getSecretSetting(key, fallback = '') {
   const v = await getSetting(key, fallback);
   return v ? decryptSecret(v) : v;
+}
+
+// Settings marked encrypted that were saved before they were (the Google client
+// secret, the Anthropic key and the registry token sat in plain text, and so in
+// every backup). Rewritten once, at startup; decrypting plain text returns it
+// unchanged, so nothing breaks in between.
+async function sealPlaintextSecrets() {
+  const { isEnabled } = require('./crypto');
+  if (!isEnabled()) return 0;
+  // Straight from the table, not the cache: this runs once and must see every row.
+  const rows = await db.select().from(schema.platformSettings);
+  const stored = new Map(rows.map((r) => [r.key, r.value]));
+  let sealed = 0;
+  for (const [key, def] of Object.entries(REGISTRY)) {
+    if (!def.encrypted || !stored.has(key)) continue;
+    const v = stored.get(key);
+    if (typeof v !== 'string' || !v || v.startsWith('v1:')) continue;
+    await db.update(schema.platformSettings).set({ value: encryptSecret(v) })
+      .where(eq(schema.platformSettings.key, key));
+    sealed += 1;
+  }
+  if (sealed) cache = null;
+  return sealed;
 }
 
 // What a masked secret looks like on the way out, and what is refused on the
@@ -505,7 +528,7 @@ async function readiness() {
 }
 
 module.exports = {
-  getSetting, getSecretSetting, setSetting, effective, diagnostics, readiness, exposureCheck, REGISTRY, SECRET_MASK,
+  getSetting, getSecretSetting, setSetting, sealPlaintextSecrets, effective, diagnostics, readiness, exposureCheck, REGISTRY, SECRET_MASK,
   setBootstrap, applyBootstrapSettings, BOOTSTRAP_REGISTRY,
   isSetupDeferred, setSetupDeferred
 };

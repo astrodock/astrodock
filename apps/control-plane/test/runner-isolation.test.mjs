@@ -75,6 +75,16 @@ test('the terminal refuses the same app instead of spawning a root shell', () =>
   assert.throws(() => appOps.runInteractive({ slug: 'no-such-user-here', runtimeType: 'node' }, [], 'id', res), /Redeploy/);
 });
 
+console.log('\nplatform secrets are masked');
+test('the database password, app secret and JWT secret are masked in file reads', () => {
+  const app = { slug: 'web', name: 'Web', port: 4100, authMode: 'platform', databaseMode: 'internal', dbUser: 'app_web', dbPassword: 'db-password-123456', dbName: 'app_web', appSecret: 'app-secret-abcdef123', appJwtSecret: 'jwt-secret-abcdef123' };
+  const extra = appOps.platformSecretValues(app, []);
+  const file = 'DATABASE_URL=postgresql://app_web:db-password-123456@db:5432/app_web\nSECRET=app-secret-abcdef123\nJWT=jwt-secret-abcdef123\nPORT=4100';
+  const { text } = appOps.maskSecrets(file, [], extra);
+  for (const leak of ['db-password-123456', 'app-secret-abcdef123', 'jwt-secret-abcdef123']) assert.ok(!text.includes(leak), leak);
+  assert.ok(text.includes('PORT=4100'), 'ordinary values stay');
+});
+
 console.log('\nrunner boot');
 test('boot reads the PM2 apps to restore from the dump, and ignores odd names', () => {
   fs.writeFileSync(path.join(tmp, 'dump.pm2'), JSON.stringify([{ name: 'oncall' }, { name: 'ledger' }, { name: '../etc' }, { name: 'oncall' }]));

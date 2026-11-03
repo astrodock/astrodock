@@ -162,8 +162,8 @@ export default function PageDetailPage() {
               <button onClick={() => api.generatePagePasskey(pageId).then(load).then(() => flash('Rotated — old links invalid.'))}>Rotate</button>
             </div>
             <div className="kv"><span>Set Custom</span>
-              <input value={customKey} onChange={(e) => setCustomKey(e.target.value)} placeholder="min 4 chars" />
-              <button disabled={customKey.length < 4} onClick={() => { patch({ accessMode: 'passkey', passkey: customKey }, 'Passkey set.'); setCustomKey(''); }}>Save</button>
+              <input value={customKey} onChange={(e) => setCustomKey(e.target.value)} placeholder="At least 8 characters" />
+              <button disabled={customKey.length < 8} onClick={() => { patch({ accessMode: 'passkey', passkey: customKey }, 'Passkey set.'); setCustomKey(''); }}>Save</button>
             </div>
           </>
         )}

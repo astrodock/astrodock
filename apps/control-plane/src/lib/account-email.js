@@ -36,8 +36,11 @@ function normalize(email) {
 // Deliberately loose. The confirmation mail is the real check for a
 // self-service change, and an operator setting an odd-looking internal address
 // should not be argued with.
+// Loose about what a real address may look like, strict about characters that
+// mail libraries treat as structure: quotes, brackets, commas and semicolons
+// turn one address into several or into a display name.
 function looksLikeEmail(email) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  return /^[^\s@"'<>()[\],;:\\]+@[^\s@"'<>()[\],;:\\]+\.[^\s@"'<>()[\],;:\\]+$/.test(email);
 }
 
 /** Nobody else may already be using it. */

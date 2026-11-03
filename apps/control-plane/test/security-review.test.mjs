@@ -206,6 +206,18 @@ await t('a key stops working when its maker is deactivated', async () => {
   A((await J('GET', '/admin/apps', null, key)).s === 401, 'refused after');
 });
 
+console.log('\nsecret settings at rest');
+await t('a secret setting saved in plain text is encrypted at startup and still reads back', async () => {
+  const settings = require('../src/lib/settings.js');
+  await db.insert(schema.platformSettings).values({ key: 'ai.anthropic_key', value: 'sk-ant-plaintext-123456', updatedBy: 'test', updatedAt: new Date() })
+    .onConflictDoUpdate({ target: schema.platformSettings.key, set: { value: 'sk-ant-plaintext-123456' } });
+  await settings.sealPlaintextSecrets();
+  const [row] = await db.select().from(schema.platformSettings).where(eq(schema.platformSettings.key, 'ai.anthropic_key'));
+  A(row.value.startsWith('v1:'), 'stored encrypted');
+  A(await settings.getSecretSetting('ai.anthropic_key') === 'sk-ant-plaintext-123456', 'reads back');
+  await db.delete(schema.platformSettings).where(eq(schema.platformSettings.key, 'ai.anthropic_key'));
+});
+
 await cleanup();
 srv.close();
 await close();

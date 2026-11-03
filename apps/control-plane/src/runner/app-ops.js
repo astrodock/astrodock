@@ -179,10 +179,30 @@ function secretValues(envVars) {
 // — so a token with only `logs:read` could read every key the app holds. Mask
 // on the way out, whatever file they came from: a .env, a config, a log line
 // that printed one.
-function maskSecrets(text, envVars) {
+// The secrets the platform injects (database URL and password, app secret, JWT
+// secret, storage key). Masking used to cover only the app's declared secrets,
+// so these came back in the clear from files like a generated env file, and
+// from build output that printed them.
+const PLATFORM_SECRET_KEY = /SECRET|PASSWORD|TOKEN|DATABASE_URL|_KEY$/;
+function platformSecretValues(app, envVars) {
+  if (!app || typeof app !== 'object') return [];
+  let env;
+  try { env = require('../lib/env-compute').computeEnv(app, envVars || []); } catch { return []; }
+  const out = [];
+  for (const [k, v] of Object.entries(env)) {
+    if (!k.startsWith('ASTRODOCK_') || !PLATFORM_SECRET_KEY.test(k) || !v || String(v).length < 8) continue;
+    out.push(String(v));
+    // A connection string's password also appears on its own.
+    try { const pw = decodeURIComponent(new URL(String(v)).password || ''); if (pw.length >= 8) out.push(pw); } catch { /* not a URL */ }
+  }
+  return out;
+}
+
+function maskSecrets(text, envVars, extra = []) {
   let out = String(text);
   let hits = 0;
-  for (const secret of secretValues(envVars)) {
+  const all = [...new Set([...secretValues(envVars), ...extra])].sort((a, b) => b.length - a.length);
+  for (const secret of all) {
     if (!out.includes(secret)) continue;
     out = out.split(secret).join('••••••');
     hits += 1;
@@ -197,7 +217,7 @@ function readFile(appOrSlug, relative, envVars) {
     const res = access.kind === 'user' ? asAppUserOp(appOrSlug, access.ids, 'read', relative) : inContainerOp(appOrSlug, 'read', relative);
     const data = Buffer.from(res.data, 'base64');
     if (data.includes(0)) throw new Error('That looks like a binary file.');
-    const { text, masked } = maskSecrets(data.toString('utf8'), envVars);
+    const { text, masked } = maskSecrets(data.toString('utf8'), envVars, platformSecretValues(appOrSlug, envVars));
     return { path: relative, size: res.size, content: text, secretsMasked: masked };
   }
   const slug = slugOf(appOrSlug);
@@ -218,7 +238,7 @@ function readFile(appOrSlug, relative, envVars) {
   }
   // Binary would be noise at best and a terminal-escape vector at worst.
   if (buf.includes(0)) throw new Error('That looks like a binary file.');
-  const { text, masked } = maskSecrets(buf.toString('utf8'), envVars);
+  const { text, masked } = maskSecrets(buf.toString('utf8'), envVars, platformSecretValues(appOrSlug, envVars));
   return { path: relative, size, content: text, secretsMasked: masked };
 }
 
@@ -336,7 +356,7 @@ function runInteractive(app, envVars, command, res) {
   const cwd = path.resolve(config.paths.apps, app.slug);
   if (access.kind === 'user' && !fs.existsSync(cwd)) throw new Error('This app has not been deployed yet.');
 
-  const secrets = secretValues(envVars);
+  const secrets = [...new Set([...secretValues(envVars), ...platformSecretValues(app, envVars)])].sort((a, b) => b.length - a.length);
   const mask = (chunk) => {
     let out = String(chunk);
     for (const v of secrets) if (out.includes(v)) out = out.split(v).join('••••••');
@@ -374,5 +394,5 @@ function runInteractive(app, envVars, command, res) {
 
 module.exports = {
   listDirectory, readFile, runtimeEnv, declaredCommands, runDeclared, resolveInApp,
-  maskSecrets, terminalEnabled, runInteractive, accessFor, MAX_FILE_BYTES
+  maskSecrets, platformSecretValues, terminalEnabled, runInteractive, accessFor, MAX_FILE_BYTES
 };

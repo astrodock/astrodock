@@ -17,7 +17,10 @@ function test(name, fn) {
 test('secrets and heavy folders are never uploaded', () => {
   for (const p of ['.env', '.env.local', '.env.production', 'server/.env.development', '.env.astrodock',
     'private/key.json', 'a/private/x', 'id.pem', 'certs/tls.KEY', '.npmrc', '.aws/credentials', '.ssh/id_ed25519',
-    'node_modules/x/index.js', '.git/config', 'dist/index.html', '.DS_Store', '._app.json']) {
+    'node_modules/x/index.js', '.git/config', 'dist/index.html', '.DS_Store', '._app.json',
+    'AuthKey_ABC123.p8', 'keys/AuthKey_ABC123', 'service-account.json', 'service-account-prod.json', 'firebase-adminsdk-x1.json',
+    'cert.p12', 'store.jks', '.netrc', '.git-credentials', 'id_rsa', 'deploy/id_ed25519', 'credentials.json',
+    'terraform.tfstate', '.docker/config.json', '.pypirc']) {
     assert.strictEqual(isExcluded(p), true, `${p} should be excluded`);
   }
   for (const p of ['app.json', 'server/server.js', '.env.example', 'server/.env.production.example', 'src/keys.js', '.gitignore']) {

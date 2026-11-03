@@ -209,7 +209,12 @@ async function atest(name, fn) {
 const selfUpdate = require('../src/lib/self-update.js');
 const settings = require('../src/lib/settings.js');
 const realGetSetting = settings.getSetting;
-const stub = (map) => { settings.getSetting = async (k, d) => (k in map ? map[k] : d); };
+// The token is read with getSecretSetting (it is encrypted at rest), the user
+// with getSetting; both answer from the map.
+const stub = (map) => {
+  settings.getSetting = async (k, d) => (k in map ? map[k] : d);
+  settings.getSecretSetting = async (k, d) => (k in map ? map[k] : d);
+};
 
 console.log('\nself-update: where the registry credentials come from');
 
@@ -251,6 +256,7 @@ await atest('the token is a secret setting and the username is not', async () =>
   assert.ok(settings.REGISTRY['registry.token'].secret,
     'an unmasked token would be readable by anyone who can open the settings page');
   assert.ok(!settings.REGISTRY['registry.user'].secret);
+  assert.ok(settings.REGISTRY['registry.token'].encrypted, 'stored encrypted, so a backup does not hold it in the clear');
 });
 
 

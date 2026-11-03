@@ -49,6 +49,18 @@ const pageLoginLimiter = rateLimit({
   legacyHeaders: false
 });
 
+// A passkey in the address (?key=) is checked on every page request, so guesses
+// there were unlimited while the unlock form allowed twenty. Only failures count:
+// a correct key on each asset of a page is not an attack.
+const pageKeyLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  skipSuccessfulRequests: true,
+  message: { error: 'Too many wrong passkeys, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
 // Feedback intake is reachable from a browser without an operator credential,
 // so it is the one endpoint a stranger can hammer. Generous enough that a person
 // filing three bugs in a row never notices, tight enough that the table cannot
@@ -109,4 +121,4 @@ const notifyLimiter = rateLimit({
   legacyHeaders: false
 });
 
-module.exports = { mobileTokenLimiter, notifyLimiter, reauthLimiter, launchLimiter, verifyLimiter, adminLoginLimiter, accountLimiter, deployLimiter, pageDataLimiter, pageLoginLimiter, feedbackLimiter };
+module.exports = { mobileTokenLimiter, notifyLimiter, reauthLimiter, launchLimiter, verifyLimiter, adminLoginLimiter, accountLimiter, deployLimiter, pageDataLimiter, pageLoginLimiter, pageKeyLimiter, feedbackLimiter };

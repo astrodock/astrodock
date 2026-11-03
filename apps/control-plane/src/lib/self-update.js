@@ -46,10 +46,10 @@ function docker(args, { timeout = 15000, env } = {}) {
 // this one was configured.
 async function storedRegistryCreds() {
   try {
-    const { getSetting } = require('./settings');
+    const { getSetting, getSecretSetting } = require('./settings');
     const [user, token] = await Promise.all([
       getSetting('registry.user', ''),
-      getSetting('registry.token', '')
+      getSecretSetting('registry.token', '')
     ]);
     const out = {};
     if (String(user || '').trim()) out.ASTRODOCK_REGISTRY_USER = String(user).trim();

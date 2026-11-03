@@ -145,7 +145,7 @@ export default function PagesPage() {
                 {draft.passkeyMode === 'custom' && (
                   <label>
                     Custom Passkey
-                    <input value={draft.passkey} onChange={(e) => setDraft({ ...draft, passkey: e.target.value })} placeholder="min 4 chars" minLength={4} />
+                    <input value={draft.passkey} onChange={(e) => setDraft({ ...draft, passkey: e.target.value })} placeholder="At least 8 characters" minLength={8} />
                   </label>
                 )}
               </div>

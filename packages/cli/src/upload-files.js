@@ -13,8 +13,14 @@ const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 
 // Never uploaded, at any depth.
-const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', 'private', '.aws', '.ssh']);
-const SKIP_NAMES = new Set(['.DS_Store', '.npmrc', '.env.astrodock']);
+const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', 'private', '.aws', '.ssh', '.gnupg', '.docker', '.terraform']);
+const SKIP_NAMES = new Set([
+  '.DS_Store', '.npmrc', '.env.astrodock', '.netrc', '.git-credentials', '.pypirc', '.htpasswd',
+  'id_rsa', 'id_dsa', 'id_ecdsa', 'id_ed25519', 'credentials.json', 'terraform.tfstate', 'terraform.tfstate.backup'
+]);
+// Key and credential files by extension: TLS and signing keys, Apple push
+// (.p8) and code-signing (.p12) keys, Java keystores.
+const SKIP_EXT = /\.(pem|key|p8|p12|pfx|jks|keystore|kdbx|ppk|asc|gpg)$/i;
 
 /** Is this repo-relative path one that must not leave the machine? */
 function isExcluded(rel) {
@@ -25,7 +31,11 @@ function isExcluded(rel) {
   if (SKIP_NAMES.has(base)) return true;
   if (base.startsWith('._')) return true;                   // macOS AppleDouble
   if (base.startsWith('.env') && !base.endsWith('.example')) return true;
-  if (/\.(pem|key)$/i.test(base)) return true;
+  if (SKIP_EXT.test(base)) return true;
+  // Cloud service-account keys (Google, Firebase): service-account.json,
+  // service-account-prod.json, firebase-adminsdk-*.json.
+  if (/^(service-account|firebase-adminsdk).*\.json$/i.test(base)) return true;
+  if (/^AuthKey_.*$/i.test(base)) return true;              // Apple push key, any extension
   return false;
 }
 

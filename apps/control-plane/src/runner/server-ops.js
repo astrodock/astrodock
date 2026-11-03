@@ -146,7 +146,7 @@ async function freeSpace() {
 // reads the platform .env, so this is the list a `cat .env` would print.
 function secretValues() {
   return Object.entries(process.env)
-    .filter(([k, v]) => /SECRET|TOKEN|PASSWORD|PASS\b|_KEY\b|PRIVATE/i.test(k) && v && String(v).length >= 8)
+    .filter(([k, v]) => /SECRET|TOKEN|PASSWORD|PASS\b|_KEY\b|_PAT\b|PRIVATE/i.test(k) && v && String(v).length >= 8)
     .map(([, v]) => String(v));
 }
 

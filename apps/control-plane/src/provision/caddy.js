@@ -128,13 +128,27 @@ function apiHandles(paths) {
   return paths.map((p) => `\thandle ${p} {\n\t\treverse_proxy ${API}\n\t}`).join('\n');
 }
 
+// The dashboard's own pages are files Caddy serves, so the headers Express sets
+// on API responses never reached them. Without these the approval page could be
+// framed by another site and its Approve button clicked through.
+function dashboardHeaders() {
+  const lines = [
+    'X-Frame-Options DENY',
+    `Content-Security-Policy "frame-ancestors 'none'; object-src 'none'; base-uri 'self'"`,
+    'X-Content-Type-Options nosniff',
+    'Referrer-Policy same-origin'
+  ];
+  if (config.tlsMode === 'auto') lines.push('Strict-Transport-Security "max-age=31536000"');
+  return `\t\theader {\n${lines.map((l) => `\t\t\t${l}`).join('\n')}\n\t\t}\n`;
+}
+
 function setupBlock() {
   const staticRoot = `${config.paths.caddyStatic}/__admin`;
   return `
 :80 {
 ${apiHandles(ADMIN_PATHS)}
 \thandle {
-\t\troot * ${staticRoot}
+${dashboardHeaders()}\t\troot * ${staticRoot}
 \t\ttry_files {path} /index.html
 \t\tfile_server
 \t}
@@ -205,7 +219,7 @@ ${apiHandles(ADMIN_PATHS)}
 \t# Apps registered before sign-in moved to its own host still point here.
 \tredir /authorize{uri} https://${authHost}/authorize{uri} permanent
 \thandle {
-\t\troot * ${staticRoot}
+${dashboardHeaders()}\t\troot * ${staticRoot}
 \t\ttry_files {path} /index.html
 \t\tfile_server
 \t}

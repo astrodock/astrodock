@@ -6,7 +6,7 @@ const path = require('path');
 const { eq, and, desc } = require('drizzle-orm');
 const config = require('../config');
 const { db, schema } = require('../db');
-const { requireScope, requirePermission, tokenAllowsApp } = require('../middleware/auth');
+const { requireScope, requirePermission, tokenAllowsApp, callerHasScope } = require('../middleware/auth');
 const { requireRecentAuth } = require('../lib/sessions');
 const { deployLimiter } = require('../middleware/rateLimiter');
 const { getAppBySlug, getAppEnvVars, serializeApp, serializeEnvVar } = require('../lib/apps');
@@ -107,6 +107,12 @@ const approveRepo = requireApproval({
 // ── apply a manifest (CLI `apply`) ──────────────────────────────────────────────
 router.post('/apply', requirePermission('apps:write'), approveNewApp, approveRepo, async (req, res) => {
   const manifest = req.body?.manifest || req.body;
+  // ai_mode "auto" sends the model's replies to users with nobody reviewing
+  // them, which is what feedback:reply exists to gate. A key without it cannot
+  // turn that on through app.json.
+  if (manifest?.feedback?.ai_mode === 'auto' && !callerHasScope(req.auth, 'feedback:reply')) {
+    return res.status(403).json({ error: 'Sending replies without review (feedback.ai_mode "auto") needs the feedback:reply permission. Use "draft".' });
+  }
   const prune = !!(req.body?.prune || req.query.prune);
   if (manifest && manifest.slug && !tokenAllowsApp(req.auth, manifest.slug)) {
     return res.status(403).json({ error: `Token is not scoped to app "${manifest.slug}"` });
