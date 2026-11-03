@@ -96,10 +96,13 @@ What is not:
 - **The per-app terminal is arbitrary RCE.** `POST /admin/apps/<slug>/exec` streams shell commands
   over SSE. It is registered only when the runner has `ASTRODOCK_ENABLE_TERMINAL=true`, and it is
   gated on the `exec` scope, which is in the sensitive group, appears in no key preset, and is not
-  carried by the operator role. Commands run **on the runner**, in the app's own directory, as the
-  app's own user, with the app's own environment and nothing of the platform's; output has the
-  app's secret values masked; every invocation is written to the audit trail with its text before
-  it runs. That bounds it to the blast radius of the app itself rather than the platform, but a
+  carried by the operator role. A Node app run by PM2 gets its commands **on the runner**, in the
+  app's own directory, as the app's own user, with the app's own environment and nothing of the
+  platform's. A Node app in a container, or a Dockerfile app, gets them through `docker exec` in its
+  own container. They never run as root on the runner: an app with no safe user of its own is
+  refused until it is redeployed. Output has the app's secrets and the secrets the platform injects
+  masked; every invocation is written to the audit trail with its full text before it runs, and
+  does not run if that record cannot be written. That bounds it to the blast radius of the app itself rather than the platform, but a
   shell is still a shell. Leave it off unless you understand and accept this.
 - **The server terminal is root on the host, by design.** `POST /admin/server/exec` (the Server
   page, and `astrodock server run`) starts a short-lived privileged container that enters the
@@ -130,17 +133,29 @@ What is not:
 - **Per-app object-storage isolation:** each internal-storage app gets its own bucket + a scoped
   S3 key (minted in SeaweedFS) limited to that bucket. If a scoped identity can't be minted, it
   falls back to a shared key + per-app prefix and says so in the provision output.
-- **Per-app process isolation:** Node buildpack apps run as their own non-root OS user with
-  600-perm env files, so apps can't read each other's secrets/code. Dockerfile apps are isolated
-  by container.
+- **Per-app process isolation:** Node buildpack apps run as their own non-root OS user, on a user
+  id from a high range (20000 and up) that never matches the Docker socket's group. Their PM2
+  config, which holds their environment, is JSON in a root-only folder beside PM2's state, outside
+  the app's tree; copies out of the app's tree run as the app user, and published static folders
+  are owned by root. Dockerfile apps are isolated by container, without `NET_RAW`.
+- **Platform settings that are secrets** (Google client secret, Anthropic key, registry token,
+  launcher secret, relay secret) are encrypted at rest like app secrets.
+- **Backups** hold every password hash and secret, and a restore runs the file's SQL as the
+  database superuser. Downloading, uploading and restoring one needs `backups:restore`, which only
+  the owner role holds.
 
 ## Admin & token model
-- **Admin auth:** a single `ASTRODOCK_ADMIN_JWT_SECRET`, 8-hour bearer JWTs, no refresh/revocation.
-  Fine at small scale; rotate the secret to invalidate all admin sessions. (Multi-admin RBAC is
-  future work — all admins are equally privileged.)
-- **Scoped API tokens (`tk_…`):** SHA-256-hashed at rest, shown once. They can manage
-  apps/deploys/env but **cannot manage users or other tokens**, and may be **restricted to specific
-  app slugs** (`apps: [...]` at creation). Revoke in the admin UI.
+- **Operator sessions:** 8-hour bearer JWTs backed by a session row, so they can be revoked: signing
+  out, a password change, a password reset, deactivation and a role change all end sessions.
+  Operators hold roles (owner, admin, operator, viewer). Changing who can sign in, or as what,
+  and turning off a protection (agent approvals, required MFA) ask the person to confirm it is
+  them again. Failed sign-ins are limited per IP and per account.
+- **Access keys (`tk_…`):** SHA-256-hashed at rest, shown once, with permissions, an optional app
+  limit and an expiry. A key works only while the person who made it is active and an operator,
+  and only with the permissions their role holds now. Some actions by a key need a person's
+  approval with a passkey or authenticator code (creating an app, a custom domain, giving an app
+  an existing person, Google sign-up, connecting a repository). Revealing a secret value needs
+  `env:reveal`, which no read-only set holds.
 - **End-user passwords:** bcrypt (12 rounds). `/verify` is rate-limited; results are logged to
   `auth_logs` (pruned after 90 days).
 
@@ -191,7 +206,8 @@ The object data volume is kept. The control plane works with either topology.
   and process table, so one app can see another's process names and bind a port another app
   has released. Put only apps you trust on the box.
 - Apps can reach the cloud metadata service (`169.254.169.254`) unless the host blocks it.
-- No multi-admin RBAC — admins are all-powerful (per-app scoping exists only for API tokens).
+- All Pages share one origin (`pages.<domain>`), so a page's script runs alongside every other
+  page's for a visitor signed in to Pages. Publish only pages you trust.
 
 ## Operator guidance
 - Put the box behind a firewall; expose only 80/443.

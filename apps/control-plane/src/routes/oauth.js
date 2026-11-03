@@ -17,6 +17,7 @@ const crypto = require('crypto');
 const path = require('path');
 const { eq } = require('drizzle-orm');
 const { db, schema } = require('../db');
+const config = require('../config');
 const oauth = require('../lib/oauth');
 const userSession = require('../lib/user-session');
 const factors = require('../lib/auth-factors');
@@ -147,17 +148,19 @@ router.get('/logout', async (req, res) => {
   { icon: 'log-out' }));
 });
 
+// Where an app actually lives: its subdomain, or a custom domain that has been
+// verified. A registered redirect URI used to count, and any key that can edit
+// one app could register https://anywhere, which made this an open redirect.
 async function isPlatformOrigin(url) {
-  let origin;
-  try {
-    const u = new URL(url);
-    if (u.protocol !== 'https:' && u.protocol !== 'http:') return false;
-    origin = u.origin;
-  } catch { return false; }
-  const rows = await db.select({ uri: schema.appRedirectUris.uri }).from(schema.appRedirectUris);
-  return rows.some((r) => {
-    try { return new URL(r.uri).origin === origin; } catch { return false; }
-  });
+  let u;
+  try { u = new URL(url); } catch { return false; }
+  if (u.protocol !== 'https:' && !(config.tlsMode === 'off' && u.protocol === 'http:')) return false;
+  const host = u.hostname.toLowerCase();
+  const apps = await db.select({ subdomain: schema.apps.subdomain }).from(schema.apps);
+  if (config.baseDomain && apps.some((a) => a.subdomain && `${a.subdomain}.${config.baseDomain}`.toLowerCase() === host)) return true;
+  const custom = await db.select({ hostname: schema.customDomains.hostname }).from(schema.customDomains)
+    .where(eq(schema.customDomains.status, 'active'));
+  return custom.some((d) => String(d.hostname).toLowerCase() === host);
 }
 
 // ── /login ────────────────────────────────────────────────────────────────────
@@ -198,6 +201,8 @@ router.post('/login', pageLoginLimiter, express.json(), async (req, res) => {
       // Uniform failure: never reveal whether the account exists, is inactive, or
       // simply has no password set.
       if (!candidate || !candidate.isActive || !await factors.checkPassword(candidate, password)) {
+        // Same bcrypt time when there was nothing to compare against.
+        if (!candidate || !candidate.isActive || !candidate.passwordHash) await require('../lib/login-guard').burn(password);
         logAttempt(addr, logApp, 'BAD_PASSWORD', ip);
         return res.status(401).json({ error: 'Those details are not right.' });
       }

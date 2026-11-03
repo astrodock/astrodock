@@ -44,11 +44,19 @@ router.post('/exec', requirePermission('server:exec'), async (req, res) => {
 
   // Recorded before it runs, with the text and who ran it (a person, or which
   // key). A root shell nobody can review afterwards is worse than none.
-  await emitEvent({
+  // If the record cannot be written, the command does not run. The whole text is
+  // kept (up to 8,000 characters), so padding cannot push the real payload out
+  // of the record.
+  const text = String(command);
+  if (text.length > 8000) return res.status(400).json({ error: 'That command is longer than 8,000 characters.' });
+  // emitEvent answers null when the event could not be stored.
+  const recorded = await emitEvent({
     category: 'audit', type: 'server.exec', severity: 'warning',
     ...actorFromAuth(req.auth), ip: req.ip, targetType: 'server', targetId: 'host',
-    message: `Ran on the server: ${String(command).slice(0, 500)}`
-  }).catch(() => {});
+    message: `Ran on the server: ${text.slice(0, 500)}${text.length > 500 ? '…' : ''}`,
+    meta: { command: text }
+  }).catch(() => null);
+  if (!recorded) return res.status(503).json({ error: 'The command could not be recorded in Activity, so it was not run.' });
 
   let upstream;
   try { upstream = await runner.serverExecStream(String(command)); }

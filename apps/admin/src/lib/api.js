@@ -83,6 +83,9 @@ async function request(path, options = {}) {
 }
 
 // Auth
+// Ends the session on the server. Best effort: signing out of the browser
+// happens whether or not this reaches it.
+export const logout = () => request('/account/logout', { method: 'POST', verifiesCredential: true }).catch(() => null);
 export const login = (email, password, extra = {}) =>
   request('/login', { method: 'POST', body: JSON.stringify({ email, password, ...extra }) });
 

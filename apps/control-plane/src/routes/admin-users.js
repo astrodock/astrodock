@@ -131,6 +131,14 @@ function confirmed(req, res) {
   return ok;
 }
 
+// Who changed whom, in Activity. None of these used to be recorded.
+function auditUser(req, type, target, message, severity = 'warning') {
+  emitEvent({
+    category: 'audit', type, severity, ...actorFromAuth(req.auth), ip: req.ip || '',
+    targetType: 'user', targetId: target.id, message
+  }).catch(() => {});
+}
+
 // The owners who can still sign in. Counting deactivated ones let the last
 // active owner be removed.
 async function activeOwnerCount() {
@@ -156,6 +164,7 @@ router.post('/', requirePermission('users:write'), async (req, res) => {
 
   const passwordHash = await hashPassword(password);
   const rows = await db.insert(schema.users).values({ email: normEmail, name, passwordHash }).returning();
+  auditUser(req, 'user.created', rows[0], `Created the account ${normEmail}`, 'info');
   res.status(201).json({ user: publicUser(rows[0]) });
 });
 
@@ -308,6 +317,8 @@ router.patch('/:id', requirePermission('users:write'), async (req, res) => {
   if (isActive === false || (operatorRole !== undefined && operatorRole !== target.operatorRole)) {
     await sessions.revokeAllFor(target.id).catch(() => {});
   }
+  if (roleChanges) auditUser(req, 'user.role_changed', target, `Changed ${target.email} from ${target.operatorRole || 'app user'} to ${operatorRole || 'app user'}`, 'critical');
+  if (activeChanges) auditUser(req, isActive ? 'user.activated' : 'user.deactivated', target, `${isActive ? 'Turned on' : 'Turned off'} ${target.email}`);
   res.json({ user: publicUser(rows[0]) });
 });
 
@@ -322,6 +333,7 @@ router.delete('/:id', requirePermission('users:write'), async (req, res) => {
     return res.status(400).json({ error: 'This is the only active owner. Make someone else an owner first.' });
   }
   await sessions.revokeAllFor(target.id).catch(() => {});
+  auditUser(req, 'user.deleted', target, `Deleted ${target.email}`);
   const rows = await db.delete(schema.users).where(eq(schema.users.id, req.params.id)).returning();
   if (!rows[0]) return res.status(404).json({ error: 'User not found' });
   res.status(204).end();
@@ -341,6 +353,7 @@ router.post('/:id/reset-password', requirePermission('users:write'), async (req,
   if (!rows[0]) return res.status(404).json({ error: 'User not found' });
   // Whoever was signed in with the old password is signed out.
   await sessions.revokeAllFor(target.id).catch(() => {});
+  auditUser(req, 'user.password_reset', target, `Reset the password of ${target.email}`);
   res.status(204).end();
 });
 

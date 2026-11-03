@@ -26,6 +26,15 @@ for (const [addr, prefix] of [
   ['::', 128], ['::1', 128], ['fc00::', 7], ['fe80::', 10], ['ff00::', 8], ['64:ff9b::', 96]
 ]) blocked.addSubnet(addr, prefix, 'ipv6');
 
+// IPv6 is allowed only from the global unicast range, 2000::/3. Listing what to
+// block missed forms that carry an IPv4 address inside them (::7f00:1, NAT64
+// 64:ff9b:1::/48, 6to4 2002::/16) and old site-local fec0::/10. Inside 2000::/3,
+// 6to4, Teredo and the documentation range are still refused.
+const globalV6 = new net.BlockList();
+globalV6.addSubnet('2000::', 3, 'ipv6');
+const tunnelledV6 = new net.BlockList();
+for (const [addr, prefix] of [['2002::', 16], ['2001::', 32], ['2001:db8::', 32]]) tunnelledV6.addSubnet(addr, prefix, 'ipv6');
+
 // ::ffff:a.b.c.d and ::ffff:7f00:1 are IPv4 addresses wearing IPv6 clothes.
 function mappedV4(addr) {
   const m = /^::ffff:(.+)$/i.exec(addr);
@@ -43,7 +52,7 @@ function isPublicAddress(addr) {
   const a = String(addr || '').replace(/^\[|\]$/g, '');
   const v4 = net.isIPv4(a) ? a : mappedV4(a);
   if (v4) return !blocked.check(v4, 'ipv4');
-  if (net.isIPv6(a)) return !blocked.check(a, 'ipv6');
+  if (net.isIPv6(a)) return globalV6.check(a, 'ipv6') && !tunnelledV6.check(a, 'ipv6') && !blocked.check(a, 'ipv6');
   return false;
 }
 

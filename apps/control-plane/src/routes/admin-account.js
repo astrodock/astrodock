@@ -140,6 +140,8 @@ router.put('/password', sessions.requireRecentAuth, async (req, res) => {
     }
     await factors.setPassword(req.auth.sub, (req.body || {}).password);
     await sessions.finishWelcome(req.auth);
+    // Anyone else signed in with the old password is signed out.
+    await sessions.revokeAllFor(req.auth.sub, { except: req.auth.sessionId }).catch(() => {});
     await audit(req, 'account.password_changed', `${req.auth.email} changed their password`);
     res.json({ ok: true });
   } catch (err) { res.status(400).json({ error: err.message }); }
@@ -224,6 +226,14 @@ router.delete('/sessions/:id', async (req, res) => {
     await sessions.revoke(req.params.id);
     res.json({ ok: true });
   } catch (err) { res.status(400).json({ error: err.message }); }
+});
+
+// Signing out ends the session here, not only in the browser. Clearing the
+// browser's copy used to be all it did, so a copied token kept working for its
+// full eight hours.
+router.post('/logout', async (req, res) => {
+  if (req.auth.sessionId) await sessions.revoke(req.auth.sessionId).catch(() => {});
+  res.status(204).end();
 });
 
 router.post('/sessions/revoke-others', async (req, res) => {

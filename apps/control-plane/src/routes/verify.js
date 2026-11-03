@@ -43,6 +43,8 @@ router.post('/', verifyLimiter, async (req, res) => {
     .where(eq(schema.users.email, String(email).toLowerCase().trim())).limit(1);
   const user = userRows[0];
   if (!user || !user.isActive) {
+    // Same bcrypt time as a wrong password, so timing does not say who has an account.
+    await require('../lib/login-guard').burn(password);
     logAttempt(email, appId, user ? 'INACTIVE_USER' : 'USER_NOT_FOUND', ip);
     return res.status(401).json({ error: 'Invalid credentials' });
   }

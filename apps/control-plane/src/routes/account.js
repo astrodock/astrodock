@@ -83,6 +83,8 @@ router.post('/change-password', accountLimiter, async (req, res) => {
 
   const passwordHash = await hashPassword(String(newPassword));
   await db.update(schema.users).set({ passwordHash, updatedAt: new Date() }).where(eq(schema.users.id, user.id));
+  // Dashboard sessions opened with the old password end too.
+  await require('../lib/sessions').revokeAllFor(user.id).catch(() => {});
   logAttempt(email, 'PASSWORD_CHANGED', ip);
   res.json({ message: 'Password updated successfully' });
 });

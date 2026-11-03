@@ -3,7 +3,7 @@
 const express = require('express');
 const { spawn } = require('child_process');
 const path = require('path');
-const { eq, and, desc } = require('drizzle-orm');
+const { eq, and, desc, sql } = require('drizzle-orm');
 const config = require('../config');
 const { db, schema } = require('../db');
 const { requireScope, requirePermission, tokenAllowsApp, callerHasScope } = require('../middleware/auth');
@@ -303,6 +303,16 @@ router.delete('/:slug', requirePermission('apps:delete'), async (req, res) => {
   await db.delete(schema.deployments).where(eq(schema.deployments.appSlug, app.slug));
   await db.delete(schema.appHealth).where(eq(schema.appHealth.slug, app.slug)).catch(() => {});
   await db.delete(schema.apps).where(eq(schema.apps.id, app.id)); // env vars cascade
+  // Access is recorded by slug, so a later app given the same name would have
+  // inherited everyone who could use this one. Removed with the app.
+  await db.execute(sql`UPDATE users SET app_access = (
+      SELECT COALESCE(jsonb_agg(x), '[]'::jsonb) FROM jsonb_array_elements(app_access) x WHERE x <> to_jsonb(${app.slug}::text)
+    ) WHERE app_access @> to_jsonb(ARRAY[${app.slug}::text])`).catch((e) => console.error('[delete] access cleanup failed:', e.message));
+  emitEvent({
+    category: 'audit', type: 'app.deleted', severity: 'warning', ...actorFromAuth(req.auth), ip: req.ip || '',
+    appSlug: app.slug, targetType: 'app', targetId: app.slug,
+    message: `Deleted the app "${app.slug}"${purge ? ' and its data' : ''}`
+  }).catch(() => {});
   await reloadCaddyFromDb();
 
   if (!purge && (app.databaseMode === 'internal' || app.storageMode === 'internal')) {
@@ -743,13 +753,17 @@ router.post('/:slug/exec', requirePermission('exec'), async (req, res) => {
   const command = req.body && req.body.command;
   if (!command || !String(command).trim()) return res.status(400).json({ error: 'command is required' });
 
-  // Recorded before it runs, with the text. A shell nobody can review after the
-  // fact is worse than no shell.
-  emitEvent({
+  // Recorded before it runs, with the whole text. A shell nobody can review after
+  // the fact is worse than no shell, so if the record fails the command does not run.
+  const text = String(command);
+  if (text.length > 8000) return res.status(400).json({ error: 'That command is longer than 8,000 characters.' });
+  const recorded = await emitEvent({
     category: 'audit', type: 'app.exec', severity: 'warning',
     ...actorFromAuth(req.auth), ip: req.ip, appSlug: app.slug, targetType: 'app', targetId: app.slug,
-    message: `Ran in ${app.slug}: ${String(command).slice(0, 500)}`
-  }).catch(() => {});
+    message: `Ran in ${app.slug}: ${text.slice(0, 500)}${text.length > 500 ? '…' : ''}`,
+    meta: { command: text }
+  }).catch(() => null);
+  if (!recorded) return res.status(503).json({ error: 'The command could not be recorded in Activity, so it was not run.' });
 
   let upstream;
   try { upstream = await runner.execStream(app.slug, String(command)); }

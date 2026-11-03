@@ -114,12 +114,14 @@ PAGE_EOF
 # mainstream cloud image; if it is missing we simply skip this and the Docker
 # placeholder takes over later. Best-effort throughout: an install must never fail
 # because the reassurance failed.
-EARLY_DIR=/tmp/astrodock-installing
+# A fresh private folder each time: a fixed name in /tmp could be made in
+# advance by another local user, and this script runs as root.
+EARLY_DIR=""
 EARLY_PID=""
 
 start_early_page() {
   have python3 || return 0
-  mkdir -p "$EARLY_DIR" 2>/dev/null || return 0
+  EARLY_DIR=$(mktemp -d 2>/dev/null) || return 0
   page 'Astrodock is installing' \
     'Setting up Docker and downloading the platform. On a small server this usually takes two or three minutes.' \
     'This page refreshes itself, and setup will appear here when it is ready.' \
@@ -131,7 +133,8 @@ start_early_page() {
 stop_early_page() {
   [ -n "$EARLY_PID" ] && kill "$EARLY_PID" >/dev/null 2>&1 || true
   EARLY_PID=""
-  rm -rf "$EARLY_DIR" >/dev/null 2>&1 || true
+  [ -n "$EARLY_DIR" ] && rm -rf "$EARLY_DIR" >/dev/null 2>&1 || true
+  EARLY_DIR=""
 }
 
 trap 'stop_early_page' EXIT INT TERM

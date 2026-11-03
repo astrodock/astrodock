@@ -186,7 +186,8 @@ export default function App() {
     navigate(takeNext() || '/overview');
   }
 
-  function handleLogout() {
+  async function handleLogout() {
+    await api.logout();
     clearToken();
     setIsAuthed(false);
     navigate('/login');

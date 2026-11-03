@@ -13,7 +13,7 @@
 // hand, which is why it lives in the data layer rather than only in the UI.
 
 const crypto = require('crypto');
-const { and, eq, isNull } = require('drizzle-orm');
+const { and, or, eq, lt, isNull } = require('drizzle-orm');
 const { db, schema } = require('../db');
 const { hashPassword, verifyPassword } = require('./passwords');
 const { encryptSecret, decryptSecret } = require('./crypto');
@@ -129,9 +129,13 @@ async function checkTotp(user, code) {
   if (!user.totpSecret || !user.totpConfirmedAt) return false;
   const res = totp.verify(decryptSecret(user.totpSecret), code, { lastStep: user.totpLastStep });
   if (!res.ok) return false;
-  // Persist the spent step so the same code cannot be used twice inside its window.
-  await db.update(schema.users).set({ totpLastStep: res.step }).where(eq(schema.users.id, user.id));
-  return true;
+  // Spend the step only if nothing has spent it (or a later one) since this
+  // request read the account. Unconditional, two requests carrying the same code
+  // at the same moment both got through.
+  const spent = await db.update(schema.users).set({ totpLastStep: res.step })
+    .where(and(eq(schema.users.id, user.id), or(isNull(schema.users.totpLastStep), lt(schema.users.totpLastStep, res.step))))
+    .returning({ id: schema.users.id });
+  return spent.length === 1;
 }
 
 async function removeTotp(userId) {

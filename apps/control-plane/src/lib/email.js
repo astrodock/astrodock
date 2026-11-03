@@ -50,6 +50,10 @@ async function sendViaSmtp({ smtp, from, to, subject, html }) {
     host: smtp.host,
     port: smtp.port,
     secure: smtp.secure,
+    // When a password is sent, the connection must be encrypted: without this, a
+    // server (or anything in between) that does not offer STARTTLS gets the
+    // password in plain text.
+    requireTLS: !smtp.secure && !!smtp.user,
     auth: smtp.user ? { user: smtp.user, pass: smtp.password } : undefined,
     connectionTimeout: 15000,
     greetingTimeout: 15000,

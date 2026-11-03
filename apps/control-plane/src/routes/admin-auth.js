@@ -22,6 +22,7 @@ const googleAccounts = require('../lib/google-accounts');
 const { adminLoginLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
+const guard = require('../lib/login-guard');
 
 function deny(res) {
   // One message for every failure mode — wrong password, no such account,
@@ -64,10 +65,14 @@ router.post('/login', adminLoginLimiter, async (req, res) => {
   const { email, password, totp, recoveryCode } = req.body || {};
   try {
     const addr = String(email || '').toLowerCase().trim();
+    const key = `operator:${addr}`;
+    if (guard.blocked(key)) {
+      return res.status(429).json({ error: 'Too many failed attempts for this account. Wait 15 minutes, then try again.' });
+    }
     const [user] = await db.select().from(schema.users).where(eq(schema.users.email, addr)).limit(1);
 
-    if (!user || !user.isActive || !roles.isOperator(user)) return deny(res);
-    if (!await factors.checkPassword(user, password)) return deny(res);
+    if (!user || !user.isActive || !roles.isOperator(user)) { await guard.burn(password); guard.fail(key); return deny(res); }
+    if (!await factors.checkPassword(user, password)) { guard.fail(key); return deny(res); }
 
     const f = await factors.factorsFor(user.id);
     // The MFA policy is checked in issue(), for every sign-in path.
@@ -79,9 +84,10 @@ router.post('/login', adminLoginLimiter, async (req, res) => {
       const ok = recoveryCode
         ? await factors.consumeRecoveryCode(user.id, recoveryCode)
         : await factors.checkTotp(user, totp);
-      if (!ok) return res.status(401).json({ error: 'That code is not right.', code: 'totp_required' });
+      if (!ok) { guard.fail(key); return res.status(401).json({ error: 'That code is not right.', code: 'totp_required' }); }
     }
 
+    guard.clear(key);
     return issue(res, user, req);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -182,10 +188,15 @@ router.post('/login/google', adminLoginLimiter, async (req, res) => {
           ticket: parkTicket(user.id)
         });
       }
+      const gkey = `operator:${user.email}`;
+      if (guard.blocked(gkey)) {
+        return res.status(429).json({ error: 'Too many failed attempts for this account. Wait 15 minutes, then try again.' });
+      }
       const ok = recoveryCode
         ? await factors.consumeRecoveryCode(user.id, recoveryCode)
         : await factors.checkTotp(user, totp);
       if (!ok) {
+        guard.fail(gkey);
         return res.status(401).json({
           error: 'That code is not right.', code: 'totp_required', ticket: parkTicket(user.id)
         });

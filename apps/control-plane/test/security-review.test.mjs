@@ -219,6 +219,37 @@ await t('a Google sign-in callback from a browser that did not start it is refus
   A(Object.keys(cookies).length === 1, 'a binding cookie was set');
 });
 
+console.log('\nsessions and sign-in');
+await t('signing out ends the session on the server', async () => {
+  const tok = await login('own@review.test');
+  A((await J('GET', '/admin/account', null, tok)).s === 200, 'works before');
+  A((await J('POST', '/admin/account/logout', null, tok)).s === 204, 'logout');
+  A((await J('GET', '/admin/account', null, tok)).s === 401, 'refused after');
+});
+await t('an account is locked after repeated wrong passwords, whatever the address', async () => {
+  for (let i = 0; i < 10; i++) await J('POST', '/admin/login', { email: 'target@review.test', password: 'wrong-' + i }, null, { 'X-Forwarded-For': `10.9.0.${i}` });
+  const r = await J('POST', '/admin/login', { email: 'target@review.test', password: 'another-password-1' });
+  A(r.s === 429 && /for this account/.test(r.d.error || ''), `${r.s} ${JSON.stringify(r.d)}`);
+  require('../src/lib/login-guard.js').clear('operator:target@review.test');
+});
+await t('logout only redirects to an app on this platform', async () => {
+  const app1 = (await db.select().from(schema.apps).where(eq(schema.apps.slug, 'rv-one')))[0];
+  await db.insert(schema.appRedirectUris).values({ appId: app1.id, uri: 'https://evil.example/cb' }).catch(() => {});
+  const bad = await fetch(`${B}/logout?redirect_uri=${encodeURIComponent('https://evil.example/phish')}`, { redirect: 'manual' });
+  A(bad.status === 200, 'no redirect to a registered but foreign origin: ' + bad.status);
+  const good = await fetch(`${B}/logout?redirect_uri=${encodeURIComponent(`http://rv-one.${process.env.ASTRODOCK_BASE_DOMAIN}/`)}`, { redirect: 'manual' });
+  A(good.status === 302, 'redirects to the app: ' + good.status);
+});
+await t('a deleted app leaves nobody with access to a new app of the same name', async () => {
+  const fresh = await login('own@review.test');
+  await db.insert(schema.apps).values({ slug: 'rv-two', name: 'rv-two', subdomain: 'rv-two', port: 39779, appSecret: 's', appJwtSecret: 'j' });
+  await db.update(schema.users).set({ appAccess: ['rv-one', 'rv-two'] }).where(eq(schema.users.id, endUser.id));
+  const r = await J('DELETE', '/admin/apps/rv-two', null, fresh);
+  A(r.s === 204, `${r.s} ${JSON.stringify(r.d)}`);
+  const [u] = await db.select().from(schema.users).where(eq(schema.users.id, endUser.id));
+  A(JSON.stringify(u.appAccess) === '["rv-one"]', JSON.stringify(u.appAccess));
+});
+
 console.log('\nsecret settings at rest');
 await t('a secret setting saved in plain text is encrypted at startup and still reads back', async () => {
   const settings = require('../src/lib/settings.js');

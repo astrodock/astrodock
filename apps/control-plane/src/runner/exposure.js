@@ -126,7 +126,7 @@ async function checkMetadataReachable() {
   try {
     await docker([
       'run', '--rm', '--network', 'bridge', '--entrypoint', 'wget',
-      'caddy:2-alpine', '-q', '-T', '3', '-O', '-', `http://${METADATA_IP}/metadata/v1/id`
+      'caddy:2-alpine', '-q', '-T', '3', '-O', '-', `http://${METADATA_IP}/`
     ]);
     result = { available: true, reachable: true };
   } catch (err) {
@@ -135,6 +135,11 @@ async function checkMetadataReachable() {
     const msg = String((err && err.message) || '');
     if (/Unable to find image|pull access denied|Cannot connect to the Docker daemon|permission denied/i.test(msg)) {
       result = { available: false, reason: msg.slice(0, 160) };
+    } else if (/server returned error|HTTP\/1\.[01] \d{3}/i.test(msg)) {
+      // Something answered, with an error status. Only DigitalOcean's path was
+      // asked before, so AWS, Google, Azure and Hetzner, which answer other paths
+      // or want a header, looked unreachable. Any answer means an app can reach it.
+      result = { available: true, reachable: true };
     } else {
       result = { available: true, reachable: false };
     }
