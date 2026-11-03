@@ -1651,3 +1651,11 @@ button.sm { padding:4px 10px; font-size:12px; white-space:nowrap; }
 @media (max-width: 600px) {
   .acct-id { grid-template-columns:minmax(0,1fr); }
 }
+
+/* Server page: the old-layout notice. Set apart by a rule and a label, not a tinted box. */
+.server-layout { margin:0 0 28px; padding-top:14px; border-top:2px solid var(--danger); }
+.server-layout .tab-header h2 { color:var(--danger); }
+.server-layout p { font-size:13.5px; color:var(--text-2); line-height:1.55; max-width:760px; margin:6px 0; }
+.server-layout ul { margin:6px 0 10px 18px; font-size:13.5px; color:var(--text); line-height:1.55; }
+.server-cmds { background:var(--log-bg); color:var(--log-ink); font-family:var(--mono); font-size:12px; line-height:1.7;
+  padding:12px 14px; border:1px solid var(--line); overflow-x:auto; white-space:pre; margin-top:8px; }

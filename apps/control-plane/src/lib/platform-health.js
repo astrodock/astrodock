@@ -78,14 +78,36 @@ function probeCert() {
   });
 }
 
+// An update replaces images, never the operator's docker-compose.yml, so an
+// install from before the network split (Nov 2026) keeps Caddy's admin API and
+// the storage core's filer on the network every app joins. From there an app
+// can rewrite routing for the admin and sign-in hosts, or read every bucket.
+// Nothing said so; this does. Checked from the api, which sits where apps sit.
+async function probeLayout() {
+  const issues = [];
+  if (!/^unix:/.test(String(config.caddyAdmin || ''))) {
+    issues.push({ key: 'caddy_admin', message: 'Caddy\'s admin API listens on the network every app is on, so an app could change how the dashboard and sign-in hosts are routed.' });
+  }
+  let host = null;
+  try { host = new URL(config.objectstore.endpoint).hostname; } catch { /* no object store */ }
+  if (host) {
+    const filer = await probeHttp(`http://${host}:8888/`);
+    if (filer.status) {
+      issues.push({ key: 'storage_core', message: 'The storage core\'s filer, which has no password, answers on the network every app is on, so an app could read every bucket.' });
+    }
+  }
+  return { legacy: issues.length > 0, issues };
+}
+
 async function probePlatform() {
-  const [database, objectstore, runner, cert] = await Promise.all([
+  const [database, objectstore, runner, cert, layout] = await Promise.all([
     probeDb(),
     probeObjectStore(),
     probeHttp(`${config.runnerUrl}/health`),
-    probeCert()
+    probeCert(),
+    probeLayout()
   ]);
-  return { database, objectstore, runner, cert, checkedAt: new Date().toISOString() };
+  return { database, objectstore, runner, cert, layout, checkedAt: new Date().toISOString() };
 }
 
 // Transition state so we only alert on down→up / up→down edges, not every cycle.
@@ -124,6 +146,12 @@ async function checkAndAlert() {
     wasDown[dep] = down;
   }
   last = snap;
+  if (snap.layout && snap.layout.legacy) {
+    emitEvent({ category: 'system', type: 'system.legacy_layout', severity: 'critical',
+      message: `This install still has the old network layout: ${snap.layout.issues.map((i) => i.message).join(' ')} Replace docker-compose.yml and the Caddyfile (Server page, or SECURITY.md "Older installs").`,
+      meta: { issues: snap.layout.issues.map((i) => i.key) },
+      dedupeKey: 'system:legacy_layout', dedupeWindowMs: 24 * 3600 * 1000 }).catch(() => {});
+  }
   if (snap.cert && snap.cert.ok && typeof snap.cert.daysLeft === 'number' && snap.cert.daysLeft <= 14) {
     emitEvent({ category: 'system', type: 'system.cert_expiring', severity: 'warning',
       message: `TLS certificate for the admin host expires in ${snap.cert.daysLeft} day(s)`,
@@ -150,4 +178,5 @@ function startPlatformHealth(intervalMs = 120000) {
   tick();
 }
 
-module.exports = { probePlatform, checkAndAlert, startPlatformHealth, getLast };
+module.exports = {
+  probeLayout, probePlatform, checkAndAlert, startPlatformHealth, getLast };

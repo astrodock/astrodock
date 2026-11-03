@@ -29,6 +29,7 @@ export default function ServerPage() {
   const [freeing, setFreeing] = useState(false);
   const [result, setResult] = useState(null);
   const [terminal, setTerminal] = useState({ enabled: false, allowed: false });
+  const [layout, setLayout] = useState(null);
   const [confirmNode, ask] = useConfirm();
 
   async function load() {
@@ -39,6 +40,7 @@ export default function ServerPage() {
   useEffect(() => {
     load();
     api.getServerExecEnabled().then(setTerminal).catch(() => {});
+    api.getPlatformHealth().then((p) => setLayout(p.layout || null)).catch(() => {});
   }, []);
 
   function freeSpace() {
@@ -82,6 +84,22 @@ export default function ServerPage() {
         <p className="server-result">
           Freed <b>{gb(result.freedBytes)}</b>. Removed {result.removed.length} image{result.removed.length === 1 ? '' : 's'}.
         </p>
+      )}
+
+      {layout?.legacy && (
+        <section className="server-layout">
+          <div className="tab-header"><h2>Old Network Layout</h2></div>
+          <p>This install was set up before the network split. Updates replace the images but never
+            the compose file, so it still has:</p>
+          <ul>{layout.issues.map((i) => <li key={i.key}>{i.message}</li>)}</ul>
+          <p>To fix it, replace the two files and restart, over SSH in the install folder. The
+            terminal below cannot do this step, because restarting the platform stops the terminal
+            partway through.</p>
+          <pre className="server-cmds">{`curl -fsSL https://raw.githubusercontent.com/astrodock/astrodock/main/docker-compose.yml -o docker-compose.yml
+curl -fsSL https://raw.githubusercontent.com/astrodock/astrodock/main/infra/caddy/Caddyfile -o infra/caddy/Caddyfile
+grep -q '^ASTRODOCK_RUNNER_TOKEN=.' .env || echo "ASTRODOCK_RUNNER_TOKEN=$(openssl rand -hex 32)" >> .env
+docker compose up -d --remove-orphans`}</pre>
+        </section>
       )}
 
       <section className="telemetry server-disk">
