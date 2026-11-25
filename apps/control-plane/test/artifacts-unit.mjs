@@ -251,5 +251,34 @@ test('scopes: artifacts:admin is withheld from the operator role and every prese
   assert.deepStrictEqual(scopes.PRESETS.artifacts.scopes, ['artifacts:read', 'artifacts:write']);
 });
 
+console.log('logging');
+
+test('the client script goes at the top of <head>, or after the doctype', () => {
+  const { injectClient } = require('../src/routes/artifacts-public.js');
+  const tag = '<script src="/_astrodock/client.js"></script>';
+  assert.strictEqual(injectClient('<html><head lang="x"><title>a</title></head></html>'), `<html><head lang="x">${tag}<title>a</title></head></html>`);
+  assert.strictEqual(injectClient('<!DOCTYPE html><p>x'), `<!DOCTYPE html>${tag}<p>x`);
+  assert.strictEqual(injectClient('<p>x'), `${tag}<p>x`);
+});
+
+test('data calls are named from their path', () => {
+  const { describe } = require('../src/routes/artifacts-public.js');
+  const d = (method, path) => describe({ method, path });
+  assert.deepStrictEqual(d('GET', '/c/tasks'), { op: 'list', target: 'tasks' });
+  assert.deepStrictEqual(d('POST', '/c/tasks'), { op: 'create', target: 'tasks' });
+  assert.deepStrictEqual(d('PATCH', '/c/tasks/abc'), { op: 'update', target: 'tasks', recordId: 'abc' });
+  assert.deepStrictEqual(d('GET', '/c/tasks/_count'), { op: 'count', target: 'tasks' });
+  assert.deepStrictEqual(d('PUT', '/b/settings'), { op: 'blob.set', target: 'settings' });
+  assert.deepStrictEqual(d('GET', '/me'), { op: 'me' });
+});
+
+test('errors group across ids and numbers, not across messages', () => {
+  const { fingerprint, truncateIp } = require('../src/lib/artifacts/logs.js');
+  assert.strictEqual(fingerprint('api', '404 get tasks: no record 1234', ''), fingerprint('api', '404 get tasks: no record 98765', ''));
+  assert.strictEqual(fingerprint('api', 'id 0b1c2d3e-1111-2222-3333-444455556666', ''), fingerprint('api', 'id 9f8e7d6c-aaaa-bbbb-cccc-ddddeeeeffff', ''));
+  assert.notStrictEqual(fingerprint('error', 'x is not defined', 'a.js:1'), fingerprint('error', 'y is not defined', 'a.js:1'));
+  assert.strictEqual(truncateIp('203.0.113.77'), '203.0.113.0');
+});
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

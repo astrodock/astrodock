@@ -141,6 +141,11 @@ const REGISTRY = {
     description: 'How long page access logs are kept before being deleted.',
     default: () => 90
   },
+  'logging.artifact_log_retention_days': {
+    label: 'Artifact Log Retention (Days)', type: 'int',
+    description: 'How long artifact page views, data calls, sign-in attempts, errors and record history are kept before being deleted.',
+    default: () => 90
+  },
   'logging.app_access_logs': {
     label: 'Caddy Access Logs for Deployed Apps', type: 'enum',
     description: 'Record every HTTP request to your deployed apps. Off by default — it is the noisiest thing the platform can store.',

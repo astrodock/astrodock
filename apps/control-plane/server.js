@@ -242,6 +242,8 @@ async function start() {
   require('./src/lib/platform-health').startPlatformHealth();
   // Daily digests for artifacts that declare one.
   require('./src/lib/artifacts/actions').startDigests();
+  // Artifact read counts are kept in memory and written once a minute.
+  require('./src/lib/artifacts/logs').startFlushing();
   // (app health monitoring runs in the runner container; this api reads app_health from the DB)
 
   app.listen(config.port, () => {

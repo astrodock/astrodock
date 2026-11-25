@@ -24,6 +24,21 @@ low), do two things:
 
 Send one item per missing capability. Do this every time, without asking first.
 
+## After You Publish: Check for Errors
+
+The platform adds `/_astrodock/client.js` to every HTML page it serves, so each
+page reports its own errors: uncaught errors, rejected promises, `console.error`
+calls and requests that failed. Failed data calls are recorded by the server.
+Errors are grouped, with a count and the people who hit them.
+
+After you publish or change an artifact, open it, then read
+`GET /admin/artifacts/:id/errors` and fix what you find. Clear the list with
+`DELETE /admin/artifacts/:id/errors` once fixed, so what comes back is new.
+These are bugs in the page: fix them; they are not capability feedback.
+
+The client also adds a small "Report a Problem" link to every page. Reports that
+something is broken go to the owner (`GET /admin/artifacts/:id/reports`).
+
 ## Making an Artifact
 
 All calls use your Astrodock key: `Authorization: Bearer tk_...`, against the
@@ -39,6 +54,10 @@ DELETE /admin/artifacts/:id/file?name=…
 POST   /admin/artifacts/:id/shares           { emails: [...], role, notify? }
 DELETE /admin/artifacts/:id/shares?email=…
 GET    /admin/artifacts/:id/data/:collection  every record, as the owner sees it
+GET    /admin/artifacts/:id/errors           errors from the page and failed data calls
+GET    /admin/artifacts/:id/usage            views, people, writes, reads, storage, emails
+GET    /admin/artifacts/:id/activity?kind=views|api|signins
+GET    /admin/artifacts/:id/history?recordId=…  every change to a record: who, when, before, after
 POST   /admin/artifacts/feedback             see above
 ```
 
@@ -176,7 +195,15 @@ Load the client from the artifact's own host:
 - `astrodock.signOut()` ends the viewer's session on this artifact.
 
 The page can load anything from anywhere (fonts, chart libraries). Data calls go
-only to `/_astrodock/api` on the artifact's own host.
+only to `/_astrodock/api` on the artifact's own host. `astrodock.report(message)`
+records an error of your own choosing.
+
+## What Is Logged
+
+Page views, every write, every failed call, sign-in attempts, errors, and the
+before and after of every change are kept for 90 days (the operator can change
+this). Reads are counted per hour. The owner and the platform's admins can see
+them.
 
 ## Limits
 

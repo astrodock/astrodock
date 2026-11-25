@@ -1,7 +1,7 @@
 // Artifacts integration tests against a live local Postgres: management API,
 // sign-in (silent for account members, email code for guests), the data API
 // with its rules, live updates, revocation, and capability feedback.
-// File upload and serving need the object store and run on the docker stack.
+// The object store is replaced by an in-memory one, so file serving is covered.
 //
 //   ASTRODOCK_PG_HOST=localhost ASTRODOCK_PG_PORT=55432 ASTRODOCK_PG_USER=astrodock \
 //   ASTRODOCK_PG_PASSWORD=astrodock ASTRODOCK_PG_DATABASE=astrodock node test/artifacts.test.mjs
@@ -31,6 +31,14 @@ email.sendEmail = async (m) => { mail.push(m); return { id: 'test' }; };
 const emailConfig = require('../src/lib/email-config.js');
 emailConfig.isUsable = () => true;
 
+// The object store, in memory.
+const objects = new Map();
+const store = require('../src/lib/pages-store.js');
+store.putFile = async (id, name, body, contentType) => { objects.set(`${id}/${name}`, { body: Buffer.from(body), contentType }); };
+store.getFile = async (id, name) => objects.get(`${id}/${name}`) || null;
+store.deleteFile = async (id, name) => { objects.delete(`${id}/${name}`); };
+store.deleteAll = async (id) => { for (const k of objects.keys()) if (k.startsWith(`${id}/`)) objects.delete(k); };
+
 const config = require('../src/config.js');
 const { app } = require('../server.js');
 const { migrate } = require('../src/db/migrate.js');
@@ -46,9 +54,10 @@ async function test(name, fn) {
 }
 
 await migrate({ log: () => {} });
-for (const t of [schema.artifactFeedback, schema.artifactSends, schema.artifactGrants, schema.artifactCodes, schema.artifactBlobs,
+for (const t of [schema.artifactViews, schema.artifactApiLog, schema.artifactReadCounts, schema.artifactSignins, schema.artifactErrors,
+  schema.artifactRevisions, schema.artifactReports, schema.artifactFeedback, schema.artifactSends, schema.artifactGrants, schema.artifactCodes, schema.artifactBlobs,
   schema.artifactRecords, schema.artifactShares, schema.artifactFiles, schema.artifacts, schema.artifactFolders,
-  schema.apiTokens, schema.sessions, schema.users]) await db.delete(t);
+  schema.apiTokens, schema.sessions, schema.events, schema.users]) await db.delete(t);
 await seedAdmin({ log: () => {} });
 
 const server = app.listen(0);
@@ -325,6 +334,118 @@ try {
     assert.strictEqual((await req('GET', '/_astrodock/api/c/tasks', { host })).status, 403);
     assert.strictEqual((await req('POST', '/_astrodock/api/c/board', { host, origin, json: { msg: 'anon' } })).status, 401);
     await req('PATCH', `/admin/artifacts/${id}`, { token: tok, json: { visibility: 'shared' } });
+  });
+
+  await test('files: served on the artifact host with the client script added', async () => {
+    const put = await req('PUT', `/admin/artifacts/${id}/files`, { token: tok, json: { files: [
+      { name: 'index.html', content: '<!doctype html><html><head><title>T</title></head><body>Hi</body></html>' },
+      { name: 'app.js', content: 'console.log(1)' }
+    ] } });
+    assert.strictEqual(put.status, 200, put.body);
+    const page = await req('GET', '/', { host, cookie: sam });
+    assert.strictEqual(page.status, 200);
+    assert.match(page.body, /<head><script src="\/_astrodock\/client\.js"><\/script><title>T<\/title>/);
+    const js = await req('GET', '/app.js', { host, cookie: sam });
+    assert.strictEqual(js.body, 'console.log(1)', 'only HTML gets the script');
+    const spa = await req('GET', '/some/route', { host, cookie: sam });
+    assert.match(spa.body, /Hi/, 'a path with no extension serves the entry file');
+  });
+
+  await test('logging: views, writes, failures, read counts, sign-ins', async () => {
+    const logs = require('../src/lib/artifacts/logs.js');
+    const [a] = await db.select().from(schema.artifacts).where(eq(schema.artifacts.publicId, id));
+    await new Promise((r) => setTimeout(r, 100));
+    const views = await db.select().from(schema.artifactViews).where(eq(schema.artifactViews.artifactId, a.id));
+    assert.ok(views.some((v) => v.email === 'sam@example.com' && v.path === '/' && v.status === 200), 'page view with who');
+    assert.ok(views.some((v) => v.status === 302 && !v.userId), 'sign-in redirects of strangers');
+    assert.ok(!views.some((v) => v.path === '/app.js'), 'assets are not views');
+    const api = await db.select().from(schema.artifactApiLog).where(eq(schema.artifactApiLog.artifactId, a.id));
+    assert.ok(api.some((l) => l.op === 'create' && l.target === 'tasks' && l.status === 201 && l.email === 'sam@example.com'), 'writes in full');
+    assert.ok(api.some((l) => l.op === 'update' && l.status === 409), 'failed writes');
+    assert.ok(api.some((l) => l.status === 403 && /cross-origin/.test(l.error)), 'refused cross-origin writes');
+    assert.ok(!api.some((l) => l.method === 'GET' && l.status < 400), 'successful reads are not logged one by one');
+    await logs.flushReads();
+    const reads = await db.select().from(schema.artifactReadCounts).where(eq(schema.artifactReadCounts.artifactId, a.id));
+    const taskReads = reads.filter((r) => r.target === 'tasks');
+    assert.ok(taskReads.length >= 2, 'per person');
+    assert.ok(taskReads.reduce((n, r) => n + r.count, 0) >= 3, 'reads counted per hour');
+    const signins = (await db.select().from(schema.artifactSignins).where(eq(schema.artifactSignins.artifactId, a.id))).map((x) => x.result);
+    for (const r of ['code_sent', 'code_ok', 'grant_ok', 'silent', 'code_no_access', 'code_wrong', 'grant_failed']) assert.ok(signins.includes(r), r);
+  });
+
+  await test('errors: from the page, grouped, and from failed calls', async () => {
+    const rep = (body) => req('POST', '/_astrodock/api/_log', { host, origin, cookie: sam, json: body });
+    const one = { kind: 'error', message: 'x is not defined', source: '/app.js:3:7', stack: 'ReferenceError…', path: '/' };
+    assert.strictEqual((await rep({ reports: [one, one] })).status, 204);
+    await rep({ reports: [one, { kind: 'rejection', message: 'boom' }] });
+    await new Promise((r) => setTimeout(r, 150));
+    const r = await req('GET', `/admin/artifacts/${id}/errors`, { token: readTok });
+    const byMsg = Object.fromEntries(r.json.errors.map((e) => [e.message, e]));
+    assert.strictEqual(byMsg['x is not defined'].count, 3);
+    assert.deepStrictEqual(byMsg['x is not defined'].emails, ['sam@example.com']);
+    assert.ok(byMsg.boom);
+    assert.ok(r.json.errors.some((e) => e.kind === 'api' && /^409 update tasks/.test(e.message)), 'failed data calls are errors too');
+    assert.strictEqual((await req('POST', '/_astrodock/api/_log', { host, cookie: sam, json: { reports: [one] } })).status, 403, 'own origin only');
+    assert.strictEqual((await req('DELETE', `/admin/artifacts/${id}/errors`, { token: tok })).status, 204);
+    assert.strictEqual((await req('GET', `/admin/artifacts/${id}/errors`, { token: tok })).json.errors.length, 0);
+  });
+
+  await test('history: before and after of every change, with who', async () => {
+    const h = await req('GET', `/admin/artifacts/${id}/history?recordId=${taskId}`, { token: readTok });
+    const acts = h.json.history.map((x) => [x.action, x.actor]);
+    assert.deepStrictEqual(acts.at(-1), ['create', 'sam@example.com']);
+    const upd = h.json.history.find((x) => x.action === 'update');
+    assert.strictEqual(upd.actor, 'viv@example.com');
+    assert.strictEqual(upd.before.done, true);
+    assert.strictEqual(upd.after.done, false);
+  });
+
+  await test('usage: per artifact, and per person', async () => {
+    const u = await req('GET', `/admin/artifacts/${id}/usage`, { token: readTok });
+    assert.strictEqual(u.status, 200, u.body);
+    assert.ok(u.json.usage.views30 >= 2);
+    assert.ok(u.json.usage.people30 >= 2);
+    assert.ok(u.json.usage.writes30 >= 4);
+    assert.ok(u.json.usage.reads30 >= 3);
+    assert.strictEqual(u.json.usage.records, 7, '4 tasks, 2 notes, 1 board post');
+    assert.ok(u.json.usage.storageBytes > 0 && u.json.usage.fileBytes > 0);
+    assert.ok(u.json.usage.emails30 >= 2);
+    const sam0 = u.json.people.find((p) => p.email === 'sam@example.com');
+    assert.strictEqual(sam0.role, 'staff');
+    assert.ok(sam0.writes30 >= 3 && sam0.views30 >= 1 && sam0.lastSeen);
+    assert.ok(u.json.people.some((p) => p.email === 'admin@example.com' && p.role === 'owner'));
+    const list = await req('GET', '/admin/artifacts/usage', { token: tok });
+    assert.strictEqual(list.json.artifacts[0].id, id);
+    assert.strictEqual(list.json.artifacts[0].owner, 'admin@example.com');
+    assert.ok(list.json.artifacts[0].usage.views30 >= 2);
+  });
+
+  await test('reports: broken ones to the owner, harmful ones to admins', async () => {
+    const page = await req('GET', '/_astrodock/report', { host });
+    assert.strictEqual(page.status, 200);
+    assert.match(page.body, /Report a Problem/);
+    const f = { host, origin };
+    assert.strictEqual((await req('POST', '/_astrodock/report', { ...f, form: { kind: 'broken', message: 'Save does nothing' }, cookie: sam })).status, 200);
+    assert.strictEqual((await req('POST', '/_astrodock/report', { ...f, form: { kind: 'abuse', message: 'Phishing form' } })).status, 200);
+    assert.strictEqual((await req('POST', '/_astrodock/report', { host, form: { kind: 'abuse', message: 'x' } })).status, 403, 'own origin only');
+    const own = await req('GET', `/admin/artifacts/${id}/reports`, { token: tok });
+    assert.deepStrictEqual(own.json.reports.map((r) => [r.kind, r.email]), [['broken', 'sam@example.com']]);
+    assert.strictEqual((await req('GET', '/admin/artifacts/reports', { token: tok })).status, 403, 'a key without artifacts:admin');
+    const queue = await req('GET', '/admin/artifacts/reports', { token: adminJwt });
+    assert.deepStrictEqual(queue.json.reports.map((r) => [r.kind, r.message, r.artifact.id]), [['abuse', 'Phishing form', id]]);
+    const closed = await req('PATCH', `/admin/artifacts/reports/${queue.json.reports[0].id}`, { token: adminJwt, json: { status: 'closed' } });
+    assert.strictEqual(closed.json.report.status, 'closed');
+    const ev = await db.select().from(schema.events).where(eq(schema.events.type, 'artifact.reported'));
+    assert.strictEqual(ev.length, 1, 'harmful reports raise an event for notification rules');
+  });
+
+  await test('retention: logs older than the window are deleted', async () => {
+    const logs = require('../src/lib/artifacts/logs.js');
+    await logs.prune(Date.now() + 91 * 864e5);
+    for (const t of [schema.artifactViews, schema.artifactApiLog, schema.artifactReadCounts, schema.artifactSignins, schema.artifactRevisions]) {
+      assert.strictEqual((await db.select().from(t)).length, 0);
+    }
+    assert.ok((await db.select().from(schema.artifactReports)).length > 0, 'reports are kept');
   });
 
   await test('owners see data; an operator\'s key sees only their own; admins moderate', async () => {

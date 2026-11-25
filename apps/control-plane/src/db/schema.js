@@ -767,5 +767,95 @@ const artifactFeedback = pgTable('artifact_feedback', {
   createdAt: ts('created_at').notNull().defaultNow()
 });
 
+// ── artifact logs (migration 0022) ──
+const artifactViews = pgTable('artifact_views', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  artifactId: uuid('artifact_id').notNull(),
+  userId: uuid('user_id'),
+  email: text('email').notNull().default(''),
+  path: text('path').notNull().default(''),
+  status: integer('status').notNull().default(200),
+  ip: text('ip').notNull().default(''),
+  userAgent: text('user_agent').notNull().default(''),
+  referrer: text('referrer').notNull().default(''),
+  createdAt: ts('created_at').notNull().defaultNow()
+});
+
+const artifactApiLog = pgTable('artifact_api_log', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  artifactId: uuid('artifact_id').notNull(),
+  userId: uuid('user_id'),
+  email: text('email').notNull().default(''),
+  method: text('method').notNull(),
+  op: text('op').notNull(),
+  target: text('target').notNull().default(''),
+  recordId: text('record_id').notNull().default(''),
+  status: integer('status').notNull(),
+  durationMs: integer('duration_ms').notNull().default(0),
+  error: text('error').notNull().default(''),
+  ip: text('ip').notNull().default(''),
+  createdAt: ts('created_at').notNull().defaultNow()
+});
+
+const artifactReadCounts = pgTable('artifact_read_counts', {
+  artifactId: uuid('artifact_id').notNull(),
+  hour: ts('hour').notNull(),
+  userKey: text('user_key').notNull().default(''),
+  target: text('target').notNull().default(''),
+  count: integer('count').notNull().default(0)
+}, (t) => ({ pk: primaryKey({ columns: [t.artifactId, t.hour, t.userKey, t.target] }) }));
+
+const artifactSignins = pgTable('artifact_signins', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  artifactId: uuid('artifact_id').notNull(),
+  email: text('email').notNull().default(''),
+  result: text('result').notNull(),
+  ip: text('ip').notNull().default(''),
+  userAgent: text('user_agent').notNull().default(''),
+  createdAt: ts('created_at').notNull().defaultNow()
+});
+
+const artifactErrors = pgTable('artifact_errors', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  artifactId: uuid('artifact_id').notNull(),
+  fingerprint: text('fingerprint').notNull(),
+  kind: text('kind').notNull(),
+  message: text('message').notNull().default(''),
+  source: text('source').notNull().default(''),
+  stack: text('stack').notNull().default(''),
+  path: text('path').notNull().default(''),
+  userAgent: text('user_agent').notNull().default(''),
+  emails: jsonb('emails').notNull().default(sql`'[]'::jsonb`),
+  count: integer('count').notNull().default(1),
+  firstSeen: ts('first_seen').notNull().defaultNow(),
+  lastSeen: ts('last_seen').notNull().defaultNow()
+}, (t) => ({ fpUniq: uniqueIndex('artifact_errors_fp_uniq').on(t.artifactId, t.fingerprint) }));
+
+const artifactRevisions = pgTable('artifact_revisions', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  artifactId: uuid('artifact_id').notNull(),
+  kind: text('kind').notNull().default('record'),
+  target: text('target').notNull(),
+  recordId: text('record_id').notNull().default(''),
+  action: text('action').notNull(),
+  before: jsonb('before'),
+  after: jsonb('after'),
+  actorId: uuid('actor_id'),
+  actorEmail: text('actor_email').notNull().default(''),
+  createdAt: ts('created_at').notNull().defaultNow()
+});
+
+const artifactReports = pgTable('artifact_reports', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  artifactId: uuid('artifact_id').notNull(),
+  kind: text('kind').notNull(),
+  message: text('message').notNull().default(''),
+  email: text('email').notNull().default(''),
+  ip: text('ip').notNull().default(''),
+  status: text('status').notNull().default('open'),
+  createdAt: ts('created_at').notNull().defaultNow()
+});
+
 module.exports = { cliLogins, approvals, ownerSetupLinks, appTraffic, users, userInvites, emailChanges, webauthnCredentials, recoveryCodes, sessions, authorizationCodes, launchPasses, mobileDevices, mobileCodes, mobileTickets, userNotifications, appRedirectUris, apps, appEnvVars, deployments, authLogs, apiTokens, appHealth, pages, pageFiles, pageData, events, platformSettings, notificationRules, notificationDeliveries, pageViews, backups, customDomains, feedback, feedbackMessages, workItems, workItemRelations, feedbackWorkItems, appCounters,
-  artifactFolders, artifacts, artifactFiles, artifactShares, artifactRecords, artifactBlobs, artifactCodes, artifactGrants, artifactSends, artifactFeedback };
+  artifactFolders, artifacts, artifactFiles, artifactShares, artifactRecords, artifactBlobs, artifactCodes, artifactGrants, artifactSends, artifactFeedback,
+  artifactViews, artifactApiLog, artifactReadCounts, artifactSignins, artifactErrors, artifactRevisions, artifactReports };

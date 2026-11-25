@@ -22,6 +22,7 @@ const emailConfig = require('../lib/email-config');
 const { sendEmail } = require('../lib/email');
 const { shell, errorPage, esc, brandMark, icon } = require('../lib/auth-pages');
 const { pageLoginLimiter } = require('../middleware/rateLimiter');
+const logs = require('../lib/artifacts/logs');
 
 const router = express.Router();
 router.use(express.urlencoded({ extended: false, limit: '8kb' }));
@@ -100,6 +101,7 @@ router.get('/signin', async (req, res, next) => {
       const user = await A.loadUser(sess.sub);
       if (user && A.isAccountMember(user) && await A.hasAccess(artifact, user)) {
         const code = await A.issueGrant(artifact, user);
+        logs.signin(artifact, req, user.email, 'silent');
         return res.redirect(callbackUrl(artifact, code, req.query.next));
       }
     }
@@ -117,9 +119,13 @@ router.post('/signin/code', pageLoginLimiter, async (req, res, next) => {
       return res.status(400).type('html').send(emailPage(artifact, { next: req.body.next, email, error: 'Enter a valid email address.' }));
     }
     if (!emailConfig.isUsable(await emailConfig.resolve())) {
+      logs.signin(artifact, req, email, 'code_no_email');
       return res.status(503).type('html').send(emailPage(artifact, { next: req.body.next, email, error: 'This server cannot send email yet. Ask the person who shared this with you.' }));
     }
-    if (await emailHasAccess(artifact, email) && await A.recentCodeCount(email) < config.artifacts.codesPerHour) {
+    const allowed = await emailHasAccess(artifact, email);
+    const underCap = allowed && await A.recentCodeCount(email) < config.artifacts.codesPerHour;
+    logs.signin(artifact, req, email, !allowed ? 'code_no_access' : underCap ? 'code_sent' : 'code_capped');
+    if (underCap) {
       const code = await A.createCode(artifact, email, req.ip);
       const title = artifact.title || 'an artifact';
       sendEmail({
@@ -145,12 +151,15 @@ router.post('/signin/verify', pageLoginLimiter, async (req, res, next) => {
     const ok = A.validEmail(email) && await A.checkCode(artifact, email, req.body.code);
     // Access is checked again: a share removed after the code was sent wins.
     if (!ok || !(await emailHasAccess(artifact, email))) {
+      logs.signin(artifact, req, email, 'code_wrong');
       return res.status(401).type('html').send(codePage(artifact, { next: req.body.next, email, error: 'That code is not right, or it has expired.' }));
     }
     const user = await A.userForEmail(email);
     if (!user) {
+      logs.signin(artifact, req, email, 'account_off');
       return res.status(403).type('html').send(errorPage('Account Unavailable', 'This account has been turned off.'));
     }
+    logs.signin(artifact, req, email, 'code_ok');
     db.update(schema.users).set({ lastLoginAt: new Date() }).where(eq(schema.users.id, user.id)).catch(() => {});
     const code = await A.issueGrant(artifact, user);
     res.redirect(callbackUrl(artifact, code, req.body.next));

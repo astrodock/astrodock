@@ -505,6 +505,17 @@ export const renameArtifactFolder = (folderId, name) =>
   request(`/artifacts/folders/${folderId}`, { method: 'PATCH', body: JSON.stringify({ name }) });
 export const deleteArtifactFolder = (folderId) => request(`/artifacts/folders/${folderId}`, { method: 'DELETE' });
 export const getArtifactFeedback = () => request('/artifacts/feedback');
+export const getArtifactsUsage = (all = false) => request(`/artifacts/usage${all ? '?all=1' : ''}`);
+export const getArtifactUsage = (id) => request(`/artifacts/${id}/usage`);
+export const getArtifactActivity = (id, kind, email) =>
+  request(`/artifacts/${id}/activity?kind=${q(kind)}${email ? `&email=${q(email)}` : ''}`);
+export const getArtifactErrors = (id) => request(`/artifacts/${id}/errors`);
+export const clearArtifactErrors = (id) => request(`/artifacts/${id}/errors`, { method: 'DELETE' });
+export const getArtifactHistory = (id, recordId) => request(`/artifacts/${id}/history${recordId ? `?recordId=${q(recordId)}` : ''}`);
+export const getArtifactReports = (id) => request(`/artifacts/${id}/reports`);
+export const getArtifactReportQueue = (status = 'open') => request(`/artifacts/reports?status=${q(status)}`);
+export const setArtifactReport = (reportId, status) =>
+  request(`/artifacts/reports/${reportId}`, { method: 'PATCH', body: JSON.stringify({ status }) });
 export async function uploadArtifactFiles(id, fileList, paths) {
   const form = new FormData();
   for (const f of fileList) form.append('files', f, f.name);

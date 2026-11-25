@@ -12,6 +12,7 @@ const config = require('../../config');
 const { db, schema } = require('../../db');
 const M = require('./manifest');
 const live = require('./live');
+const logs = require('./logs');
 
 const R = schema.artifactRecords;
 const B = schema.artifactBlobs;
@@ -143,6 +144,7 @@ async function create(artifact, manifest, name, input, ctx) {
     artifactId: artifact.id, collection: name, authorId: ctx.userId, authorEmail: ctx.email || '', data, size
   }).returning();
   live.publish(artifact.id, name, { type: 'create', row });
+  logs.revision(artifact, { target: name, recordId: row.id, action: 'create', after: row.data, viewer: ctx });
   afterChange(artifact, manifest, name, 'create', row, null, ctx);
   return toClient(row);
 }
@@ -175,6 +177,7 @@ async function update(artifact, manifest, name, id, patch, ctx) {
     throw fail(409, 'This record changed since you loaded it.', { current: now ? toClient(now) : null });
   }
   live.publish(artifact.id, name, { type: 'update', row: rows[0] });
+  logs.revision(artifact, { target: name, recordId: row.id, action: 'update', before: row.data, after: rows[0].data, viewer: ctx });
   afterChange(artifact, manifest, name, 'update', rows[0], row, ctx);
   return toClient(rows[0]);
 }
@@ -190,6 +193,7 @@ async function remove(artifact, manifest, name, id, ctx) {
   if (!M.recordMatches(g, row, ctx)) throw fail(403, 'You cannot delete this record.');
   await db.delete(R).where(eq(R.id, row.id));
   live.publish(artifact.id, name, { type: 'delete', row });
+  logs.revision(artifact, { target: name, recordId: row.id, action: 'delete', before: row.data, viewer: ctx });
   afterChange(artifact, manifest, name, 'delete', row, row, ctx);
   return { ok: true, id: row.id };
 }
@@ -251,6 +255,7 @@ async function setBlob(artifact, manifest, name, data, version, ctx) {
     const rows = await db.update(B).set({ data, version: row.version + 1, updatedAt: new Date() })
       .where(and(eq(B.id, row.id), eq(B.version, row.version))).returning();
     if (!rows[0]) throw fail(409, 'This changed since you loaded it.');
+    logs.revision(artifact, { kind: 'blob', target: name, action: 'update', before: row.data, after: data, viewer: ctx });
     return { ok: true, version: rows[0].version };
   }
   if (version !== undefined && Number(version) !== 0) throw fail(409, 'This changed since you loaded it.', { current: { data: {}, version: 0 } });
@@ -258,6 +263,7 @@ async function setBlob(artifact, manifest, name, data, version, ctx) {
     artifactId: artifact.id, name, userId: b.scope === 'per-user' ? ctx.userId : null, data, version: 1
   }).onConflictDoNothing().returning();
   if (!rows[0]) throw fail(409, 'This changed since you loaded it.');
+  logs.revision(artifact, { kind: 'blob', target: name, action: 'create', after: data, viewer: ctx });
   return { ok: true, version: 1 };
 }
 

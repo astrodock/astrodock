@@ -191,6 +191,10 @@ async function pruneLogs() {
   try { await db.delete(schema.pageViews).where(lt(schema.pageViews.createdAt, new Date(Date.now() - viewDays * 864e5))); }
   catch (err) { console.error('[health] page-view prune failed:', err.message); }
 
+  // Artifact logs: views, data calls, sign-ins, errors, record history.
+  try { await require('../lib/artifacts/logs').prune(); }
+  catch (err) { console.error('[health] artifact-log prune failed:', err.message); }
+
   // Keep deployment history bounded (logs already capped per-row).
   try { await db.delete(schema.deployments).where(lt(schema.deployments.createdAt, new Date(Date.now() - 90 * 864e5))); }
   catch (err) { console.error('[health] deployment prune failed:', err.message); }

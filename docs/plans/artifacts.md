@@ -164,6 +164,31 @@ Settings: `ASTRODOCK_ARTIFACTS_DOMAIN`, `ASTRODOCK_ARTIFACT_MAX_FILE`, `_MAX_FIL
 Upstream feedback goes to `https://auth.astrodock.ai/upstream/capability-feedback` by default. It
 arrives only once the project's instance runs this version with `ASTRODOCK_ACCEPT_UPSTREAM_FEEDBACK=on`.
 
+### Milestone 2: logging, error reports, admin views (Testing)
+
+Decided 2026-11-25: log everything below; reporting-only error wrapper; record history; 90-day
+retention; the multi-tenant service runs on its own instance (option A), with cloud.astrodock.ai as
+the one account home (Instances, Artifacts, System Admin).
+
+| Logged | How | Table |
+|---|---|---|
+| Page views and sign-in redirects | Every HTML page served | `artifact_views` |
+| Writes and failed data calls | Every one, in full | `artifact_api_log` |
+| Reads | Counted per artifact, person, target and hour | `artifact_read_counts` |
+| Sign-in attempts | Every attempt and outcome | `artifact_signins` |
+| Errors | From the page (client.js) and failed calls, grouped with counts and people | `artifact_errors` |
+| Record and blob history | Before and after, who, when | `artifact_revisions` |
+| Report a Problem | Footer link on every page; harmful ones raise an event | `artifact_reports` |
+
+- The server adds `/_astrodock/client.js` to every HTML page; it reports errors and adds the
+  Report a Problem link.
+- Retention: `logging.artifact_log_retention_days` (default 90), pruned by the runner. Reports are kept.
+- IP addresses follow `logging.page_view_ip`.
+- Endpoints: `/admin/artifacts/usage`, `/reports`, `/:id/usage`, `/:id/activity`, `/:id/errors`,
+  `/:id/history`, `/:id/reports`.
+- Dashboard: Activity and Errors tabs, record history, and for owners and admins Everyone's
+  Artifacts (usage, take down) and Harm Reports.
+
 ### Not built yet
 
 1. Creator accounts on the multi-tenant service: a `creator` role that reaches artifacts only.
@@ -173,6 +198,6 @@ arrives only once the project's instance runs this version with `ASTRODOCK_ACCEP
 5. Viewer file uploads (A13).
 6. Pages migration (A14).
 7. CLI commands and an MCP server for artifacts.
-8. Moderation screen (the API exists: `artifacts:admin`, `GET /admin/artifacts?all=1`, `PATCH { suspended }`).
-9. Report link on artifact pages.
-10. Live updates across more than one control-plane process (today: one process, in-memory).
+8. The cloud dashboard: Instances, Artifacts and System Admin at cloud.astrodock.ai, the service
+   key to the artifacts instance, and launch-pass sign-in for creators.
+9. Live updates across more than one control-plane process (today: one process, in-memory).

@@ -24,6 +24,13 @@ const STARTER = (title) => `<!doctype html>
 </html>
 `;
 
+function fmtBytes(n) {
+  if (!n) return '0 B';
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / 1024 / 1024).toFixed(1)} MB`;
+}
+
 function when(d) {
   if (!d) return '';
   return new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
@@ -42,6 +49,9 @@ export default function ArtifactsPage() {
   const [folderDraft, setFolderDraft] = useState(null); // { id?, name }
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState('');
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [everyone, setEveryone] = useState(null);
+  const [queue, setQueue] = useState(null);
 
   async function load() {
     try {
@@ -51,7 +61,25 @@ export default function ArtifactsPage() {
     } catch (err) { setError(err.message); }
     setLoaded(true);
   }
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    // Owners and admins hold artifacts:admin: everyone's artifacts and the report queue.
+    api.getAccount().then((a) => setIsAdmin(['owner', 'admin'].includes((a.user || a).role))).catch(() => {});
+  }, []);
+  async function loadEveryone() {
+    try { setEveryone((await api.getArtifactsUsage(true)).artifacts); } catch (err) { setError(err.message); }
+  }
+  async function loadQueue() {
+    try { setQueue((await api.getArtifactReportQueue('open')).reports); } catch (err) { setError(err.message); }
+  }
+  useEffect(() => {
+    if (view === 'everyone') loadEveryone();
+    if (view === 'queue') loadQueue();
+  }, [view]);
+  async function setSuspended(a, suspended) {
+    try { await api.updateArtifact(a.id, suspended ? { suspended: true, suspendedReason: 'Taken down by an admin' } : { suspended: false }); await loadEveryone(); }
+    catch (err) { setError(err.message); }
+  }
   useEffect(() => {
     if (view === 'feedback') api.getArtifactFeedback().then((r) => setFeedback(r.feedback || [])).catch((err) => setError(err.message));
   }, [view]);
@@ -129,6 +157,10 @@ export default function ArtifactsPage() {
               <ul>{folders.map((f) => navItem(f.id, f.name, artifacts.filter((a) => a.folderId === f.id && a.access === 'owner').length))}</ul>
             </>}
             <ul className="folder-nav-end">{navItem('feedback', 'Capability Feedback')}</ul>
+            {isAdmin && <>
+              <h3>Admin</h3>
+              <ul>{navItem('everyone', 'Everyone\'s Artifacts')}{navItem('queue', 'Harm Reports')}</ul>
+            </>}
           </nav>
 
           <section className="folder-main">
@@ -148,7 +180,65 @@ export default function ArtifactsPage() {
               </div>
             )}
 
-            {view === 'feedback' ? (
+            {view === 'everyone' ? (
+              !everyone ? <SkeletonRows rows={3} cols={6} /> : everyone.length === 0
+                ? <EmptyState icon="pages" title="No Artifacts" body="Nobody on this platform has made an artifact yet." />
+                : (
+                  <div className="table-scroll">
+                    <table className="data-table">
+                      <thead><tr><th>Artifact</th><th>Owner</th><th>Views</th><th>People</th><th>Records</th><th>Storage</th><th>Emails</th><th>Errors</th><th>Reports</th><th>Last Activity</th><th></th></tr></thead>
+                      <tbody>
+                        {everyone.map((a) => (
+                          <tr key={a.id} className={a.suspended ? 'inactive' : ''}>
+                            <td><a href={a.url} target="_blank" rel="noopener"><strong>{a.title || 'Untitled'}</strong></a><span className="row-subtitle">{a.id}{a.visibility === 'public' ? ' · Public' : ''}{a.suspended ? ' · Taken Down' : ''}</span></td>
+                            <td>{a.owner || 'No Owner'}</td>
+                            <td>{a.usage.views30}</td>
+                            <td>{a.usage.people30}</td>
+                            <td>{a.usage.records}</td>
+                            <td>{fmtBytes(a.usage.storageBytes)}</td>
+                            <td>{a.usage.emails30}</td>
+                            <td>{a.usage.errors7}</td>
+                            <td>{a.usage.openReports}</td>
+                            <td>{a.usage.lastActivity ? when(a.usage.lastActivity) : 'None'}</td>
+                            <td className="row-actions">
+                              <button className="link-btn" onClick={() => navigate(`/artifacts/${a.id}`)}>Details</button>
+                              {a.suspended
+                                ? <button className="link-btn" onClick={() => setSuspended(a, false)}>Restore</button>
+                                : <button className="link-btn danger" onClick={() => ask({
+                                  title: `Take Down ${a.title || 'This Artifact'}?`, danger: true, confirmLabel: 'Take Down',
+                                  body: <p>Its address shows that it was taken down. The owner keeps the files and data, and you can restore it.</p>,
+                                  onConfirm: () => setSuspended(a, true)
+                                })}>Take Down</button>}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <p className="hint">Views, people, emails: last 30 days. Errors: last 7 days. Reports: open.</p>
+                  </div>
+                )
+            ) : view === 'queue' ? (
+              !queue ? <SkeletonRows rows={3} cols={4} /> : queue.length === 0
+                ? <EmptyState icon="pages" title="No Open Reports" body="Reports that an artifact is harmful or abusive show up here." />
+                : (
+                  <table className="data-table">
+                    <thead><tr><th>Report</th><th>Artifact</th><th>From</th><th>When</th><th></th></tr></thead>
+                    <tbody>
+                      {queue.map((r) => (
+                        <tr key={r.id}>
+                          <td>{r.message}</td>
+                          <td><a href={`/artifacts/${r.artifact.id}`} onClick={(e) => { e.preventDefault(); navigate(`/artifacts/${r.artifact.id}`); }}>{r.artifact.title || r.artifact.id}</a></td>
+                          <td>{r.email || 'Not Signed In'}</td>
+                          <td>{when(r.createdAt)}</td>
+                          <td className="row-actions">
+                            <button className="link-btn" onClick={async () => { try { await api.setArtifactReport(r.id, 'closed'); await loadQueue(); } catch (err) { setError(err.message); } }}>Close</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )
+            ) : view === 'feedback' ? (
               <>
                 <p className="hint">What agents building artifacts needed and could not do. Each item is also sent to the Astrodock project.</p>
                 {feedback.length === 0 ? (

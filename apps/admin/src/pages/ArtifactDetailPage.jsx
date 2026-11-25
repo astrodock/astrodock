@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { Fragment, useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import * as api from '../lib/api';
 import EmptyState from '../components/EmptyState';
@@ -8,7 +8,7 @@ import useConfirm from '../lib/useConfirm';
 // One artifact: its files, who it is shared with, its data, the manifest that
 // declares that data, and its settings.
 
-const TABS = [['files', 'Files'], ['sharing', 'Sharing'], ['data', 'Data'], ['manifest', 'Manifest'], ['settings', 'Settings']];
+const TABS = [['files', 'Files'], ['sharing', 'Sharing'], ['data', 'Data'], ['activity', 'Activity'], ['errors', 'Errors'], ['manifest', 'Manifest'], ['settings', 'Settings']];
 const TEXT = /\.(html?|css|m?js|json|txt|md|csv|xml|svg|ya?ml)$/i;
 const DEFAULT_ROLES = ['owner', 'editor', 'viewer'];
 
@@ -76,6 +76,8 @@ export default function ArtifactDetailPage() {
           {tab === 'files' && <FilesTab artifact={artifact} reload={load} setError={setError} flash={flash} ask={ask} patch={patch} />}
           {tab === 'sharing' && <SharingTab artifact={artifact} roles={roles} reload={load} setError={setError} flash={flash} ask={ask} />}
           {tab === 'data' && <DataTab artifact={artifact} setError={setError} ask={ask} />}
+          {tab === 'activity' && <ActivityTab artifact={artifact} setError={setError} />}
+          {tab === 'errors' && <ErrorsTab artifact={artifact} setError={setError} ask={ask} />}
           {tab === 'manifest' && <ManifestTab artifact={artifact} patch={patch} />}
           {tab === 'settings' && (
             <SettingsTab artifact={artifact} folders={folders} patch={patch} ask={ask} flash={flash}
@@ -248,6 +250,7 @@ function DataTab({ artifact, setError, ask }) {
   const [summary, setSummary] = useState(null);
   const [collection, setCollection] = useState('');
   const [records, setRecords] = useState(null);
+  const [history, setHistory] = useState(null); // { recordId, entries }
   const declared = Object.keys((artifact.manifest && artifact.manifest.collections) || {});
 
   useEffect(() => { api.getArtifactData(artifact.id).then(setSummary).catch((err) => setError(err.message)); }, [artifact.id]);
@@ -293,6 +296,10 @@ function DataTab({ artifact, setError, ask }) {
                               <td>{r.author}</td>
                               <td>{when(r.updatedAt)}</td>
                               <td className="row-actions">
+                                <button className="link-btn" onClick={async () => {
+                                  try { setHistory({ recordId: r.id, entries: (await api.getArtifactHistory(artifact.id, r.id)).history }); }
+                                  catch (err) { setError(err.message); }
+                                }}>History</button>
                                 <button className="link-btn danger" onClick={() => ask({
                                   title: 'Delete This Record?', danger: true, confirmLabel: 'Delete Record',
                                   body: <p>The record is removed for everyone. There is no undo.</p>,
@@ -306,6 +313,7 @@ function DataTab({ artifact, setError, ask }) {
                           ))}
                         </tbody>
                       </table>
+                      {history && <HistoryList history={history} onClose={() => setHistory(null)} />}
                     </div>
                   )}
           </section>
@@ -405,6 +413,207 @@ function SettingsTab({ artifact, folders, patch, ask, flash, onDelete }) {
           onConfirm: onDelete
         })}>Delete Artifact</button>
       </section>
+    </div>
+  );
+}
+
+const SIGNIN_LABEL = {
+  silent: 'Signed In (Account)', code_sent: 'Code Sent', code_no_access: 'Code Requested, No Access', code_capped: 'Code Limit Reached',
+  code_no_email: 'Email Not Set Up', code_wrong: 'Wrong or Expired Code', code_ok: 'Code Accepted', account_off: 'Account Turned Off',
+  grant_ok: 'Signed In', grant_failed: 'Sign-In Link Expired'
+};
+
+function HistoryList({ history, onClose }) {
+  const show = (v) => (v == null ? '' : JSON.stringify(v, null, 1));
+  return (
+    <section className="settings-sec">
+      <div className="tab-header" style={{ width: '100%' }}>
+        <h2>History of {history.recordId.slice(0, 8)}</h2>
+        <button className="link-btn" onClick={onClose}>Close</button>
+      </div>
+      {history.entries.length === 0 ? <p className="hint">No changes recorded in the retention window.</p> : (
+        <table className="data-table">
+          <thead><tr><th>When</th><th>Who</th><th>Change</th><th>Before</th><th>After</th></tr></thead>
+          <tbody>
+            {history.entries.map((h) => (
+              <tr key={h.id}>
+                <td>{when(h.createdAt)}</td>
+                <td>{h.actor}</td>
+                <td>{h.action[0].toUpperCase() + h.action.slice(1)}</td>
+                <td><pre className="mono-cell">{show(h.before)}</pre></td>
+                <td><pre className="mono-cell">{show(h.after)}</pre></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </section>
+  );
+}
+
+function bytes(n) {
+  if (!n) return '0 B';
+  return size(n);
+}
+
+function ActivityTab({ artifact, setError }) {
+  const [data, setData] = useState(null);
+  const [kind, setKind] = useState('views');
+  const [entries, setEntries] = useState(null);
+  const [person, setPerson] = useState('');
+
+  useEffect(() => { api.getArtifactUsage(artifact.id).then(setData).catch((err) => setError(err.message)); }, [artifact.id]);
+  useEffect(() => {
+    setEntries(null);
+    api.getArtifactActivity(artifact.id, kind, person).then((r) => setEntries(r.entries)).catch((err) => setError(err.message));
+  }, [artifact.id, kind, person]);
+
+  if (!data) return <p className="hint">Loading…</p>;
+  const u = data.usage;
+  const stats = [
+    ['Views', u.views30, '30 days'], ['People', u.people30, '30 days'], ['Changes', u.writes30, '30 days'],
+    ['Reads', u.reads30, '30 days'], ['Records', u.records, 'now'], ['Storage', bytes(u.storageBytes), 'files and data'],
+    ['Emails Sent', u.emails30, '30 days'], ['Errors', u.errors7, '7 days']
+  ];
+  return (
+    <div>
+      <div className="stat-strip">
+        {stats.map(([label, value, note]) => (
+          <div key={label} className="stat-cell"><span className="stat-label">{label}</span><strong>{value}</strong><span className="stat-note">{note}</span></div>
+        ))}
+      </div>
+
+      <div className="tab-header"><h2>People</h2></div>
+      <table className="data-table clickable">
+        <thead><tr><th>Email</th><th>Role</th><th>Last Seen</th><th>Views (30 Days)</th><th>Changes (30 Days)</th></tr></thead>
+        <tbody>
+          {data.people.map((p) => (
+            <tr key={p.email} onClick={() => setPerson(person === p.email ? '' : p.email)} className={person === p.email ? 'selected' : ''}>
+              <td><strong>{p.email}</strong></td>
+              <td>{p.role ? p.role[0].toUpperCase() + p.role.slice(1) : 'No Longer Shared'}</td>
+              <td>{p.lastSeen ? when(p.lastSeen) : 'Never'}</td>
+              <td>{p.views30}</td>
+              <td>{p.writes30}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <div className="tab-header" style={{ marginTop: 24 }}>
+        <h2>Recent {person ? `for ${person}` : 'Activity'}</h2>
+        <div className="btn-row">
+          {person && <button className="link-btn" onClick={() => setPerson('')}>Everyone</button>}
+          <Select value={kind} onChange={setKind} options={[
+            { value: 'views', label: 'Page Views' }, { value: 'api', label: 'Changes and Failures' }, { value: 'signins', label: 'Sign-In Attempts' }
+          ]} />
+        </div>
+      </div>
+      {!entries ? <p className="hint">Loading…</p> : entries.length === 0 ? <p className="hint">Nothing recorded yet.</p> : (
+        <div className="table-scroll">
+          <table className="data-table">
+            {kind === 'views' && <>
+              <thead><tr><th>When</th><th>Who</th><th>Page</th><th>Result</th><th>Address</th></tr></thead>
+              <tbody>{entries.map((e) => (
+                <tr key={e.id}><td>{when(e.createdAt)}</td><td>{e.email || 'Not Signed In'}</td><td><code>{e.path}</code></td>
+                  <td>{e.status === 302 ? 'Sent to Sign In' : e.status}</td><td className="text-muted">{e.ip}</td></tr>
+              ))}</tbody>
+            </>}
+            {kind === 'api' && <>
+              <thead><tr><th>When</th><th>Who</th><th>Action</th><th>Result</th><th>Detail</th></tr></thead>
+              <tbody>{entries.map((e) => (
+                <tr key={e.id}><td>{when(e.createdAt)}</td><td>{e.email || 'Not Signed In'}</td>
+                  <td><code>{e.op}{e.target ? ` ${e.target}` : ''}</code></td><td>{e.status}</td><td className="text-muted">{e.error}</td></tr>
+              ))}</tbody>
+            </>}
+            {kind === 'signins' && <>
+              <thead><tr><th>When</th><th>Email</th><th>Result</th><th>Address</th></tr></thead>
+              <tbody>{entries.map((e) => (
+                <tr key={e.id}><td>{when(e.createdAt)}</td><td>{e.email}</td><td>{SIGNIN_LABEL[e.result] || e.result}</td><td className="text-muted">{e.ip}</td></tr>
+              ))}</tbody>
+            </>}
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const ERROR_KIND = { error: 'Script Error', rejection: 'Unhandled Promise', console: 'Console Error', network: 'Failed Request', api: 'Data Call Failed', server: 'Server Error' };
+
+function ErrorsTab({ artifact, setError, ask }) {
+  const [errors, setErrors] = useState(null);
+  const [reports, setReports] = useState([]);
+  const [open, setOpen] = useState('');
+  async function load() {
+    try {
+      const [e, r] = await Promise.all([api.getArtifactErrors(artifact.id), api.getArtifactReports(artifact.id)]);
+      setErrors(e.errors); setReports(r.reports);
+    } catch (err) { setError(err.message); }
+  }
+  useEffect(() => { load(); }, [artifact.id]);
+  if (!errors) return <p className="hint">Loading…</p>;
+  return (
+    <div>
+      <div className="tab-header">
+        <h2>Errors</h2>
+        {errors.length > 0 && <button onClick={() => ask({
+          title: 'Clear the Error List?', confirmLabel: 'Clear',
+          body: <p>Do this once the page is fixed, so anything that shows up afterward is new.</p>,
+          onConfirm: async () => { await api.clearArtifactErrors(artifact.id); await load(); }
+        })}>Clear</button>}
+      </div>
+      <p className="hint">From the page itself (script errors, failed requests) and from data calls the server refused. Agents read the same list at <code>/admin/artifacts/{artifact.id}/errors</code>.</p>
+      {errors.length === 0 ? <EmptyState icon="activity" title="No Errors" body="Nothing has gone wrong in this artifact in the retention window." /> : (
+        <table className="data-table clickable">
+          <thead><tr><th>Error</th><th>Kind</th><th>Times</th><th>People</th><th>Last Seen</th></tr></thead>
+          <tbody>
+            {errors.map((e) => (
+              <Fragment key={e.id}>
+                <tr onClick={() => setOpen(open === e.id ? '' : e.id)}>
+                  <td><strong>{e.message.slice(0, 160)}</strong>{e.source && <span className="row-subtitle">{e.source}</span>}</td>
+                  <td>{ERROR_KIND[e.kind] || e.kind}</td>
+                  <td>{e.count}</td>
+                  <td>{e.people}</td>
+                  <td>{when(e.lastSeen)}</td>
+                </tr>
+                {open === e.id && (
+                  <tr className="detail-row"><td colSpan={5}>
+                    <dl className="err-detail">
+                      <dt>Page</dt><dd><code>{e.path || 'Unknown'}</code></dd>
+                      <dt>First Seen</dt><dd>{when(e.firstSeen)}</dd>
+                      <dt>People</dt><dd>{e.emails.join(', ') || 'Not signed in'}</dd>
+                      <dt>Browser</dt><dd className="text-muted">{e.userAgent}</dd>
+                    </dl>
+                    {e.stack && <pre className="mono-cell">{e.stack}</pre>}
+                  </td></tr>
+                )}
+              </Fragment>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      <div className="tab-header" style={{ marginTop: 24 }}><h2>Problem Reports</h2></div>
+      {reports.length === 0 ? <p className="hint">Nobody has used Report a Problem on this artifact.</p> : (
+        <table className="data-table">
+          <thead><tr><th>Report</th><th>From</th><th>When</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            {reports.map((r) => (
+              <tr key={r.id} className={r.status === 'closed' ? 'inactive' : ''}>
+                <td>{r.message}{r.kind === 'abuse' && <span className="row-subtitle">Reported as Harmful</span>}</td>
+                <td>{r.email || 'Not Signed In'}</td>
+                <td>{when(r.createdAt)}</td>
+                <td>{r.status === 'open' ? 'Open' : 'Closed'}</td>
+                <td className="row-actions">
+                  <button className="link-btn" onClick={async () => { try { await api.setArtifactReport(r.id, r.status === 'open' ? 'closed' : 'open'); await load(); } catch (err) { setError(err.message); } }}>
+                    {r.status === 'open' ? 'Close' : 'Reopen'}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 }

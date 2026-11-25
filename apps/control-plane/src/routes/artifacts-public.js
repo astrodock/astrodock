@@ -17,8 +17,10 @@ const M = require('../lib/artifacts/manifest');
 const A = require('../lib/artifacts/access');
 const records = require('../lib/artifacts/records');
 const live = require('../lib/artifacts/live');
+const logs = require('../lib/artifacts/logs');
+const { emitEvent } = require('../lib/events');
 const store = require('../lib/pages-store');
-const { errorPage } = require('../lib/auth-pages');
+const { errorPage, shell, esc } = require('../lib/auth-pages');
 const { pageDataLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
@@ -73,6 +75,7 @@ function sameOrigin(req, res, next) {
   if (req.method === 'GET' || req.method === 'HEAD') return next();
   const origin = req.get('origin');
   if (origin && origin === config.artifactOrigin(req.artifact.publicId)) return next();
+  res.locals.error = `cross-origin write refused (Origin: ${origin || 'none'})`;
   return res.status(403).json({ error: 'Writes are accepted only from this artifact\'s own page.' });
 }
 
@@ -100,11 +103,13 @@ router.get('/_astrodock/callback', async (req, res, next) => {
   try {
     const user = await A.redeemGrant(req.artifact, String(req.query.code || ''));
     if (!user || !(await A.hasAccess(req.artifact, user))) {
+      logs.signin(req.artifact, req, user ? user.email : '', 'grant_failed');
       return res.status(401).type('html').send(errorPage('Sign-In Expired', 'That sign-in link has expired or was already used.', {
         action: { href: `/_astrodock/signin?next=${encodeURIComponent(safeNext(req.query.next))}`, label: 'Sign In Again' }
       }));
     }
     res.cookie(A.cookieName(), A.signSession(req.artifact, user), A.cookieOptions());
+    logs.signin(req.artifact, req, user.email, 'grant_ok');
     res.set('Cache-Control', 'no-store');
     res.redirect(safeNext(req.query.next));
   } catch (err) { next(err); }
@@ -115,13 +120,100 @@ router.post('/_astrodock/signout', sameOrigin, (req, res) => {
   res.status(204).end();
 });
 
+// ── Report a Problem (linked from the footer client.js adds to every page) ──
+// Open to anyone who reaches the host, signed in or not: someone sent a link
+// to a harmful page should be able to say so without an account.
+const REPORT_KINDS = { broken: 'Something Is Not Working', abuse: 'This Is Harmful or Abusive' };
+function reportPage(artifact, { done = false, error = '' } = {}) {
+  if (done) {
+    return shell('Report Sent', `<div class="heading"><h1>Thank You</h1><p class="sub">Your report about ${esc(artifact.title || 'this artifact')} was sent.</p></div>
+<a class="btn secondary" href="/">Back</a>`);
+  }
+  return shell('Report a Problem', `<div class="heading"><h1>Report a Problem</h1><p class="sub">About ${esc(artifact.title || 'this artifact')}</p></div>
+${error ? `<div class="err" role="alert"><span>${esc(error)}</span></div>` : ''}
+<form method="post" action="/_astrodock/report">
+<div class="field"><label><input type="radio" name="kind" value="broken" checked style="width:auto;height:auto;box-shadow:none"> ${REPORT_KINDS.broken}</label>
+<label><input type="radio" name="kind" value="abuse" style="width:auto;height:auto;box-shadow:none"> ${REPORT_KINDS.abuse}</label></div>
+<div class="field"><label for="message">What Happened</label>
+<textarea id="message" name="message" rows="5" maxlength="4000" required style="width:100%;padding:10px 12px;border:0;border-radius:8px;font:inherit;box-shadow:inset 0 0 0 1px var(--line-input)"></textarea></div>
+<button type="submit">Send Report</button>
+</form>
+<p class="muted">A report that this is not working goes to the person who made it. A report that it is harmful goes to the people who run this platform.</p>`);
+}
+
+router.get('/_astrodock/report', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.type('html').send(reportPage(req.artifact));
+});
+
+router.post('/_astrodock/report', sameOrigin, pageDataLimiter, express.urlencoded({ extended: false, limit: '16kb' }), async (req, res, next) => {
+  try {
+    const kind = REPORT_KINDS[req.body.kind] ? req.body.kind : 'broken';
+    const message = String(req.body.message || '').trim();
+    if (!message) return res.status(400).type('html').send(reportPage(req.artifact, { error: 'Say what happened.' }));
+    const row = await logs.report(req.artifact, req, { kind, message, email: req.viewer.email || '' });
+    if (kind === 'abuse') {
+      emitEvent({
+        category: 'pages', type: 'artifact.reported', severity: 'warning', actorType: 'user', actor: req.viewer.email || 'anonymous',
+        ip: req.ip, targetType: 'artifact', targetId: req.artifact.publicId,
+        message: `Artifact "${req.artifact.title}" reported as harmful`, meta: { reportId: row.id, artifactId: req.artifact.publicId }
+      }).catch(() => {});
+    }
+    res.type('html').send(reportPage(req.artifact, { done: true }));
+  } catch (err) { next(err); }
+});
+
 // ── data API ───────────────────────────────────────────────────────────────
 const api = express.Router();
+
+// What a data call was, from its path: { op, target, recordId }.
+function describe(req) {
+  const parts = req.path.split('/').filter(Boolean).map((p) => { try { return decodeURIComponent(p); } catch { return p; } });
+  if (parts[0] === 'me') return { op: 'me' };
+  if (parts[0] === '_log') return { op: 'log' };
+  if (parts[0] === 'b') return { op: req.method === 'GET' ? 'blob.get' : 'blob.set', target: parts[1] || '' };
+  if (parts[0] === 'c') {
+    const target = parts[1] || '';
+    if (parts[2] === '_count') return { op: 'count', target };
+    if (parts[2] === '_stream') return { op: 'stream', target };
+    if (parts[2]) return { op: { GET: 'get', PATCH: 'update', DELETE: 'delete' }[req.method] || req.method.toLowerCase(), target, recordId: parts[2] };
+    return { op: req.method === 'GET' ? 'list' : 'create', target };
+  }
+  return { op: 'unknown', target: parts.join('/') };
+}
+
+// Writes and failures in full; successful reads as hourly counts; failures
+// other than a plain "not signed in" also go to the artifact's error list.
+api.use((req, res, next) => {
+  const started = Date.now();
+  // Read the path now: by the time the response finishes, Express may have
+  // put the full URL back on req.
+  const d = describe(req);
+  res.on('finish', () => {
+    if (d.op === 'log') return;
+    const { artifact, viewer } = req;
+    const status = res.statusCode;
+    if (req.method === 'GET' && status < 400) { logs.countRead(artifact, viewer, d.target || d.op); return; }
+    const error = res.locals.error || '';
+    logs.api(artifact, req, viewer, { ...d, status, durationMs: Date.now() - started, error });
+    if (status >= 400 && status !== 401) {
+      logs.error(artifact, {
+        kind: status >= 500 ? 'server' : 'api',
+        message: `${status} ${d.op}${d.target ? ` ${d.target}` : ''}: ${error}`,
+        path: req.get('referer') ? (() => { try { return new URL(req.get('referer')).pathname; } catch { return ''; } })() : '',
+        userAgent: req.get('user-agent') || '', email: viewer.email || ''
+      });
+    }
+  });
+  next();
+});
+
 api.use(sameOrigin);
 api.use(express.json({ limit: Math.max(config.artifacts.maxBlobBytes, config.artifacts.maxRecordBytes) + 16 * 1024 }));
 api.use((req, res, next) => {
   res.set('Cache-Control', 'no-store');
   if (!signedIn(req) && !isPublic(req)) {
+    res.locals.error = 'not signed in';
     return res.status(401).json({ error: 'Sign in to use this artifact.', signIn: '/_astrodock/signin' });
   }
   next();
@@ -132,6 +224,7 @@ const send = (res, fn) => fn().catch((err) => {
   const status = err.status || 500;
   if (status >= 500) console.error('[artifacts]', err.message);
   const body = { error: status >= 500 ? 'Something went wrong.' : err.message };
+  res.locals.error = body.error;
   if (err.problems) body.problems = err.problems;
   if (err.current !== undefined) body.current = err.current;
   res.status(status).json(body);
@@ -225,11 +318,40 @@ api.put('/b/:name', (req, res) => send(res, async () => {
   res.json(await records.setBlob(req.artifact, req.manifest, req.params.name, body.data, body.version, req.viewer));
 }));
 
+// Errors from the page itself, sent by client.js: uncaught errors, rejected
+// promises, console.error and failed requests. A few per call, within an
+// hourly budget per artifact, grouped by the server.
+api.post('/_log', (req, res) => {
+  const list = Array.isArray(req.body && req.body.reports) ? req.body.reports.slice(0, 10) : [];
+  for (const r of list) {
+    if (!r || typeof r !== 'object') continue;
+    if (!logs.takeReportBudget(req.artifact.id)) break;
+    logs.error(req.artifact, {
+      kind: ['error', 'rejection', 'console', 'network'].includes(r.kind) ? r.kind : 'error',
+      message: r.message, source: r.source, stack: r.stack, path: r.path,
+      userAgent: req.get('user-agent') || '', email: req.viewer.email || ''
+    });
+  }
+  res.status(204).end();
+});
+
 api.use((req, res) => res.status(404).json({ error: 'No such endpoint.' }));
 router.use('/_astrodock/api', api);
 router.use('/_astrodock', (req, res) => notFound(res));
 
 // ── files ──────────────────────────────────────────────────────────────────
+// Every HTML page gets the client script at the top of <head>, so error
+// reporting and the Report a Problem link are there even when the page does
+// not load the client itself. client.js ignores a second copy.
+const CLIENT_TAG = '<script src="/_astrodock/client.js"></script>';
+function injectClient(html) {
+  const m = /<head(\s[^>]*)?>/i.exec(html);
+  if (m) return html.slice(0, m.index + m[0].length) + CLIENT_TAG + html.slice(m.index + m[0].length);
+  const d = /<!doctype[^>]*>/i.exec(html);
+  if (d) return html.slice(0, d.index + d[0].length) + CLIENT_TAG + html.slice(d.index + d[0].length);
+  return CLIENT_TAG + html;
+}
+
 async function findFile(artifact, name) {
   const [f] = await db.select().from(schema.artifactFiles)
     .where(and(eq(schema.artifactFiles.artifactId, artifact.id), eq(schema.artifactFiles.name, name))).limit(1);
@@ -240,6 +362,7 @@ router.get('*', async (req, res, next) => {
   try {
     const { artifact } = req;
     if (!signedIn(req) && !isPublic(req)) {
+      logs.view(artifact, req, req.viewer, req.originalUrl, 302);
       return res.redirect(`/_astrodock/signin?next=${encodeURIComponent(safeNext(req.originalUrl))}`);
     }
     let name;
@@ -254,6 +377,10 @@ router.get('*', async (req, res, next) => {
     if (!obj) return notFound(res);
     res.set('Cache-Control', 'no-cache');
     res.set('Content-Security-Policy', "frame-ancestors 'self'");
+    if (/^text\/html/i.test(file.contentType)) {
+      logs.view(artifact, req, req.viewer, req.originalUrl, 200);
+      return res.type(file.contentType).send(injectClient(obj.body.toString('utf8')));
+    }
     res.type(file.contentType).send(obj.body);
   } catch (err) { next(err); }
 });
@@ -263,9 +390,12 @@ router.use((req, res) => notFound(res));
 // eslint-disable-next-line no-unused-vars
 router.use((err, req, res, next) => {
   console.error('[artifacts]', err.message);
+  if (req.artifact) logs.error(req.artifact, { kind: 'server', message: `500 ${req.method} ${req.path}: the page could not be served`, email: req.viewer ? req.viewer.email : '' });
   res.status(err.status || 500).type('html').send(errorPage('Something Went Wrong', 'This artifact could not be loaded.'));
 });
 
 module.exports = router;
 module.exports.storeId = storeId;
 module.exports._manifestCache = manifestCache;
+module.exports.injectClient = injectClient;
+module.exports.describe = describe;

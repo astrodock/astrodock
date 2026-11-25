@@ -24,6 +24,7 @@ const M = require('../lib/artifacts/manifest');
 const A = require('../lib/artifacts/access');
 const actions = require('../lib/artifacts/actions');
 const feedback = require('../lib/artifacts/feedback');
+const logs = require('../lib/artifacts/logs');
 
 const router = express.Router();
 router.use(requireScope('artifacts:read'));
@@ -166,6 +167,57 @@ router.post('/feedback', canWrite, handle(async (req, res) => {
   });
   res.status(201).json({ feedback: { id: row.id, upstreamStatus: row.upstreamStatus } });
 }));
+
+// ── usage across artifacts, and the report queue ───────────────────────────
+// Yours by default; every artifact on the instance with ?all=1 and artifacts:admin.
+router.get('/usage', handle(async (req, res) => {
+  const me = principalId(req.auth);
+  const all = req.query.all === '1' && isModerator(req.auth);
+  const rows = all
+    ? await db.select().from(schema.artifacts).orderBy(desc(schema.artifacts.updatedAt))
+    : await db.select().from(schema.artifacts).where(eq(schema.artifacts.ownerId, me)).orderBy(desc(schema.artifacts.updatedAt));
+  const stats = new Map((await logs.usage(rows.map((a) => a.id))).map((u) => [u.id, u]));
+  const ownerIds = [...new Set(rows.map((a) => a.ownerId).filter(Boolean))];
+  const owners = new Map(ownerIds.length
+    ? (await db.select({ id: schema.users.id, email: schema.users.email }).from(schema.users).where(inArray(schema.users.id, ownerIds))).map((u) => [u.id, u.email])
+    : []);
+  res.json({
+    artifacts: rows.map((a) => {
+      const { id: _id, ...u } = stats.get(a.id) || {};
+      return { ...serialize(a, { ownerEmail: owners.get(a.ownerId) || null }), usage: u };
+    })
+  });
+}));
+
+router.get('/reports', handle(async (req, res) => {
+  if (!isModerator(req.auth)) throw fail(403, 'The report queue needs the artifacts:admin permission.');
+  const status = req.query.status === 'closed' ? 'closed' : 'open';
+  // The queue is reports of harm by default; ?kind=broken or ?kind=all for the rest.
+  const kind = ['broken', 'all'].includes(req.query.kind) ? req.query.kind : 'abuse';
+  const conds = [eq(schema.artifactReports.status, status)];
+  if (kind !== 'all') conds.push(eq(schema.artifactReports.kind, kind));
+  const rows = await db.select({ r: schema.artifactReports, publicId: schema.artifacts.publicId, title: schema.artifacts.title })
+    .from(schema.artifactReports).innerJoin(schema.artifacts, eq(schema.artifacts.id, schema.artifactReports.artifactId))
+    .where(and(...conds)).orderBy(desc(schema.artifactReports.createdAt)).limit(500);
+  res.json({ reports: rows.map(({ r, publicId, title }) => ({ ...reportOut(r), artifact: { id: publicId, title } })) });
+}));
+
+router.patch('/reports/:reportId', canWrite, handle(async (req, res) => {
+  if (!/^[0-9a-f-]{36}$/i.test(req.params.reportId)) throw fail(404, 'No such report.');
+  const [r] = await db.select().from(schema.artifactReports).where(eq(schema.artifactReports.id, req.params.reportId)).limit(1);
+  if (!r) throw fail(404, 'No such report.');
+  // The owner closes reports that something is broken; admins close any.
+  const [a] = await db.select().from(schema.artifacts).where(eq(schema.artifacts.id, r.artifactId)).limit(1);
+  const owner = a && a.ownerId === principalId(req.auth);
+  if (!isModerator(req.auth) && !(owner && r.kind === 'broken')) throw fail(404, 'No such report.');
+  const status = (req.body || {}).status === 'open' ? 'open' : 'closed';
+  await db.update(schema.artifactReports).set({ status }).where(eq(schema.artifactReports.id, r.id));
+  res.json({ report: reportOut({ ...r, status }) });
+}));
+
+function reportOut(r) {
+  return { id: r.id, kind: r.kind, message: r.message, email: r.email, status: r.status, createdAt: r.createdAt };
+}
 
 // ── folders ────────────────────────────────────────────────────────────────
 router.get('/folders', handle(async (req, res) => {
@@ -392,6 +444,78 @@ router.post('/:id/sessions/revoke', canWrite, handle(async (req, res) => {
   res.json({ ok: true });
 }));
 
+// ── usage, activity, errors, history, reports for one artifact ─────────────
+router.get('/:id/usage', handle(async (req, res) => {
+  const artifact = await loadOwned(req);
+  await logs.flushReads();
+  const [u] = await logs.usage([artifact.id]);
+  const { id: _id, ...usage } = u || {};
+  res.json({ usage, people: await logs.people(artifact) });
+}));
+
+const ACTIVITY = {
+  views: () => schema.artifactViews,
+  api: () => schema.artifactApiLog,
+  signins: () => schema.artifactSignins
+};
+router.get('/:id/activity', handle(async (req, res) => {
+  const artifact = await loadOwned(req);
+  const kind = ACTIVITY[req.query.kind] ? req.query.kind : 'views';
+  const T = ACTIVITY[kind]();
+  const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 100, 1), 500);
+  const conds = [eq(T.artifactId, artifact.id)];
+  if (req.query.before) {
+    const b = new Date(String(req.query.before));
+    if (!Number.isNaN(b.getTime())) conds.push(sql`${T.createdAt} < ${b}`);
+  }
+  if (req.query.email) conds.push(eq(T.email, A.normEmail(req.query.email)));
+  const rows = await db.select().from(T).where(and(...conds)).orderBy(desc(T.createdAt)).limit(limit);
+  res.json({ kind, entries: rows.map(({ artifactId: _a, ...r }) => r) });
+}));
+
+router.get('/:id/errors', handle(async (req, res) => {
+  const artifact = await loadOwned(req);
+  const rows = await db.select().from(schema.artifactErrors).where(eq(schema.artifactErrors.artifactId, artifact.id))
+    .orderBy(desc(schema.artifactErrors.lastSeen)).limit(500);
+  res.json({
+    errors: rows.map((e) => ({
+      id: e.id, kind: e.kind, message: e.message, source: e.source, stack: e.stack, path: e.path, userAgent: e.userAgent,
+      count: e.count, people: (e.emails || []).length, emails: e.emails || [], firstSeen: e.firstSeen, lastSeen: e.lastSeen
+    }))
+  });
+}));
+
+// Clear the list once the page is fixed, so what comes back is new.
+router.delete('/:id/errors', canWrite, handle(async (req, res) => {
+  const artifact = await loadOwned(req);
+  await db.delete(schema.artifactErrors).where(eq(schema.artifactErrors.artifactId, artifact.id));
+  res.status(204).end();
+}));
+
+router.get('/:id/history', handle(async (req, res) => {
+  const artifact = await loadOwned(req);
+  const conds = [eq(schema.artifactRevisions.artifactId, artifact.id)];
+  if (req.query.recordId) conds.push(eq(schema.artifactRevisions.recordId, String(req.query.recordId)));
+  if (req.query.target) conds.push(eq(schema.artifactRevisions.target, String(req.query.target)));
+  const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 100, 1), 500);
+  const rows = await db.select().from(schema.artifactRevisions).where(and(...conds)).orderBy(desc(schema.artifactRevisions.createdAt)).limit(limit);
+  res.json({
+    history: rows.map((r) => ({
+      id: r.id, kind: r.kind, target: r.target, recordId: r.recordId, action: r.action,
+      before: r.before, after: r.after, actor: r.actorEmail, createdAt: r.createdAt
+    }))
+  });
+}));
+
+router.get('/:id/reports', handle(async (req, res) => {
+  const artifact = await loadOwned(req);
+  // Reports that the artifact is harmful go to the platform's admins only.
+  const conds = [eq(schema.artifactReports.artifactId, artifact.id)];
+  if (!isModerator(req.auth)) conds.push(eq(schema.artifactReports.kind, 'broken'));
+  const rows = await db.select().from(schema.artifactReports).where(and(...conds)).orderBy(desc(schema.artifactReports.createdAt)).limit(200);
+  res.json({ reports: rows.map(reportOut) });
+}));
+
 // ── data, as the owner sees it ─────────────────────────────────────────────
 router.get('/:id/data', handle(async (req, res) => {
   const artifact = await loadOwned(req);
@@ -419,6 +543,10 @@ router.delete('/:id/data/:collection/:recordId', canWrite, handle(async (req, re
     eq(schema.artifactRecords.collection, req.params.collection), eq(schema.artifactRecords.id, req.params.recordId))).returning();
   if (!rows[0]) throw fail(404, 'No such record.');
   require('../lib/artifacts/live').publish(artifact.id, req.params.collection, { type: 'delete', row: rows[0] });
+  logs.revision(artifact, {
+    target: req.params.collection, recordId: rows[0].id, action: 'delete', before: rows[0].data,
+    viewer: { userId: principalId(req.auth), email: (await principalEmail(req.auth)) || actorFromAuth(req.auth).actor }
+  });
   res.status(204).end();
 }));
 
