@@ -93,6 +93,21 @@ app.get('/_caddy/ask', async (req, res) => {
     const rows = await db.select({ id: schema.customDomains.id }).from(schema.customDomains)
       .where(and(eq(schema.customDomains.hostname, domain), eq(schema.customDomains.status, 'active'))).limit(1);
     if (rows[0]) return res.status(200).send('ok');
+    // This server's own names. When the artifacts domain is the base domain
+    // (adock.app for both), the artifacts wildcard site covers admin., auth.
+    // and every app as well, so Caddy asks about them too, and must hear yes.
+    if (config.isConfigured()) {
+      const base = config.baseDomain.toLowerCase();
+      const own = [base, `www.${base}`, `${config.adminSubdomain}.${base}`, config.authHost, config.pages.host].map((h) => String(h).toLowerCase());
+      if (own.includes(domain)) return res.status(200).send('ok');
+      if (domain.endsWith(`.${base}`)) {
+        const label = domain.slice(0, -(base.length + 1));
+        if (/^[a-z0-9-]+$/.test(label)) {
+          const [app] = await db.select({ id: schema.apps.id }).from(schema.apps).where(eq(schema.apps.subdomain, label)).limit(1);
+          if (app) return res.status(200).send('ok');
+        }
+      }
+    }
     // An artifact host gets a certificate once the artifact exists.
     const artifactId = config.artifactIdForHost(domain);
     if (artifactId) {

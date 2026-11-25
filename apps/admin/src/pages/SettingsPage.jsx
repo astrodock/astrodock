@@ -373,11 +373,11 @@ export default function SettingsPage() {
           <div className="lab">
             <b>Where Passes Go</b>
             <span className="desc">
-              The other system posts a form field named <b>token</b> to this address, from the
-              launcher address above. The pass is an HS256 JWT with <b>aud</b> set to
-              {' '}<code>astrodock-launch</code>, <b>iss</b> set to the launcher name, and <b>email</b>,
-              {' '}<b>name</b>, <b>app</b> (the app's slug), <b>jti</b>, and an <b>exp</b> no more than
-              five minutes after <b>iat</b>.
+              The other system posts a form field named <code>token</code> to this address, from the
+              launcher address above. The pass is an HS256 JWT with <code>aud</code> set to
+              {' '}<code>astrodock-launch</code>, <code>iss</code> set to the launcher name, and <code>email</code>,
+              {' '}<code>name</code>, <code>app</code> (the app's slug), <code>jti</code>, and an <code>exp</code> no more than
+              five minutes after <code>iat</code>.
             </span>
           </div>
           <div className="ctl" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>

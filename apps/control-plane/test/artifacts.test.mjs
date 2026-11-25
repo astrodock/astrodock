@@ -547,6 +547,10 @@ try {
   await test('caddy asks: certificates only for artifacts that exist', async () => {
     assert.strictEqual((await req('GET', `/_caddy/ask?domain=${host}`)).status, 200);
     assert.strictEqual((await req('GET', '/_caddy/ask?domain=zzzzzzzzzzzz.artifacts.localhost')).status, 403);
+    // The server's own names and its apps, which an artifacts domain equal to
+    // the base domain puts under the same wildcard.
+    for (const h of ['admin.localhost', 'auth.localhost', 'pages.localhost']) assert.strictEqual((await req('GET', `/_caddy/ask?domain=${h}`)).status, 200, h);
+    assert.strictEqual((await req('GET', '/_caddy/ask?domain=nosuchapp.localhost')).status, 403);
   });
 
   await test('capability feedback is kept and sent upstream', async () => {
