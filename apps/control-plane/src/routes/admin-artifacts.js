@@ -307,6 +307,55 @@ router.post('/', canWrite, handle(async (req, res) => {
   res.status(201).json({ artifact: serialize(artifact, { files: await listFiles(artifact), shares: [], access: 'owner' }) });
 }));
 
+// Move a Page into a new artifact: its files, its saved data as the blob
+// "data", and its allowlist as shares. The page itself is left as it was.
+// Pages that called _data need that call changed to astrodock.blob('data');
+// the response says which notes apply.
+router.post('/from-page', canWrite, handle(async (req, res) => {
+  if (!callerHasScope(req.auth, 'pages:read')) throw fail(403, 'Moving a page needs the pages:read permission too.');
+  const owner = principalId(req.auth);
+  if (!owner) throw fail(400, 'This key is not tied to a person. Use a key made from an account.');
+  const pageId = String((req.body || {}).pageId || '');
+  const [page] = await db.select().from(schema.pages).where(eq(schema.pages.pageId, pageId)).limit(1);
+  if (!page) throw fail(404, 'No such page.');
+  await limits.checkNewArtifact(owner);
+  const notes = [];
+  const manifest = page.dataMode === 'none' ? {} : {
+    blobs: { data: page.dataMode === 'per-user' ? { scope: 'per-user', read: 'viewer', write: 'viewer' } : { read: 'viewer', write: 'editor' } }
+  };
+  const visibility = page.accessMode === 'public' ? 'public' : 'shared';
+  if (visibility === 'public') await limits.checkPublic({ ownerId: owner });
+  if (page.accessMode === 'passkey') notes.push('The page used a passkey. Artifacts share by email instead, so share it with the people who had the passkey.');
+  if (page.dataMode !== 'none') notes.push('Saved data is now the blob "data". Change the page\'s calls to _data to astrodock.blob(\'data\').get() and .set(data, version).');
+  let artifact;
+  for (let i = 0; i < 5 && !artifact; i++) {
+    const rows = await db.insert(schema.artifacts).values({
+      publicId: A.generatePublicId(), ownerId: owner, title: page.title || 'Untitled', entryFile: page.entryFile, manifest, visibility
+    }).onConflictDoNothing().returning();
+    artifact = rows[0];
+  }
+  if (!artifact) throw fail(500, 'Could not allocate an artifact id.');
+  const files = await db.select().from(schema.pageFiles).where(eq(schema.pageFiles.pageId, page.id));
+  let copied = 0;
+  for (const f of files) {
+    const obj = await store.getFile(page.pageId, f.name);
+    if (!obj) { notes.push(`${f.name} was listed but missing from storage, so it was not copied.`); continue; }
+    await putFile(artifact, f.name, obj.body, f.contentType);
+    copied++;
+  }
+  const data = await db.select().from(schema.pageData).where(eq(schema.pageData.pageId, page.id));
+  for (const d of data) {
+    await db.insert(schema.artifactBlobs).values({ artifactId: artifact.id, name: 'data', userId: d.userId, data: d.data, version: d.version }).onConflictDoNothing();
+  }
+  const role = page.dataMode === 'shared' ? 'editor' : 'viewer';
+  for (const email of (page.allowlist || []).map(A.normEmail).filter(A.validEmail)) {
+    await db.insert(schema.artifactShares).values({ artifactId: artifact.id, email, role, invitedBy: owner }).onConflictDoNothing();
+  }
+  if ((page.allowlist || []).length) notes.push(`The allowlist became shares, as ${role}. Nobody was emailed.`);
+  audit(req, 'artifact.from_page', artifact, `Page ${page.pageId} moved into artifact "${artifact.title}"`, { pageId: page.pageId });
+  res.status(201).json({ artifact: serialize(artifact, { files: await listFiles(artifact), shares: await listShares(artifact), access: 'owner' }), copied, notes });
+}));
+
 router.get('/:id', handle(async (req, res) => {
   const artifact = await loadOwned(req);
   const [o] = artifact.ownerId ? await db.select({ email: schema.users.email }).from(schema.users).where(eq(schema.users.id, artifact.ownerId)).limit(1) : [];

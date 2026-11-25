@@ -56,7 +56,7 @@ async function test(name, fn) {
 }
 
 await migrate({ log: () => {} });
-for (const t of [schema.artifactViews, schema.artifactApiLog, schema.artifactReadCounts, schema.artifactSignins, schema.artifactErrors,
+for (const t of [schema.pageData, schema.pageFiles, schema.pages, schema.artifactViews, schema.artifactApiLog, schema.artifactReadCounts, schema.artifactSignins, schema.artifactErrors,
   schema.artifactRevisions, schema.artifactReports, schema.artifactAccounts, schema.artifactUploads, schema.artifactEgress, schema.artifactFeedback, schema.artifactSends, schema.artifactGrants, schema.artifactCodes, schema.artifactBlobs,
   schema.artifactRecords, schema.artifactShares, schema.artifactFiles, schema.artifacts, schema.artifactFolders,
   schema.apiTokens, schema.sessions, schema.events, schema.users]) await db.delete(t);
@@ -643,6 +643,25 @@ try {
       const over = await req('PUT', `/admin/artifacts/${a.id}/files`, { token: dk, json: { files: [{ name: 'b.txt', content: 'y'.repeat(200) }] } });
       assert.deepStrictEqual([over.status, over.json.limit], [403, 'storage']);
     } finally { config.artifacts.plans.free.storageBytes = saved; }
+  });
+
+  await test('a Page moves into an artifact: files, saved data, allowlist', async () => {
+    const pagesTok2 = (await req('POST', '/admin/tokens', { token: adminJwt, json: { name: 'pa', scopes: ['pages:read', 'pages:write', 'artifacts:read', 'artifacts:write'] } })).json.token;
+    const p = await req('POST', '/admin/pages', { token: pagesTok2, json: { title: 'Old Board', accessMode: 'platform', dataMode: 'shared', allowlist: ['Old@Example.com'], content: '<html><head></head><body>old</body></html>' } });
+    assert.strictEqual(p.status, 201, p.body);
+    const [pageRow] = await db.select().from(schema.pages).where(eq(schema.pages.pageId, p.json.page.pageId));
+    await db.insert(schema.pageData).values({ pageId: pageRow.id, userId: null, data: { items: [1, 2] }, version: 3 });
+    assert.strictEqual((await req('POST', '/admin/artifacts/from-page', { token: tok, json: { pageId: p.json.page.pageId } })).status, 403, 'needs pages:read too');
+    const r = await req('POST', '/admin/artifacts/from-page', { token: pagesTok2, json: { pageId: p.json.page.pageId } });
+    assert.strictEqual(r.status, 201, r.body);
+    assert.deepStrictEqual([r.json.artifact.title, r.json.artifact.visibility, r.json.copied], ['Old Board', 'shared', 1]);
+    assert.deepStrictEqual(r.json.artifact.shares.map((x) => [x.email, x.role]), [['old@example.com', 'editor']]);
+    assert.ok(r.json.notes.some((n) => /astrodock\.blob\('data'\)/.test(n)));
+    const [a] = await db.select().from(schema.artifacts).where(eq(schema.artifacts.publicId, r.json.artifact.id));
+    const [b] = await db.select().from(schema.artifactBlobs).where(eq(schema.artifactBlobs.artifactId, a.id));
+    assert.deepStrictEqual([b.name, b.data, b.version], ['data', { items: [1, 2] }, 3]);
+    assert.ok(objects.has(`artifacts/${r.json.artifact.id}/index.html`));
+    assert.ok((await db.select().from(schema.pages).where(eq(schema.pages.id, pageRow.id)))[0], 'the page stays');
   });
 
   await test('deleting an artifact removes it and its data', async () => {

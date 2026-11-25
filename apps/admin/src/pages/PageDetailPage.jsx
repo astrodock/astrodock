@@ -64,6 +64,23 @@ export default function PageDetailPage() {
           <h1 style={{ margin: '4px 0 0' }}>{page.title || 'Untitled'}</h1>
           <span className="row-subtitle">{page.pageId} · {page.views} views</span>
         </div>
+        <div className="btn-row">
+        <button onClick={() => ask({
+          title: 'Move This Page to Artifacts?',
+          confirmLabel: 'Move to Artifacts',
+          body: (
+            <>
+              <p>A new artifact is made with this page's files, its saved data and its allowlist as
+                shares. The page stays as it is until you delete it.</p>
+              <p className="hint">Artifacts sign people in by email instead of a passkey. A page that saved
+                data needs its calls changed to the artifact client; the next screen says what applies.</p>
+            </>
+          ),
+          onConfirm: async () => {
+            const r = await api.pageToArtifact(pageId);
+            navigate(`/artifacts/${r.artifact.id}`, { state: { notes: r.notes } });
+          }
+        })}>Move to Artifacts</button>
         <button className="danger" onClick={() => ask({
           title: 'Delete this page?',
           danger: true,
@@ -79,6 +96,7 @@ export default function PageDetailPage() {
           ),
           onConfirm: async () => { await api.deletePage(pageId); navigate('/pages'); }
         })}>Delete Page</button>
+        </div>
       </div>
 
       {error && <div className="error">{error}</div>}

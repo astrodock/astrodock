@@ -505,6 +505,7 @@ export const renameArtifactFolder = (folderId, name) =>
   request(`/artifacts/folders/${folderId}`, { method: 'PATCH', body: JSON.stringify({ name }) });
 export const deleteArtifactFolder = (folderId) => request(`/artifacts/folders/${folderId}`, { method: 'DELETE' });
 export const getArtifactFeedback = () => request('/artifacts/feedback');
+export const pageToArtifact = (pageId) => request('/artifacts/from-page', { method: 'POST', body: JSON.stringify({ pageId }) });
 export const getArtifactsUsage = (all = false) => request(`/artifacts/usage${all ? '?all=1' : ''}`);
 export const getArtifactUsage = (id) => request(`/artifacts/${id}/usage`);
 export const getArtifactActivity = (id, kind, email) =>

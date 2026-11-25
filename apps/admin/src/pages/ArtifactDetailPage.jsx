@@ -1,5 +1,5 @@
 import { Fragment, useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import * as api from '../lib/api';
 import EmptyState from '../components/EmptyState';
 import Select from '../components/Select';
@@ -30,6 +30,7 @@ export default function ArtifactDetailPage() {
   const [tab, setTab] = useState('files');
   const [error, setError] = useState('');
   const [msg, setMsg] = useState('');
+  const notes = (useLocation().state || {}).notes || [];
 
   async function load() {
     try { setArtifact((await api.getArtifact(id)).artifact); }
@@ -65,6 +66,7 @@ export default function ArtifactDetailPage() {
 
         {error && <div className="error">{error}</div>}
         {msg && <div className="flash-line" role="status">{msg}</div>}
+        {notes.length > 0 && <ul className="plain-list flash-line">{notes.map((n, i) => <li key={i}>{n}</li>)}</ul>}
 
         <div className="tabs" role="tablist">
           {TABS.map(([k, label]) => (
