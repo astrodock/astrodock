@@ -211,15 +211,25 @@ Astrodock instance for the artifacts service (`ASTRODOCK_ARTIFACTS_SERVICE=on`,
 for Creator; cloud env `ARTIFACTS_URL`, `ARTIFACTS_FLEET_TOKEN`, `ARTIFACTS_ADMIN_KEY`,
 `CLOUD_CREATOR_PLAN`; `ASTRODOCK_ACCEPT_UPSTREAM_FEEDBACK=on` on the instance at auth.astrodock.ai.
 
+### Milestone 4: agent connect, CLI, attachments, bandwidth, Pages, scale (Testing)
+
+| Piece | Where |
+|---|---|
+| Connect page: agent starts with an email, person presses Send Code, types it; key sealed to the agent | astrodock-cloud `ceaacc6`: `lib/artifact-login.js`, `app/src/pages/Connect.jsx` |
+| Agent keys per creator (make, list, revoke), Agents view in Artifacts | Astrodock `36b8434` fleet routes; cloud `/api/artifacts/_agents` |
+| `astrodock artifacts` CLI: login, guide, list, create, push, manifest, share, unshare, errors, usage, feedback | Astrodock `36b8434`, `packages/cli/src/artifacts.js` |
+| Files attached to records (manifest `attachments`), served sandboxed | Astrodock `c63a3a6`, `lib/artifacts/uploads.js` |
+| Public bandwidth cap per month (Creator: 50 GB), owner emailed once | Astrodock `c63a3a6`, `lib/artifacts/egress.js` |
+| Move a Page into an artifact | Astrodock `cd8491e`, `POST /admin/artifacts/from-page` |
+| Live updates across processes (Postgres NOTIFY) | Astrodock `6698d3f`, `lib/artifacts/live.js` |
+| Creator dashboard shows Artifacts and Your Account only | Astrodock `apps/admin/src/App.jsx` |
+
+Rule applied (my recommendation, not separately confirmed): an emailed code connects an agent with an
+artifacts-only key; an address that runs a server here must sign in the usual way to approve.
+
 ### Not built yet
 
-1. The signup page an agent sends a person to (A19), and a key for the creator's own agent. Today
-   only the cloud service holds a creator's key, so an agent cannot yet work on a hosted creator's
-   artifacts directly. Cloud sign-in is the platform's password or Google, not an email code.
-2. CLI commands and an MCP server for artifacts.
-3. Viewer file uploads (A13).
-4. Pages migration (A14).
-5. A monthly bandwidth cap for public artifacts.
-6. Live updates across more than one control-plane process (today: one process, in-memory).
-7. Creator role in the instance dashboard: a creator who signs in there (with Google) sees every
-   section and gets 403s; the nav is not trimmed to Artifacts.
+1. An MCP server for artifacts (the CLI and HTTP cover agents today).
+2. Pages that call the old `_data` endpoint keep failing after a move until their code uses
+   `astrodock.blob('data')`; there is no compatibility route.
+3. Attachments are not in live-update events; a page re-reads the record for `_files`.
