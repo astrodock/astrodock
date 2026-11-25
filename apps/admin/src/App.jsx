@@ -223,6 +223,45 @@ export default function App() {
     );
   }
 
+  // A creator (the hosted artifacts service) reaches artifacts and nothing
+  // else, so the dashboard shows exactly that.
+  if (me && me.role === 'creator') {
+    return (
+      <div className="app">
+        <header className="topbar">
+          <Link className="tb-brand" to="/artifacts">
+            <span className="logo-text">ASTRO<span className="logo-text-dim">DOCK</span></span>
+          </Link>
+          <div className="tb-crumbs"><Crumbs pathname={location.pathname} /></div>
+        </header>
+        <nav className="sidebar">
+          <ul className="nav-links">
+            <li>
+              <NavLink to="/artifacts" className={({ isActive }) => isActive ? 'active' : ''}>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="2.6" width="12" height="10.8" rx="1.6" stroke="currentColor" strokeWidth="1.4"/><path d="M2 5.8h12M5.2 8.6h5.6M5.2 11h3.4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>
+                Artifacts
+              </NavLink>
+            </li>
+          </ul>
+          <div className="sidebar-footer">
+            <NavLink to="/account" className={({ isActive }) => `acct-chip${isActive ? ' active' : ''}`}>
+              <span className="acct-avatar">{(me.name || me.email || '?').trim()[0]?.toUpperCase()}</span>
+              <div className="t"><b>{me.name || me.email}</b><span>Account and Security</span></div>
+            </NavLink>
+          </div>
+        </nav>
+        <main className="content">
+          <Routes>
+            <Route path="/artifacts" element={<ArtifactsPage />} />
+            <Route path="/artifacts/:id" element={<ArtifactDetailPage />} />
+            <Route path="/account" element={<AccountPage theme={theme} onToggleTheme={toggleTheme} onSignOut={handleLogout} />} />
+            <Route path="*" element={<Navigate to="/artifacts" replace />} />
+          </Routes>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="app">
       {reauthAsk && (
