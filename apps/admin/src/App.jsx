@@ -421,6 +421,8 @@ export default function App() {
           <Route path="/account" element={<AccountPage theme={theme} onToggleTheme={toggleTheme} onSignOut={handleLogout} />} />
           {/* Reachable after setup so a deferred domain can still be finished. */}
           <Route path="/setup" element={<SetupPage status={setup} />} />
+          {/* Where the setup wizard and a bare address land. */}
+          <Route path="/" element={<Navigate to="/overview" replace />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
         <Footer version={setup?.version} baseDomain={setup?.baseDomain} />
