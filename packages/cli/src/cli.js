@@ -12,6 +12,7 @@ const { filesToUpload } = require('./upload-files');
 const { requestWithApproval } = require('./approval');
 const { cmdLogin } = require('./login');
 const { cmdServer } = require('./server');
+const { cmdArtifacts } = require('./artifacts');
 
 const USAGE = `astrodock — drive an Astrodock platform from an app repo
 
@@ -27,6 +28,8 @@ Commands:
   logs [slug] [--lines N]              Print recent app logs
   set-secret <KEY> [value] [slug]      Set an env var value (value read from stdin if omitted)
   apps                                 List apps
+  artifacts <sub> …                    Mini apps with their own data, shared by email
+                                       (astrodock artifacts help for the list)
   pages push <dir|file> [options]      Publish a document / static bundle / file share to Pages
   pages list                           List pages
   pages rm <pageId>                    Delete a page
@@ -86,7 +89,7 @@ app.json is read from the current directory (or --file). Secret VALUES never go 
 // value to take, so say so.
 const BOOLEAN_FLAGS = new Set([
   'local', 'prune', 'quiet', 'generate-passkey', 'help', 'h', 'version', 'v',
-  'draft', 'remove', 'no-browser'
+  'draft', 'remove', 'no-browser', 'no-notify', 'clear'
 ]);
 
 function parseFlags(args) {
@@ -305,6 +308,13 @@ async function main(argv) {
   // Before the client: login is how you get the credentials the client needs.
   if (command === 'login') {
     try { await cmdLogin(flags); return; }
+    catch (e) { die(e.message); }
+  }
+
+  // Artifacts make their own client, after `artifacts login` has had the chance
+  // to create the credentials.
+  if (command === 'artifacts') {
+    try { await cmdArtifacts(makeClient, positional, flags); return; }
     catch (e) { die(e.message); }
   }
 

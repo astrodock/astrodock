@@ -41,7 +41,21 @@ something is broken go to the owner (`GET /admin/artifacts/:id/reports`).
 
 ## Making an Artifact
 
-All calls use your Astrodock key: `Authorization: Bearer tk_...`, against the
+With the CLI (`npx @astrodock/cli`), from a folder holding the artifact's files:
+
+```
+astrodock artifacts login --email person@example.com   # hosted service: they press Send Code, type it
+astrodock artifacts create "Team Tasks" --dir ./site --manifest manifest.json
+astrodock artifacts push <id> ./site
+astrodock artifacts manifest <id> manifest.json
+astrodock artifacts share <id> sam@example.com --role staff
+astrodock artifacts errors <id>
+astrodock artifacts feedback "What you needed" --tried "…" --workaround "…" --artifact <id>
+```
+
+On a self-hosted instance, `astrodock login` gives a key that covers artifacts.
+
+Over HTTP, every call uses your Astrodock key: `Authorization: Bearer tk_...`, against the
 dashboard host (`https://admin.<domain>`).
 
 ```

@@ -551,6 +551,20 @@ try {
     assert.deepStrictEqual(after.json.artifacts.filter((a) => a.suspended).map((a) => a.id), [ids[2]], 'the separate take-down stays');
   });
 
+  await test('hosted service: agent keys for a creator, listed and revoked on their own', async () => {
+    const F = { token: 'fleet-test-token-0123456789' };
+    const k = await req('POST', '/fleet/artifacts/creators/keys', { ...F, json: { email: 'cara@example.com', name: 'Claude Code' } });
+    assert.strictEqual(k.status, 201, k.body);
+    assert.strictEqual((await req('GET', '/admin/artifacts', { token: k.json.token })).status, 200);
+    assert.strictEqual((await req('GET', '/admin/apps', { token: k.json.token })).status, 403, 'artifacts only');
+    const list = await req('POST', '/fleet/artifacts/creators/keys/list', { ...F, json: { email: 'cara@example.com' } });
+    assert.deepStrictEqual(list.json.keys.map((x) => x.name), ['Claude Code'], 'the service key is not listed');
+    assert.strictEqual((await req('POST', '/fleet/artifacts/creators/keys/revoke', { ...F, json: { email: 'sam@example.com', id: k.json.id } })).status, 404, 'only its owner');
+    assert.strictEqual((await req('POST', '/fleet/artifacts/creators/keys/revoke', { ...F, json: { email: 'cara@example.com', id: k.json.id } })).status, 200);
+    assert.strictEqual((await req('GET', '/admin/artifacts', { token: k.json.token })).status, 401);
+    assert.strictEqual((await req('POST', '/fleet/artifacts/creators/keys', { ...F, json: { email: 'admin@example.com' } })).status, 404, 'not for operators');
+  });
+
   await test('hosted service: storage limit counts files and data', async () => {
     const F = { token: 'fleet-test-token-0123456789' };
     const dk = (await req('POST', '/fleet/artifacts/creators', { ...F, json: { email: 'dan@example.com', plan: 'free' } })).json.token;

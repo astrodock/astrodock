@@ -305,6 +305,52 @@ artifactsService.post('/creators/suspend', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// Keys for a creator's own agents, made when they approve one from the hosted
+// service's connect page. Separate from the service's own key: making or
+// revoking one leaves the others alone. Artifacts only, like the creator.
+const AGENT_PREFIX = 'agent: ';
+artifactsService.post('/creators/keys', async (req, res) => {
+  try {
+    const { email, name } = req.body || {};
+    const user = await creatorByEmail(email);
+    if (!user || user.operatorRole !== 'creator' || !user.isActive) return res.status(404).json({ error: 'No such creator.' });
+    const { generateApiToken, hashToken } = require('../lib/ids');
+    const raw = generateApiToken();
+    // eslint-disable-next-line no-control-regex -- stripping control characters is the point
+    const label = `${AGENT_PREFIX}${String(name || 'agent').replace(/[\u0000-\u001f]/g, '').slice(0, 80)}`;
+    const [row] = await db.insert(schema.apiTokens).values({
+      name: label, tokenHash: hashToken(raw), scopes: ['artifacts:read', 'artifacts:write'], appScope: [], authorizedByUserId: user.id
+    }).returning();
+    audit('artifacts.agent_key', `Agent key "${label}" made for ${user.email}`, { email: user.email, tokenId: row.id });
+    res.status(201).json({ id: row.id, name: label, token: raw });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+artifactsService.post('/creators/keys/list', async (req, res) => {
+  try {
+    const user = await creatorByEmail((req.body || {}).email);
+    if (!user || user.operatorRole !== 'creator') return res.status(404).json({ error: 'No such creator.' });
+    const { and: andOp, isNull, like } = require('drizzle-orm');
+    const rows = await db.select().from(schema.apiTokens)
+      .where(andOp(eq(schema.apiTokens.authorizedByUserId, user.id), isNull(schema.apiTokens.revokedAt), like(schema.apiTokens.name, `${AGENT_PREFIX}%`)));
+    res.json({ keys: rows.map((t) => ({ id: t.id, name: t.name.slice(AGENT_PREFIX.length), createdAt: t.createdAt, lastUsedAt: t.lastUsedAt })) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+artifactsService.post('/creators/keys/revoke', async (req, res) => {
+  try {
+    const { email, id } = req.body || {};
+    const user = await creatorByEmail(email);
+    if (!user || user.operatorRole !== 'creator' || !/^[0-9a-f-]{36}$/i.test(String(id || ''))) return res.status(404).json({ error: 'No such key.' });
+    const { and: andOp, like } = require('drizzle-orm');
+    const rows = await db.update(schema.apiTokens).set({ revokedAt: new Date() })
+      .where(andOp(eq(schema.apiTokens.id, id), eq(schema.apiTokens.authorizedByUserId, user.id), like(schema.apiTokens.name, `${AGENT_PREFIX}%`))).returning();
+    if (!rows[0]) return res.status(404).json({ error: 'No such key.' });
+    audit('artifacts.agent_key_revoked', `Agent key "${rows[0].name}" of ${user.email} revoked`, { email: user.email, tokenId: id });
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // Open an artifact for a creator signed in at the hosted service: a one-time
 // grant for that artifact only, and only if they have access to it. The
 // service redirects the browser to the URL returned.
