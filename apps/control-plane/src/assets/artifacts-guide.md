@@ -216,4 +216,9 @@ them.
 | Invites per owner per day | 100 |
 | Action emails per owner per day | 200 |
 
+On the hosted service, plans add their own limits (number of artifacts, people
+per artifact, storage, public artifacts). Going over one returns 403 with
+`"code": "plan_limit"` and a `limit` naming which. Tell the person; it is a plan
+question, not a capability gap.
+
 If a limit gets in the way, send a feedback item.

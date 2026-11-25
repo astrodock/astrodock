@@ -21,6 +21,8 @@ process.env.ASTRODOCK_BASE_DOMAIN = 'localhost';
 process.env.ASTRODOCK_TLS_MODE = 'off';
 process.env.ASTRODOCK_ENV = 'development';
 process.env.ASTRODOCK_ACCEPT_UPSTREAM_FEEDBACK = 'on';
+process.env.ASTRODOCK_FLEET_TOKEN = 'fleet-test-token-0123456789';
+process.env.ASTRODOCK_ARTIFACTS_SERVICE = 'on';
 delete process.env.ASTRODOCK_ARTIFACTS_DOMAIN;
 
 // Capture mail instead of sending it. Patched before the routes load, since
@@ -55,7 +57,7 @@ async function test(name, fn) {
 
 await migrate({ log: () => {} });
 for (const t of [schema.artifactViews, schema.artifactApiLog, schema.artifactReadCounts, schema.artifactSignins, schema.artifactErrors,
-  schema.artifactRevisions, schema.artifactReports, schema.artifactFeedback, schema.artifactSends, schema.artifactGrants, schema.artifactCodes, schema.artifactBlobs,
+  schema.artifactRevisions, schema.artifactReports, schema.artifactAccounts, schema.artifactFeedback, schema.artifactSends, schema.artifactGrants, schema.artifactCodes, schema.artifactBlobs,
   schema.artifactRecords, schema.artifactShares, schema.artifactFiles, schema.artifacts, schema.artifactFolders,
   schema.apiTokens, schema.sessions, schema.events, schema.users]) await db.delete(t);
 await seedAdmin({ log: () => {} });
@@ -493,6 +495,72 @@ try {
     assert.ok(up.manifest && up.manifest.collections.tasks, 'with the manifest');
     assert.ok(!JSON.stringify(up).includes('example.com'), 'no email addresses upstream');
     assert.strictEqual((await req('POST', '/admin/artifacts/feedback', { token: readTok, json: { needed: 'x' } })).status, 403);
+  });
+
+  await test('hosted service: creators, their keys, plan limits, opening, suspension', async () => {
+    const F = { token: 'fleet-test-token-0123456789' };
+    assert.strictEqual((await req('POST', '/fleet/artifacts/creators', { token: 'wrong', json: { email: 'c@example.com' } })).status, 401);
+    assert.strictEqual((await req('POST', '/fleet/artifacts/creators', { ...F, json: { email: 'admin@example.com' } })).status, 409, 'not an operator');
+    const made = await req('POST', '/fleet/artifacts/creators', { ...F, json: { email: 'Cara@Example.com', name: 'Cara', plan: 'free' } });
+    assert.strictEqual(made.status, 201, made.body);
+    const ck = made.json.token;
+    const [cara] = await db.select().from(schema.users).where(eq(schema.users.email, 'cara@example.com'));
+    assert.strictEqual(cara.operatorRole, 'creator');
+    // The key reaches artifacts and nothing else.
+    assert.strictEqual((await req('GET', '/admin/apps', { token: ck })).status, 403);
+    assert.strictEqual((await req('GET', '/admin/artifacts/reports', { token: ck })).status, 403);
+    const ids = [];
+    for (let i = 0; i < 3; i++) {
+      const r = await req('POST', '/admin/artifacts', { token: ck, json: { title: `C${i}` } });
+      assert.strictEqual(r.status, 201, r.body);
+      ids.push(r.json.artifact.id);
+    }
+    const fourth = await req('POST', '/admin/artifacts', { token: ck, json: { title: 'C4' } });
+    assert.strictEqual(fourth.status, 403);
+    assert.strictEqual(fourth.json.code, 'plan_limit');
+    const pub = await req('PATCH', `/admin/artifacts/${ids[0]}`, { token: ck, json: { visibility: 'public' } });
+    assert.deepStrictEqual([pub.status, pub.json.limit], [403, 'public']);
+    const many = Array.from({ length: 11 }, (_, i) => `g${i}@example.com`);
+    const over = await req('POST', `/admin/artifacts/${ids[0]}/shares`, { token: ck, json: { emails: many, notify: false } });
+    assert.deepStrictEqual([over.status, over.json.limit], [403, 'guests']);
+    // Upgrading lifts them.
+    assert.strictEqual((await req('POST', '/fleet/artifacts/creators/plan', { ...F, json: { email: 'cara@example.com', plan: 'creator' } })).status, 200);
+    assert.strictEqual((await req('POST', '/admin/artifacts', { token: ck, json: { title: 'C4' } })).status, 201);
+    assert.strictEqual((await req('PATCH', `/admin/artifacts/${ids[0]}`, { token: ck, json: { visibility: 'public' } })).status, 200);
+    // A new key revokes the old one.
+    const again = await req('POST', '/fleet/artifacts/creators', { ...F, json: { email: 'cara@example.com', plan: 'creator' } });
+    assert.strictEqual((await req('GET', '/admin/artifacts', { token: ck })).status, 401);
+    const ck2 = again.json.token;
+    assert.strictEqual((await req('GET', '/admin/artifacts', { token: ck2 })).json.artifacts.length, 4);
+    // Opening: a one-time grant for an artifact they can open, and nothing else.
+    const open = await req('POST', '/fleet/artifacts/open', { ...F, json: { email: 'cara@example.com', artifactId: ids[1], next: '/x' } });
+    assert.strictEqual(open.status, 200, open.body);
+    const u = new URL(open.json.url);
+    const cb = await req('GET', u.pathname + u.search, { host: u.host });
+    assert.strictEqual(cb.headers.location, '/x');
+    const me = await req('GET', '/_astrodock/api/me', { host: u.host, cookie: cookieFrom(cb) });
+    assert.strictEqual(me.json.role, 'owner');
+    assert.strictEqual((await req('POST', '/fleet/artifacts/open', { ...F, json: { email: 'sam@example.com', artifactId: ids[1] } })).status, 404, 'no access');
+    // Suspending takes their artifacts down and stops new ones; restoring brings back only those.
+    await req('PATCH', `/admin/artifacts/${ids[2]}`, { token: adminJwt, json: { suspended: true, suspendedReason: 'separate' } });
+    assert.strictEqual((await req('POST', '/fleet/artifacts/creators/suspend', { ...F, json: { email: 'cara@example.com', suspended: true } })).status, 200);
+    assert.strictEqual((await req('GET', '/', { host: u.host })).status, 451);
+    assert.strictEqual((await req('POST', '/admin/artifacts', { token: ck2, json: { title: 'C5' } })).status, 403);
+    await req('POST', '/fleet/artifacts/creators/suspend', { ...F, json: { email: 'cara@example.com', suspended: false } });
+    const after = await req('GET', '/admin/artifacts', { token: ck2 });
+    assert.deepStrictEqual(after.json.artifacts.filter((a) => a.suspended).map((a) => a.id), [ids[2]], 'the separate take-down stays');
+  });
+
+  await test('hosted service: storage limit counts files and data', async () => {
+    const F = { token: 'fleet-test-token-0123456789' };
+    const dk = (await req('POST', '/fleet/artifacts/creators', { ...F, json: { email: 'dan@example.com', plan: 'free' } })).json.token;
+    const saved = config.artifacts.plans.free.storageBytes;
+    config.artifacts.plans.free.storageBytes = 300;
+    try {
+      const a = (await req('POST', '/admin/artifacts', { token: dk, json: { title: 'D', content: 'x'.repeat(200) } })).json.artifact;
+      const over = await req('PUT', `/admin/artifacts/${a.id}/files`, { token: dk, json: { files: [{ name: 'b.txt', content: 'y'.repeat(200) }] } });
+      assert.deepStrictEqual([over.status, over.json.limit], [403, 'storage']);
+    } finally { config.artifacts.plans.free.storageBytes = saved; }
   });
 
   await test('deleting an artifact removes it and its data', async () => {

@@ -16,6 +16,12 @@
 //   • read a status summary, and start a version update (never a downgrade)
 // It cannot mint keys, read app data, or sign in as anyone. The token the
 // droplet booted with is replaced at the claim (see tokenMatches).
+//
+// One exception, on one instance: where ASTRODOCK_ARTIFACTS_SERVICE is on (the
+// hosted artifacts service, which the hosted service itself operates), the
+// /artifacts routes below set up creators, mint each one an artifacts-only key,
+// and open an artifact for a creator who has access to it. Off everywhere else,
+// including every customer's own instance.
 
 const crypto = require('crypto');
 const express = require('express');
@@ -210,5 +216,117 @@ router.post('/update', async (req, res) => {
     res.status(r.status === 200 ? 200 : (r.status || 502)).json(r.body || { error: 'The runner refused.' });
   } catch (err) { res.status(err.status || 500).json({ error: err.message }); }
 });
+
+// ── the hosted artifacts service ─────────────────────────────────────────────
+const artifactsService = express.Router();
+artifactsService.use((req, res, next) => (config.artifacts.service ? next() : res.status(404).json({ error: 'Not found' })));
+
+const normEmail = (e) => String(e || '').trim().toLowerCase();
+const PLANS = () => Object.keys(config.artifacts.plans);
+
+async function creatorByEmail(email) {
+  const [u] = await db.select().from(schema.users).where(eq(schema.users.email, normEmail(email))).limit(1);
+  return u || null;
+}
+
+// Set up a creator (or update one) and mint them a fresh artifacts-only key.
+// Their earlier service keys are revoked, so the service holds one at a time.
+// A guest who signed in to someone's artifact becomes a creator; an operator of
+// any other kind is refused.
+artifactsService.post('/creators', async (req, res) => {
+  try {
+    const b = req.body || {};
+    const email = normEmail(b.email);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'A valid email is required.' });
+    const plan = b.plan || 'free';
+    if (!PLANS().includes(plan)) return res.status(400).json({ error: `plan is one of: ${PLANS().join(', ')}` });
+    let user = await creatorByEmail(email);
+    if (user && user.operatorRole && user.operatorRole !== 'creator') {
+      return res.status(409).json({ error: 'That address belongs to an operator of this instance.' });
+    }
+    if (!user) {
+      [user] = await db.insert(schema.users).values({
+        email, name: String(b.name || '').trim().slice(0, 200) || email.split('@')[0],
+        passwordHash: null, passwordless: true, operatorRole: 'creator', isAdmin: false, appAccess: []
+      }).returning();
+    } else if (user.operatorRole !== 'creator') {
+      [user] = await db.update(schema.users).set({ operatorRole: 'creator', updatedAt: new Date() }).where(eq(schema.users.id, user.id)).returning();
+    }
+    if (!user.isActive) return res.status(409).json({ error: 'That account is turned off.' });
+    await db.insert(schema.artifactAccounts).values({ userId: user.id, plan })
+      .onConflictDoUpdate({ target: schema.artifactAccounts.userId, set: { plan, updatedAt: new Date() } });
+    const { generateApiToken, hashToken } = require('../lib/ids');
+    const { and: andOp, isNull } = require('drizzle-orm');
+    await db.update(schema.apiTokens).set({ revokedAt: new Date() })
+      .where(andOp(eq(schema.apiTokens.authorizedByUserId, user.id), eq(schema.apiTokens.name, 'hosted service'), isNull(schema.apiTokens.revokedAt)));
+    const raw = generateApiToken();
+    await db.insert(schema.apiTokens).values({
+      name: 'hosted service', tokenHash: hashToken(raw), scopes: ['artifacts:read', 'artifacts:write'], appScope: [], authorizedByUserId: user.id
+    });
+    audit('artifacts.creator_ready', `Creator ${email} set up on the ${plan} plan`, { email, plan });
+    res.status(201).json({ userId: user.id, email, plan, token: raw });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+artifactsService.post('/creators/plan', async (req, res) => {
+  try {
+    const { email, plan } = req.body || {};
+    if (!PLANS().includes(plan)) return res.status(400).json({ error: `plan is one of: ${PLANS().join(', ')}` });
+    const user = await creatorByEmail(email);
+    if (!user || user.operatorRole !== 'creator') return res.status(404).json({ error: 'No such creator.' });
+    await db.insert(schema.artifactAccounts).values({ userId: user.id, plan })
+      .onConflictDoUpdate({ target: schema.artifactAccounts.userId, set: { plan, updatedAt: new Date() } });
+    audit('artifacts.creator_plan', `Creator ${user.email} moved to the ${plan} plan`, { email: user.email, plan });
+    res.json({ email: user.email, plan });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Suspend: every artifact they own is taken down and they cannot make more.
+// Restoring brings back only what this took down.
+artifactsService.post('/creators/suspend', async (req, res) => {
+  try {
+    const { email, suspended } = req.body || {};
+    const user = await creatorByEmail(email);
+    if (!user || user.operatorRole !== 'creator') return res.status(404).json({ error: 'No such creator.' });
+    const REASON = 'Account suspended';
+    const now = new Date();
+    await db.insert(schema.artifactAccounts).values({ userId: user.id, suspendedAt: suspended ? now : null })
+      .onConflictDoUpdate({ target: schema.artifactAccounts.userId, set: { suspendedAt: suspended ? now : null, updatedAt: now } });
+    const { and: andOp, isNull } = require('drizzle-orm');
+    if (suspended) {
+      await db.update(schema.artifacts).set({ suspendedAt: now, suspendedReason: REASON, updatedAt: now })
+        .where(andOp(eq(schema.artifacts.ownerId, user.id), isNull(schema.artifacts.suspendedAt)));
+    } else {
+      await db.update(schema.artifacts).set({ suspendedAt: null, suspendedReason: '', updatedAt: now })
+        .where(andOp(eq(schema.artifacts.ownerId, user.id), eq(schema.artifacts.suspendedReason, REASON)));
+    }
+    audit(suspended ? 'artifacts.creator_suspended' : 'artifacts.creator_restored', `Creator ${user.email} ${suspended ? 'suspended' : 'restored'}`, { email: user.email });
+    res.json({ email: user.email, suspended: !!suspended });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Open an artifact for a creator signed in at the hosted service: a one-time
+// grant for that artifact only, and only if they have access to it. The
+// service redirects the browser to the URL returned.
+artifactsService.post('/open', async (req, res) => {
+  try {
+    const A = require('../lib/artifacts/access');
+    const { email, artifactId, next } = req.body || {};
+    const user = await creatorByEmail(email);
+    const artifact = /^[a-z0-9]{12}$/.test(String(artifactId || '')) ? await A.loadArtifact(artifactId) : null;
+    if (!user || !user.isActive || !artifact || !artifact.isActive || artifact.suspendedAt || !(await A.hasAccess(artifact, user))) {
+      return res.status(404).json({ error: 'No such artifact for that person.' });
+    }
+    const code = await A.issueGrant(artifact, user);
+    const url = new URL(`${config.artifactOrigin(artifact.publicId)}/_astrodock/callback`);
+    url.searchParams.set('code', code);
+    const n = String(next || '/');
+    url.searchParams.set('next', n.startsWith('/') && !n.startsWith('//') ? n : '/');
+    require('../lib/artifacts/logs').signin(artifact, req, user.email, 'silent');
+    res.json({ url: url.toString() });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.use('/artifacts', artifactsService);
 
 module.exports = router;

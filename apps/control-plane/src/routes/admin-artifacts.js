@@ -25,6 +25,7 @@ const A = require('../lib/artifacts/access');
 const actions = require('../lib/artifacts/actions');
 const feedback = require('../lib/artifacts/feedback');
 const logs = require('../lib/artifacts/logs');
+const limits = require('../lib/artifacts/limits');
 
 const router = express.Router();
 router.use(requireScope('artifacts:read'));
@@ -46,6 +47,8 @@ const handle = (fn) => (req, res) => fn(req, res).catch((err) => {
   if (status >= 500) console.error('[admin-artifacts]', err.message);
   const body = { error: status >= 500 && config.env === 'production' ? 'Internal error' : err.message };
   if (err.problems) body.problems = err.problems;
+  if (err.code) body.code = err.code;
+  if (err.limit) body.limit = err.limit;
   res.status(status).json(body);
 });
 
@@ -115,6 +118,7 @@ async function putFile(artifact, name, body, contentType) {
   if (!pagesLib.validFileName(name)) throw fail(400, `Not a valid file name: ${name}`);
   if (name.startsWith('_astrodock')) throw fail(400, 'Names starting with _astrodock are reserved.');
   if (body.length > config.artifacts.maxFileBytes) throw fail(413, `${name} is larger than ${config.artifacts.maxFileBytes} bytes.`);
+  await limits.checkStorage(artifact, body.length);
   const ct = contentType && contentType !== 'application/octet-stream' ? contentType : pagesLib.contentTypeFor(name);
   await store.putFile(storeId(artifact.publicId), name, body, ct);
   const key = store.keyFor(storeId(artifact.publicId), name);
@@ -282,6 +286,7 @@ router.post('/', canWrite, handle(async (req, res) => {
   const b = req.body || {};
   const owner = principalId(req.auth);
   if (!owner) throw fail(400, 'This key is not tied to a person, so an artifact made with it would have no owner. Use a key made from an account.');
+  await limits.checkNewArtifact(owner);
   const manifest = b.manifest === undefined ? {} : b.manifest;
   checkManifest(manifest);
   const entryFile = b.entryFile && pagesLib.validFileName(b.entryFile) ? b.entryFile : 'index.html';
@@ -321,6 +326,7 @@ router.patch('/:id', canWrite, handle(async (req, res) => {
   if (b.manifest !== undefined) { checkManifest(b.manifest); set.manifest = b.manifest; }
   if (b.visibility !== undefined) {
     if (!['shared', 'public'].includes(b.visibility)) throw fail(400, 'visibility is "shared" or "public".');
+    if (b.visibility === 'public' && artifact.visibility !== 'public') await limits.checkPublic(artifact);
     set.visibility = b.visibility;
   }
   if (b.isActive !== undefined) set.isActive = !!b.isActive;
@@ -410,6 +416,8 @@ router.post('/:id/shares', canWrite, handle(async (req, res) => {
   const invalid = emails.filter((e) => !A.validEmail(e));
   if (invalid.length) throw fail(400, `Not valid email addresses: ${invalid.join(', ')}`);
   const inviter = await principalEmail(req.auth);
+  const existingEmails = new Set((await listShares(artifact)).map((s) => s.email));
+  await limits.checkGuests(artifact, emails.filter((e) => !existingEmails.has(e)).length);
   const results = [];
   for (const email of emails) {
     const existing = await A.shareFor(artifact.id, email);

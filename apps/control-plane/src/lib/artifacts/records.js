@@ -13,6 +13,7 @@ const { db, schema } = require('../../db');
 const M = require('./manifest');
 const live = require('./live');
 const logs = require('./logs');
+const limits = require('./limits');
 
 const R = schema.artifactRecords;
 const B = schema.artifactBlobs;
@@ -138,6 +139,7 @@ async function create(artifact, manifest, name, input, ctx) {
   const data = applyStamps(manifest, name, 'create', { ...input }, ctx);
   const size = sizeOf(data);
   if (size > config.artifacts.maxRecordBytes) throw fail(413, `A record may be at most ${config.artifacts.maxRecordBytes} bytes.`);
+  await limits.checkStorage(artifact, size);
   const [{ n }] = await db.select({ n: sql`count(*)::int` }).from(R).where(eq(R.artifactId, artifact.id));
   if (n >= config.artifacts.maxRecordsPerArtifact) throw fail(409, `This artifact has reached its limit of ${config.artifacts.maxRecordsPerArtifact} records.`);
   const [row] = await db.insert(R).values({
@@ -170,6 +172,7 @@ async function update(artifact, manifest, name, id, patch, ctx) {
   const data = applyStamps(manifest, name, 'update', { ...row.data, ...p }, ctx);
   const size = sizeOf(data);
   if (size > config.artifacts.maxRecordBytes) throw fail(413, `A record may be at most ${config.artifacts.maxRecordBytes} bytes.`);
+  await limits.checkStorage(artifact, size - (row.size || 0));
   const rows = await db.update(R).set({ data, size, version: row.version + 1, updatedAt: new Date() })
     .where(and(eq(R.id, row.id), eq(R.version, row.version))).returning();
   if (!rows[0]) {
@@ -250,6 +253,7 @@ async function setBlob(artifact, manifest, name, data, version, ctx) {
     throw fail(413, `A blob may be at most ${config.artifacts.maxBlobBytes} bytes.`);
   }
   const [row] = await db.select().from(B).where(and(...blobCond(artifact, b, name, ctx))).limit(1);
+  await limits.checkStorage(artifact, Buffer.byteLength(JSON.stringify(data)) - (row ? Buffer.byteLength(JSON.stringify(row.data)) : 0));
   if (row) {
     if (version !== undefined && Number(version) !== row.version) throw fail(409, 'This changed since you loaded it.', { current: { data: row.data, version: row.version } });
     const rows = await db.update(B).set({ data, version: row.version + 1, updatedAt: new Date() })

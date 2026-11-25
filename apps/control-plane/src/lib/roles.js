@@ -34,6 +34,14 @@ const ROLES = {
     scopes: ALL.filter((s) => !['users:write', 'tokens:write', 'platform:write', 'settings:write', 'backups:write', 'backups:restore', 'apps:delete', 'exec', 'server:exec', 'artifacts:admin']
       .includes(s))
   },
+  // A person on the hosted artifacts service: makes and shares artifacts, and
+  // nothing else. Set up by the hosted service (routes/fleet.js), never in the
+  // dashboard's role picker for a self-hosted install.
+  creator: {
+    label: 'Creator',
+    description: 'Their own artifacts only. Used by the hosted artifacts service.',
+    scopes: ['artifacts:read', 'artifacts:write']
+  },
   viewer: {
     label: 'Viewer',
     // The audit trail is included on purpose: it is how an operator understands

@@ -856,6 +856,15 @@ const artifactReports = pgTable('artifact_reports', {
   createdAt: ts('created_at').notNull().defaultNow()
 });
 
+// ── artifact plans (migration 0023) ──
+const artifactAccounts = pgTable('artifact_accounts', {
+  userId: uuid('user_id').primaryKey(),
+  plan: text('plan').notNull().default('free'),
+  suspendedAt: ts('suspended_at'),
+  createdAt: ts('created_at').notNull().defaultNow(),
+  updatedAt: ts('updated_at').notNull().defaultNow()
+});
+
 module.exports = { cliLogins, approvals, ownerSetupLinks, appTraffic, users, userInvites, emailChanges, webauthnCredentials, recoveryCodes, sessions, authorizationCodes, launchPasses, mobileDevices, mobileCodes, mobileTickets, userNotifications, appRedirectUris, apps, appEnvVars, deployments, authLogs, apiTokens, appHealth, pages, pageFiles, pageData, events, platformSettings, notificationRules, notificationDeliveries, pageViews, backups, customDomains, feedback, feedbackMessages, workItems, workItemRelations, feedbackWorkItems, appCounters,
   artifactFolders, artifacts, artifactFiles, artifactShares, artifactRecords, artifactBlobs, artifactCodes, artifactGrants, artifactSends, artifactFeedback,
-  artifactViews, artifactApiLog, artifactReadCounts, artifactSignins, artifactErrors, artifactRevisions, artifactReports };
+  artifactViews, artifactApiLog, artifactReadCounts, artifactSignins, artifactErrors, artifactRevisions, artifactReports, artifactAccounts };

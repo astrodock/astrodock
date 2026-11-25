@@ -227,6 +227,7 @@ const send = (res, fn) => fn().catch((err) => {
   res.locals.error = body.error;
   if (err.problems) body.problems = err.problems;
   if (err.current !== undefined) body.current = err.current;
+  if (err.code) body.code = err.code;
   res.status(status).json(body);
 });
 

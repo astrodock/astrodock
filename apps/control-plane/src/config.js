@@ -168,7 +168,16 @@ const config = {
     // Where capability feedback goes: the Astrodock project.
     upstreamFeedbackUrl: process.env.ASTRODOCK_UPSTREAM_FEEDBACK_URL ?? 'https://auth.astrodock.ai/upstream/capability-feedback',
     // On the instance that collects it (the project's own), accept it.
-    acceptUpstreamFeedback: bool(process.env.ASTRODOCK_ACCEPT_UPSTREAM_FEEDBACK, false)
+    acceptUpstreamFeedback: bool(process.env.ASTRODOCK_ACCEPT_UPSTREAM_FEEDBACK, false),
+    // The hosted artifacts service: this instance serves creators who sign up at
+    // the hosted service, which manages them through routes/fleet.js.
+    service: bool(process.env.ASTRODOCK_ARTIFACTS_SERVICE, false),
+    // Limits per plan. A person with no plan (an operator of a self-hosted
+    // install) has none. 0 = no limit. Override with ASTRODOCK_ARTIFACT_PLANS (JSON).
+    plans: Object.assign({
+      free: { label: 'Free', artifacts: 3, guestsPerArtifact: 10, storageBytes: 100 * 1024 * 1024, public: false },
+      creator: { label: 'Creator', artifacts: 0, guestsPerArtifact: 250, storageBytes: 10 * 1024 ** 3, public: true }
+    }, (() => { try { return JSON.parse(process.env.ASTRODOCK_ARTIFACT_PLANS || '{}'); } catch { return {}; } })())
   },
 
   // ── Backups (run on the runner; needs the Docker socket + a backups volume) ──
