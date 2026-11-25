@@ -359,6 +359,27 @@ try {
     assert.deepStrictEqual(events.map((e) => [e.type, e.record.title]), [['create', 'For viv']]);
   });
 
+  await test('live updates from another process arrive through Postgres', async () => {
+    const live = require('../src/lib/artifacts/live.js');
+    await live.start();
+    const [a] = await db.select().from(schema.artifacts).where(eq(schema.artifacts.publicId, id));
+    const got = [];
+    const off = live.subscribe(a.id, 'tasks', (c) => got.push(c));
+    const { client } = require('../src/db/index.js');
+    const other = { id: '00000000-0000-4000-8000-000000000001', artifactId: a.id, collection: 'tasks', authorId: null, authorEmail: 'x@example.com', data: { title: 'From elsewhere' }, version: 1, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+    await client.notify('artifact_changes', JSON.stringify({ p: 'another-process', a: a.id, c: 'tasks', t: 'create', row: other }));
+    await new Promise((r) => setTimeout(r, 300));
+    // This process's own changes are emitted once, not again on the way back.
+    const local = (await req('POST', '/_astrodock/api/c/tasks', { host, origin, cookie: sam, json: { title: 'Local' } })).json.record;
+    await new Promise((r) => setTimeout(r, 300));
+    off();
+    await req('DELETE', `/_astrodock/api/c/tasks/${local.id}`, { host, origin, cookie: sam });
+    assert.deepStrictEqual(got.map((c) => [c.type, c.row.data.title]), [['create', 'From elsewhere'], ['create', 'Local']]);
+    assert.ok(got[0].row.createdAt instanceof Date);
+    const big = JSON.parse(live.payload(a.id, 'tasks', { type: 'update', row: { ...other, data: { t: 'x'.repeat(9000) } } }));
+    assert.deepStrictEqual([big.fetch, big.row.data], [true, undefined], 'a large record travels as its id');
+  });
+
   await test('removing a share ends access at once', async () => {
     const r = await req('DELETE', `/admin/artifacts/${id}/shares?email=viv@example.com`, { token: tok });
     assert.strictEqual(r.status, 204);

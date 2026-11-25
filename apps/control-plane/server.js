@@ -245,6 +245,8 @@ async function start() {
   // Artifact read counts are kept in memory and written once a minute.
   require('./src/lib/artifacts/logs').startFlushing();
   require('./src/lib/artifacts/egress').startFlushing();
+  // Live updates from other control-plane processes, through Postgres.
+  require('./src/lib/artifacts/live').start().catch((err) => console.error('[artifact-live] listen failed:', err.message));
   // (app health monitoring runs in the runner container; this api reads app_health from the DB)
 
   app.listen(config.port, () => {
