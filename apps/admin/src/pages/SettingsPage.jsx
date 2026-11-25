@@ -171,6 +171,7 @@ const GOOGLE_KEYS = ['google.client_id', 'google.client_secret', 'google.allowed
 const LAUNCH_KEYS = ['launch.issuer', 'launch.origin', 'launch.secret'];
 const REGISTRY_KEYS = ['registry.user', 'registry.token'];
 const AI_KEYS = ['ai.anthropic_key', 'ai.model'];
+const ARTIFACT_KEYS = ['artifacts.domain', 'artifacts.service', 'artifacts.accept_upstream_feedback'];
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState([]);
@@ -400,6 +401,15 @@ export default function SettingsPage() {
         title="Platform Updates"
         description="Only needed if the Astrodock image is in a private registry. The updater downloads a new version inside its own container, which cannot see a docker login done on the server, so it needs the credential here. Blank uses whatever the install put in .env."
         keys={REGISTRY_KEYS}
+        settings={settings}
+        onSave={api.updateSettings}
+        onSaved={load}
+      />
+
+      <SettingsGroup
+        title="Artifacts"
+        description="Where artifacts are served, and the two switches only the project's own instances turn on."
+        keys={ARTIFACT_KEYS}
         settings={settings}
         onSave={api.updateSettings}
         onSaved={load}

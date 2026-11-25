@@ -685,6 +685,29 @@ try {
     assert.ok((await db.select().from(schema.pages).where(eq(schema.pages.id, pageRow.id)))[0], 'the page stays');
   });
 
+  await test('settings: the artifacts domain and the two service switches, from the dashboard', async () => {
+    const saved = { service: config.artifacts.service, accept: config.artifacts.acceptUpstreamFeedback };
+    config.artifacts.service = false;
+    config.artifacts.acceptUpstreamFeedback = false;
+    try {
+      const F = { token: 'fleet-test-token-0123456789' };
+      assert.strictEqual((await req('POST', '/fleet/artifacts/creators', { ...F, json: { email: 'q@example.com' } })).status, 404, 'off');
+      assert.strictEqual((await req('POST', '/upstream/capability-feedback', { json: { needed: 'x' } })).status, 404, 'off');
+      const bad = await req('PATCH', '/admin/settings', { token: adminJwt, json: { 'artifacts.domain': 'not a domain' } });
+      assert.strictEqual(bad.status, 400);
+      const ok = await req('PATCH', '/admin/settings', { token: adminJwt, json: { 'artifacts.domain': 'adock.test', 'artifacts.service': 'on', 'artifacts.accept_upstream_feedback': 'on' } });
+      assert.strictEqual(ok.status, 200, ok.body);
+      assert.strictEqual(config.artifacts.domain, 'adock.test');
+      assert.strictEqual(config.artifactIdForHost('abcdefghijkl.adock.test'), 'abcdefghijkl');
+      assert.strictEqual((await req('POST', '/fleet/artifacts/creators', { ...F, json: { email: 'q@example.com' } })).status, 201, 'on from Settings');
+      assert.strictEqual((await req('POST', '/upstream/capability-feedback', { json: { needed: 'x' } })).status, 201);
+    } finally {
+      await req('PATCH', '/admin/settings', { token: adminJwt, json: { 'artifacts.domain': '', 'artifacts.service': 'off', 'artifacts.accept_upstream_feedback': 'off' } });
+      Object.assign(config.artifacts, { service: saved.service, acceptUpstreamFeedback: saved.accept });
+      assert.strictEqual(config.artifacts.domain, 'artifacts.localhost');
+    }
+  });
+
   await test('deleting an artifact removes it and its data', async () => {
     assert.strictEqual((await req('DELETE', `/admin/artifacts/${id}`, { token: tok })).status, 204);
     assert.strictEqual((await req('GET', '/', { host })).status, 404);

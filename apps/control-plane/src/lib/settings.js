@@ -141,6 +141,22 @@ const REGISTRY = {
     description: 'How long page access logs are kept before being deleted.',
     default: () => 90
   },
+  // Artifacts. Each is also an environment variable, which wins when set.
+  'artifacts.domain': {
+    label: 'Artifacts Domain', type: 'string',
+    description: 'The domain every artifact is served under, as <id>.<domain>. It needs a wildcard DNS record pointing here, and belongs on the Public Suffix List. Blank uses artifacts.<base domain>.',
+    default: () => config.artifacts.domainOverride || ''
+  },
+  'artifacts.service': {
+    label: 'Hosted Artifacts Service', type: 'enum',
+    description: 'On only for the instance that serves the hosted artifacts service: lets the hosted service set up creators, mint their artifacts-only keys and open artifacts for them, through its fleet token.',
+    values: ['off', 'on'], default: () => (config.artifacts.service ? 'on' : 'off')
+  },
+  'artifacts.accept_upstream_feedback': {
+    label: 'Receive Capability Feedback', type: 'enum',
+    description: 'On only for the Astrodock project\'s own instance: accept the capability feedback other instances send.',
+    values: ['off', 'on'], default: () => (config.artifacts.acceptUpstreamFeedback ? 'on' : 'off')
+  },
   'logging.artifact_log_retention_days': {
     label: 'Artifact Log Retention (Days)', type: 'int',
     description: 'How long artifact page views, data calls, sign-in attempts, errors and record history are kept before being deleted.',
@@ -370,6 +386,11 @@ async function applyBootstrapSettings() {
     if (stored.has('platform.base_domain')) patch.baseDomain = stored.get('platform.base_domain');
     if (stored.has('platform.tls_mode')) patch.tlsMode = stored.get('platform.tls_mode');
     if (stored.has('platform.acme_email')) patch.acmeEmail = stored.get('platform.acme_email');
+    // The artifacts domain from Settings, unless the environment names one.
+    if (!process.env.ASTRODOCK_ARTIFACTS_DOMAIN && stored.has('artifacts.domain')) {
+      config.artifacts.domainOverride = String(stored.get('artifacts.domain') || '').trim().toLowerCase();
+      if (!Object.keys(patch).length) config.applyRuntimeDomain({});
+    }
     if (Object.keys(patch).length) config.applyRuntimeDomain(patch);
     return config.isConfigured();
   } catch (err) {

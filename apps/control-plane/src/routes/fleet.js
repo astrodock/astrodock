@@ -219,7 +219,12 @@ router.post('/update', async (req, res) => {
 
 // ── the hosted artifacts service ─────────────────────────────────────────────
 const artifactsService = express.Router();
-artifactsService.use((req, res, next) => (config.artifacts.service ? next() : res.status(404).json({ error: 'Not found' })));
+artifactsService.use((req, res, next) => {
+  if (config.artifacts.service) return next();
+  require('../lib/settings').getSetting('artifacts.service', 'off')
+    .then((v) => (v === 'on' ? next() : res.status(404).json({ error: 'Not found' })))
+    .catch(() => res.status(404).json({ error: 'Not found' }));
+});
 
 const normEmail = (e) => String(e || '').trim().toLowerCase();
 const PLANS = () => Object.keys(config.artifacts.plans);

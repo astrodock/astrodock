@@ -20,7 +20,14 @@ const limiter = rateLimit({
   legacyHeaders: false
 });
 
-router.post('/capability-feedback', (req, res, next) => (config.artifacts.acceptUpstreamFeedback ? next() : res.status(404).json({ error: 'Not found' })),
+const accepting = (req, res, next) => {
+  if (config.artifacts.acceptUpstreamFeedback) return next();
+  require('../lib/settings').getSetting('artifacts.accept_upstream_feedback', 'off')
+    .then((v) => (v === 'on' ? next() : res.status(404).json({ error: 'Not found' })))
+    .catch(() => res.status(404).json({ error: 'Not found' }));
+};
+
+router.post('/capability-feedback', accepting,
   limiter, express.json({ limit: '96kb' }), async (req, res) => {
     try {
       await feedback.receive(req.body);

@@ -10,6 +10,7 @@
 const express = require('express');
 const { requireAdmin, permit } = require('../middleware/auth');
 const settings = require('../lib/settings');
+const config = require('../config');
 const { db, schema } = require('../db');
 const { emitEvent } = require('../lib/events');
 
@@ -96,6 +97,13 @@ router.patch('/', async (req, res, next) => {
       }
     }
 
+    if (updates['artifacts.domain'] !== undefined) {
+      const d = String(updates['artifacts.domain'] || '').trim().toLowerCase();
+      if (d && !/^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/.test(d)) return res.status(400).json({ error: 'The artifacts domain must be a domain name, like adock.app.' });
+      if (process.env.ASTRODOCK_ARTIFACTS_DOMAIN) return res.status(409).json({ error: 'ASTRODOCK_ARTIFACTS_DOMAIN is set in the environment, which wins. Change it there.' });
+      updates['artifacts.domain'] = d;
+    }
+
     const changed = [];
     for (const [key, value] of Object.entries(updates)) {
       if (key === 'updates') continue;
@@ -111,7 +119,11 @@ router.patch('/', async (req, res, next) => {
       }).catch(() => {});
     }
     // These two are routing, not preferences: stored and not pushed, they do nothing.
-    if (changed.some((k) => k.startsWith('routing.'))) {
+    if (changed.includes('artifacts.domain')) {
+      config.artifacts.domainOverride = updates['artifacts.domain'];
+      config.applyRuntimeDomain({});
+    }
+    if (changed.some((k) => k.startsWith('routing.') || k === 'artifacts.domain')) {
       await require('../provision').reloadCaddyFromDb().catch(() => {});
     }
     res.json({ settings: await settings.effective(), updated: changed });
