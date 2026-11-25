@@ -18,6 +18,7 @@ const GROUPS = [
   { key: 'config', label: 'Configuration', description: 'Environment values and custom domains.' },
   { key: 'observe', label: 'Observability', description: 'Logs and the audit trail. Read-only.' },
   { key: 'pages', label: 'Pages', description: 'Lightweight hosted documents and mini-sites.' },
+  { key: 'artifacts', label: 'Artifacts', description: 'Mini apps with their own data, shared by email.' },
   { key: 'people', label: 'People', description: 'End users and who can reach which app.' },
   { key: 'platform', label: 'Platform', description: 'Settings, backups and platform-wide changes.' },
   { key: 'sensitive', label: 'Sensitive', description: 'Destructive or privilege-granting. Give these deliberately.' }
@@ -38,6 +39,10 @@ const SCOPES = {
   'domains:write': { group: 'config', label: 'Manage Custom Domains', description: 'Add, verify and remove custom domains' },
   'pages:read': { group: 'pages', label: 'View Pages', description: 'View published pages' },
   'pages:write': { group: 'pages', label: 'Create & Edit Pages', description: 'Create, edit and delete pages' },
+  'artifacts:read': { group: 'artifacts', label: 'View Artifacts', description: 'View your artifacts, their files, shares and data' },
+  'artifacts:write': { group: 'artifacts', label: 'Create & Share Artifacts', description: 'Create, edit, share and delete your artifacts' },
+  // Every artifact on the instance, whoever owns it: for taking down abuse.
+  'artifacts:admin': { group: 'sensitive', label: 'Manage Everyone\'s Artifacts', description: 'See, change and take down artifacts other people own' },
   'users:read': { group: 'people', label: 'View End Users', description: 'View end users and their app access' },
   'users:write': { group: 'people', label: 'Manage End Users', description: 'Create end users and grant or revoke app access' },
   'events:read': { group: 'observe', label: 'Read the Audit Trail', description: 'Read the audit trail and sign-in logs' },
@@ -85,7 +90,7 @@ const PRESETS = {
     label: 'Operator',
     description: 'Everything a deployer can do, plus end users, pages, feedback, settings and backups.',
     scopes: ['apps:read', 'apps:write', 'deploys:write', 'runtime:write', 'env:read', 'env:write', 'logs:read',
-      'domains:write', 'pages:read', 'pages:write', 'users:read', 'users:write', 'events:read',
+      'domains:write', 'pages:read', 'pages:write', 'artifacts:read', 'artifacts:write', 'users:read', 'users:write', 'events:read',
       'settings:read', 'settings:write', 'backups:write',
       'feedback:read', 'feedback:write', 'feedback:reply', 'work:read', 'work:write']
   },
@@ -118,7 +123,13 @@ const PRESETS = {
     description: 'What an agent gets from astrodock login for the whole account: everything the one-app key can do, on every app, plus Pages.',
     scopes: ['apps:read', 'apps:write', 'deploys:write', 'runtime:write', 'env:read', 'env:write', 'logs:read',
       'domains:write', 'users:read', 'users:write', 'feedback:read', 'feedback:write', 'work:read', 'work:write',
-      'pages:read', 'pages:write']
+      'pages:read', 'pages:write', 'artifacts:read', 'artifacts:write']
+  },
+  // What the artifacts signup hands out: artifacts only, nothing about apps.
+  artifacts: {
+    label: 'Agent, Artifacts',
+    description: 'Create, edit and share artifacts, and send capability feedback. Nothing about apps.',
+    scopes: ['artifacts:read', 'artifacts:write']
   }
 };
 

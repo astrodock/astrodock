@@ -33,7 +33,9 @@ const corsMiddleware = cors((req, cb) => {
 // is not one of ours, so CORS would refuse it. It checks Origin itself.
 // Discovery is public and answers every origin with CORS * (routes/mobile.js).
 const CORS_EXEMPT = new Set(['/launch', '/.well-known/astrodock.json']);
-app.use((req, res, next) => (CORS_EXEMPT.has(req.path) ? next() : corsMiddleware(req, res, next)));
+// Artifact hosts answer only their own page (routes/artifacts-public checks
+// Origin on every write), and their domain is usually not the base domain.
+app.use((req, res, next) => (CORS_EXEMPT.has(req.path) || config.artifactIdForHost(req.hostname) ? next() : corsMiddleware(req, res, next)));
 app.use(cookieParser());
 
 // Security headers.
@@ -49,7 +51,7 @@ app.use(cookieParser());
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  if (!config.isPagesHost(req.hostname)) {
+  if (!config.isPagesHost(req.hostname) && !config.artifactIdForHost(req.hostname)) {
     res.setHeader('X-Frame-Options', 'DENY');
     res.setHeader('Content-Security-Policy', "frame-ancestors 'none'");
   }
@@ -58,6 +60,10 @@ app.use((req, res, next) => {
 
 // The pages.<base-domain> host serves entirely from the public Pages router (which has
 // its own body parsers and ends in a 404, so /admin/* is never reachable there).
+// Each artifact's own host (<id>.<artifacts domain>) is served entirely by its
+// router, which ends in a 404 of its own.
+const artifactsPublic = require('./src/routes/artifacts-public');
+app.use((req, res, next) => (config.artifactIdForHost(req.hostname) ? artifactsPublic(req, res, next) : next()));
 const pagesPublic = require('./src/routes/pages-public');
 app.use((req, res, next) => (config.isPagesHost(req.hostname) ? pagesPublic(req, res, next) : next()));
 
@@ -65,6 +71,7 @@ app.use((req, res, next) => (config.isPagesHost(req.hostname) ? pagesPublic(req,
 // Both are mounted BEFORE the global express.json so they control their own parsing.
 app.use('/webhooks', require('./src/routes/webhooks'));
 app.use('/admin/pages', require('./src/routes/admin-pages'));
+app.use('/admin/artifacts', require('./src/routes/admin-artifacts'));
 
 app.use(express.json({ limit: '1mb' }));
 
@@ -85,7 +92,15 @@ app.get('/_caddy/ask', async (req, res) => {
   try {
     const rows = await db.select({ id: schema.customDomains.id }).from(schema.customDomains)
       .where(and(eq(schema.customDomains.hostname, domain), eq(schema.customDomains.status, 'active'))).limit(1);
-    return rows[0] ? res.status(200).send('ok') : res.status(403).send('unknown domain');
+    if (rows[0]) return res.status(200).send('ok');
+    // An artifact host gets a certificate once the artifact exists.
+    const artifactId = config.artifactIdForHost(domain);
+    if (artifactId) {
+      const [a] = await db.select({ id: schema.artifacts.id }).from(schema.artifacts)
+        .where(and(eq(schema.artifacts.publicId, artifactId), eq(schema.artifacts.isActive, true))).limit(1);
+      if (a) return res.status(200).send('ok');
+    }
+    return res.status(403).send('unknown domain');
   } catch { return res.status(500).send('error'); }
 });
 
@@ -133,6 +148,10 @@ app.use('/', require('./src/routes/mobile'));
 app.use('/invite', require('./src/routes/invites'));
 
 app.use('/verify', require('./src/routes/verify'));
+// Signing in to an artifact (auth host), and capability feedback arriving from
+// other instances (off unless ASTRODOCK_ACCEPT_UPSTREAM_FEEDBACK is set).
+app.use('/artifacts', require('./src/routes/artifacts-auth'));
+app.use('/upstream', require('./src/routes/upstream'));
 // `astrodock login` (lib/cli-login). Public: the CLI has no credential yet.
 app.use('/cli', require('./src/routes/cli-login'));
 // The hosted service's calls into this instance (routes/fleet.js). Off unless
@@ -221,6 +240,8 @@ async function start() {
   startCaddyReconciler();
   // Platform self-health: probe DB/object-store/runner/cert + alert on transitions.
   require('./src/lib/platform-health').startPlatformHealth();
+  // Daily digests for artifacts that declare one.
+  require('./src/lib/artifacts/actions').startDigests();
   // (app health monitoring runs in the runner container; this api reads app_health from the DB)
 
   app.listen(config.port, () => {

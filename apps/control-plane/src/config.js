@@ -149,6 +149,28 @@ const config = {
     editTextMaxBytes: parseSize(process.env.ASTRODOCK_PAGE_EDIT_MAX, 2 * 1024 * 1024)
   },
 
+  // ── Artifacts (AI-built mini apps, each on <id>.<domain>; docs/plans/artifacts.md) ──
+  // The domain should be a registrable domain of its own (the hosted service
+  // uses adock.app), on the Public Suffix List. Unset: artifacts.<base-domain>,
+  // which needs a DNS record for *.artifacts.<base-domain>.
+  artifacts: {
+    domainOverride: (process.env.ASTRODOCK_ARTIFACTS_DOMAIN || '').trim().toLowerCase(),
+    maxFileBytes: parseSize(process.env.ASTRODOCK_ARTIFACT_MAX_FILE, 25 * 1024 * 1024),
+    maxFilesPerUpload: int(process.env.ASTRODOCK_ARTIFACT_MAX_FILES, 50),
+    maxRecordBytes: parseSize(process.env.ASTRODOCK_ARTIFACT_MAX_RECORD, 64 * 1024),
+    maxBlobBytes: parseSize(process.env.ASTRODOCK_ARTIFACT_MAX_BLOB, 1024 * 1024),
+    maxRecordsPerArtifact: int(process.env.ASTRODOCK_ARTIFACT_MAX_RECORDS, 50000),
+    // Messages sent on an artifact's behalf, per owner per day.
+    invitesPerDay: int(process.env.ASTRODOCK_ARTIFACT_INVITES_PER_DAY, 100),
+    actionEmailsPerDay: int(process.env.ASTRODOCK_ARTIFACT_ACTION_EMAILS_PER_DAY, 200),
+    // Sign-in codes per email address per hour.
+    codesPerHour: int(process.env.ASTRODOCK_ARTIFACT_CODES_PER_HOUR, 5),
+    // Where capability feedback goes: the Astrodock project.
+    upstreamFeedbackUrl: process.env.ASTRODOCK_UPSTREAM_FEEDBACK_URL ?? 'https://auth.astrodock.ai/upstream/capability-feedback',
+    // On the instance that collects it (the project's own), accept it.
+    acceptUpstreamFeedback: bool(process.env.ASTRODOCK_ACCEPT_UPSTREAM_FEEDBACK, false)
+  },
+
   // ── Backups (run on the runner; needs the Docker socket + a backups volume) ──
   backups: {
     dir: process.env.ASTRODOCK_BACKUP_DIR || '/data/backups',
@@ -210,6 +232,7 @@ config.internalAuthUrl = process.env.ASTRODOCK_INTERNAL_AUTH_URL || `http://api:
 function recomputeDerived() {
   config.pages.host = `${config.pages.subdomain}.${config.baseDomain}`;
   config.authHost = `${config.authSubdomain}.${config.baseDomain}`;
+  config.artifacts.domain = config.artifacts.domainOverride || `artifacts.${config.baseDomain}`;
 }
 
 config.isConfigured = function isConfigured() {
@@ -240,6 +263,22 @@ config.authBaseUrl = function authBaseUrl() {
   const scheme = config.tlsMode === 'off' ? 'http' : 'https';
   if (!config.isConfigured()) return '';
   return `${scheme}://${config.authHost}`;
+};
+
+// The public id of the artifact a hostname serves, or null. Ids are twelve
+// lowercase letters and digits (lib/artifacts/ids).
+config.artifactIdForHost = function artifactIdForHost(hostname) {
+  if (!config.isConfigured() && !config.artifacts.domainOverride) return null;
+  const h = String(hostname || '').toLowerCase();
+  const suffix = `.${config.artifacts.domain}`;
+  if (!h.endsWith(suffix)) return null;
+  const label = h.slice(0, -suffix.length);
+  return /^[a-z0-9]{12}$/.test(label) ? label : null;
+};
+
+config.artifactOrigin = function artifactOrigin(publicId) {
+  const scheme = config.tlsMode === 'off' ? 'http' : 'https';
+  return `${scheme}://${publicId}.${config.artifacts.domain}`;
 };
 
 config.isPagesHost = function isPagesHost(hostname) {

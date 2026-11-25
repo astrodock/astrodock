@@ -10,6 +10,8 @@ import AppsPage from './pages/AppsPage';
 import AppDetailPage from './pages/AppDetailPage';
 import PagesPage from './pages/PagesPage';
 import PageDetailPage from './pages/PageDetailPage';
+import ArtifactsPage from './pages/ArtifactsPage';
+import ArtifactDetailPage from './pages/ArtifactDetailPage';
 import ActivityPage from './pages/ActivityPage';
 import HealthPage from './pages/HealthPage';
 import TokensPage from './pages/TokensPage';
@@ -48,7 +50,7 @@ function platformState(platform) {
 // The top bar names where you are. Keyed by the first path segment, worded
 // exactly as the sidebar words it.
 const SECTIONS = {
-  overview: 'Overview', apps: 'Apps', pages: 'Pages', users: 'Users',
+  overview: 'Overview', apps: 'Apps', pages: 'Pages', artifacts: 'Artifacts', users: 'Users',
   domains: 'Domains', tokens: 'Access Keys', activity: 'Activity', health: 'Health',
   account: 'Your Account', settings: 'Settings', server: 'Server', setup: 'Setup',
   connect: 'Approve an Agent', approve: 'Approvals'
@@ -274,6 +276,12 @@ export default function App() {
               Pages
             </NavLink>
           </li>
+          <li>
+            <NavLink to="/artifacts" className={({ isActive }) => isActive ? 'active' : ''}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="2.6" width="12" height="10.8" rx="1.6" stroke="currentColor" strokeWidth="1.4"/><path d="M2 5.8h12M5.2 8.6h5.6M5.2 11h3.4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>
+              Artifacts
+            </NavLink>
+          </li>
           <li className="nav-sec">Network &amp; Access</li>
           <li>
             <NavLink to="/users" className={({ isActive }) => isActive ? 'active' : ''}>
@@ -359,6 +367,8 @@ export default function App() {
           <Route path="/apps/:slug" element={<AppDetailPage />} />
           <Route path="/pages" element={<PagesPage />} />
           <Route path="/pages/:pageId" element={<PageDetailPage />} />
+          <Route path="/artifacts" element={<ArtifactsPage />} />
+          <Route path="/artifacts/:id" element={<ArtifactDetailPage />} />
           <Route path="/tokens" element={<TokensPage />} />
           <Route path="/connect" element={<ConnectPage />} />
           <Route path="/connect/:code" element={<ConnectPage />} />

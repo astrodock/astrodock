@@ -481,6 +481,43 @@ export async function uploadPageFiles(pageId, fileList, paths) {
   return data;
 }
 
+// ── artifacts (mini apps with their own data, shared by email) ───────────────
+const q = encodeURIComponent;
+export const getArtifacts = (all = false) => request(`/artifacts${all ? '?all=1' : ''}`);
+export const getArtifact = (id) => request(`/artifacts/${id}`);
+export const createArtifact = (data) => request('/artifacts', { method: 'POST', body: JSON.stringify(data) });
+export const updateArtifact = (id, data) => request(`/artifacts/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+export const deleteArtifact = (id) => request(`/artifacts/${id}`, { method: 'DELETE' });
+export const getArtifactFile = (id, name) => request(`/artifacts/${id}/file?name=${q(name)}`);
+export const saveArtifactFiles = (id, files) => request(`/artifacts/${id}/files`, { method: 'PUT', body: JSON.stringify({ files }) });
+export const deleteArtifactFile = (id, name) => request(`/artifacts/${id}/file?name=${q(name)}`, { method: 'DELETE' });
+export const shareArtifact = (id, emails, role, notify = true) =>
+  request(`/artifacts/${id}/shares`, { method: 'POST', body: JSON.stringify({ emails, role, notify }) });
+export const unshareArtifact = (id, email) => request(`/artifacts/${id}/shares?email=${q(email)}`, { method: 'DELETE' });
+export const revokeArtifactSessions = (id) => request(`/artifacts/${id}/sessions/revoke`, { method: 'POST' });
+export const getArtifactData = (id) => request(`/artifacts/${id}/data`);
+export const getArtifactRecords = (id, collection) => request(`/artifacts/${id}/data/${q(collection)}`);
+export const deleteArtifactRecord = (id, collection, recordId) =>
+  request(`/artifacts/${id}/data/${q(collection)}/${q(recordId)}`, { method: 'DELETE' });
+export const getArtifactFolders = () => request('/artifacts/folders');
+export const createArtifactFolder = (name) => request('/artifacts/folders', { method: 'POST', body: JSON.stringify({ name }) });
+export const renameArtifactFolder = (folderId, name) =>
+  request(`/artifacts/folders/${folderId}`, { method: 'PATCH', body: JSON.stringify({ name }) });
+export const deleteArtifactFolder = (folderId) => request(`/artifacts/folders/${folderId}`, { method: 'DELETE' });
+export const getArtifactFeedback = () => request('/artifacts/feedback');
+export async function uploadArtifactFiles(id, fileList, paths) {
+  const form = new FormData();
+  for (const f of fileList) form.append('files', f, f.name);
+  form.append('paths', JSON.stringify(paths));
+  const headers = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(`${API_BASE}/artifacts/${id}/files`, { method: 'POST', headers, body: form });
+  if (res.status === 401) { clearToken(); window.location.href = '/login'; throw new ApiError('Session expired', { status: 401 }); }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new ApiError(data.error || 'Upload failed', { status: res.status, body: data });
+  return data;
+}
+
 // ── feedback and work items ──────────────────────────────────────────────────
 // Two threads, two calls. There is no visibility argument on either side of this
 // wire: addFeedbackNote is always internal and replyToFeedback is always the

@@ -122,7 +122,7 @@ const ADMIN_PATHS = ['/setup/*', '/admin/*', '/whoami', '/webhooks/*', '/healthz
 // serves an SPA, so there is nothing for them to collide with. The mobile app
 // talks only to this host, and finds it through the discovery document.
 const AUTH_PATHS = ['/authorize', '/login*', '/launch', '/token', '/logout', '/verify', '/account*', '/invite/*', '/health', '/_auth/*',
-  '/mobile/*', '/.well-known/astrodock.json'];
+  '/mobile/*', '/.well-known/astrodock.json', '/artifacts/*', '/upstream/*'];
 
 function apiHandles(paths) {
   return paths.map((p) => `\thandle ${p} {\n\t\treverse_proxy ${API}\n\t}`).join('\n');
@@ -338,16 +338,31 @@ ${site(host)} {
 `;
 }
 
+// Every artifact host, <id>.<artifacts domain>, proxied whole to the control
+// plane, which serves its files and API (routes/artifacts-public). One wildcard
+// site; with automatic HTTPS each host gets its own certificate on first visit,
+// once /_caddy/ask confirms the artifact exists.
+function artifactsBlock(onDemand) {
+  const tlsLine = onDemand ? '\ttls {\n\t\ton_demand\n\t}\n' : '';
+  return `
+${site(`*.${config.artifacts.domain}`)} {
+${tlsLine}\treverse_proxy ${API}
+}
+`;
+}
+
 function generateCaddyfile(apps, opts = {}) {
   // Unconfigured: nothing can be routed by hostname yet. Serve only the wizard.
   if (!config.isConfigured()) return setupGlobalOptions() + setupBlock();
   const accessLogs = !!opts.accessLogs;
   const domains = opts.domains || [];
-  const onDemand = config.tlsMode === 'auto' && domains.length > 0;
+  // Artifact hosts always need on-demand certificates under automatic HTTPS.
+  const onDemand = config.tlsMode === 'auto';
   let out = globalOptions(onDemand);
   out += adminBlock();
   out += authBlock();
   out += pagesBlock();
+  out += artifactsBlock(onDemand);
   // The apex app is also a normal app on its own subdomain — this adds a second
   // address for it, it does not move it.
   const apex = opts.apexApp && apps.find((a) => a.slug === opts.apexApp);

@@ -648,4 +648,124 @@ const appTraffic = pgTable('app_traffic', {
   txBytes: bigint('tx_bytes', { mode: 'number' }).notNull().default(0)
 }, (t) => ({ pk: primaryKey({ columns: [t.appSlug, t.hour] }) }));
 
-module.exports = { cliLogins, approvals, ownerSetupLinks, appTraffic, users, userInvites, emailChanges, webauthnCredentials, recoveryCodes, sessions, authorizationCodes, launchPasses, mobileDevices, mobileCodes, mobileTickets, userNotifications, appRedirectUris, apps, appEnvVars, deployments, authLogs, apiTokens, appHealth, pages, pageFiles, pageData, events, platformSettings, notificationRules, notificationDeliveries, pageViews, backups, customDomains, feedback, feedbackMessages, workItems, workItemRelations, feedbackWorkItems, appCounters };
+// ── artifacts (AI-built mini apps; migration 0021, docs/plans/artifacts.md) ──
+const ts = (name) => timestamp(name, { withTimezone: true });
+
+const artifactFolders = pgTable('artifact_folders', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  ownerId: uuid('owner_id'),
+  name: text('name').notNull(),
+  createdAt: ts('created_at').notNull().defaultNow(),
+  updatedAt: ts('updated_at').notNull().defaultNow()
+});
+
+const artifacts = pgTable('artifacts', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  publicId: text('public_id').notNull(),
+  ownerId: uuid('owner_id'),
+  folderId: uuid('folder_id'),
+  title: text('title').notNull().default(''),
+  entryFile: text('entry_file').notNull().default('index.html'),
+  manifest: jsonb('manifest').notNull().default(sql`'{}'::jsonb`),
+  visibility: text('visibility').notNull().default('shared'), // shared | public
+  isActive: boolean('is_active').notNull().default(true),
+  suspendedAt: ts('suspended_at'),
+  suspendedReason: text('suspended_reason').notNull().default(''),
+  sessionEpoch: integer('session_epoch').notNull().default(1),
+  createdAt: ts('created_at').notNull().defaultNow(),
+  updatedAt: ts('updated_at').notNull().defaultNow()
+}, (t) => ({ publicIdUniq: uniqueIndex('artifacts_public_id_uniq').on(t.publicId) }));
+
+const artifactFiles = pgTable('artifact_files', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  artifactId: uuid('artifact_id').notNull().references(() => artifacts.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  size: integer('size').notNull().default(0),
+  contentType: text('content_type').notNull().default('application/octet-stream'),
+  storageKey: text('storage_key').notNull(),
+  createdAt: ts('created_at').notNull().defaultNow(),
+  updatedAt: ts('updated_at').notNull().defaultNow()
+}, (t) => ({ nameUniq: uniqueIndex('artifact_files_name_uniq').on(t.artifactId, t.name) }));
+
+const artifactShares = pgTable('artifact_shares', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  artifactId: uuid('artifact_id').notNull().references(() => artifacts.id, { onDelete: 'cascade' }),
+  email: text('email').notNull(),
+  role: text('role').notNull(),
+  invitedBy: uuid('invited_by'),
+  createdAt: ts('created_at').notNull().defaultNow(),
+  updatedAt: ts('updated_at').notNull().defaultNow()
+}, (t) => ({ emailUniq: uniqueIndex('artifact_shares_email_uniq').on(t.artifactId, t.email) }));
+
+const artifactRecords = pgTable('artifact_records', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  artifactId: uuid('artifact_id').notNull().references(() => artifacts.id, { onDelete: 'cascade' }),
+  collection: text('collection').notNull(),
+  authorId: uuid('author_id'),
+  authorEmail: text('author_email').notNull().default(''),
+  data: jsonb('data').notNull().default(sql`'{}'::jsonb`),
+  size: integer('size').notNull().default(0),
+  version: integer('version').notNull().default(1),
+  createdAt: ts('created_at').notNull().defaultNow(),
+  updatedAt: ts('updated_at').notNull().defaultNow()
+});
+
+const artifactBlobs = pgTable('artifact_blobs', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  artifactId: uuid('artifact_id').notNull().references(() => artifacts.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  userId: uuid('user_id'),
+  data: jsonb('data').notNull().default(sql`'{}'::jsonb`),
+  version: integer('version').notNull().default(1),
+  updatedAt: ts('updated_at').notNull().defaultNow()
+});
+
+const artifactCodes = pgTable('artifact_codes', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  artifactId: uuid('artifact_id'),
+  email: text('email').notNull(),
+  codeHash: text('code_hash').notNull(),
+  attempts: integer('attempts').notNull().default(0),
+  ip: text('ip').notNull().default(''),
+  expiresAt: ts('expires_at').notNull(),
+  usedAt: ts('used_at'),
+  createdAt: ts('created_at').notNull().defaultNow()
+});
+
+const artifactGrants = pgTable('artifact_grants', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  codeHash: text('code_hash').notNull(),
+  artifactId: uuid('artifact_id').notNull(),
+  userId: uuid('user_id').notNull(),
+  expiresAt: ts('expires_at').notNull(),
+  usedAt: ts('used_at'),
+  createdAt: ts('created_at').notNull().defaultNow()
+});
+
+const artifactSends = pgTable('artifact_sends', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  artifactId: uuid('artifact_id'),
+  ownerId: uuid('owner_id'),
+  kind: text('kind').notNull(), // invite | action | code
+  recipient: text('recipient').notNull().default(''),
+  status: text('status').notNull().default('sent'),
+  createdAt: ts('created_at').notNull().defaultNow()
+});
+
+const artifactFeedback = pgTable('artifact_feedback', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  source: text('source').notNull().default('local'), // local | upstream
+  artifactId: uuid('artifact_id'),
+  needed: text('needed').notNull(),
+  tried: text('tried').notNull().default(''),
+  workaround: text('workaround').notNull().default(''),
+  manifest: jsonb('manifest'),
+  platformVersion: text('platform_version').notNull().default(''),
+  actor: text('actor').notNull().default(''),
+  upstreamStatus: text('upstream_status').notNull().default('pending'), // pending | sent | failed | none
+  upstreamError: text('upstream_error').notNull().default(''),
+  createdAt: ts('created_at').notNull().defaultNow()
+});
+
+module.exports = { cliLogins, approvals, ownerSetupLinks, appTraffic, users, userInvites, emailChanges, webauthnCredentials, recoveryCodes, sessions, authorizationCodes, launchPasses, mobileDevices, mobileCodes, mobileTickets, userNotifications, appRedirectUris, apps, appEnvVars, deployments, authLogs, apiTokens, appHealth, pages, pageFiles, pageData, events, platformSettings, notificationRules, notificationDeliveries, pageViews, backups, customDomains, feedback, feedbackMessages, workItems, workItemRelations, feedbackWorkItems, appCounters,
+  artifactFolders, artifacts, artifactFiles, artifactShares, artifactRecords, artifactBlobs, artifactCodes, artifactGrants, artifactSends, artifactFeedback };
