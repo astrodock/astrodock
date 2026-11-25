@@ -60,6 +60,7 @@ async function storageUsed(userId) {
       (SELECT coalesce(sum(f.size), 0) FROM artifact_files f JOIN artifacts a ON a.id = f.artifact_id WHERE a.owner_id = ${userId})
     + (SELECT coalesce(sum(r.size), 0) FROM artifact_records r JOIN artifacts a ON a.id = r.artifact_id WHERE a.owner_id = ${userId})
     + (SELECT coalesce(sum(octet_length(b.data::text)), 0) FROM artifact_blobs b JOIN artifacts a ON a.id = b.artifact_id WHERE a.owner_id = ${userId})
+    + (SELECT coalesce(sum(u.size), 0) FROM artifact_uploads u JOIN artifacts a ON a.id = u.artifact_id WHERE a.owner_id = ${userId})
       AS bytes`);
   const bytes = Number(((rows.rows || rows)[0] || {}).bytes || 0);
   usageCache.set(userId, { at: Date.now(), bytes });

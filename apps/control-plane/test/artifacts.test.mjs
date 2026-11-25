@@ -57,7 +57,7 @@ async function test(name, fn) {
 
 await migrate({ log: () => {} });
 for (const t of [schema.artifactViews, schema.artifactApiLog, schema.artifactReadCounts, schema.artifactSignins, schema.artifactErrors,
-  schema.artifactRevisions, schema.artifactReports, schema.artifactAccounts, schema.artifactFeedback, schema.artifactSends, schema.artifactGrants, schema.artifactCodes, schema.artifactBlobs,
+  schema.artifactRevisions, schema.artifactReports, schema.artifactAccounts, schema.artifactUploads, schema.artifactEgress, schema.artifactFeedback, schema.artifactSends, schema.artifactGrants, schema.artifactCodes, schema.artifactBlobs,
   schema.artifactRecords, schema.artifactShares, schema.artifactFiles, schema.artifacts, schema.artifactFolders,
   schema.apiTokens, schema.sessions, schema.events, schema.users]) await db.delete(t);
 await seedAdmin({ log: () => {} });
@@ -90,6 +90,24 @@ function req(method, path, { host = 'admin.localhost', json, form, cookie, token
     r.end();
   });
 }
+// A multipart body with one file, for the attachment routes.
+function upload(path, { host, cookie, origin, name, type, content }) {
+  const boundary = `----adock${Date.now()}`;
+  const body = Buffer.concat([
+    Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${name}"\r\nContent-Type: ${type}\r\n\r\n`),
+    Buffer.from(content), Buffer.from(`\r\n--${boundary}--\r\n`)
+  ]);
+  return new Promise((resolve, reject) => {
+    const headers = { Host: host, 'Content-Type': `multipart/form-data; boundary=${boundary}`, 'Content-Length': body.length };
+    if (cookie) headers.Cookie = cookie;
+    if (origin) headers.Origin = origin;
+    const r = http.request({ host: '127.0.0.1', port, method: 'POST', path, headers }, (res) => {
+      let buf = ''; res.on('data', (c) => (buf += c)); res.on('end', () => { let j = null; try { j = JSON.parse(buf); } catch { /* not json */ } resolve({ status: res.statusCode, json: j }); });
+    });
+    r.on('error', reject);
+    r.end(body);
+  });
+}
 const cookieFrom = (res) => (res.headers['set-cookie'] || []).map((c) => c.split(';')[0]).join('; ');
 
 try {
@@ -110,6 +128,7 @@ try {
         fields: { title: { type: 'string', required: true }, done: 'boolean', assignee: 'email', completedAt: 'datetime' }
       },
       notes: { scope: 'per-user', create: 'viewer' },
+      posts: { create: 'staff', update: ['manager', 'author'], attachments: { max: 2, types: ['image/*', 'application/pdf'] } },
       board: { read: ['public'], create: 'viewer' }
     },
     blobs: { settings: { read: 'viewer', write: 'owner' } },
@@ -293,6 +312,33 @@ try {
     const read = await req('GET', '/_astrodock/api/b/settings', { host, cookie: viv });
     assert.deepStrictEqual(read.json, { data: {}, version: 0, updatedAt: null });
     assert.strictEqual((await req('GET', '/_astrodock/api/c/nope', { host, cookie: sam })).status, 404);
+  });
+
+  await test('attachments: who may attach, types and counts, downloads sandboxed, gone with the record', async () => {
+    const W = { host, origin };
+    const post = (await req('POST', '/_astrodock/api/c/posts', { ...W, cookie: sam, json: { text: 'Photos' } })).json.record;
+    const png = await upload(`/_astrodock/api/c/posts/${post.id}/files`, { ...W, cookie: sam, name: 'a.png', type: 'image/png', content: 'PNGDATA' });
+    assert.strictEqual(png.status, 201, JSON.stringify(png.json));
+    assert.strictEqual((await upload(`/_astrodock/api/c/posts/${post.id}/files`, { ...W, cookie: sam, name: 'x.html', type: 'text/html', content: '<script>' })).status, 415);
+    assert.strictEqual((await upload(`/_astrodock/api/c/posts/${post.id}/files`, { ...W, cookie: viv, name: 'v.png', type: 'image/png', content: 'V' })).status, 403, 'a viewer cannot');
+    assert.strictEqual((await upload(`/_astrodock/api/c/posts/${post.id}/files`, { ...W, cookie: mo, name: 'm.pdf', type: 'application/pdf', content: 'PDF' })).status, 201, 'a manager can');
+    assert.strictEqual((await upload(`/_astrodock/api/c/posts/${post.id}/files`, { ...W, cookie: sam, name: 'c.png', type: 'image/png', content: 'C' })).status, 409, 'two at most');
+    assert.strictEqual((await upload(`/_astrodock/api/c/notes/${post.id}/files`, { ...W, cookie: sam, name: 'n.png', type: 'image/png', content: 'N' })).status, 404, 'only where the manifest allows');
+    const got = await req('GET', `/_astrodock/api/c/posts/${post.id}`, { host, cookie: viv });
+    assert.deepStrictEqual(got.json.record._files.map((f) => [f.name, f.type]), [['a.png', 'image/png'], ['m.pdf', 'application/pdf']]);
+    const dl = await req('GET', got.json.record._files[0].url, { host, cookie: viv });
+    assert.strictEqual(dl.status, 200);
+    assert.strictEqual(dl.body, 'PNGDATA');
+    assert.match(dl.headers['content-security-policy'], /^sandbox/);
+    assert.match(dl.headers['content-disposition'], /^inline/);
+    assert.strictEqual((await req('GET', got.json.record._files[0].url, { host })).status, 401, 'not without a session');
+    assert.strictEqual((await req('DELETE', `/_astrodock/api/c/posts/${post.id}/files/${got.json.record._files[1].id}`, { ...W, cookie: viv })).status, 403);
+    assert.strictEqual((await req('DELETE', `/_astrodock/api/c/posts/${post.id}/files/${got.json.record._files[1].id}`, { ...W, cookie: sam })).status, 200, 'the author can');
+    const before = objects.size;
+    assert.strictEqual((await req('DELETE', `/_astrodock/api/c/posts/${post.id}`, { ...W, cookie: sam })).status, 200);
+    assert.strictEqual(objects.size, before - 1, 'the file goes with the record');
+    const h = await req('GET', `/admin/artifacts/${id}/history?recordId=${post.id}`, { token: tok });
+    assert.ok(h.json.history.some((x) => x.action === 'attach') && h.json.history.some((x) => x.action === 'detach'));
   });
 
   await test('live updates reach readers, filtered by their rules', async () => {
@@ -563,6 +609,28 @@ try {
     assert.strictEqual((await req('POST', '/fleet/artifacts/creators/keys/revoke', { ...F, json: { email: 'cara@example.com', id: k.json.id } })).status, 200);
     assert.strictEqual((await req('GET', '/admin/artifacts', { token: k.json.token })).status, 401);
     assert.strictEqual((await req('POST', '/fleet/artifacts/creators/keys', { ...F, json: { email: 'admin@example.com' } })).status, 404, 'not for operators');
+  });
+
+  await test('hosted service: a public artifact pauses at its monthly bandwidth', async () => {
+    const egress = require('../src/lib/artifacts/egress.js');
+    const ck = (await req('POST', '/fleet/artifacts/creators', { token: 'fleet-test-token-0123456789', json: { email: 'cara@example.com', plan: 'creator' } })).json.token;
+    const a = (await req('POST', '/admin/artifacts', { token: ck, json: { title: 'Pub', content: '<html><head></head><body>' + 'x'.repeat(100) + '</body></html>' } })).json.artifact;
+    await req('PATCH', `/admin/artifacts/${a.id}`, { token: ck, json: { visibility: 'public' } });
+    const saved = config.artifacts.plans.creator.publicBytesPerMonth;
+    config.artifacts.plans.creator.publicBytesPerMonth = 50;
+    try {
+      const h = `${a.id}.artifacts.localhost`;
+      assert.strictEqual((await req('GET', '/', { host: h })).status, 200);
+      assert.strictEqual((await req('GET', '/', { host: h })).status, 429, 'paused once over');
+      await egress.flush();
+      const [row] = await db.select().from(schema.artifactEgress);
+      assert.ok(Number(row.bytes) > 100);
+      await new Promise((r) => setTimeout(r, 100));
+      const sends = await db.select().from(schema.artifactSends).where(eq(schema.artifactSends.kind, 'egress-cap'));
+      assert.strictEqual(sends.length, 1, 'the owner is told once');
+      const u = await req('GET', `/admin/artifacts/${a.id}/usage`, { token: ck });
+      assert.ok(u.json.usage.egressThisMonth > 100);
+    } finally { config.artifacts.plans.creator.publicBytesPerMonth = saved; }
   });
 
   await test('hosted service: storage limit counts files and data', async () => {

@@ -18,6 +18,9 @@ const A = require('../lib/artifacts/access');
 const records = require('../lib/artifacts/records');
 const live = require('../lib/artifacts/live');
 const logs = require('../lib/artifacts/logs');
+const uploads = require('../lib/artifacts/uploads');
+const egress = require('../lib/artifacts/egress');
+const multer = require('multer');
 const { emitEvent } = require('../lib/events');
 const store = require('../lib/pages-store');
 const { errorPage, shell, esc } = require('../lib/auth-pages');
@@ -176,6 +179,10 @@ function describe(req) {
     const target = parts[1] || '';
     if (parts[2] === '_count') return { op: 'count', target };
     if (parts[2] === '_stream') return { op: 'stream', target };
+    if (parts[3] === 'files') {
+      const op = req.method === 'POST' ? 'attach' : req.method === 'DELETE' ? 'detach' : 'file';
+      return { op, target, recordId: parts[2] };
+    }
     if (parts[2]) return { op: { GET: 'get', PATCH: 'update', DELETE: 'delete' }[req.method] || req.method.toLowerCase(), target, recordId: parts[2] };
     return { op: req.method === 'GET' ? 'list' : 'create', target };
   }
@@ -298,6 +305,32 @@ api.get('/c/:name/_stream', async (req, res) => {
   req.on('close', () => { off(); clearInterval(beat); });
 });
 
+// Files attached to a record. Downloads carry a sandbox policy, and anything
+// but a plain image or PDF is sent as a download, so an uploaded page cannot
+// run as this artifact.
+const attachUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: config.artifacts.maxFileBytes, files: 1 } }).single('file');
+api.post('/c/:name/:id/files', (req, res, next) => attachUpload(req, res, (err) => {
+  if (err) { res.locals.error = err.message; return res.status(err.code === 'LIMIT_FILE_SIZE' ? 413 : 400).json({ error: err.code === 'LIMIT_FILE_SIZE' ? 'That file is too large.' : err.message }); }
+  next();
+}), (req, res) => send(res, async () => {
+  res.status(201).json({ file: await uploads.attach(req.artifact, req.manifest, req.params.name, req.params.id, req.file, req.viewer) });
+}));
+
+api.get('/c/:name/:id/files/:fileId', (req, res) => send(res, async () => {
+  if (await egress.over(req.artifact)) { const e = new Error('This artifact has used its bandwidth for the month.'); e.status = 429; throw e; }
+  const f = await uploads.read(req.artifact, req.manifest, req.params.name, req.params.id, req.params.fileId, req.viewer);
+  res.set('Content-Security-Policy', "sandbox; default-src 'none'; img-src 'self'; style-src 'unsafe-inline'");
+  res.set('Cache-Control', 'private, no-cache');
+  const disp = f.inline ? 'inline' : 'attachment';
+  res.set('Content-Disposition', `${disp}; filename*=UTF-8''${encodeURIComponent(f.upload.name)}`);
+  res.type(f.inline ? f.upload.contentType : 'application/octet-stream').send(f.body);
+  egress.add(req.artifact, f.body.length);
+}));
+
+api.delete('/c/:name/:id/files/:fileId', (req, res) => send(res, async () => {
+  res.json(await uploads.detach(req.artifact, req.manifest, req.params.name, req.params.id, req.params.fileId, req.viewer));
+}));
+
 api.get('/c/:name/:id', (req, res) => send(res, async () => {
   res.json({ record: await records.get(req.artifact, req.manifest, req.params.name, req.params.id, req.viewer) });
 }));
@@ -370,6 +403,10 @@ router.get('*', async (req, res, next) => {
     try { name = decodeURIComponent(req.path.replace(/^\/+/, '')); } catch { return notFound(res); }
     if (name === '' || name.endsWith('/')) name += name === '' ? artifact.entryFile : 'index.html';
     if (name.includes('..') || name.includes('\\')) return notFound(res);
+    const paused = await egress.over(artifact);
+    if (paused) {
+      return res.status(429).type('html').send(errorPage('Paused for the Month', 'This public artifact has used its bandwidth for the month. It comes back when the month turns.'));
+    }
     let file = await findFile(artifact, name);
     // A path with no extension is a page of a single-page app: serve the entry file.
     if (!file && !/\.[A-Za-z0-9]{1,8}$/.test(name)) file = await findFile(artifact, `${name}/index.html`) || await findFile(artifact, artifact.entryFile);
@@ -380,8 +417,11 @@ router.get('*', async (req, res, next) => {
     res.set('Content-Security-Policy', "frame-ancestors 'self'");
     if (/^text\/html/i.test(file.contentType)) {
       logs.view(artifact, req, req.viewer, req.originalUrl, 200);
-      return res.type(file.contentType).send(injectClient(obj.body.toString('utf8')));
+      const html = injectClient(obj.body.toString('utf8'));
+      egress.add(artifact, Buffer.byteLength(html));
+      return res.type(file.contentType).send(html);
     }
+    egress.add(artifact, obj.body.length);
     res.type(file.contentType).send(obj.body);
   } catch (err) { next(err); }
 });

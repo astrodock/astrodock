@@ -175,8 +175,8 @@ const config = {
     // Limits per plan. A person with no plan (an operator of a self-hosted
     // install) has none. 0 = no limit. Override with ASTRODOCK_ARTIFACT_PLANS (JSON).
     plans: Object.assign({
-      free: { label: 'Free', artifacts: 3, guestsPerArtifact: 10, storageBytes: 100 * 1024 * 1024, public: false },
-      creator: { label: 'Creator', artifacts: 0, guestsPerArtifact: 250, storageBytes: 10 * 1024 ** 3, public: true }
+      free: { label: 'Free', artifacts: 3, guestsPerArtifact: 10, storageBytes: 100 * 1024 * 1024, public: false, publicBytesPerMonth: 0 },
+      creator: { label: 'Creator', artifacts: 0, guestsPerArtifact: 250, storageBytes: 10 * 1024 ** 3, public: true, publicBytesPerMonth: 50 * 1024 ** 3 }
     }, (() => { try { return JSON.parse(process.env.ASTRODOCK_ARTIFACT_PLANS || '{}'); } catch { return {}; } })())
   },
 

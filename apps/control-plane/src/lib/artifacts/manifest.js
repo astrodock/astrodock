@@ -83,7 +83,7 @@ function normalize(input) {
         const c = m.collections[name] == null ? {} : m.collections[name];
         if (!isObj(c)) { bad(path, 'must be an object'); continue; }
         for (const k of Object.keys(c)) {
-          if (![...COLLECTION_OPS, 'scope', 'fields'].includes(k)) bad(`${path}.${k}`, 'unknown key (allowed: read, create, update, delete, scope, fields)');
+          if (![...COLLECTION_OPS, 'scope', 'fields', 'attachments'].includes(k)) bad(`${path}.${k}`, 'unknown key (allowed: read, create, update, delete, scope, fields, attachments)');
         }
         const scope = c.scope === undefined ? 'shared' : c.scope;
         if (!['shared', 'per-user'].includes(scope)) bad(`${path}.scope`, 'must be "shared" or "per-user"');
@@ -93,7 +93,8 @@ function normalize(input) {
           const def = op === 'read' ? lowest : defaultWrite;
           rules[op] = normalizeRule(c[op] === undefined ? def : c[op], `${path}.${op}`, { roles, op, fields, kind: 'collection', bad });
         }
-        collections[name] = { scope, fields, rules };
+        const attachments = normalizeAttachments(c.attachments, `${path}.attachments`, bad);
+        collections[name] = { scope, fields, rules, attachments };
       }
     }
   }
@@ -140,6 +141,40 @@ function normalize(input) {
 
   if (problems.length) throw new ManifestError(problems);
   return { version: 1, roles, collections, blobs, actions };
+}
+
+/**
+ * Files people attach to a record. true, or { max, maxBytes, types }:
+ * max files per record (default 10), maxBytes per file (default 10 MB), and
+ * types as MIME types or families ("image/*", "application/pdf").
+ */
+const ATTACH_DEFAULTS = { max: 10, maxBytes: 10 * 1024 * 1024, types: null };
+function normalizeAttachments(input, path, bad) {
+  if (input === undefined || input === false) return null;
+  if (input === true) return { ...ATTACH_DEFAULTS };
+  if (!isObj(input)) { bad(path, 'must be true or { max, maxBytes, types }'); return null; }
+  for (const k of Object.keys(input)) if (!['max', 'maxBytes', 'types'].includes(k)) bad(`${path}.${k}`, 'unknown key (allowed: max, maxBytes, types)');
+  const out = { ...ATTACH_DEFAULTS };
+  if (input.max !== undefined) {
+    if (!Number.isInteger(input.max) || input.max < 1 || input.max > 100) bad(`${path}.max`, 'must be a whole number, 1 to 100');
+    else out.max = input.max;
+  }
+  if (input.maxBytes !== undefined) {
+    if (!Number.isInteger(input.maxBytes) || input.maxBytes < 1) bad(`${path}.maxBytes`, 'must be a whole number of bytes');
+    else out.maxBytes = input.maxBytes;
+  }
+  if (input.types !== undefined) {
+    if (!Array.isArray(input.types) || !input.types.length || !input.types.every((t) => /^[a-z]+\/([a-z0-9.+-]+|\*)$/i.test(String(t)))) {
+      bad(`${path}.types`, 'must be a list of MIME types, like "image/*" or "application/pdf"');
+    } else out.types = input.types.map((t) => String(t).toLowerCase());
+  }
+  return out;
+}
+
+function typeAllowed(att, contentType) {
+  if (!att.types) return true;
+  const t = String(contentType || '').toLowerCase().split(';')[0].trim();
+  return att.types.some((p) => (p.endsWith('/*') ? t.startsWith(p.slice(0, -1)) : t === p));
 }
 
 function normalizeFields(input, path, bad) {
@@ -443,6 +478,6 @@ function validateData(collection, data, { partial = false } = {}) {
 }
 
 module.exports = {
-  normalize, ManifestError, grant, recordMatches, permissions, rolesAtOrAbove, validateData, rankOf,
+  normalize, ManifestError, grant, typeAllowed, recordMatches, permissions, rolesAtOrAbove, validateData, rankOf,
   DEFAULT_ROLES, ITEM_NAME, ROLE_NAME, FIELD_TYPES
 };

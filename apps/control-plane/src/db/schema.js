@@ -865,6 +865,26 @@ const artifactAccounts = pgTable('artifact_accounts', {
   updatedAt: ts('updated_at').notNull().defaultNow()
 });
 
+// ── artifact uploads and egress (migration 0024) ──
+const artifactUploads = pgTable('artifact_uploads', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  artifactId: uuid('artifact_id').notNull(),
+  collection: text('collection').notNull(),
+  recordId: uuid('record_id').notNull(),
+  name: text('name').notNull(),
+  size: integer('size').notNull().default(0),
+  contentType: text('content_type').notNull().default('application/octet-stream'),
+  uploaderId: uuid('uploader_id'),
+  uploaderEmail: text('uploader_email').notNull().default(''),
+  createdAt: ts('created_at').notNull().defaultNow()
+});
+
+const artifactEgress = pgTable('artifact_egress', {
+  artifactId: uuid('artifact_id').notNull(),
+  month: text('month').notNull(),
+  bytes: bigint('bytes', { mode: 'number' }).notNull().default(0)
+}, (t) => ({ pk: primaryKey({ columns: [t.artifactId, t.month] }) }));
+
 module.exports = { cliLogins, approvals, ownerSetupLinks, appTraffic, users, userInvites, emailChanges, webauthnCredentials, recoveryCodes, sessions, authorizationCodes, launchPasses, mobileDevices, mobileCodes, mobileTickets, userNotifications, appRedirectUris, apps, appEnvVars, deployments, authLogs, apiTokens, appHealth, pages, pageFiles, pageData, events, platformSettings, notificationRules, notificationDeliveries, pageViews, backups, customDomains, feedback, feedbackMessages, workItems, workItemRelations, feedbackWorkItems, appCounters,
   artifactFolders, artifacts, artifactFiles, artifactShares, artifactRecords, artifactBlobs, artifactCodes, artifactGrants, artifactSends, artifactFeedback,
-  artifactViews, artifactApiLog, artifactReadCounts, artifactSignins, artifactErrors, artifactRevisions, artifactReports, artifactAccounts };
+  artifactViews, artifactApiLog, artifactReadCounts, artifactSignins, artifactErrors, artifactRevisions, artifactReports, artifactAccounts, artifactUploads, artifactEgress };

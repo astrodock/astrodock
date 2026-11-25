@@ -205,6 +205,8 @@ async function usage(ids = null) {
       (SELECT coalesce(sum(size), 0)::bigint FROM artifact_records r WHERE r.artifact_id = a.id) AS record_bytes,
       (SELECT coalesce(sum(octet_length(data::text)), 0)::bigint FROM artifact_blobs b WHERE b.artifact_id = a.id) AS blob_bytes,
       (SELECT coalesce(sum(size), 0)::bigint FROM artifact_files f WHERE f.artifact_id = a.id) AS file_bytes,
+      (SELECT coalesce(sum(size), 0)::bigint FROM artifact_uploads u WHERE u.artifact_id = a.id) AS upload_bytes,
+      (SELECT coalesce(sum(bytes), 0)::bigint FROM artifact_egress e WHERE e.artifact_id = a.id AND e.month = to_char(now() AT TIME ZONE 'UTC', 'YYYY-MM')) AS egress_month,
       (SELECT count(*)::int FROM artifact_shares s WHERE s.artifact_id = a.id) AS shares,
       (SELECT count(*)::int FROM artifact_sends s WHERE s.artifact_id = a.id AND s.created_at > ${d30} AND s.status = 'sent' AND s.kind IN ('invite', 'action', 'code')) AS emails30,
       (SELECT coalesce(sum(count), 0)::int FROM artifact_errors e WHERE e.artifact_id = a.id AND e.last_seen > ${d7}) AS errors7,
@@ -217,8 +219,9 @@ async function usage(ids = null) {
     id: r.id,
     views30: r.views30, people30: r.people30, writes30: r.writes30, reads30: r.reads30,
     records: r.records,
-    storageBytes: Number(r.record_bytes) + Number(r.blob_bytes) + Number(r.file_bytes),
-    fileBytes: Number(r.file_bytes), dataBytes: Number(r.record_bytes) + Number(r.blob_bytes),
+    storageBytes: Number(r.record_bytes) + Number(r.blob_bytes) + Number(r.file_bytes) + Number(r.upload_bytes),
+    fileBytes: Number(r.file_bytes), dataBytes: Number(r.record_bytes) + Number(r.blob_bytes), uploadBytes: Number(r.upload_bytes),
+    egressThisMonth: Number(r.egress_month),
     shares: r.shares, emails30: r.emails30, errors7: r.errors7, openReports: r.open_reports,
     lastActivity: r.last_activity
   }));

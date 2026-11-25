@@ -244,6 +244,7 @@ async function start() {
   require('./src/lib/artifacts/actions').startDigests();
   // Artifact read counts are kept in memory and written once a minute.
   require('./src/lib/artifacts/logs').startFlushing();
+  require('./src/lib/artifacts/egress').startFlushing();
   // (app health monitoring runs in the runner container; this api reads app_health from the DB)
 
   app.listen(config.port, () => {

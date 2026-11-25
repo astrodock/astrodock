@@ -551,6 +551,7 @@ router.delete('/:id/data/:collection/:recordId', canWrite, handle(async (req, re
     eq(schema.artifactRecords.collection, req.params.collection), eq(schema.artifactRecords.id, req.params.recordId))).returning();
   if (!rows[0]) throw fail(404, 'No such record.');
   require('../lib/artifacts/live').publish(artifact.id, req.params.collection, { type: 'delete', row: rows[0] });
+  await require('../lib/artifacts/uploads').dropForRecord(artifact, rows[0].id);
   logs.revision(artifact, {
     target: req.params.collection, recordId: rows[0].id, action: 'delete', before: rows[0].data,
     viewer: { userId: principalId(req.auth), email: (await principalEmail(req.auth)) || actorFromAuth(req.auth).actor }

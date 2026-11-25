@@ -150,6 +150,13 @@ Records with an id. `scope: "per-user"` makes each person's records visible
 only to them. `fields` is optional: without it any JSON object is accepted; with
 it the server rejects unknown fields and wrong types, and tells you which.
 
+`attachments` lets people attach files to records: `true`, or
+`{ "max": 10, "maxBytes": 10485760, "types": ["image/*", "application/pdf"] }`
+(files per record, bytes per file, MIME types). Anyone who can change a record,
+and its author, may attach and remove files; anyone who can read it may open
+them. Records then carry `_files: [{ id, name, size, type, url }]`. Images and
+PDFs open in the browser; everything else downloads.
+
 Field types: `string` (up to 1000 characters unless `max` says otherwise),
 `text`, `number`, `integer`, `boolean`, `email`, `date` (YYYY-MM-DD),
 `datetime` (ISO 8601), `url`, `list`, `json`. Options: `required`, `min`,
@@ -191,6 +198,8 @@ Load the client from the artifact's own host:
   await tasks.remove(t.id);
   const { counts } = await tasks.count('status');
   const stop = tasks.subscribe(({ type, record }) => { /* create, update or delete */ });
+  const file = await tasks.attach(t.id, input.files[0]);   // { id, name, size, type, url }
+  await tasks.detach(t.id, file.id);
   const settings = astrodock.blob('settings');
   const { data, version } = await settings.get();
   await settings.set({ ...data, theme: 'dark' }, version);
@@ -229,6 +238,7 @@ them.
 | Blob size | 1 MB |
 | Invites per owner per day | 100 |
 | Action emails per owner per day | 200 |
+| Public artifact bandwidth (hosted, Creator) | 50 GB a month |
 
 On the hosted service, plans add their own limits (number of artifacts, people
 per artifact, storage, public artifacts). Going over one returns 403 with

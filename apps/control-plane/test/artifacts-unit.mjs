@@ -103,6 +103,18 @@ test('actions are checked against the collections they name', () => {
   assert.ok(paths({ collections: { t: {} }, actions: [{ do: 'digest', collection: 't', to: { role: 'owner' }, hour: 24 }] }).includes('actions[0].hour'));
 });
 
+test('attachments: true, or limits and types, checked', () => {
+  const m = M.normalize({ collections: { a: { attachments: true }, b: { attachments: { max: 3, types: ['image/*'] } } } });
+  assert.deepStrictEqual(m.collections.a.attachments, { max: 10, maxBytes: 10485760, types: null });
+  assert.strictEqual(m.collections.b.attachments.max, 3);
+  assert.ok(M.typeAllowed(m.collections.b.attachments, 'image/png; charset=binary'));
+  assert.ok(!M.typeAllowed(m.collections.b.attachments, 'text/html'));
+  assert.ok(M.typeAllowed(m.collections.a.attachments, 'text/html'), 'no types: anything, served as a download');
+  assert.strictEqual(M.normalize({ collections: { c: {} } }).collections.c.attachments, null);
+  const p = paths({ collections: { x: { attachments: { max: 0, types: ['images'], extra: 1 } } } });
+  for (const want of ['collections.x.attachments.max', 'collections.x.attachments.types', 'collections.x.attachments.extra']) assert.ok(p.includes(want), want);
+});
+
 console.log('rules');
 const m = M.normalize(TASKS);
 const ctx = (role, extra = {}) => ({ role, userId: role ? `u-${role}` : null, email: role ? `${role}@x.com` : null, ...extra });

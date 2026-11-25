@@ -9,6 +9,9 @@
  *   await tasks.remove(id);
  *   await tasks.count('status');                  // { total, counts: { open: 3, done: 5 } }
  *   const stop = tasks.subscribe((change) => …);  // { type: 'create'|'update'|'delete', record }
+ *   await tasks.attach(id, fileInput.files[0]);   // collections with "attachments"
+ *   record._files                                 // [{ id, name, size, type, url }]
+ *   await tasks.detach(id, fileId);
  *   const settings = astrodock.blob('settings');
  *   const { data, version } = await settings.get();
  *   await settings.set({ theme: 'dark' }, version);
@@ -140,6 +143,18 @@
       update: function (id, patch) { return request('PATCH', path + '/' + encodeURIComponent(id), patch).then(function (r) { return r.record; }); },
       remove: function (id) { return request('DELETE', path + '/' + encodeURIComponent(id)); },
       count: function (by, where) { return request('GET', path + '/_count' + qs({ by: by, where: where })); },
+      attach: function (id, file) {
+        var form = new FormData();
+        form.append('file', file, file.name || 'file');
+        return fetch(BASE + path + '/' + encodeURIComponent(id) + '/files', { method: 'POST', credentials: 'same-origin', headers: { 'X-Astrodock': '1' }, body: form })
+          .then(function (res) {
+            return res.json().catch(function () { return {}; }).then(function (json) {
+              if (!res.ok) { var err = new Error(json.error || ('Upload failed (' + res.status + ')')); err.status = res.status; throw err; }
+              return json.file;
+            });
+          });
+      },
+      detach: function (id, fileId) { return request('DELETE', path + '/' + encodeURIComponent(id) + '/files/' + encodeURIComponent(fileId)); },
       subscribe: function (fn) {
         var es = new EventSource(BASE + path + '/_stream');
         es.onmessage = function (ev) {

@@ -14,6 +14,7 @@ const M = require('./manifest');
 const live = require('./live');
 const logs = require('./logs');
 const limits = require('./limits');
+const uploads = require('./uploads');
 
 const R = schema.artifactRecords;
 const B = schema.artifactBlobs;
@@ -95,7 +96,7 @@ async function list(artifact, manifest, name, ctx, opts = {}) {
     else throw fail(400, `Cannot order by "${raw}".`);
   }
   const rows = await db.select().from(R).where(and(...conds)).orderBy(orderBy).limit(limit).offset(offset);
-  return rows.map(toClient);
+  return uploads.decorate(artifact, manifest, name, rows.map(toClient));
 }
 
 async function loadRow(artifact, name, id) {
@@ -110,7 +111,7 @@ async function get(artifact, manifest, name, id, ctx) {
   if (!g) throw fail(403, `Your role cannot read "${name}".`);
   const row = await loadRow(artifact, name, id);
   if (!row || !ownRecordOk(c, row, ctx) || !M.recordMatches(g, row, ctx)) throw fail(404, 'No such record.');
-  return toClient(row);
+  return (await uploads.decorate(artifact, manifest, name, [toClient(row)]))[0];
 }
 
 // ── stamps (built-in action) ───────────────────────────────────────────────
@@ -182,7 +183,7 @@ async function update(artifact, manifest, name, id, patch, ctx) {
   live.publish(artifact.id, name, { type: 'update', row: rows[0] });
   logs.revision(artifact, { target: name, recordId: row.id, action: 'update', before: row.data, after: rows[0].data, viewer: ctx });
   afterChange(artifact, manifest, name, 'update', rows[0], row, ctx);
-  return toClient(rows[0]);
+  return (await uploads.decorate(artifact, manifest, name, [toClient(rows[0])]))[0];
 }
 
 async function remove(artifact, manifest, name, id, ctx) {
@@ -195,6 +196,7 @@ async function remove(artifact, manifest, name, id, ctx) {
   if (!row || !ownRecordOk(c, row, ctx) || !M.recordMatches(readG, row, ctx)) throw fail(404, 'No such record.');
   if (!M.recordMatches(g, row, ctx)) throw fail(403, 'You cannot delete this record.');
   await db.delete(R).where(eq(R.id, row.id));
+  await uploads.dropForRecord(artifact, row.id);
   live.publish(artifact.id, name, { type: 'delete', row });
   logs.revision(artifact, { target: name, recordId: row.id, action: 'delete', before: row.data, viewer: ctx });
   afterChange(artifact, manifest, name, 'delete', row, row, ctx);
