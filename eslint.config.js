@@ -55,6 +55,13 @@ module.exports = [
     }
   },
 
+  // Served to browsers by the control plane: the artifact client.
+  {
+    files: ['apps/control-plane/src/assets/**/*.js'],
+    languageOptions: { sourceType: 'script', globals: { ...globals.browser } },
+    rules: { 'no-unused-vars': ['warn', { caughtErrors: 'none' }] }
+  },
+
   // The UI kit's preview pages run in a browser; the screenshot script hands
   // functions to the page it drives, so it sees both.
   {
