@@ -189,15 +189,37 @@ the one account home (Instances, Artifacts, System Admin).
 - Dashboard: Activity and Errors tabs, record history, and for owners and admins Everyone's
   Artifacts (usage, take down) and Harm Reports.
 
+### Milestone 3: hosted artifacts service and cloud dashboard (Testing)
+
+Astrodock (`48b870b`):
+- `creator` role (artifacts:read, artifacts:write).
+- Plan limits per creator (`artifact_accounts`, `lib/artifacts/limits.js`): Free = 3 artifacts,
+  10 people each, 100 MB, no public; Creator = unlimited artifacts, 250 people each, 10 GB, public.
+  No row = no limits (self-hosted operators). Over a limit: 403, `code: plan_limit`.
+- Fleet routes where `ASTRODOCK_ARTIFACTS_SERVICE=on`: set up a creator and mint their key,
+  change plan, suspend, open an artifact with a one-time grant.
+
+astrodock-cloud (`f6d03b2`):
+- Artifacts section at cloud.astrodock.ai/artifacts, through each customer's own key.
+- Creator plan as a subscription of kind `artifacts`; a server plan includes Creator.
+- System Admin with Fleet and Artifacts tabs (usage, take-down, harm reports, creators, feedback).
+- Fixed: the cloud schema failed to migrate an empty database (two ALTERs before their CREATEs).
+
+Set up (all pending sign-off): register `adock.app`, wildcard DNS, Public Suffix List; a second
+Astrodock instance for the artifacts service (`ASTRODOCK_ARTIFACTS_SERVICE=on`,
+`ASTRODOCK_FLEET_TOKEN`, `ASTRODOCK_ARTIFACTS_DOMAIN=adock.app`, email provider); a Stripe Price
+for Creator; cloud env `ARTIFACTS_URL`, `ARTIFACTS_FLEET_TOKEN`, `ARTIFACTS_ADMIN_KEY`,
+`CLOUD_CREATOR_PLAN`; `ASTRODOCK_ACCEPT_UPSTREAM_FEEDBACK=on` on the instance at auth.astrodock.ai.
+
 ### Not built yet
 
-1. Creator accounts on the multi-tenant service: a `creator` role that reaches artifacts only.
-2. The signup page (A19) and the `artifacts`-scope key it hands out.
-3. Plans and caps per plan (A15, A16); public artifacts limited to paid plans (A17).
-4. Bandwidth caps (file-size cap exists; monthly egress cap does not).
-5. Viewer file uploads (A13).
-6. Pages migration (A14).
-7. CLI commands and an MCP server for artifacts.
-8. The cloud dashboard: Instances, Artifacts and System Admin at cloud.astrodock.ai, the service
-   key to the artifacts instance, and launch-pass sign-in for creators.
-9. Live updates across more than one control-plane process (today: one process, in-memory).
+1. The signup page an agent sends a person to (A19), and a key for the creator's own agent. Today
+   only the cloud service holds a creator's key, so an agent cannot yet work on a hosted creator's
+   artifacts directly. Cloud sign-in is the platform's password or Google, not an email code.
+2. CLI commands and an MCP server for artifacts.
+3. Viewer file uploads (A13).
+4. Pages migration (A14).
+5. A monthly bandwidth cap for public artifacts.
+6. Live updates across more than one control-plane process (today: one process, in-memory).
+7. Creator role in the instance dashboard: a creator who signs in there (with Google) sees every
+   section and gets 403s; the nav is not trimmed to Artifacts.
