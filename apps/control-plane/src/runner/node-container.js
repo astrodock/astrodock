@@ -183,8 +183,10 @@ async function deployNodeContainer(app, deployRoot, env, { appendLog, setStatus,
     if (serverRel) {
       await setStatus('deploying');
       docker(['commit',
-        '--change', 'ENTRYPOINT []',
-        '--change', 'CMD ["node","server.js"]',
+        // Not `ENTRYPOINT []`: Docker 29 ignores an empty one on commit, which
+        // left the build's `sh` in front, so the app ran as `sh node server.js`.
+        '--change', 'ENTRYPOINT ["node"]',
+        '--change', 'CMD ["server.js"]',
         '--change', `WORKDIR /src/${serverRel === '.' ? '' : serverRel}`,
         '--change', `USER ${APP_UID}:${APP_UID}`,
         build, tag], { timeout: 300000 });

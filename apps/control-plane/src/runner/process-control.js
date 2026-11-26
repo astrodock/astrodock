@@ -41,8 +41,17 @@ function dockerStatus(slug) {
   }
 }
 
+// A Node app is recorded as running in a container only once its first
+// container deploy succeeds. Until then, on a platform that builds Node apps
+// in containers, a container of that name is where its process and logs are.
+function viaDocker(app) {
+  if (inContainer(app)) return true;
+  if (app.runtimeType === 'docker' || config.deploy.nodeRuntime !== 'container') return false;
+  try { sh(`docker inspect app-${app.slug} --format '{{.Id}}' 2>/dev/null`); return true; } catch { return false; }
+}
+
 function appStatus(app, procs) {
-  return inContainer(app) ? dockerStatus(app.slug) : nodeStatus(app.slug, procs);
+  return viaDocker(app) ? dockerStatus(app.slug) : nodeStatus(app.slug, procs);
 }
 
 // slug → status string, for all apps (one pm2 jlist call).
@@ -73,7 +82,7 @@ function remove(app) {
 function stripAnsi(s) { return s.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, ''); }
 
 function readLogs(app, lines = 100) {
-  if (inContainer(app)) {
+  if (viaDocker(app)) {
     try { return stripAnsi(sh(`docker logs --tail ${lines} app-${app.slug} 2>&1`, 8000)) || 'No logs available'; }
     catch { return 'No logs available'; }
   }
