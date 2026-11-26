@@ -138,7 +138,7 @@ ${error ? `<div class="err" role="alert"><span>${esc(error)}</span></div>` : ''}
 <div class="field"><label><input type="radio" name="kind" value="broken" checked style="width:auto;height:auto;box-shadow:none"> ${REPORT_KINDS.broken}</label>
 <label><input type="radio" name="kind" value="abuse" style="width:auto;height:auto;box-shadow:none"> ${REPORT_KINDS.abuse}</label></div>
 <div class="field"><label for="message">What Happened</label>
-<textarea id="message" name="message" rows="5" maxlength="4000" required style="width:100%;padding:10px 12px;border:0;border-radius:8px;font:inherit;box-shadow:inset 0 0 0 1px var(--line-input)"></textarea></div>
+<textarea id="message" name="message" rows="5" maxlength="4000" required style="width:100%;padding:10px 12px;border:0;border-radius:0;font:inherit;box-shadow:inset 0 0 0 1px var(--line-input)"></textarea></div>
 <button type="submit">Send Report</button>
 </form>
 <p class="muted">A report that this is not working goes to the person who made it. A report that it is harmful goes to the people who run this platform.</p>`);

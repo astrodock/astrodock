@@ -143,11 +143,11 @@ function shell(title, body, { accent = null } = {}) {
 body{margin:0;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:32px 16px;
   background:var(--frame);color:var(--ink);font:14px/1.5 Geist,ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;
   -webkit-font-smoothing:antialiased;font-feature-settings:'ss01'}
-.card{width:100%;max-width:400px;padding:32px;border-radius:12px;background:var(--surface);box-shadow:var(--card-shadow);
+.card{width:100%;max-width:400px;padding:32px;border:1px solid var(--line);background:var(--surface);
   display:flex;flex-direction:column;gap:16px}
 .mark,.brand-logo{display:block;margin:0 auto 4px}
 .brand-logo{max-height:40px;max-width:180px;object-fit:contain}
-.tile{display:grid;place-items:center;width:40px;height:40px;margin:0 auto 4px;border-radius:8px;background:var(--sunken);color:var(--ink-2)}
+.tile{display:grid;place-items:center;width:40px;height:40px;margin:0 auto 4px;background:var(--sunken);color:var(--ink-2)}
 .tile.danger{background:var(--danger-soft);color:var(--danger-ink)}
 .tile.success{background:var(--success-soft);color:var(--success-ink)}
 .icon{width:16px;height:16px;flex:none}
@@ -161,17 +161,17 @@ form{display:flex;flex-direction:column;gap:16px;margin:0}
 .field{display:flex;flex-direction:column;gap:6px}
 label{font-size:13px;font-weight:500;color:var(--ink-2)}
 .hint{font-size:13px;color:var(--ink-3)}
-input{width:100%;height:40px;padding:0 12px;border:0;border-radius:8px;background:var(--surface);color:inherit;font:inherit;
+input{width:100%;height:40px;padding:0 12px;border:0;border-radius:0;background:var(--surface);color:inherit;font:inherit;
   box-shadow:inset 0 0 0 1px var(--line-input),var(--control-shadow);outline:none;transition:box-shadow .12s}
 input:focus{box-shadow:inset 0 0 0 1px var(--accent),0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent)}
 input[readonly]{background:var(--sunken);color:var(--ink-3)}
 input.code{height:52px;font-size:24px;font-weight:500;letter-spacing:.32em;text-align:center;font-variant-numeric:tabular-nums}
 .pw{position:relative}
 .pw input{padding-right:64px}
-.reveal{position:absolute;top:4px;right:4px;width:auto;height:32px;padding:0 10px;border:0;border-radius:6px;background:none;
+.reveal{position:absolute;top:4px;right:4px;width:auto;height:32px;padding:0 10px;border:0;border-radius:0;background:none;
   color:var(--ink-3);font:inherit;font-size:13px;font-weight:500;cursor:pointer}
 .reveal:hover{background:var(--hover);color:var(--ink)}
-button,a.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;height:40px;padding:0 16px;border:0;border-radius:8px;
+button,a.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;height:40px;padding:0 16px;border:0;border-radius:0;
   background:var(--accent);color:var(--accent-ink);font:inherit;font-weight:500;text-decoration:none;cursor:pointer;transition:background .12s,opacity .12s}
 button:hover,a.btn:hover{background:color-mix(in srgb,var(--accent) 88%,#000)}
 button:disabled{opacity:.6;cursor:default}
@@ -182,9 +182,9 @@ button.quiet{width:auto;height:32px;padding:0 10px;background:none;color:var(--i
 button.quiet:hover{background:var(--hover);color:var(--ink)}
 .alt{display:flex;flex-direction:column;gap:8px}
 .split{display:flex;justify-content:space-between;gap:8px;margin:-4px -10px 0}
-.err{display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border-radius:8px;background:var(--danger-soft);color:var(--danger-ink);font-size:13px}
+.err{display:flex;gap:8px;align-items:flex-start;padding:10px 12px;background:var(--danger-soft);color:var(--danger-ink);font-size:13px}
 .err .icon{margin-top:2px}
-.ok{display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border-radius:8px;background:var(--success-soft);color:var(--success-ink);font-size:13px}
+.ok{display:flex;gap:8px;align-items:flex-start;padding:10px 12px;background:var(--success-soft);color:var(--success-ink);font-size:13px}
 .muted{text-align:center;color:var(--ink-3);font-size:13px}
 .who{text-align:center;color:var(--ink-2);font-size:13px}
 /* A divider that says what the second option is, rather than a bare line. */

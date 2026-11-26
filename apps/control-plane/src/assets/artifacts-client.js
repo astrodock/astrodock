@@ -90,7 +90,7 @@
     a.id = 'astrodock-report';
     a.href = '/_astrodock/report';
     a.textContent = 'Report a Problem';
-    a.setAttribute('style', 'position:fixed;right:8px;bottom:8px;z-index:2147483647;padding:2px 7px;border-radius:4px;'
+    a.setAttribute('style', 'position:fixed;right:8px;bottom:8px;z-index:2147483647;padding:2px 7px;'
       + 'font:11px/1.6 system-ui,sans-serif;color:#71717a;background:rgba(255,255,255,.85);text-decoration:none;'
       + 'box-shadow:0 0 0 1px rgba(0,0,0,.08)');
     document.body.appendChild(a);
