@@ -53,7 +53,7 @@ astrodock artifacts errors <id>
 astrodock artifacts feedback "What you needed" --tried "…" --workaround "…" --artifact <id>
 ```
 
-On a self-hosted instance, `astrodock login` gives a key that covers artifacts.
+On a self-hosted instance, `astrodock login` covers artifacts when the person approving it picks Every App. The default, This App Only, does not include artifacts.
 
 Over HTTP, every call uses your Astrodock key: `Authorization: Bearer tk_...`, against the
 dashboard host (`https://admin.<domain>`).
