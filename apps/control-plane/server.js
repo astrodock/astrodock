@@ -105,6 +105,9 @@ app.get('/_caddy/ask', async (req, res) => {
         if (/^[a-z0-9-]+$/.test(label)) {
           const [app] = await db.select({ id: schema.apps.id }).from(schema.apps).where(eq(schema.apps.subdomain, label)).limit(1);
           if (app) return res.status(200).send('ok');
+          const { parseRedirects } = require('./src/provision/caddy');
+          const redirects = parseRedirects(await require('./src/lib/settings').getSetting('routing.redirects', '')).redirects;
+          if (redirects.some((r) => r.name === label)) return res.status(200).send('ok');
         }
       }
     }

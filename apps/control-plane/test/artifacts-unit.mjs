@@ -241,6 +241,24 @@ test('Caddy serves every artifact host through the control plane, with on-demand
   assert.match(out, /handle \/artifacts\/\* \{/, 'the sign-in pages are on the auth host');
 });
 
+test('artifacts on the base domain itself: every site under it uses on-demand certificates', () => {
+  const { generateCaddyfile } = require('../src/provision/caddy.js');
+  const saved = config.artifacts.domainOverride;
+  config.artifacts.domainOverride = 'example.com';
+  config.applyRuntimeDomain({});
+  try {
+    const out = generateCaddyfile([{ slug: 'notes', subdomain: 'notes', port: 3101, runtimeType: 'node', spa: true }], { redirects: 'go https://x.test' });
+    for (const host of ['admin.example.com', 'auth.example.com', 'pages.example.com', 'notes.example.com', 'go.example.com', '*.example.com']) {
+      assert.match(out, new RegExp(`\\n${host.replace(/[.*]/g, (c) => `\\${c}`)} \\{\\n\\ttls \\{\\n\\t\\ton_demand\\n\\t\\}\\n`), host);
+    }
+  } finally {
+    config.artifacts.domainOverride = saved;
+    config.applyRuntimeDomain({});
+  }
+  const separate = generateCaddyfile([], {});
+  assert.match(separate, /\nadmin\.example\.com \{\n\thandle/, 'separate domains: admin keeps its own certificate');
+});
+
 test('the client library parses and the guide names the feedback rule', () => {
   const js = fs.readFileSync(new URL('../src/assets/artifacts-client.js', import.meta.url), 'utf8');
   new Function(js);

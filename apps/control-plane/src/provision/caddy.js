@@ -351,6 +351,23 @@ ${tlsLine}\treverse_proxy ${API}
 `;
 }
 
+// When the artifacts domain is the base domain (adock.app for both), the
+// artifacts wildcard site with on-demand certificates covers admin., auth.,
+// pages. and every app as well, and Caddy then fails the handshake for the
+// names it would otherwise manage itself. Putting every site under the base
+// domain on on-demand certificates too avoids that: the ask endpoint approves
+// this server's own names, its apps and its redirects (server.js).
+function onDemandEverywhere(text) {
+  const base = config.baseDomain.toLowerCase();
+  const tls = '\ttls {\n\t\ton_demand\n\t}\n';
+  return text.replace(/^((?:https?:\/\/)?([a-z0-9.-]+)) \{\n(?!\ttls \{)/gm, (whole, addr, host) => {
+    const h = host.toLowerCase();
+    if (h.startsWith('*.')) return whole;
+    if (h !== base && !h.endsWith(`.${base}`)) return whole;
+    return `${addr} {\n${tls}`;
+  });
+}
+
 function generateCaddyfile(apps, opts = {}) {
   // Unconfigured: nothing can be routed by hostname yet. Serve only the wizard.
   if (!config.isConfigured()) return setupGlobalOptions() + setupBlock();
@@ -383,6 +400,7 @@ function generateCaddyfile(apps, opts = {}) {
   for (const d of domains) {
     out += customDomainBlock(d, accessLogs, onDemand, canonicalByApp.get(d.appSlug));
   }
+  if (onDemand && config.artifacts.domain.toLowerCase() === config.baseDomain.toLowerCase()) out = onDemandEverywhere(out);
   return out;
 }
 
@@ -432,4 +450,5 @@ function postToSocket(socketPath, urlPath, body) {
   });
 }
 
-module.exports = { generateCaddyfile, loadCaddyfile, parseRedirects, API };
+module.exports = {
+  onDemandEverywhere, generateCaddyfile, loadCaddyfile, parseRedirects, API };
