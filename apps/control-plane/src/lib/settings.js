@@ -195,6 +195,12 @@ const REGISTRY = {
     description: 'Which app answers at your domain with no subdomain in front of it. Leave it unset and that address serves nothing.',
     default: () => ''
   },
+  'routing.apex_redirect': {
+    label: 'Or Send Your Main Domain To', type: 'string',
+    description: 'With no app at your main domain, visitors there are sent to this address instead, such as https://example.com/about. Blank serves nothing.',
+    placeholder: 'https://example.com/',
+    default: () => ''
+  },
   'routing.apex_www': {
     label: 'Send www to It as Well', type: 'enum',
     description: 'Visitors typing www in front of your domain are redirected to the address without it, so you have one address rather than two.',

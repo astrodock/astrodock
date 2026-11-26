@@ -43,6 +43,7 @@ if (!haveDocker()) {
   const cases = [
     ['a plain fleet', APPS, {}],
     ['with an apex and www', APPS, { apexApp: 'sitedocs' }],
+    ['with the apex redirected elsewhere', APPS, { apexRedirect: 'https://astrodock.ai/artifacts' }],
     ['with a static app at the apex', APPS, { apexApp: 'sitedocs', apexWww: false }],
     ['with redirects', APPS, { redirects: 'get https://example.org/install.sh\n# note\nold https://example.org/' }],
     ['with a custom domain', APPS, {

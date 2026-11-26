@@ -136,6 +136,14 @@ test('no apex app: the bare base domain gets no site block', () => {
     'nothing answers the apex unless an operator asked for it');
 });
 
+test('no apex app, a redirect named: the apex and www send people there', () => {
+  const cfg = generateCaddyfile([internalApp], { apexRedirect: 'https://astrodock.ai/artifacts' });
+  assert.ok(hasBlock(cfg, config.baseDomain) && hasBlock(cfg, `www.${config.baseDomain}`));
+  assert.ok(cfg.includes('redir https://astrodock.ai/artifacts temporary'));
+  assert.ok(!generateCaddyfile([internalApp], { apexRedirect: 'https://x.test/{env.SECRET}' }).includes('env.SECRET'), 'no placeholders');
+  assert.ok(!generateCaddyfile([internalApp], { apexApp: internalApp.slug, apexRedirect: 'https://x.test/' }).includes('redir https://x.test/'), 'an apex app wins');
+});
+
 test('apex app serves the bare domain AND keeps its own subdomain', () => {
   const cfg = generateCaddyfile([internalApp], { apexApp: internalApp.slug });
   assert.ok(hasBlock(cfg, config.baseDomain), 'apex block exists');

@@ -164,7 +164,7 @@ function RuleModal({ initial, onClose, onSaved }) {
 
 const ALERT_KEYS = ['alerts.email_to', 'alerts.disk_threshold_percent', 'alerts.app_traffic_mb_per_hour'];
 const SECURITY_KEYS = ['security.require_mfa', 'security.agent_approvals'];
-const SITE_KEYS = ['routing.apex_app', 'routing.apex_www', 'routing.redirects'];
+const SITE_KEYS = ['routing.apex_app', 'routing.apex_redirect', 'routing.apex_www', 'routing.redirects'];
 const LOG_KEYS = ['logging.page_view_ip', 'logging.auth_log_retention_days',
   'logging.page_view_retention_days', 'logging.artifact_log_retention_days', 'logging.app_access_logs', 'updates.check'];
 const GOOGLE_KEYS = ['google.client_id', 'google.client_secret', 'google.allowed_domains'];

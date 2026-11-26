@@ -97,6 +97,14 @@ router.patch('/', async (req, res, next) => {
       }
     }
 
+    if (updates['routing.apex_redirect'] !== undefined) {
+      const t = String(updates['routing.apex_redirect'] || '').trim();
+      if (t && !require('../provision/caddy').apexRedirectTarget(t)) {
+        return res.status(400).json({ error: 'The address must start with http:// or https://, with no spaces or { }.' });
+      }
+      updates['routing.apex_redirect'] = t;
+    }
+
     if (updates['artifacts.domain'] !== undefined) {
       const d = String(updates['artifacts.domain'] || '').trim().toLowerCase();
       if (d && !/^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/.test(d)) return res.status(400).json({ error: 'The artifacts domain must be a domain name, like adock.app.' });

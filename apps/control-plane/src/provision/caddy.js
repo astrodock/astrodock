@@ -314,6 +314,21 @@ function apexBlock(app, accessLogs, includeWww) {
   return out;
 }
 
+// No app at the bare base domain, and the operator named an address to send it
+// to instead: the apex and www both redirect there. On the hosted artifacts
+// service this is how adock.app itself answers (artifacts are <id>.adock.app).
+function apexRedirectBlock(target, includeWww) {
+  const block = (host) => `\n${site(host)} {\n\tredir ${target} temporary\n}\n`;
+  return block(config.baseDomain) + (includeWww ? block(`www.${config.baseDomain}`) : '');
+}
+
+/** A valid apex redirect target, or null: http(s), one token, no { } placeholders. */
+function apexRedirectTarget(text) {
+  const t = String(text || '').trim();
+  if (!t || /[{}\s]/.test(t) || !/^https?:\/\/[^/\s]+/i.test(t)) return null;
+  return t;
+}
+
 function dockerAppBlock(app, accessLogs) {
   const host = `${app.subdomain}.${config.baseDomain}`;
   return `
@@ -384,6 +399,7 @@ function generateCaddyfile(apps, opts = {}) {
   // address for it, it does not move it.
   const apex = opts.apexApp && apps.find((a) => a.slug === opts.apexApp);
   if (apex) out += apexBlock(apex, accessLogs, opts.apexWww !== false);
+  else if (apexRedirectTarget(opts.apexRedirect)) out += apexRedirectBlock(apexRedirectTarget(opts.apexRedirect), opts.apexWww !== false);
 
   // An app's subdomain always wins: a redirect must never be able to take over a
   // name something is already served on.
@@ -451,4 +467,4 @@ function postToSocket(socketPath, urlPath, body) {
 }
 
 module.exports = {
-  onDemandEverywhere, generateCaddyfile, loadCaddyfile, parseRedirects, API };
+  onDemandEverywhere, apexRedirectTarget, generateCaddyfile, loadCaddyfile, parseRedirects, API };
