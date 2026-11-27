@@ -90,6 +90,17 @@ test('boot reads the PM2 apps to restore from the dump, and ignores odd names', 
   fs.writeFileSync(path.join(tmp, 'dump.pm2'), JSON.stringify([{ name: 'oncall' }, { name: 'ledger' }, { name: '../etc' }, { name: 'oncall' }]));
   assert.deepStrictEqual(boot.pm2Apps().sort(), ['ledger', 'oncall']);
 });
+test('boot writes each app\'s new ids into the dump and its .bak', () => {
+  const dump = [{ name: 'ledger', uid: 999, gid: 999, env: { A: '1' } }, { name: 'oncall', uid: 30001, gid: 30001 }, { name: 'other', uid: 998, gid: 998 }];
+  for (const f of ['dump.pm2', 'dump.pm2.bak']) fs.writeFileSync(path.join(tmp, f), JSON.stringify(dump));
+  boot.setDumpIds({ ledger: { uid: 23851, gid: 23851 }, oncall: { uid: 30001, gid: 30001 } });
+  for (const f of ['dump.pm2', 'dump.pm2.bak']) {
+    const out = JSON.parse(fs.readFileSync(path.join(tmp, f), 'utf8'));
+    assert.deepStrictEqual(out.map((p) => [p.name, p.uid, p.gid]), [['ledger', 23851, 23851], ['oncall', 30001, 30001], ['other', 998, 998]], f);
+    assert.deepStrictEqual(out[0].env, { A: '1' }, 'the rest of the entry stays');
+  }
+  fs.rmSync(path.join(tmp, 'dump.pm2.bak'));
+});
 test('no dump means nothing to restore', () => {
   fs.rmSync(path.join(tmp, 'dump.pm2'));
   assert.deepStrictEqual(boot.pm2Apps(), []);
