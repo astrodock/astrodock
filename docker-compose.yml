@@ -31,9 +31,15 @@ services:
   # every bucket through the filer on :8888. So the storage core lives on an
   # internal network nothing else joins, and `objectstore` is an HTTP proxy that
   # forwards :8333 and nothing else. Apps keep the same address.
+  #
+  # The image's entrypoint adds -master.volumePreallocate to `server`, which
+  # reserves the full volume size (1 GB) on disk for every volume file, and a new
+  # bucket starts with 7 of them: 7 GB per bucket, whatever it holds. Docker counts
+  # only the bytes written, so `docker system df` doesn't show it. The `=false`
+  # here comes later on the command line and wins.
   seaweed:
     image: chrislusf/seaweedfs:3.80
-    command: "server -dir=/data -s3 -s3.port=8333 -ip.bind=0.0.0.0 -volume.max=0 -master.volumeSizeLimitMB=1024"
+    command: "server -dir=/data -s3 -s3.port=8333 -ip.bind=0.0.0.0 -volume.max=0 -master.volumeSizeLimitMB=1024 -master.volumePreallocate=false"
     volumes:
       - objectdata:/data
     networks:

@@ -11,7 +11,7 @@ trap cleanup EXIT
 
 cleanup
 docker run -d --name "$NAME" -p "$PORT":8333 chrislusf/seaweedfs:3.80 \
-  server -dir=/data -s3 -s3.port=8333 -ip.bind=0.0.0.0 -volume.max=0 -master.volumeSizeLimitMB=64 >/dev/null
+  server -dir=/data -s3 -s3.port=8333 -ip.bind=0.0.0.0 -volume.max=0 -master.volumeSizeLimitMB=64 -master.volumePreallocate=false >/dev/null
 
 i=0
 while [ $i -lt 60 ]; do
