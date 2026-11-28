@@ -1563,6 +1563,7 @@ button.primary, .page-header > button:not(.danger):not(.secondary):not(.link-btn
 .server-section { margin-top:32px; }
 .server-result { margin:0 0 20px; font-size:14px; color:var(--text-2); }
 .server-result b { color:var(--accent); font-weight:600; }
+.server-note { color:var(--text-3); font-weight:400; }
 
 /* ── Approvals, agent sign-in, welcome ── */
 .solo { min-height:100vh; padding:40px 20px; background:var(--frame); }
